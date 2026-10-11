@@ -99,6 +99,7 @@ export class CorvetteModel implements ShipModel {
   /** La bôme d'artimon part du côté où va le vent : presque dans l'axe au près, très ouverte au vent arrière. */
   setWind(relativeDirection: number, strength: number) {
     this.flag.setWind(relativeDirection, strength);
+    this.tornSail.setWind(relativeDirection, strength);
     const s = Math.sin(relativeDirection);
     // Hystérésis : au vent arrière pile, rien ne change de bord sans arrêt.
     if (s > 0.15) this.leeSide = 1;
@@ -184,7 +185,7 @@ export class CorvetteModel implements ShipModel {
 
     L.squareSails.forEach((s, i) => {
       // La grand-voile (la plus grande) porte l'emblème de la livrée, s'il y en a un.
-      const sail = new THREE.Mesh(t.squareSails[i], this.tornSail.material(i === MAIN_COURSE ? t.squareSails[i] : undefined));
+      const sail = new THREE.Mesh(t.squareSails[i], this.tornSail.material('z', i === MAIN_COURSE ? t.squareSails[i] : undefined));
       sail.position.set(0, s.yardY, s.mastZ + 0.22);
       const yard = new THREE.Mesh(t.yards[i], t.palette.wood);
       yard.position.set(0, s.yardY, s.mastZ + 0.1);
@@ -193,13 +194,13 @@ export class CorvetteModel implements ShipModel {
       this.body.add(sail, yard);
     });
     L.jibs.forEach((j, i) => {
-      const jib = new THREE.Mesh(t.jibs[i], this.tornSail.material());
+      const jib = new THREE.Mesh(t.jibs[i], this.tornSail.material('x'));
       jib.position.copy(j.tack);
       this.jibs.push(jib);
       this.body.add(jib);
     });
     this.hoist = new THREE.Group();
-    this.hoist.add(new THREE.Mesh(t.mizzenSail, this.tornSail.material()), new THREE.Mesh(t.mizzenGaff, t.palette.wood));
+    this.hoist.add(new THREE.Mesh(t.mizzenSail, this.tornSail.material('x')), new THREE.Mesh(t.mizzenGaff, t.palette.wood));
     this.mizzenRig = new THREE.Group();
     this.mizzenRig.add(new THREE.Mesh(t.mizzenBoom, t.palette.wood), this.hoist);
     this.mizzenRig.position.set(0, L.mizzenBoomY, L.mizzenMast.z);

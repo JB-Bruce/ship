@@ -51,9 +51,9 @@ export class LongboatModel implements ShipModel {
     for (const { geometry, material } of t.statics) this.root.add(new THREE.Mesh(geometry, material));
 
     const mastZ = LONGBOAT_HULL.stationAt(MAST_U).z;
-    this.sail = new THREE.Mesh(t.sail, this.tornSail.material(t.sail));
+    this.sail = new THREE.Mesh(t.sail, this.tornSail.material('z', t.sail));
     this.sail.position.set(0, SAIL.yardY, mastZ + 0.14);
-    if (t.patches) this.sail.add(new THREE.Mesh(t.patches.geometry, t.patches.material));
+    if (t.patches) this.sail.add(new THREE.Mesh(t.patches.geometry, this.tornSail.patchMaterial(t.patches.material, 'z')));
     this.yard = new THREE.Mesh(t.yard, t.palette.wood);
     this.yard.position.set(0, SAIL.yardY, mastZ + 0.08);
 
@@ -91,6 +91,7 @@ export class LongboatModel implements ShipModel {
 
   setWind(relativeDirection: number, strength: number) {
     this.flag.setWind(relativeDirection, strength);
+    this.tornSail.setWind(relativeDirection, strength);
   }
 
   setArmorLevel(level: number) {

@@ -513,6 +513,17 @@ export const SAVE = {
   enemyRange: 300,
 };
 
+/**
+ * Voiles gonflées par le vent : face au vent, leur creux d'origine ; vent arrière, jusqu'à `max` fois ce creux, atteint
+ * à partir de la force `fullStrength` (1 = WIND.referenceKnots, 20 nœuds). Vent de travers : à moitié.
+ */
+export const SAIL_BILLOW = {
+  max: 3,
+  fullStrength: 2,
+  /** Voile carrée : hauteur sous la vergue sur laquelle le surplus de creux s'installe (m), pour rester attachée à la vergue. */
+  yardBlend: 1.5,
+};
+
 /** Registre du capitaine. */
 export const LEDGER = {
   /** Au-delà de ce déplacement en une image (m), le bateau piloté a été déplacé (réapparition) : ce n'est pas de la navigation. */

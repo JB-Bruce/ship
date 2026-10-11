@@ -1,6 +1,9 @@
 import * as THREE from 'three';
-import { DAMAGE } from '../../config';
+import { DAMAGE, SAIL_BILLOW } from '../../config';
 import { EMBLEM_DECLARATIONS, EMBLEM_FRAGMENT, emblemUniforms } from './sailEmblem';
+
+/** Axe du creux d'une voile dans son repère : 'z' pour une voile carrée, 'x' pour un foc ou une voile aurique. */
+export type SailAxis = 'x' | 'z';
 
 /**
  * Toiles qui se trouent avec les dégâts, pour un bateau. Chaque voile reçoit son propre matériau (copie de celui
@@ -12,6 +15,8 @@ import { EMBLEM_DECLARATIONS, EMBLEM_FRAGMENT, emblemUniforms } from './sailEmbl
  */
 export class TornSail {
   private readonly tear = { value: 0 };
+  /** Creux des voiles : 1 = celui de leur forme, plus quand le vent les gonfle (voir setWind). */
+  private readonly billow = { value: 1 };
   private readonly materials: THREE.Material[] = [];
 
   /** `emblem` : la livrée porte un emblème sur sa plus grande voile. */
@@ -21,10 +26,11 @@ export class TornSail {
   ) {}
 
   /**
-   * Un nouveau matériau de voile, avec son propre motif de trous. `emblemOn` : la géométrie de la voile qui porte
-   * l'emblème de la livrée (s'il y en a un).
+   * Un nouveau matériau de voile, avec son propre motif de trous. `axis` : l'axe du creux de la voile dans son repère
+   * (voile carrée : 'z' ; foc et voile aurique : 'x'). `emblemOn` : la géométrie de la voile qui porte l'emblème de la
+   * livrée (s'il y en a un).
    */
-  material(emblemOn?: THREE.BufferGeometry): THREE.Material {
+  material(axis: SailAxis, emblemOn?: THREE.BufferGeometry): THREE.Material {
     const material = this.base.clone();
     const seed = { value: new THREE.Vector2(Math.random() * 100, Math.random() * 100) };
     const emblem = this.emblem && emblemOn ? emblemUniforms(emblemOn) : null;
@@ -32,6 +38,7 @@ export class TornSail {
       shader.uniforms.uTear = this.tear;
       shader.uniforms.uTearSeed = seed;
       if (emblem) Object.assign(shader.uniforms, emblem);
+      this.addBillow(shader, axis);
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vSailPos;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\nvSailPos = position;');
@@ -75,6 +82,46 @@ ${emblem ? EMBLEM_FRAGMENT : ''}
     material.customProgramCacheKey = () => (emblem ? 'torn-sail-emblem' : 'torn-sail');
     this.materials.push(material);
     return material;
+  }
+
+  /** Matériau d'une pièce posée sur une voile (rapiéçage) : elle gonfle avec la voile, sans trous. */
+  patchMaterial(base: THREE.Material, axis: SailAxis): THREE.Material {
+    const material = base.clone();
+    material.onBeforeCompile = (shader) => this.addBillow(shader, axis);
+    material.customProgramCacheKey = () => 'billow-patch';
+    this.materials.push(material);
+    return material;
+  }
+
+  /**
+   * Le vent gonfle les voiles : face au vent, leur creux d'origine ; vent arrière, jusqu'à SAIL_BILLOW.max fois, selon
+   * sa force. `relativeDirection` : où va le vent, par rapport au cap (0 = vent arrière).
+   */
+  setWind(relativeDirection: number, strength: number) {
+    const fill = (1 + Math.cos(relativeDirection)) / 2;
+    this.billow.value = 1 + (SAIL_BILLOW.max - 1) * fill * Math.min(1, strength / SAIL_BILLOW.fullStrength);
+  }
+
+  /**
+   * Creux variable : chaque point de la toile s'écarte de son plan le long de l'axe du creux, `uBillow` fois plus que
+   * dans la géométrie (la voile est plane à 0 sur cet axe) ; la normale suit la nouvelle courbure. Une voile carrée
+   * pend de sa vergue (en y = 0) : le surplus de creux y est nul et s'installe sur SAIL_BILLOW.yardBlend mètres, pour
+   * que la toile reste attachée à la vergue droite. Foc et voile aurique ont déjà un creux nul sur leurs bords.
+   */
+  private addBillow(shader: THREE.WebGLProgramParametersWithUniforms, axis: SailAxis) {
+    shader.uniforms.uBillow = this.billow;
+    shader.uniforms.uBillowAxis = { value: axis === 'z' ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0) };
+    shader.uniforms.uYardBlend = { value: axis === 'z' ? SAIL_BILLOW.yardBlend : 0 };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform float uBillow;\nuniform vec3 uBillowAxis;\nuniform float uYardBlend;')
+      .replace(
+        '#include <beginnormal_vertex>',
+        '#include <beginnormal_vertex>\nobjectNormal = normalize(objectNormal - uBillowAxis * dot(objectNormal, uBillowAxis) * (1.0 - 1.0 / uBillow));',
+      )
+      .replace(
+        '#include <begin_vertex>',
+        '#include <begin_vertex>\nfloat billowFade = uYardBlend > 0.0 ? smoothstep(0.0, uYardBlend, -position.y) : 1.0;\ntransformed += uBillowAxis * dot(position, uBillowAxis) * (uBillow - 1.0) * billowFade;',
+      );
   }
 
   /** `damage` : vie perdue (0 = intact, 1 = coulé). */
