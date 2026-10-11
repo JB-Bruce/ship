@@ -8,8 +8,6 @@ import type { Wind } from '../world/wind';
 const COLORS = {
   background: 'rgba(6, 28, 38, 0.72)',
   grid: 'rgba(120, 230, 200, 0.22)',
-  sweep: 'rgba(120, 230, 200, 0.14)',
-  sweepLine: 'rgba(120, 230, 200, 0.6)',
   player: '#f2e8d0',
   hunting: '#ff4a3a',
   patrolling: '#ffae3a',
@@ -37,7 +35,6 @@ export class Radar {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly windLabel: HTMLElement;
   private lastWindText = '';
-  private sweep = 0;
   /** Temps écoulé depuis le dernier dessin (s). */
   private sinceDraw = Infinity;
   /** Portée actuelle (m) : plus grande près de l'île quand le phare est amélioré. */
@@ -62,7 +59,6 @@ export class Radar {
     // Redessiner un dessin 2D à chaque image coûte cher : RADAR.refreshRate fois par seconde suffit.
     this.sinceDraw += dt;
     if (this.sinceDraw < 1 / RADAR.refreshRate) return;
-    dt = Math.min(this.sinceDraw, 0.25);
     this.sinceDraw = 0;
     const ctx = this.ctx;
     const c = RADAR.size / 2;
@@ -86,19 +82,6 @@ export class Radar {
     ctx.stroke();
 
     for (const island of ISLAND_LIST) this.drawIsland(c, r, player, island);
-
-    // Balayage : un secteur qui s'estompe derrière la ligne.
-    this.sweep = (this.sweep + dt * RADAR.sweepSpeed) % (Math.PI * 2);
-    ctx.fillStyle = COLORS.sweep;
-    ctx.beginPath();
-    ctx.moveTo(c, c);
-    ctx.arc(c, c, r, this.sweep - 0.7, this.sweep);
-    ctx.fill();
-    ctx.strokeStyle = COLORS.sweepLine;
-    ctx.beginPath();
-    ctx.moveTo(c, c);
-    ctx.lineTo(c + Math.cos(this.sweep) * r, c + Math.sin(this.sweep) * r);
-    ctx.stroke();
 
     // Monde → radar : avant du bateau vers le haut, bâbord vers la gauche.
     const sin = Math.sin(player.heading);

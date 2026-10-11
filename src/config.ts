@@ -928,8 +928,6 @@ export const RADAR = {
   range: 400,
   /** Diamètre à l'écran (px). */
   size: 180,
-  /** Vitesse du balayage (rad/s). */
-  sweepSpeed: 1.8,
   /** Le radar est redessiné au plus ce nombre de fois par seconde (dessin 2D coûteux s'il est fait à chaque image). */
   refreshRate: 30,
 };
