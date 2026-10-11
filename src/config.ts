@@ -1177,10 +1177,16 @@ export const DAY_NIGHT = {
   lanternGlow: [0.9, 2.6] as const,
   windowColor: 0xffb04a,
   windowGlow: [0, 1.3] as const,
-  /** Halos des fanaux : taille (m, grandit avec la distance pour rester lisible de loin), éclat, portée (m), nombre max. */
-  haloSize: 1.0,
-  haloGrowth: 0.016,
-  haloIntensity: 0.7,
+  /**
+   * Halos des fanaux : taille (m, grandit avec la distance pour rester lisible de loin), décroissance de la lueur en
+   * cloche (plus grand = plus resserrée), éclat la nuit et part de cet éclat de jour (brouillard, pluie), portée (m),
+   * nombre max.
+   */
+  haloSize: 2.6,
+  haloGrowth: 0.012,
+  haloFalloff: 3.5,
+  haloIntensity: 1,
+  haloDaylight: 0.35,
   haloRange: 320,
   maxHalos: 160,
   /** La nuit, la Marine patrouille moins : rencontres ordinaires plus rares (délai × ce facteur en pleine nuit). */

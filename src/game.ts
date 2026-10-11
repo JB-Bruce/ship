@@ -248,7 +248,7 @@ export class Game {
     // Fanaux et fenêtres : allumés la nuit et par temps sombre.
     const dark = this.weather.darkness;
     setNightGlow(dark);
-    this.halos.update(this.camera, this.ships, dark, (this.scene.fog as THREE.Fog).far);
+    this.halos.update(this.camera, this.ships, dark, this.dayCycle.night, (this.scene.fog as THREE.Fog).far);
     this.hud.update(dt, leader, this.state, this.inCombat(), this.fleet);
     this.hud.quests.update(dt, this.campaign.contracts, this.fleet, (c) => this.campaign.missions.status(c));
     this.radar.range = this.campaign.islands.tortuga.radarRange(tortuga.sdf(leader.position.x, leader.position.z)) * this.fleet.radarFactor();
