@@ -197,6 +197,15 @@ export class EnemySpawner {
     // Types : les suiveurs tirés selon la composition du moment ; le chef un cran au-dessus (grosse flottille).
     const types = Array.from({ length: size }, () => cap(this.pickType()));
     if (size > 1 && this.kills >= ENEMIES.flotilla.bigFromKills) types[0] = cap(this.biggerType(types));
+    // Un seul navire plus gros que ton plus gros à la fois sur la carte (le chef d'abord) : les autres prennent ta taille.
+    if (sizeRank(largest) > sizeRank(power.best)) {
+      let allowed = this.enemies.some((e) => e.ship.alive && e.ship.type === largest) ? 0 : 1;
+      for (let k = 0; k < types.length; k++) {
+        if (types[k] !== largest) continue;
+        if (allowed > 0) allowed--;
+        else types[k] = power.best;
+      }
+    }
 
     const chance = this.eliteChance();
     const leader = this.add(types[0], x, z, heading, Math.random() < chance * (size > 1 ? ENEMIES.elite.leaderBonus : 1), null, null);
