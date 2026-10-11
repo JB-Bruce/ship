@@ -75,6 +75,7 @@ export class LongboatModel implements ShipModel {
 
   setSailAmount(amount: number) {
     this.sailAmount = amount;
+    this.tornSail.setDeployment(amount);
     this.sail.scale.set(this.sailScale.x, this.sailScale.y * (0.1 + 0.9 * amount), 1);
   }
 

@@ -79,6 +79,7 @@ export class BrigantineModel implements ShipModel {
 
   setSailAmount(amount: number) {
     this.sailAmount = amount;
+    this.tornSail.setDeployment(amount);
     this.applySails();
   }
 
@@ -200,6 +201,7 @@ export class BrigantineModel implements ShipModel {
     this.setCannons(this.perSide);
     this.setArmorLevel(this.armorLevel);
     this.tornSail.setDamage(this.damage);
+    this.tornSail.setDeployment(this.sailAmount);
     this.applySails();
   }
 

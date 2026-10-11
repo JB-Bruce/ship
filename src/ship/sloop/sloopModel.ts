@@ -101,6 +101,7 @@ export class SloopModel implements ShipModel {
 
   setSailAmount(amount: number) {
     this.sailAmount = amount;
+    this.tornSail.setDeployment(amount);
     this.applySails();
   }
 

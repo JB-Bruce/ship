@@ -24,8 +24,11 @@ export type SailAxis = 'x' | 'z';
  */
 export class TornSail {
   private readonly tear = { value: 0 };
-  /** Part du gonflement maximal de chaque voile que donne le vent (0 = creux d'origine, 1 = maximum) : voir setWind. */
+  /** Part du gonflement maximal de chaque voile (0 = creux d'origine, 1 = maximum) : celle du vent × le déploiement. */
   private readonly fill = { value: 0 };
+  /** Part donnée par le vent (voir setWind), et déploiement des voiles (0 = affalées, 1 = pleine voile). */
+  private windFill = 0;
+  private deployment = 1;
   private readonly materials: THREE.Material[] = [];
 
   /** `emblem` : la livrée porte un emblème sur sa plus grande voile. */
@@ -108,11 +111,19 @@ ${emblemOn ? EMBLEM_FRAGMENT : ''}
   }
 
   /**
-   * Le vent gonfle les voiles : face au vent, leur creux d'origine ; vent arrière, jusqu'à leur maximum, selon sa force.
+   * Le vent gonfle les voiles : face au vent, leur creux d'origine ; vent arrière, jusqu'à leur maximum, selon sa force
+   * (et en proportion de leur déploiement, voir setDeployment).
    * `relativeDirection` : où va le vent, par rapport au cap (0 = vent arrière).
    */
   setWind(relativeDirection: number, strength: number) {
-    this.fill.value = ((1 + Math.cos(relativeDirection)) / 2) * Math.min(1, strength / SAIL_BILLOW.fullStrength);
+    this.windFill = ((1 + Math.cos(relativeDirection)) / 2) * Math.min(1, strength / SAIL_BILLOW.fullStrength);
+    this.fill.value = this.windFill * this.deployment;
+  }
+
+  /** Déploiement des voiles (jauge de voile, 0 à 1) : une voile à moitié hissée ne se gonfle qu'à moitié. */
+  setDeployment(amount: number) {
+    this.deployment = Math.max(0, Math.min(1, amount));
+    this.fill.value = this.windFill * this.deployment;
   }
 
   /**
