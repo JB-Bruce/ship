@@ -32,7 +32,7 @@ export class SiegeMission implements Mission {
     private readonly onAttack: () => void,
   ) {
     const island = contract.from;
-    this.stars = contract.stars;
+    this.stars = contract.tier ?? contract.stars;
     this.squadron = contract.squadron;
     this.fort = world.forts[island];
     const { fort, shortName } = ISLAND_INFO[island];

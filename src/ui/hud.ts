@@ -1,5 +1,6 @@
 import type { Fleet } from '../fleet/fleet';
 import { fleetHold } from '../fleet/holds';
+import { rankName, rankOf } from '../fleet/officers';
 import type { PlayerState } from '../progression/playerState';
 import type { Ship } from '../ship/ship';
 import { typeName } from '../shipTypes';
@@ -132,7 +133,10 @@ export class Hud {
     }
   }
 
-  /** Nom du bateau piloté, places dans les cales, et bandeau de la flotte : vie de chacun, ou délai avant son retour. */
+  /**
+   * Nom du bateau piloté, places dans les cales, et bandeau de la flotte : pour chacun, étoiles de rang, nom, type, vie
+   * (ou délai avant son retour).
+   */
   private renderFleet(fleet: Fleet) {
     const hold = fleetHold(fleet.hand);
     const holdText = `Cales ${hold.used} / ${hold.capacity}`;
@@ -151,7 +155,10 @@ export class Hud {
           ? `<span class="bar"><span style="width:${(m.ship.health / m.ship.stats.maxHealth) * 100}%"></span></span>`
           : `<span class="away">${m.inWorld ? 'coule…' : `retour ${Math.ceil(m.respawnIn)} s`}</span>`;
         const icons = afloat ? m.ship.crits.icons : '';
-        return `<div class="hud-fleet-row${m === c ? ' helm' : ''}"><span class="name">${m.trade ? '⚖ ' : ''}${m.name}${icons ? ` <span class="crits">${icons}</span>` : ''}</span>${state}</div>`;
+        const stars = rankOf(m.kills);
+        const rank = stars ? `<span class="rank" title="${rankName(stars)}">${'★'.repeat(stars)}</span>` : '';
+        const type = `<span class="type">${typeName(m.type, m.levels.extension)}</span>`;
+        return `<div class="hud-fleet-row${m === c ? ' helm' : ''}"><span class="name">${m.trade ? '⚖ ' : ''}${rank}${m.name}${type}${icons ? ` <span class="crits">${icons}</span>` : ''}</span>${state}</div>`;
       })
       .join('');
   }

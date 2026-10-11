@@ -29,10 +29,11 @@ export function maxLevel(type: ShipType, id: UpgradeId, levels?: UpgradeLevels):
   return SHIP_TYPES[type].upgrades[id].costs.length - extensionLevels(type, id, levels?.extension ?? 0);
 }
 
-/** Toutes les améliorations au maximum (sauf la cale, inutile en combat). */
+/** Tous les allongements et toutes les améliorations au maximum (sauf la cale, inutile en combat). */
 export function maxLevels(type: ShipType): UpgradeLevels {
   const levels = noUpgrades();
-  for (const id of UPGRADE_IDS) if (id !== 'hold') levels[id] = maxLevel(type, id);
+  levels.extension = SHIP_TYPES[type].extensions?.length ?? 0;
+  for (const id of UPGRADE_IDS) if (id !== 'hold') levels[id] = maxLevel(type, id, levels);
   return levels;
 }
 
@@ -133,13 +134,19 @@ export function describeLevel(type: ShipType, id: UpgradeId, level: number): str
   }
 }
 
-/** Niveaux tirés au hasard pour un ennemi : plus la menace (0..1) est haute, plus il est amélioré. */
-export function randomLevels(type: ShipType, threat: number): UpgradeLevels {
+/**
+ * Niveaux tirés au hasard pour un ennemi : plus la menace (0..1) est haute, plus il est amélioré ; chaque allongement
+ * a sa chance (`extensionChance` × la menace) et ouvre ses niveaux en plus.
+ */
+export function randomLevels(type: ShipType, threat: number, extensionChance = 0): UpgradeLevels {
   const levels = noUpgrades();
+  // D'abord les allongements (dans l'ordre) : ils ouvrent des niveaux d'amélioration en plus.
+  const extensions = SHIP_TYPES[type].extensions?.length ?? 0;
+  while (levels.extension < extensions && Math.random() < threat * extensionChance) levels.extension++;
   // La cale ne sert à rien chez l'ennemi (et ne doit pas gonfler son butin).
   for (const id of UPGRADE_IDS) {
     if (id === 'hold') continue;
-    const max = maxLevel(type, id);
+    const max = maxLevel(type, id, levels);
     while (levels[id] < max && Math.random() < threat * 0.75) levels[id]++;
   }
   return levels;

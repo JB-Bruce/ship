@@ -477,6 +477,11 @@ body {
   color: #ff4a3a;
 }
 
+/* Un navire de ta flotte : son nom, en bleu clair comme les alliés. */
+.ship-tag.mine {
+  color: #cfe8ff;
+}
+
 
 
 
@@ -539,6 +544,19 @@ body {
 
 .hud-fleet-row .name {
   min-width: 96px;
+}
+
+.hud-fleet-row .rank,
+.ship-tag .rank {
+  margin-right: 4px;
+  color: #ffd447;
+  letter-spacing: -1px;
+}
+
+.hud-fleet-row .type {
+  margin-left: 6px;
+  font-size: 11px;
+  opacity: 0.7;
 }
 
 .hud-fleet-row .bar {

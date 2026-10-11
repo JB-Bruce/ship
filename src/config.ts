@@ -645,6 +645,11 @@ export const ENEMIES = {
    * Avant, la probabilité de chaque niveau d'amélioration monte progressivement.
    */
   killsForFullThreat: 20,
+  /**
+   * Chance de chaque allongement (brigantin, corvette, frégate) d'un ennemi à pleine menace (× la menace, comme les
+   * améliorations) ; un allongement ouvre aussi ses niveaux d'amélioration en plus. Les boss sont toujours allongés.
+   */
+  extensionChance: 0.5,
   /** Butin supplémentaire par niveau d'amélioration de l'ennemi (fraction). */
   lootPerUpgradeLevel: 0.12,
 };
@@ -787,11 +792,17 @@ export const CONTRACTS = {
   specialReward: 2,
   /**
    * Difficulté en étoiles (1 à 5) : les offres du jour sont tirées autour du niveau de ta flotte (`fleetLevel`) : ce
-   * niveau ou une étoile de moins, et une fois sur cinq une de plus. Les primes « fixes » sont multipliées selon les
-   * étoiles (`starReward`).
+   * niveau ou une étoile de moins, et une fois sur cinq une de plus ; ce tirage choisit le palier des tables (escadre,
+   * embuscades…). Pour un combat, les étoiles affichées viennent ensuite de la menace réelle : chaque navire compte sa
+   * taille (barque 1, chaloupe 2, sloop 3, brigantin 4, corvette 5, frégate 6), un navire d'élite × `eliteThreat` (le
+   * chef d'une escadre l'est toujours) ; `threatStars` = points qu'il faut pour 2, 3, 4 et 5 étoiles (3 chaloupes =
+   * 6 points = 1 étoile ; 4 sloops = 12 = 3 étoiles ; 4 frégates = 24 = 5 étoiles). Les primes « fixes » sont
+   * multipliées selon les étoiles (`starReward`).
    */
   stars: 5,
   starReward: [1, 1.6, 2.3, 3.1, 4],
+  threatStars: [7, 12, 17, 23],
+  eliteThreat: 1.5,
   /** Niveau de ta flotte : somme des tailles de tes navires (chaloupe 1 … frégate 6) divisée par ce nombre. */
   fleetLevelDivisor: 3.5,
   /** Écart d'étoiles autour du niveau : [écart, probabilité cumulée]. */

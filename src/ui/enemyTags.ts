@@ -15,7 +15,7 @@ export function threatOf(enemy: Enemy, leader: Ship): Threat {
 
 /** Texte de l'étiquette (HTML) : nom du boss ou du capitaine, sinon le type ; couronne pour une élite, crâne si redoutable. */
 export function enemyTagHtml(enemy: Enemy, threat: Threat): string {
-  const type = typeName(enemy.ship.type);
+  const type = typeName(enemy.ship.type, enemy.ship.extension);
   const name = enemy.boss ? BOSSES[enemy.boss].name : enemy.name ? `${enemy.name} · ${type}` : type;
   const crown = enemy.elite ? '<b class="crown">♛</b>' : '';
   const skull = threat === 'deadly' ? '☠ ' : '';

@@ -10,8 +10,13 @@ export interface Contract {
   readonly kind: ContractKind;
   readonly title: string;
   readonly description: string;
-  /** Difficulté, de 1 à CONTRACTS.stars étoiles. */
+  /** Difficulté, de 1 à CONTRACTS.stars étoiles (pour un combat : la menace réelle, missionThreat.ts). */
   readonly stars: number;
+  /**
+   * Palier des tables par étoile (escadre, embuscades) d'une offre du jour : les étoiles tirées autour du niveau de ta
+   * flotte. Absent des anciennes sauvegardes et des missions spéciales : `stars`.
+   */
+  readonly tier?: number;
   /** Nombre à atteindre (navires, unités livrées, 1 pour une mission). */
   readonly target: number;
   readonly reward: Cost;

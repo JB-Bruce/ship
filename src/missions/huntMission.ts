@@ -28,7 +28,7 @@ export class HuntMission implements Mission {
     const name = contract.captain ?? 'Capitaine de la Marine';
     this.area = { ...center, radius: h.radius, label: name };
     // Les étoiles règlent le navire du capitaine et son escorte.
-    const s = contract.stars - 1;
+    const s = (contract.tier ?? contract.stars) - 1;
     // Escadre imposée par une mission spéciale, ou tirée selon les étoiles.
     const types = contract.squadron ?? squadronTypes(h.captain[s], randInt(h.escorts[s]), h.escortMin[s]);
     const home = { x: center.x, z: center.z, radius: h.radius };

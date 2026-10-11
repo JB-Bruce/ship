@@ -1,6 +1,6 @@
 import type * as THREE from 'three';
 import { mooringSpot, PirateAI } from '../ai/pirateAI';
-import { LIVERIES, PIRATES } from '../config';
+import { ENEMIES, LIVERIES, PIRATES } from '../config';
 import { randomLevels } from '../progression/upgrades';
 import { createShip, type Ship } from '../ship/ship';
 import { SHIP_SIZE_ORDER, sizeRank, type ShipType } from '../shipTypes';
@@ -62,7 +62,7 @@ export class PirateTraffic {
     if (!harbors.length) return false;
     const island = harbors[Math.floor(Math.random() * harbors.length)];
     const type = this.pickType();
-    const ship = createShip(type, 'ally', randomLevels(type, PIRATES.upgrades), LIVERIES.ally);
+    const ship = createShip(type, 'ally', randomLevels(type, PIRATES.upgrades, ENEMIES.extensionChance), LIVERIES.ally);
     const m = mooringSpot(island, this.ships, ship);
     ship.respawn(m.x, m.z);
     ship.heading = island.def.bay.angle + (Math.random() - 0.5) * Math.PI;

@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import type { FleetMember } from '../fleet/fleet';
+import { rankName, rankOf } from '../fleet/officers';
 import type { Ship } from '../ship/ship';
 import type { Enemy } from '../world/enemySpawner';
 import { enemyTagHtml, threatOf, type Threat } from './enemyTags';
@@ -10,9 +12,11 @@ const projected = new THREE.Vector3();
 interface Bar {
   root: HTMLElement;
   fill: HTMLElement;
-  /** Étiquette d'un ennemi (type, élite, menace), ou null pour un allié. */
+  /** Étiquette d'un ennemi (type, élite, menace) ou d'un navire de ta flotte (rang, nom) ; null pour un autre allié. */
   tag: HTMLElement | null;
   threat: Threat | null;
+  /** Rang et nom affichés sur l'étiquette d'un navire de ta flotte (le DOM n'est touché qu'à leur changement). */
+  label: string;
   /** Pictogrammes des avaries (coups critiques), à droite de la barre. */
   crits: HTMLElement;
   critIcons: string;
@@ -23,6 +27,7 @@ interface Bar {
  * Barres de vie flottant au-dessus des autres bateaux (éléments HTML positionnés chaque image) :
  * rouges pour les ennemis, vertes pour les navires de ta flotte. Au-dessus d'un ennemi, une étiquette : son type (ou
  * son nom), sa couronne s'il est d'élite, et une couleur selon sa menace pour le navire piloté (voir enemyTags.ts).
+ * Au-dessus d'un navire de ta flotte : son nom, précédé des étoiles de son rang s'il en a.
  */
 export class HealthBars {
   private readonly bars = new Map<Ship, Bar>();
@@ -31,7 +36,7 @@ export class HealthBars {
   constructor(private readonly parent: HTMLElement) {}
 
   /** `visibility` : au-delà (brume), un navire est invisible et sa barre aussi. */
-  update(camera: THREE.Camera, ships: readonly Ship[], player: Ship, visibility: number, enemies: readonly Enemy[]) {
+  update(camera: THREE.Camera, ships: readonly Ship[], player: Ship, visibility: number, enemies: readonly Enemy[], fleet: readonly FleetMember[]) {
     this.frame++;
     const range = Math.min(MAX_DISTANCE, visibility);
     for (const ship of ships) {
@@ -46,7 +51,8 @@ export class HealthBars {
       const transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
       bar.root.style.transform = transform;
       bar.fill.style.width = `${(ship.health / ship.stats.maxHealth) * 100}%`;
-      if (bar.tag) this.updateTag(bar, bar.tag, transform, ship, player, enemies);
+      if (ship.faction === 'enemy') this.updateTag(bar, bar.tag!, transform, ship, player, enemies);
+      else this.updateMine(bar, transform, ship, fleet);
       bar.crits.style.transform = transform;
       const icons = ship.crits.icons;
       if (icons !== bar.critIcons) bar.crits.textContent = bar.critIcons = icons;
@@ -73,17 +79,42 @@ export class HealthBars {
     tag.innerHTML = enemyTagHtml(enemy, threat);
   }
 
+  /** Étiquette d'un navire de ta flotte : étoiles de rang et nom (rien pour un pirate ou un marchand allié). */
+  private updateMine(bar: Bar, transform: string, ship: Ship, fleet: readonly FleetMember[]) {
+    let member: FleetMember | null = null;
+    for (const m of fleet) if (m.ship === ship) member = m;
+    if (!member) return;
+    const tag = (bar.tag ??= this.tagElement('ship-tag mine'));
+    tag.style.transform = transform;
+    const stars = rankOf(member.kills);
+    const label = `${stars}|${member.name}`;
+    if (label === bar.label) return;
+    bar.label = label;
+    tag.textContent = member.name;
+    if (!stars) return;
+    const rank = document.createElement('span');
+    rank.className = 'rank';
+    rank.title = rankName(stars);
+    rank.textContent = '★'.repeat(stars);
+    tag.prepend(rank);
+  }
+
+  private tagElement(className: string): HTMLElement {
+    const tag = this.parent.appendChild(document.createElement('div'));
+    tag.className = className;
+    return tag;
+  }
+
   private create(ship: Ship): Bar {
     const root = document.createElement('div');
     root.className = ship.faction === 'enemy' ? 'ship-bar' : 'ship-bar ally';
     const fill = root.appendChild(document.createElement('div'));
     fill.className = 'ship-bar-fill';
     this.parent.appendChild(root);
-    const tag = ship.faction === 'enemy' ? this.parent.appendChild(document.createElement('div')) : null;
-    if (tag) tag.className = 'ship-tag';
+    const tag = ship.faction === 'enemy' ? this.tagElement('ship-tag') : null;
     const crits = this.parent.appendChild(document.createElement('div'));
     crits.className = 'ship-crits';
-    const bar: Bar = { root, fill, tag, threat: null, crits, critIcons: '', seen: this.frame };
+    const bar: Bar = { root, fill, tag, threat: null, label: '', crits, critIcons: '', seen: this.frame };
     this.bars.set(ship, bar);
     return bar;
   }

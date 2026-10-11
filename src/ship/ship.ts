@@ -62,6 +62,8 @@ export class Ship {
   ramCooldown = 0;
   /** Masse (type, blindage, canons, voilure) : elle pèse dans les chocs. */
   mass: number;
+  /** Nombre d'allongements faits (nom du type : typeName). */
+  extension = 0;
   /** Effets des officiers et du rang (fleet/refit.ts), et types de canons de chaque calibre. */
   modifiers: StatModifiers = noModifiers();
   guns: Guns = standardGuns();
@@ -108,6 +110,7 @@ export class Ship {
   /** Ce qui se voit et pèse des améliorations : renfort de coque, voiles élargies, masse (les canons suivent les stats). */
   applyLooks(levels: UpgradeLevels) {
     this.mass = shipMass(this.type, levels);
+    this.extension = levels.extension;
     // Navire allongé : le modèle est reconstruit (nouveaux canons, nouvelles positions du pavillon et de la hampe).
     if (this.model.setExtension?.(levels.extension)) {
       this.cannonCooldowns = this.randomCooldowns();

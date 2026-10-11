@@ -234,7 +234,7 @@ export class EnemySpawner {
   private add(type: ShipType, x: number, z: number, heading: number, elite: boolean, group: EnemyGroup | null, slot: FlotillaSlot | null, ai: EnemyAIOptions = {}): Enemy {
     // Menace : de 0 (début de partie) à 1 (après ENEMIES.killsForFullThreat victoires).
     const threat = Math.min(1, this.kills / ENEMIES.killsForFullThreat);
-    const levels = randomLevels(type, threat);
+    const levels = randomLevels(type, threat, ENEMIES.extensionChance);
     const ship = createShip(type, 'enemy', levels, elite ? ELITE_LIVERY : undefined);
     if (elite) strengthen(ship, ENEMIES.elite);
     ship.position.set(x, 0, z);
