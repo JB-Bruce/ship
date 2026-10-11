@@ -31,6 +31,8 @@ export class PirateTraffic {
     private readonly scene: THREE.Scene,
     private readonly ships: Ship[],
     private readonly fleetPower: () => FleetPower,
+    /** Un pirate a fini de couler : son épave laisse son butin. */
+    private readonly onWreck: (ship: Ship) => void,
   ) {}
 
   /** Ce navire est-il un pirate allié ? */
@@ -42,6 +44,7 @@ export class PirateTraffic {
     for (let i = this.pirates.length - 1; i >= 0; i--) {
       const { ship, ai } = this.pirates[i];
       if (ship.sunk) {
+        this.onWreck(ship);
         this.remove(i);
         continue;
       }

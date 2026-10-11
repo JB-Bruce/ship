@@ -75,6 +75,7 @@ export class Campaign {
     this.merchants = new MerchantTraffic(world.scene, world.ships, (island) => this.islands[island.id], {
       deposited: () => this.ledger.merchantVisits++,
       sunk: (island) => hud.notifications.kill(`☠ Un marchand allié a sombré au large de ${island.info.shortName}`),
+      wrecked: (ship) => world.wreckLoot(ship),
     });
     for (const island of ISLAND_LIST) {
       this.contracts.refresh(island.id, this.contractOptions());

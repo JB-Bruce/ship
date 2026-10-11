@@ -82,7 +82,7 @@ export class Game {
     this.loot.spawnWreckLoot(x, z, enemy.lootFactor);
     if (enemy.boss) for (const kind of ['rum', 'spices'] as const) this.loot.spawnGoods(x, z, kind, 2);
   }, () => this.fleetPower());
-  private readonly pirates = new PirateTraffic(this.scene, this.ships, () => this.fleetPower());
+  private readonly pirates = new PirateTraffic(this.scene, this.ships, () => this.fleetPower(), (ship) => this.wreckLoot(ship));
   private readonly schools = new FishSchools();
   private readonly schoolFx = new FishSchoolFx();
   private readonly fishing: Fishing;
@@ -133,7 +133,7 @@ export class Game {
     this.healthBars = new HealthBars(container);
     this.bossBar = new ObjectiveBar(container, 'boss');
     this.siegeBar = new ObjectiveBar(container, 'siege');
-    const world = { scene: this.scene, ships: this.ships, spawner: this.spawner, forts: this.forts };
+    const world = { scene: this.scene, ships: this.ships, spawner: this.spawner, forts: this.forts, wreckLoot: (ship: Ship) => this.wreckLoot(ship) };
     this.campaign = new Campaign(this.state, this.fleet, this.hud, world, this.lighthouse, this.spawner);
     this.fishing = new Fishing(this.fleet, { caught: () => this.campaign.fishCaught(), say: (text) => this.hud.message(text, 2.5) });
     this.bosses = new Bosses(this.spawner, {
@@ -294,6 +294,11 @@ export class Game {
     this.campaign.memberSunk(member);
     if (ship === leader) this.hud.message(`${this.fleet.controlled.name} sombre…`, 3);
     else this.hud.message(`${member.name} a coulé. De retour dans ${Math.round(SHIP_TYPES[member.type].respawnTime * this.fleet.respawnFactor)} s.`, 3);
+  }
+
+  /** Épave d'un allié hors de ta flotte (pirate, marchand des îles) : le butin d'un navire de son type, comme un ennemi. */
+  private wreckLoot(ship: Ship) {
+    this.loot.spawnWreckLoot(ship.position.x, ship.position.z, SHIP_TYPES[ship.type].lootFactor);
   }
 
   /** Un ennemi est-il dans la zone de tir d'un canon du bateau piloté ? */

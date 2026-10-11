@@ -140,6 +140,7 @@ Décisions prises avec l'auteur (depuis le 2026-10-06). Les valeurs chiffrées s
 - En route (loin des ports), toutes les 25 à 45 s, ils peuvent changer d'activité : chasser un navire de la Marine repéré à moins de 450 m (35 %), s'arrêter pêcher 15 à 30 s sur un banc à moins de 300 m (30 %), patrouiller 20 à 40 s au large (25 %). Ensuite ils reprennent leur route.
 - Sur leur route, ils attaquent un navire de la Marine à moins de 200 m ; la Marine peut aussi les attaquer. Sous 25 % de vie, ils fuient vers le port le plus proche et ne repartent qu'à 80 %.
 - Leurs victimes ne comptent pas pour toi (ni victoires, ni contrats, ni progression des ennemis ; le fil indique « coulé par des pirates ») ; ils vont ramasser eux-mêmes le butin à moins de 120 m.
+- Un allié hors de ta flotte qui coule (pirate allié ou marchand des îles, en bleu) laisse le même butin qu'un ennemi de son type, une fois l'épave disparue (pas le marchand escorté, dont la perte fait échouer la mission).
 - Ils apparaissent à un mouillage loin de toi (450 m au moins) ; un pirate coulé est remplacé 45 à 90 s plus tard.
 
 ## Boss : La Veuve Noire (fait)

@@ -28,6 +28,8 @@ export interface MerchantEvents {
   deposited(island: IslandState, gold: number): void;
   /** Un marchand a sombré (attaqué par la Marine). */
   sunk(island: IslandState): void;
+  /** Son épave a fini de couler : elle laisse son butin. */
+  wrecked(ship: Ship): void;
 }
 
 /**
@@ -54,6 +56,7 @@ export class MerchantTraffic {
     for (let i = this.merchants.length - 1; i >= 0; i--) {
       const m = this.merchants[i];
       if (m.ship.sunk) {
+        this.events.wrecked(m.ship);
         this.remove(i);
         continue;
       }

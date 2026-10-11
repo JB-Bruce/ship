@@ -22,6 +22,8 @@ export interface MissionWorld {
   readonly ships: Ship[];
   readonly spawner: EnemySpawner;
   readonly forts: Record<IslandId, Fort>;
+  /** Un navire allié hors de ta flotte (pirate, marchand des îles) a fini de couler : il laisse son butin. */
+  wreckLoot(ship: Ship): void;
 }
 
 /**
