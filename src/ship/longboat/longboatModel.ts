@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Livery, ShipStats } from '../../config';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import { armorFor, cannonMount, fireSpots, sternStaff, riggingMaterial, waterMaskMaterial, WavingFlag } from '../parts/common';
+import { addStatics, type LanternSpot } from '../parts/nightGlow';
 import { TornSail } from '../parts/tornSail';
 import type { CannonMount, EnsignStaff, FlagMount, ShipModel } from '../shipModel';
 import { FLAG, FLOOR_Y, LONGBOAT_HULL, LONGBOAT_LENGTH, longboatTemplateFor, MAST_U, SAIL } from './longboatTemplate';
@@ -25,6 +26,7 @@ export class LongboatModel implements ShipModel {
   readonly flagMount: FlagMount = { position: new THREE.Vector3(0, FLAG.y, LONGBOAT_HULL.stationAt(MAST_U).z), length: FLAG.length, height: FLAG.height };
   readonly ensignStaff: EnsignStaff = sternStaff(LONGBOAT_HULL.stationAt(-1), 0.9);
   // Fond de la chaloupe entre les bancs, et deux brèches dans le bordé.
+  readonly lanterns: LanternSpot[];
   readonly fireSpots = fireSpots(LONGBOAT_HULL, [
     [-0.6, 0.3, FLOOR_Y + 0.15],
     [0.3, -0.35, FLOOR_Y + 0.15],
@@ -48,7 +50,7 @@ export class LongboatModel implements ShipModel {
     this.tornSail = new TornSail(t.sailMaterial, livery.sailEmblem);
     this.cannonGeometry = t.cannon;
     this.cannonMaterial = t.palette.metal;
-    for (const { geometry, material } of t.statics) this.root.add(new THREE.Mesh(geometry, material));
+    this.lanterns = addStatics(this.root, t.statics);
 
     const mastZ = LONGBOAT_HULL.stationAt(MAST_U).z;
     this.sail = new THREE.Mesh(t.sail, this.tornSail.material(t.sail, 'z', true));

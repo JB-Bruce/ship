@@ -4,6 +4,7 @@ import type { ShipType } from '../shipTypes';
 import { BrigantineModel } from './brigantine/brigantineModel';
 import { CorvetteModel } from './corvette/corvetteModel';
 import type { DeckPlan } from './deckPlan';
+import type { LanternSpot } from './parts/nightGlow';
 import { FrigateModel } from './frigate/frigateModel';
 import { LongboatModel } from './longboat/longboatModel';
 import { RowboatModel } from './rowboat/rowboatModel';
@@ -55,6 +56,8 @@ export interface ShipModel {
   readonly waterline: readonly number[];
   /** Endroits où fumée et feu peuvent naître quand le bateau est abîmé (repère du bateau : ponts, bordé). */
   readonly fireSpots: readonly THREE.Vector3[];
+  /** Lanternes (repère du bateau), dont les halos brillent la nuit (fx/lanternHalos.ts). */
+  readonly lanterns: readonly LanternSpot[];
   /** Pont où vit l'équipage animé (deckCrew/), pour les navires pontés ; les barques gardent leurs rameurs fixes. */
   readonly deckPlan?: DeckPlan;
   /** 0 = voiles carguées, 1 = pleine voile. */

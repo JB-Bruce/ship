@@ -1127,6 +1127,66 @@ export const SKY = {
   sunIntensity: 2.6,
 };
 
+/**
+ * Jour et nuit : l'heure suit la journée des contrats (CONTRACTS.dayLength, 10 min) ; une journée commence à l'aube
+ * (`dawnHour`, lever du soleil). Le soleil suit une course inclinée (`tilt`, jamais au zénith), relevée de `lift` :
+ * plus de jour que de nuit (lever ~5 h, coucher ~19 h). La lune, à l'opposé, monte la nuit. La météo garde ses
+ * couleurs de jour ; la nuit et le crépuscule s'y composent (world/skyLighting.ts). Couleurs : nuit claire et lisible.
+ */
+export const DAY_NIGHT = {
+  /** Heure de l'aube (début d'une journée des contrats). */
+  dawnHour: 5,
+  /** Course du soleil, puis de la lune (plus basse) : inclinaison (rad) et relèvement (part du rayon). */
+  tilt: 0.6,
+  lift: 0.22,
+  moonTilt: 1.1,
+  moonLift: 0.1,
+  /** Ciel et horizon (brume) de nuit, par ciel dégagé ; plus sombres sous les nuages (× nightCloudy). */
+  nightZenith: 0x0a1633,
+  nightHorizon: 0x22345a,
+  nightCloudy: 0.55,
+  /** Crépuscule et aube : horizon, zénith et soleil dorés. */
+  duskHorizon: 0xf0a878,
+  duskZenith: 0x50609a,
+  duskSun: 0xffa865,
+  /** Part de la teinte dorée au plus fort du crépuscule : zénith, horizon (brume). */
+  duskZenithMix: 0.6,
+  duskHorizonMix: 0.55,
+  /** Lune : couleur (disque, halo, reflet, lumière) et intensité de sa lumière par ciel dégagé. */
+  moonColor: 0xc4d2ff,
+  moonIntensity: 1.1,
+  /** Part de la lune qui perce un ciel couvert (lumière, disque). */
+  moonThroughClouds: 0.3,
+  /** Lumière ambiante la nuit : couleurs, et part de l'intensité de jour (jamais nulle : on voit les navires). */
+  nightAmbientSky: 0x6078b8,
+  nightAmbientGround: 0x141c28,
+  nightAmbient: 0.5,
+  /** Eau la nuit : luminosité du corps de l'eau et de l'écume (part de celle de jour). */
+  nightWater: 0.3,
+  nightFoam: 0.4,
+  /** Pluie et filets de vent la nuit (part de leur couleur de jour). */
+  nightEffects: 0.12,
+  /** Les éclairs la nuit : lueur un peu atténuée (sinon le ciel noir vire au gris clair). */
+  nightFlash: 0.6,
+  /**
+   * Les lumières (fanaux, fenêtres, halos) s'allument quand la lumière du soleil (heure et nuages) passe sous
+   * `lightsOn[0]`, pleinement à `lightsOn[1]` : au crépuscule, et aussi dans le brouillard ou sous l'orage.
+   */
+  lightsOn: [0.75, 0.25] as const,
+  /** Fanaux (intensité émissive de jour → allumés) et fenêtres éclairées (couleur, intensité). */
+  lanternGlow: [0.9, 2.6] as const,
+  windowColor: 0xffb04a,
+  windowGlow: [0, 1.3] as const,
+  /** Halos des fanaux : taille (m, grandit avec la distance pour rester lisible de loin), éclat, portée (m), nombre max. */
+  haloSize: 1.0,
+  haloGrowth: 0.016,
+  haloIntensity: 0.7,
+  haloRange: 320,
+  maxHalos: 160,
+  /** La nuit, la Marine patrouille moins : rencontres ordinaires plus rares (délai × ce facteur en pleine nuit). */
+  encounterSlowdown: 2.5,
+};
+
 /** Ce que change un temps, à son plus fort. Le beau temps, lui, est décrit par SKY et WORLD (multiplicateurs à 1). */
 export interface WeatherProfile {
   fogNear: number;

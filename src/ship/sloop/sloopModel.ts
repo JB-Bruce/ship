@@ -3,6 +3,7 @@ import { DECK_CREW, type Livery, type ShipStats } from '../../config';
 import { wrapAngle } from '../../utils/math';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import { armorFor, cannonMount, fireSpots, sternStaff, riggingMaterial, waterMaskMaterial, WavingFlag } from '../parts/common';
+import { addStatics, type LanternSpot } from '../parts/nightGlow';
 import { TornSail } from '../parts/tornSail';
 import { deckWalks, ropeSpots, type DeckPlan } from '../deckPlan';
 import type { CannonMount, EnsignStaff, FlagMount, ShipModel } from '../shipModel';
@@ -39,6 +40,7 @@ export class SloopModel implements ShipModel {
   readonly flagMount: FlagMount = { position: new THREE.Vector3(0, FLAG.y, MAST_Z), length: FLAG.length, height: FLAG.height };
   readonly ensignStaff: EnsignStaff = sternStaff(SLOOP_HULL.stationAt(-1), 0.9);
   // Sur le pont, autour de la cabine et du mât, et deux brèches dans le bordé.
+  readonly lanterns: LanternSpot[];
   readonly fireSpots = fireSpots(SLOOP_HULL, [
     [-0.7, 0.3, DECK_Y],
     [-0.2, -0.4, DECK_Y],
@@ -74,7 +76,7 @@ export class SloopModel implements ShipModel {
     this.gunportGeometry = t.gunport;
     this.cannonMaterial = t.palette.metal;
     this.gunportMaterial = t.palette.dark;
-    for (const { geometry, material } of t.statics) this.root.add(new THREE.Mesh(geometry, material));
+    this.lanterns = addStatics(this.root, t.statics);
 
     this.hoist.add(new THREE.Mesh(t.mainSail, this.tornSail.material(t.mainSail, 'x', true)), new THREE.Mesh(t.gaff, t.palette.wood));
     if (t.patchMaterial) this.hoist.add(new THREE.Mesh(t.patches, this.tornSail.patchMaterial(t.patchMaterial, t.mainSail, 'x')));

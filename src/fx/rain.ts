@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { WEATHER } from '../config';
 
+/** Couleur des gouttes de jour. */
+const DROP_COLOR = new THREE.Color(WEATHER.dropColor);
+
 // Chaque goutte est un trait : sa position au repos est tirée au hasard dans une boîte, et le shader la fait tomber.
 // Les gouttes restent fixes dans le monde (on les traverse en avançant) : la boîte, elle, suit la caméra
 // par enroulement. Aucun calcul par goutte côté CPU.
@@ -89,10 +92,14 @@ export class Rain {
     this.mesh.geometry.setDrawRange(0, Math.round(WEATHER.drops * density) * 2);
   }
 
-  /** `windDirection` / `windStrength` : comme dans Wind (direction vers laquelle il souffle, force 0..1). */
-  update(dt: number, camera: THREE.Camera, amount: number, windDirection: number, windStrength: number) {
+  /**
+   * `windDirection` / `windStrength` : comme dans Wind (direction vers laquelle il souffle, force 0..1). `light` : part de
+   * la couleur de jour (les gouttes ne reçoivent pas les lumières de la scène : plus sombres la nuit).
+   */
+  update(dt: number, camera: THREE.Camera, amount: number, windDirection: number, windStrength: number, light: number) {
     const u = this.uniforms;
     u.uAmount.value = amount;
+    u.uColor.value.copy(DROP_COLOR).multiplyScalar(light);
     this.mesh.visible = amount > 0;
     if (!this.mesh.visible) return;
     // Inclinaison : le haut du trait du côté d'où vient le vent ; la goutte avance dans le sens inverse.

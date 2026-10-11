@@ -3,6 +3,7 @@ import { SAIL_BILLOW, type Livery, type ShipStats } from '../../config';
 import { wrapAngle } from '../../utils/math';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import { armorFor, cannonMount, fireSpots, mastheadStaff, riggingMaterial, waterMaskMaterial, WavingFlag } from '../parts/common';
+import { addStatics, type LanternSpot } from '../parts/nightGlow';
 import { TornSail } from '../parts/tornSail';
 import type { DeckPlan } from '../deckPlan';
 import type { CannonMount, EnsignStaff, FlagMount, ShipModel } from '../shipModel';
@@ -35,6 +36,7 @@ export class CorvetteModel implements ShipModel {
   flagMount!: FlagMount;
   ensignStaff!: EnsignStaff;
   fireSpots!: THREE.Vector3[];
+  lanterns!: LanternSpot[];
   deckPlan!: DeckPlan;
   private layout!: CorvetteLayout;
   /** Tout le navire (le plan courant) ; les drapeaux de rang et les trophées sont posés à côté, sur `root`. */
@@ -182,7 +184,7 @@ export class CorvetteModel implements ShipModel {
       ] as const).map(([u, side, y]) => [L.base(u), side, y] as const),
     );
     this.tornSail = new TornSail(t.sailMaterial, this.livery.sailEmblem);
-    for (const { geometry, material } of t.statics) this.body.add(new THREE.Mesh(geometry, material));
+    this.lanterns = addStatics(this.body, t.statics);
 
     L.squareSails.forEach((s, i) => {
       // La grand-voile (la plus grande) porte l'emblème de la livrée, s'il y en a un.

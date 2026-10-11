@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BOSSES, CAMERA, COMBAT, CRIT, ISLAND_INFO, OCEAN, SKY, WORLD, type IslandId } from './config';
+import { BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, ISLAND_INFO, OCEAN, SKY, WORLD, type IslandId } from './config';
 import { Campaign } from './campaign';
 import { ChaseCamera } from './camera/chaseCamera';
 import { cannonStatsOf, findTarget, updateCannons } from './combat/cannons';
@@ -35,6 +35,10 @@ import type { PortMenu } from './ui/port/portMenu';
 import { Radar } from './ui/radar';
 import { WeatherButtons } from './ui/weatherButtons';
 import { Bosses } from './world/bossEncounter';
+import { DayCycle } from './world/dayCycle';
+import { DayClock } from './ui/dayClock';
+import { LanternHalos } from './fx/lanternHalos';
+import { setNightGlow } from './ship/parts/nightGlow';
 import { resolveCollisions } from './world/collisions';
 import { EnemySpawner } from './world/enemySpawner';
 import { FishSchools } from './world/fishSchools';
@@ -45,7 +49,7 @@ import type { Lighthouse } from './world/lighthouse';
 import { resolveLandCollisions } from './world/landCollision';
 import { Loot } from './world/loot';
 import { PirateTraffic } from './world/pirateTraffic';
-import { Sky, sunDirection } from './world/sky';
+import { Sky } from './world/sky';
 import { Weather } from './world/weather';
 import { weatherHazards } from './world/weatherHazards';
 import { Wind } from './world/wind';
@@ -67,7 +71,13 @@ export class Game {
   private readonly sun = new THREE.DirectionalLight(SKY.sunColor, SKY.sunIntensity);
   private readonly weather: Weather;
   private readonly weatherButtons: WeatherButtons;
+  private readonly dayClock: DayClock;
   private readonly state = new PlayerState();
+  /** Heure du jour : suit la journée des contrats (la campagne est créée plus loin, d'où les rappels). */
+  private readonly dayCycle = new DayCycle(
+    () => this.campaign?.contracts.dayLeft ?? CONTRACTS.dayLength,
+    (seconds) => (this.campaign.contracts.dayLeft = seconds),
+  );
   private readonly saves = new SaveManager();
   /** Tous les bateaux dans le monde : ceux de la flotte du joueur et les ennemis. */
   private readonly ships: Ship[] = [];
@@ -80,6 +90,8 @@ export class Game {
   private readonly deckCrew = new DeckCrew(this.scene, (x, y, z) => this.effects.splash(x, y, z));
   private readonly forts: Record<IslandId, Fort>;
   private readonly lighthouse: Lighthouse;
+  /** Halos des fanaux (navires et ports) quand il fait sombre. */
+  private readonly halos: LanternHalos;
   // Butin : ta flotte le range ; un pirate allié le garde pour lui.
   private readonly loot = new Loot(this.scene, this.effects, (ship, kind, value) => (this.pirates.has(ship) ? value : this.campaign.collectLoot(ship, kind, value)));
   private readonly spawner = new EnemySpawner(this.scene, this.ships, (enemy) => {
@@ -118,11 +130,12 @@ export class Game {
 
     this.scene.background = new THREE.Color(SKY.horizonColor);
     this.scene.fog = new THREE.Fog(SKY.horizonColor, WORLD.fogNear, WORLD.fogFar);
-    this.sun.position.copy(sunDirection).multiplyScalar(100);
     this.scene.add(this.ambient, this.sun, this.sky.mesh, this.ocean.mesh, this.projectiles.mesh, this.schoolFx.group);
     const islands = buildIslands(this.scene);
     ({ forts: this.forts, lighthouse: this.lighthouse } = islands);
     for (const decor of islands.decor) this.fogCulling.add(decor);
+    this.halos = new LanternHalos(islands.lanterns);
+    this.scene.add(this.halos.mesh);
 
     // La flotte de la sauvegarde à charger, ou la chaloupe de départ.
     this.saves.start(this.fleet);
@@ -131,7 +144,7 @@ export class Game {
     this.bossSinking = new BossSinking(this.effects, this.chaseCamera);
     this.hud = new Hud(container);
     const hazards = weatherHazards(this.chaseCamera, this.effects, this.fleet, this.hud, (ship, damage) => this.applyDamage(ship, damage));
-    this.weather = new Weather(this.scene, this.waves, this.ambient, this.sun, hazards);
+    this.weather = new Weather(this.scene, this.waves, this.ambient, this.sun, this.dayCycle, hazards);
     const applyGraphics = () => applyQuality(this.settings.graphics, { display: this.display, ocean: this.ocean, wakes: this.wakes, weather: this.weather });
     applyGraphics();
     this.settings.onChange(applyGraphics);
@@ -153,9 +166,10 @@ export class Game {
     const loaded = this.saves.finish({ state: this.state, fleet: this.fleet, campaign: this.campaign, spawner: this.spawner, weather: this.weather, ships: this.ships });
     if (loaded) this.hud.toast(`Partie chargée : « ${loaded} »`, 3, 'good');
 
-    const { state, fleet, campaign, hud, wind, spawner, loot, schools, radar, pirates, settings, display, saves } = this;
-    this.portMenu = createMenus({ container, state, fleet, campaign, hud, wind, spawner, loot, schools, radar, pirates, settings, display, saves, takeHelm: (m) => this.takeHelm(m) });
+    const { state, fleet, campaign, hud, wind, spawner, loot, schools, radar, pirates, settings, display, saves, dayCycle } = this;
+    this.portMenu = createMenus({ container, state, fleet, campaign, hud, wind, spawner, loot, schools, radar, pirates, settings, display, saves, dayCycle, takeHelm: (m) => this.takeHelm(m) });
     this.weatherButtons = new WeatherButtons(container, this.weather);
+    this.dayClock = new DayClock(container, this.dayCycle);
     this.fpsCounter = new FpsCounter(container, this.settings, this.display);
     this.prompts = new ActionPrompts(container, () => this.portMenu.openOn(), () => this.toggleFishing());
     if (new URLSearchParams(location.search).has('debug')) {
@@ -228,8 +242,13 @@ export class Game {
     this.fogCulling.update(this.camera, (this.scene.fog as THREE.Fog).far, this.ships);
     this.deckCrew.update(dt, this.camera, this.ships);
     this.weatherButtons.update();
+    this.dayClock.update();
     this.sky.update(this.camera.position);
     this.lighthouse.update(dt, this.camera);
+    // Fanaux et fenêtres : allumés la nuit et par temps sombre.
+    const dark = this.weather.darkness;
+    setNightGlow(dark);
+    this.halos.update(this.camera, this.ships, dark, (this.scene.fog as THREE.Fog).far);
     this.hud.update(dt, leader, this.state, this.inCombat(), this.fleet);
     this.hud.quests.update(dt, this.campaign.contracts, this.fleet, (c) => this.campaign.missions.status(c));
     this.radar.range = this.campaign.islands.tortuga.radarRange(tortuga.sdf(leader.position.x, leader.position.z)) * this.fleet.radarFactor();

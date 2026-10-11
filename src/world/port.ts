@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { LIVERIES, type IslandId } from '../config';
 import { paletteFor, std } from '../ship/parts/common';
+import { addStatics, windowMaterial, type LanternSpot } from '../ship/parts/nightGlow';
 import { addBarrel, addCrate, addLantern, addRopeCoil } from '../ship/parts/props';
 import { GeometryBatch, tf } from '../utils/geometryBatch';
 import type { Island } from './island';
@@ -64,8 +65,8 @@ const VILLAGE_PALMS: Record<IslandId, [number, number][]> = {
   sabre: [[-4, -12], [26, -26]],
 };
 
-/** Le port d'une île : quais et pontons sur pilotis, village pirate. */
-export function buildPort(of: Island): THREE.Group {
+/** Le port d'une île : quais et pontons sur pilotis, village pirate ; ses lanternes (repère du monde) pour les halos de nuit. */
+export function buildPort(of: Island): { group: THREE.Group; lanterns: LanternSpot[] } {
   island = of;
   A = of.def.bay.angle;
   const batch = new GeometryBatch();
@@ -116,8 +117,8 @@ export function buildPort(of: Island): THREE.Group {
 
 
   const group = new THREE.Group();
-  for (const { geometry, material } of batch.build()) group.add(new THREE.Mesh(geometry, material));
-  return group;
+  const lanterns = addStatics(group, batch.build());
+  return { group, lanterns };
 }
 
 const wallMaterials = new Map<number, THREE.Material>();
@@ -138,7 +139,7 @@ function addHouse(batch: GeometryBatch, h: House) {
   roof.rotateY(Math.PI / 4);
   const k = Math.SQRT1_2;
   batch.add(material(h.roof), roof, place(h.u, h.v, y + h.h + roofHeight / 2, h.rot, [(h.w / 2 + 0.5) / k, roofHeight, (h.d / 2 + 0.5) / k]));
-  // Façade côté mer : porte et fenêtres.
+  // Façade côté mer : porte et fenêtres (éclairées la nuit).
   const front = h.d / 2 + 0.05;
   const local = (du: number, dv: number) => {
     // Décalage dans le repère de la maison (tournée de h.rot).
@@ -150,7 +151,7 @@ function addHouse(batch: GeometryBatch, h: House) {
   batch.add(dark, new THREE.BoxGeometry(1, 1.9, 0.1), place(door.u, door.v, y + 0.95, h.rot));
   for (const side of [-1, 1]) {
     const win = local(side * h.w * 0.3, front);
-    batch.add(dark, new THREE.BoxGeometry(0.8, 0.7, 0.1), place(win.u, win.v, y + h.h * 0.6, h.rot));
+    batch.add(windowMaterial, new THREE.BoxGeometry(0.8, 0.7, 0.1), place(win.u, win.v, y + h.h * 0.6, h.rot));
   }
   if (h.w >= 9) {
     // Enseigne de la taverne.

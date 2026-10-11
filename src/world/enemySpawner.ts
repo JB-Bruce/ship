@@ -1,12 +1,13 @@
 import type * as THREE from 'three';
 import { EnemyAI, type EnemyAIOptions, type EnemyGroup, type FlotillaSlot } from '../ai/enemyAI';
-import { BOSSES, ELITE_LIVERY, ENEMIES, LAND, type BossId, type EncounterStage } from '../config';
+import { BOSSES, DAY_NIGHT, ELITE_LIVERY, ENEMIES, LAND, type BossId, type EncounterStage } from '../config';
 import type { ContractOptions } from '../progression/contracts';
 import { deriveStats, maxLevels, randomLevels, totalLevels } from '../progression/upgrades';
 import { createShip, type Ship } from '../ship/ship';
 import { SHIP_SIZE_ORDER, SHIP_TYPES, sizeRank, type ShipType } from '../shipTypes';
 import { wrapAngle } from '../utils/math';
 import { ISLAND_LIST, land } from './island';
+import { conditions } from './weather';
 
 export interface Enemy {
   ship: Ship;
@@ -69,12 +70,14 @@ export class EnemySpawner {
 
   /** Décisions des IA. Le déplacement des bateaux est fait ensuite par Ship.update. */
   update(dt: number, center: Ship) {
-    // Près d'une côte : le temps avant la prochaine apparition s'écoule plus lentement, et la place est plafonnée.
+    // Près d'une côte, et la nuit : le temps avant la prochaine apparition s'écoule plus lentement. Près d'une côte,
+    // la place est aussi plafonnée.
     const near = ENEMIES.nearIsland;
     const closeness = Math.max(0, Math.min(1, 1 - land.sdf(center.position.x, center.position.z) / near.radius));
     const room = this.ordinaryGroups() >= this.encounter.groups ? 0 : closeness > 0 ? near.maxAlive - this.ordinaryCount() : Infinity;
     if (room > 0) {
-      this.timer -= dt / (1 + (near.slowdown - 1) * closeness);
+      const night = 1 + (DAY_NIGHT.encounterSlowdown - 1) * conditions.night;
+      this.timer -= dt / ((1 + (near.slowdown - 1) * closeness) * night);
       if (this.timer <= 0) this.timer = this.spawn(center, room) ? this.nextInterval() : 2;
     }
     for (let i = this.enemies.length - 1; i >= 0; i--) {

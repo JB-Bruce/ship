@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { LIGHTNING, OCEAN, SKY, WEATHER, WIND, WORLD, type WeatherProfile } from '../config';
+import { OCEAN, SKY, WEATHER, WIND, WORLD, type WeatherProfile } from '../config';
 import { Lightning, type LightningEvents } from '../fx/lightning';
 import { Rain } from '../fx/rain';
 import { WindStreaks } from '../fx/windStreaks';
@@ -7,8 +7,9 @@ import type { Waves } from '../ocean/waves';
 import type { Ship } from '../ship/ship';
 import { moveTowards } from '../utils/math';
 import { seaStateUniforms } from '../ocean/seaState';
+import type { DayCycle } from './dayCycle';
 import { HeavySeas } from './heavySeas';
-import { skyUniforms } from './sky';
+import { SkyLighting } from './skyLighting';
 import type { Wind } from './wind';
 
 const { lerp, smoothstep } = THREE.MathUtils;
@@ -29,6 +30,8 @@ export const conditions = {
   detectionFactor: 1,
   /** Multiplie la vitesse de virage de tous les bateaux (mer démontée = barre plus dure). */
   turnFactor: 1,
+  /** Nuit (0 de jour, 1 en pleine nuit) : la Marine patrouille moins. */
+  night: 0,
 };
 
 /** Le beau temps, décrit par les réglages du ciel et du monde. Sa houle (waveFactor) varie au fil du temps. */
@@ -66,8 +69,6 @@ const COLORS = Object.fromEntries(
   Object.entries(PROFILES).map(([kind, p]) => [kind, { fog: new THREE.Color(p.fogColor), zenith: new THREE.Color(p.zenithColor) }]),
 ) as Record<WeatherKind, { fog: THREE.Color; zenith: THREE.Color }>;
 const NUMBERS = (Object.keys(CLEAR) as (keyof WeatherProfile)[]).filter((k) => k !== 'fogColor' && k !== 'zenithColor');
-/** Teinte vers laquelle la brume s'éclaircit pendant la lueur d'un éclair. */
-const FLASH_COLOR = new THREE.Color(0xc9d3e6);
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
 
 /**
@@ -101,14 +102,18 @@ export class Weather {
   private readonly heavySeas: HeavySeas;
   /** Horloge des rafales (s). */
   private gustTime = Math.random() * 100;
+  /** Composition avec l'heure (jour, crépuscule, nuit). */
+  private readonly lighting: SkyLighting;
 
   constructor(
     private readonly scene: THREE.Scene,
     private readonly waves: Waves,
-    private readonly ambient: THREE.HemisphereLight,
-    private readonly sun: THREE.DirectionalLight,
+    ambient: THREE.HemisphereLight,
+    sun: THREE.DirectionalLight,
+    private readonly day: DayCycle,
     events: WeatherEvents,
   ) {
+    this.lighting = new SkyLighting(day, sun, ambient);
     this.baseSteepness = waves.list.map((w) => w.steepness);
     this.lightning = new Lightning(events);
     this.heavySeas = new HeavySeas((ship, bow, damage) => events.seaHit(ship, bow, damage));
@@ -131,8 +136,14 @@ export class Weather {
     return kind === 'tempest' ? this.current.seaFoam : this.progress;
   }
 
+  /** Obscurité qui allume les lumières (0 en plein jour, 1 la nuit ou sous l'orage). */
+  get darkness(): number {
+    return this.lighting.darkness;
+  }
+
   /** `focus` : le bateau piloté (les éclairs tombent autour de lui). */
   update(dt: number, camera: THREE.Camera, wind: Wind, ships: readonly Ship[], focus: Ship) {
+    this.day.update();
     this.updateSwell(dt);
     if (this.target !== this.shownTarget) {
       // Nouveau temps : on part de l'état actuel, même au milieu d'un autre changement.
@@ -147,9 +158,10 @@ export class Weather {
     this.apply(wind);
 
     const p = this.current;
-    this.rain.update(dt, camera, p.rain, wind.direction, wind.strength);
+    const light = this.lighting.effectsLight;
+    this.rain.update(dt, camera, p.rain, wind.direction, wind.strength, light);
     this.gustTime += dt;
-    this.streaks.update(dt, camera, Math.max(p.windStreaks, this.gustStreaks(wind)), wind.direction);
+    this.streaks.update(dt, camera, Math.max(p.windStreaks, this.gustStreaks(wind)), wind.direction, light);
     this.lightning.update(dt, p.lightning, p.strikeFactor, camera, this.waves, ships, focus);
     this.heavySeas.update(dt, p.seaDamage, ships, this.waves);
     this.applyFlash(this.lightning.flash);
@@ -193,9 +205,8 @@ export class Weather {
     const fog = this.scene.fog as THREE.Fog;
     fog.near = p.fogNear;
     fog.far = p.fogFar;
-    skyUniforms.uSkyZenith.value.copy(this.zenith);
-    skyUniforms.uSunlight.value = p.sunlight;
-    this.sun.intensity = p.sunIntensity;
+    // Ciel, soleil, lune et lumières : la météo composée avec l'heure.
+    this.lighting.apply(p, this.zenith);
     wind.minKnots = p.windMin;
     wind.maxKnots = p.windMax;
     // Les vagues ne sont retouchées que si elles changent (le panneau ?debug peut les régler entre-temps).
@@ -211,18 +222,14 @@ export class Weather {
     conditions.rangeFactor = p.rangeFactor;
     conditions.detectionFactor = p.detectionFactor;
     conditions.turnFactor = p.turnFactor;
+    conditions.night = this.day.night;
     seaStateUniforms.uSeaFoam.value = p.seaFoam;
     seaStateUniforms.uWindDir.value.set(Math.sin(wind.direction), Math.cos(wind.direction));
   }
 
   /** Lueur d'un éclair : ciel, brume (donc tout le lointain) et lumière ambiante s'illuminent un instant. */
   private applyFlash(flash: number) {
-    const fog = this.scene.fog as THREE.Fog;
-    // La brume se fond dans l'horizon du ciel : même couleur.
-    fog.color.copy(this.fogBase).lerp(FLASH_COLOR, flash * 0.6);
-    (this.scene.background as THREE.Color).copy(fog.color);
-    skyUniforms.uSkyHorizon.value.copy(fog.color);
-    skyUniforms.uFlash.value = flash;
-    this.ambient.intensity = this.current.ambientIntensity + flash * LIGHTNING.ambientBoost;
+    // La brume se fond dans l'horizon du ciel : même couleur (composée avec l'heure).
+    this.lighting.applyFog(this.current, this.fogBase, flash, this.scene.fog as THREE.Fog, this.scene.background as THREE.Color);
   }
 }

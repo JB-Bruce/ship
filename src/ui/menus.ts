@@ -15,6 +15,7 @@ import { MapMenu } from './mapMenu';
 import { PortMenu } from './port/portMenu';
 import type { Radar } from './radar';
 import { SettingsMenu } from './settings/settingsMenu';
+import type { DayCycle } from '../world/dayCycle';
 
 /** Ce que les menus parchemin lisent du jeu. */
 export interface MenuWorld {
@@ -32,6 +33,7 @@ export interface MenuWorld {
   readonly settings: Settings;
   readonly display: Display;
   readonly saves: SaveManager;
+  readonly dayCycle: DayCycle;
   takeHelm(member: FleetMember): void;
 }
 
@@ -58,6 +60,6 @@ export function createMenus(w: MenuWorld): PortMenu {
     escorts: () => campaign.escorts(),
     pirates: () => [...w.pirates.pirates.map((p) => p.ship), ...campaign.merchants.ships],
   });
-  new SettingsMenu(container, { settings: w.settings, display: w.display, saves: w.saves });
+  new SettingsMenu(container, { settings: w.settings, display: w.display, saves: w.saves, clock: w.dayCycle });
   return portMenu;
 }

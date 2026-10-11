@@ -127,11 +127,11 @@ export class Campaign {
   update(dt: number, leader: Ship) {
     this.ledger.logSailing(leader);
     for (const island of Object.values(this.islands)) island.update(dt);
-    // Nouvelle journée : les tavernes affichent de nouvelles offres du jour.
+    // Nouvelle journée (à l'aube) : les tavernes affichent de nouvelles offres du jour.
     if (this.contracts.tick(dt)) {
       for (const island of ISLAND_LIST) this.contracts.refresh(island.id, this.contractOptions());
       this.crew.newDay();
-      this.hud.notifications.kill('📜 Nouvelle journée : nouvelles offres et nouvelles recrues dans les tavernes');
+      this.hud.notifications.kill('🌅 L’aube se lève : nouvelles offres et nouvelles recrues dans les tavernes');
     }
     this.fullWarning = Math.max(0, this.fullWarning - dt);
     const port = this.portInRange(leader);

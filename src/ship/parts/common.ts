@@ -3,6 +3,7 @@ import type { Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import type { CannonMount, EnsignStaff } from '../shipModel';
 import type { HullShape, Station } from './hullShape';
+import { lampMaterial, windowMaterial } from './nightGlow';
 import { buildFlagTexture, type Palette } from './props';
 
 /** Monture de canon pointant vers `angle` (0 = proue, +π/2 = bâbord, -π/2 = tribord). */
@@ -56,7 +57,8 @@ export function paletteFor(l: Livery): Palette {
       shirtRed: std(0x9b2d20),
       pants: std(0x3a3a50),
       bandana: std(0xb3261e),
-      glow: std(l.lantern ?? 0xffc860, { emissive: l.lantern ?? 0xffa030, emissiveIntensity: 1.2 }),
+      glow: lampMaterial(l.lantern ?? 0xffc860, l.lantern ?? 0xffa030),
+      window: windowMaterial,
     };
     palettes.set(l, p);
   }

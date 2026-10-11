@@ -106,13 +106,13 @@ function buildTemplate(livery: Livery): SloopTemplate {
   const stern = at(-1);
   const bow = at(1);
   batch.add(p.trim, box(2 * stern.halfWidth + 0.1, 0.1, 0.12), tf(0, stern.gunwale, stern.z));
-  for (const x of [-0.45, 0.45]) batch.add(p.dark, box(0.35, 0.28, 0.04), tf(x, stern.gunwale - 0.45, stern.z - 0.03));
+  for (const x of [-0.45, 0.45]) batch.add(p.window, box(0.35, 0.28, 0.04), tf(x, stern.gunwale - 0.45, stern.z - 0.03));
   batch.add(p.trim, box(0.12, bow.gunwale - bow.keel + 0.3, 0.16), tf(0, (bow.gunwale + bow.keel) / 2, bow.z - 0.05, -0.2));
 
   // Cabine arrière et écoutille.
   batch.add(p.wood, box(1.7, 0.55, 1.8), tf(0, DECK_Y + 0.275, -3.5));
   batch.add(p.trim, box(1.85, 0.08, 1.95), tf(0, DECK_Y + 0.59, -3.5));
-  for (const side of [1, -1]) batch.add(p.dark, box(0.04, 0.2, 0.4), tf(side * 0.86, DECK_Y + 0.33, -3.5));
+  for (const side of [1, -1]) batch.add(p.window, box(0.04, 0.2, 0.4), tf(side * 0.86, DECK_Y + 0.33, -3.5));
   batch.add(p.dark, box(1.1, 0.12, 1.0), tf(0, DECK_Y + 0.06, -1.2));
   batch.add(p.trim, box(1.2, 0.08, 1.1), tf(0, DECK_Y + 0.02, -1.2));
 

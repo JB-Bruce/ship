@@ -30,7 +30,7 @@ export function tavernTab(ctx: PortContext): string {
     ${resourcesHtml(ctx)}
     <h3 class="section">Tes contrats <span class="count">${contracts.active.length} / ${CONTRACTS.maxActive}</span></h3>
     <div class="list">${active}</div>
-    <h3 class="section">Offres du jour <span class="count">nouvelles dans ${Math.max(1, Math.ceil(contracts.dayLeft / 60))} min</span></h3>
+    <h3 class="section">Offres du jour <span class="count">nouvelles à l’aube, dans ${Math.max(1, Math.ceil(contracts.dayLeft / 60))} min</span></h3>
     <div class="list">${contracts.offers[island.id].map((c) => offerCard(c, full)).join('')}</div>
     <h3 class="section">Missions spéciales</h3>
     <p class="effect">Uniques et mieux payées : une fois réussies, elles ne reviennent pas. La suivante apparaît après chaque réussite.</p>
