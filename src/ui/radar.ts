@@ -1,4 +1,4 @@
-import { RADAR } from '../config';
+import { RADAR, WIND } from '../config';
 import type { Ship } from '../ship/ship';
 import type { Enemy } from '../world/enemySpawner';
 import type { FishSchool } from '../world/fishSchools';
@@ -17,7 +17,8 @@ const COLORS = {
   fish: '#8fe3ff',
   escort: '#a6ecff',
   pirate: '#4a9bff',
-  wind: 'rgba(205, 238, 255, 0.9)',
+  wind: 'rgba(205, 238, 255, 0.95)',
+  windEdge: 'rgba(6, 28, 38, 0.9)',
   land: 'rgba(214, 190, 128, 0.85)',
   coast: 'rgba(250, 240, 210, 0.9)',
   port: '#ffffff',
@@ -29,7 +30,7 @@ const COLORS = {
  * Vert = navire de ta flotte, bleu = autre allié (pirate, marchand), bleu ciel cerclé de blanc = navire à protéger. Rouge = ennemi qui te chasse, orange = en patrouille, violet = en fuite, gros point
  * rouge cerclé = boss, poisson bleu = banc de poissons. Le butin n'y figure pas (il encombrait le radar).
  * Hors de portée : point pâle au bord, dans sa direction. La portée grandit près de l'île avec le phare.
- * La flèche claire montre où souffle le vent ; la légende au-dessus donne sa force et son effet sur ta vitesse.
+ * Le triangle clair sur le bord montre d'où vient le vent ; au-dessus, ses crans de force (1 à 5), ses nœuds et son effet sur ta vitesse.
  */
 export class Radar {
   private readonly ctx: CanvasRenderingContext2D;
@@ -88,11 +89,17 @@ export class Radar {
     const cos = Math.cos(player.heading);
     const scale = r / this.range;
 
+    // La girouette d'abord : le N, cerné de sombre, reste lisible quand le vent vient du nord.
+    this.drawWind(c, r, player, wind);
     ctx.fillStyle = COLORS.north;
+    ctx.strokeStyle = COLORS.windEdge;
+    ctx.lineWidth = 3;
     ctx.font = 'bold 11px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.strokeText('N', c + sin * (r - 10), c - cos * (r - 10));
     ctx.fillText('N', c + sin * (r - 10), c - cos * (r - 10));
+    ctx.lineWidth = 1;
 
     // Monde → radar, ramené sur le bord si hors de portée.
     const place = (wx: number, wz: number) => {
@@ -145,8 +152,6 @@ export class Radar {
     }
     ctx.globalAlpha = 1;
 
-    this.drawWind(c, r, player, wind);
-
     // Le joueur, au centre, pointe toujours vers le haut.
     ctx.fillStyle = COLORS.player;
     ctx.beginPath();
@@ -197,38 +202,40 @@ export class Radar {
     ctx.restore();
   }
 
-  /** Flèche du vent, côté d'où il vient, pointant vers où il va ; plus longue quand il forcit. */
+  /**
+   * Girouette : un triangle sur le bord du radar, du côté d'où vient le vent, pointé vers le centre (vers où il va).
+   * La force s'affiche au-dessus du radar en crans (1 à 5), avec les nœuds et l'effet sur ta vitesse.
+   */
   private drawWind(c: number, r: number, player: Ship, wind: Wind) {
     const ctx = this.ctx;
     const relative = wind.direction - player.heading;
-    // Direction du vent à l'écran (le radar tourne avec le bateau : vent de dos = flèche vers le haut).
+    // Direction du vent à l'écran (le radar tourne avec le bateau : vent de dos = triangle en bas, pointé vers le haut).
     const wx = -Math.sin(relative);
     const wy = -Math.cos(relative);
-    const length = 14 + 18 * wind.strength;
-    const tailX = c - wx * (r - 8);
-    const tailY = c - wy * (r - 8);
-    const headX = tailX + wx * length;
-    const headY = tailY + wy * length;
-    ctx.strokeStyle = ctx.fillStyle = COLORS.wind;
-    ctx.lineWidth = 3;
+    const baseX = c - wx * (r - 1);
+    const baseY = c - wy * (r - 1);
+    const tipX = c - wx * (r - 15);
+    const tipY = c - wy * (r - 15);
     ctx.beginPath();
-    ctx.moveTo(tailX, tailY);
-    ctx.lineTo(headX, headY);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(headX + wx * 7, headY + wy * 7);
-    ctx.lineTo(headX - wy * 5, headY + wx * 5);
-    ctx.lineTo(headX + wy * 5, headY - wx * 5);
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(baseX - wy * 7, baseY + wx * 7);
+    ctx.lineTo(baseX + wy * 7, baseY - wx * 7);
     ctx.closePath();
+    ctx.fillStyle = COLORS.wind;
     ctx.fill();
+    ctx.strokeStyle = COLORS.windEdge;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
     ctx.lineWidth = 1;
 
+    const level = 1 + WIND.levels.filter((k) => wind.knots >= k).length;
     const effect = Math.round((wind.speedFactor(player.heading) - 1) * 100);
-    const text = `Vent ${wind.knots} nœuds · ${effect >= 0 ? '+' : '−'}${Math.abs(effect)} % de vitesse`;
-    if (text !== this.lastWindText) {
-      this.lastWindText = text;
-      this.windLabel.textContent = text;
-    }
+    const text = `${level}|${wind.knots} nœuds · vitesse ${effect >= 0 ? '+' : '−'}${Math.abs(effect)} %`;
+    if (text === this.lastWindText) return;
+    this.lastWindText = text;
+    let bars = '';
+    for (let i = 1; i <= WIND.levels.length + 1; i++) bars += `<i${i <= level ? ' class="on"' : ''}></i>`;
+    this.windLabel.innerHTML = `<span class="wind-bars level-${level}" title="Force du vent : ${level} / 5">${bars}</span>${text.slice(text.indexOf('|') + 1)}`;
   }
 
   /** Petit poisson (banc), queue à gauche. */

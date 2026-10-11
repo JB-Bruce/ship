@@ -42,7 +42,7 @@ Décisions prises avec l'auteur (depuis le 2026-10-06). Les valeurs chiffrées s
 ## Pilotage (fait)
 - **Jauge de voile** : maintenir Z la hisse et maintenir S l'affale (2 s de 0 à 100 %). La vitesse visée est proportionnelle à la jauge. Q/D tiennent la barre, avec de l'inertie.
 - Pas de virage à l'arrêt : la barre agit en proportion de la vitesse, et pleinement à partir de 40 % de la vitesse max.
-- **Vent** : sa direction et sa force changent lentement, la force restant dans la plage du temps qu'il fait (beau temps 3–20 nœuds, brouillard 0–2, pluie 12–25, grand vent 30–40, orage 28–38). Effet sur la vitesse : ±25 % pour 20 nœuds (vent arrière / de face), proportionnel à la force, plafonné à ±40 %. Il s'affiche sur le radar (flèche + force + effet sur ta vitesse), et les pavillons flottent dans son sens. Il s'applique aussi aux ennemis.
+- **Vent** : sa direction et sa force changent lentement, la force restant dans la plage du temps qu'il fait (beau temps 3–20 nœuds, brouillard 0–2, pluie 12–25, grand vent 30–40, orage 28–38). Effet sur la vitesse : ±25 % pour 20 nœuds (vent arrière / de face), proportionnel à la force, plafonné à ±40 %. Il s'affiche sur le radar : un triangle sur le bord, côté d'où vient le vent, pointé vers le centre (girouette) ; au-dessus, sa force en 1 à 5 crans (à partir de 6, 16, 28 et 44 nœuds ; jaunes à 4, rouges à 5), les nœuds et l'effet sur ta vitesse, et les pavillons flottent dans son sens. Il s'applique aussi aux ennemis.
 - Caméra : orbite en glissant la souris, molette pour zoomer, retour automatique derrière le bateau. Elle tremble quand on est touché.
 
 ## Océan et ciel (fait)

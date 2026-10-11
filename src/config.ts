@@ -451,6 +451,8 @@ export const WIND = {
   effectPerStrength: 0.25,
   /** … plafonné, pour que le grand vent et la tempête restent jouables. */
   maxEffect: 0.4,
+  /** Crans de force affichés près du radar (1 à 5) : un cran de plus à partir de chacune de ces forces (nœuds). */
+  levels: [6, 16, 28, 44] as const,
 };
 
 /** Couleurs d'un bateau selon son camp. */
