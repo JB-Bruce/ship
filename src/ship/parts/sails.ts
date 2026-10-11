@@ -1,11 +1,17 @@
 import * as THREE from 'three';
+import { SAIL_BILLOW } from '../../config';
+
+/** Nombre de facettes le long d'un côté de voile de `length` mètres : les grandes voiles restent souples une fois gonflées. */
+export function sailSegments(length: number): number {
+  return THREE.MathUtils.clamp(Math.ceil(length / SAIL_BILLOW.facet), SAIL_BILLOW.minSegments, SAIL_BILLOW.maxSegments);
+}
 
 /**
  * Voile carrée gonflée vers l'avant (+Z), ancrée en haut (y = 0) pour se carguer vers sa vergue :
  * on l'écrase en Y depuis le haut.
  */
 export function buildSquareSail(width: number, height: number, bulge: number): THREE.BufferGeometry {
-  const geometry = new THREE.PlaneGeometry(width, height, 4, 4);
+  const geometry = new THREE.PlaneGeometry(width, height, sailSegments(width), sailSegments(height));
   geometry.translate(0, -height / 2, 0);
   const pos = geometry.attributes.position;
   for (let i = 0; i < pos.count; i++) {
@@ -19,7 +25,7 @@ export function buildSquareSail(width: number, height: number, bulge: number): T
  * Voile triangulaire (foc), origine au point d'amure. `head` et `clew` sont relatifs à l'amure ;
  * la toile se creuse sur +X (on la retourne en X pour l'autre bord).
  */
-export function buildTriangleSail(head: THREE.Vector3, clew: THREE.Vector3, bulge: number, n = 4): THREE.BufferGeometry {
+export function buildTriangleSail(head: THREE.Vector3, clew: THREE.Vector3, bulge: number, n = sailSegments(Math.max(head.length(), clew.length()))): THREE.BufferGeometry {
   const positions: number[] = [];
   const index: number[] = [];
   const ids: number[][] = [];
@@ -66,7 +72,7 @@ export interface GaffSailShape {
 }
 
 /** Voile aurique dans le repère de son gréement (plan x = 0, vers l'arrière), creusée par `bulge`. */
-export function buildGaffSail({ tack, clew, peak, throat, bulge }: GaffSailShape, n = 5): THREE.BufferGeometry {
+export function buildGaffSail({ tack, clew, peak, throat, bulge }: GaffSailShape, n = sailSegments(Math.max(tack.distanceTo(clew), tack.distanceTo(throat)))): THREE.BufferGeometry {
   const positions: number[] = [];
   const index: number[] = [];
   const bottom = new THREE.Vector3();

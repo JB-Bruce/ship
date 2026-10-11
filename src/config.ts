@@ -515,11 +515,15 @@ export const SAVE = {
 
 /**
  * Voiles gonflées par le vent : face au vent, leur creux d'origine ; vent arrière, jusqu'à `max` fois ce creux, atteint
- * à partir de la force `fullStrength` (1 = WIND.referenceKnots, 20 nœuds). Vent de travers : à moitié.
+ * à partir de la force `fullStrength` (1 = WIND.referenceKnots, 20 nœuds : 1,75 = 35 nœuds). Vent de travers : à moitié.
  */
 export const SAIL_BILLOW = {
-  max: 3,
-  fullStrength: 2,
+  max: 4,
+  fullStrength: 1.75,
+  /** Finesse des toiles : environ une facette par `facet` mètres, entre `minSegments` et `maxSegments` par côté. */
+  facet: 1,
+  minSegments: 4,
+  maxSegments: 14,
   /** Voile carrée : hauteur sous la vergue sur laquelle le surplus de creux s'installe (m), pour rester attachée à la vergue. */
   yardBlend: 1.5,
 };

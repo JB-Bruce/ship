@@ -3,6 +3,7 @@ import type { Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } from '../parts/common';
 import { HullShape } from '../parts/hullShape';
+import { sailSegments } from '../parts/sails';
 import { addBarrel, addCrate, addLantern, addRopeCoil, buildCarriageGunGeometry, type Palette } from '../parts/props';
 
 /** Longueur de référence du modèle (m). */
@@ -192,7 +193,7 @@ function quadSail(
 }
 
 function buildMainSail(): THREE.BufferGeometry {
-  return quadSail(0, 1, 0, 1, 5, 0);
+  return quadSail(0, 1, 0, 1, sailSegments(Math.max(MAIN.tack.distanceTo(MAIN.clew), MAIN.tack.distanceTo(MAIN.throat))), 0);
 }
 
 /** Pièces rapiécées, posées juste à côté de la toile. */
@@ -207,9 +208,9 @@ function buildMainPatches(): THREE.BufferGeometry {
 
 /** Foc triangulaire, origine au point d'amure (bout du beaupré). */
 function buildJib(): THREE.BufferGeometry {
-  const n = 4;
   const head = JIB.head.clone().sub(BOWSPRIT_TIP);
   const clew = JIB.clew.clone().sub(BOWSPRIT_TIP);
+  const n = sailSegments(Math.max(head.length(), clew.length()));
   const positions: number[] = [];
   const index: number[] = [];
   const ids: number[][] = [];
