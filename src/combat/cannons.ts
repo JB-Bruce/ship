@@ -1,0 +1,161 @@
+import * as THREE from 'three';
+import { COMBAT, type CannonStats } from '../config';
+import type { Effects } from '../fx/effects';
+import { isHostile, type Ship } from '../ship/ship';
+import type { CannonMount } from '../ship/shipModel';
+import { moveTowards, wrapAngle } from '../utils/math';
+import { conditions } from '../world/weather';
+import type { Projectiles } from './projectiles';
+
+/** Vitesse de rotation d'un canon (rad/s) : il pivote, il ne se téléporte pas. */
+const TURN_SPEED = 1.3;
+/** Écart toléré entre le fût et la visée pour tirer (rad). */
+const AIM_TOLERANCE = 0.05;
+const muzzle = new THREE.Vector3();
+const velocity = new THREE.Vector3();
+const aim = { x: 0, z: 0, flight: 0 };
+/** Ce sur quoi un canon peut tirer : un bateau, ou un point fixe assiégé (la citadelle d'une mission de défense). */
+export interface CannonTarget {
+  readonly position: THREE.Vector3;
+  readonly velocityX: number;
+  readonly velocityZ: number;
+  /** Rayon d'un ouvrage assiégé : il est à portée dès que son enceinte l'est (m). */
+  readonly radius?: number;
+}
+
+/** Dernière cible de chaque canon, pour repérer quand il en prend une nouvelle. */
+const lastTargets = new WeakMap<CannonMount, CannonTarget | null>();
+
+/** Réglages du calibre d'un canon : principal, ou du pont supérieur sur un navire à deux calibres. */
+export function cannonStatsOf(ship: Ship, mount: CannonMount): CannonStats {
+  return mount.calibre === 'deck' && ship.stats.deckCannon ? ship.stats.deckCannon : ship.stats.cannon;
+}
+
+/** Un tirage aléatoire entre -1 et 1, plus souvent proche de 0 (somme de deux tirages). */
+const centered = () => Math.random() + Math.random() - 1;
+
+/**
+ * Canons automatiques. Chaque canon pivote en continu vers l'ennemi le plus proche à portée
+ * et dans sa zone de tir (même pendant le rechargement), revient au neutre sans cible,
+ * et tire dès qu'il est rechargé et bien pointé. Mêmes règles pour tous les camps. Un assiégeant
+ * (`Ship.siegeTarget`) bombarde la citadelle quand aucun bateau n'est à portée de ce canon.
+ */
+export function updateCannons(dt: number, ships: readonly Ship[], projectiles: Projectiles, effects: Effects) {
+  for (const ship of ships) {
+    if (!ship.alive) continue;
+    const mounts = ship.model.cannons;
+    let lastAngle = NaN;
+    let lastCalibre: CannonStats | null = null;
+    let target: CannonTarget | null = null;
+    for (let i = 0; i < mounts.length; i++) {
+      const mount = mounts[i];
+      const c = cannonStatsOf(ship, mount);
+      // Les canons d'un même bord et d'un même calibre partagent leur cible : une seule recherche.
+      if (mount.angle !== lastAngle || c !== lastCalibre) {
+        lastAngle = mount.angle;
+        lastCalibre = c;
+        target = findTarget(ship, mount.angle, ships, c) ?? siegeTargetFor(ship, mount.angle, c);
+      }
+      // Nouvelle cible : un court délai propre à chaque canon, pour que la bordée parte en cascade.
+      if (lastTargets.get(mount) !== target) {
+        if (target) mount.fireDelay = Math.random() * COMBAT.acquireDelay;
+        lastTargets.set(mount, target);
+      }
+      ship.cannonCooldowns[i] = Math.max(0, ship.cannonCooldowns[i] - dt);
+
+      let desired = 0;
+      if (target) {
+        leadTarget(ship, target, c);
+        desired = yawToward(ship, mount, c, aim.x, aim.z);
+      }
+      mount.yaw = moveTowards(mount.yaw, desired, TURN_SPEED * dt);
+      mount.object.rotation.y = mount.baseYaw + mount.yaw;
+
+      // Le délai ne s'écoule qu'une fois le canon chargé et pointé : sinon tous les canons d'un flanc, qui pivotent
+      // ensemble, l'auraient épuisé pendant la rotation et partiraient à la même image.
+      const ready = target !== null && ship.cannonCooldowns[i] === 0 && Math.abs(mount.yaw - desired) < AIM_TOLERANCE;
+      if (ready) mount.fireDelay = Math.max(0, mount.fireDelay - dt);
+      if (ready && target && mount.fireDelay === 0) {
+        fire(ship, mount, c, target, projectiles, effects);
+        ship.cannonCooldowns[i] = c.reloadTime * (0.9 + Math.random() * 0.2);
+        mount.fireDelay = Math.random() * COMBAT.acquireDelay;
+      }
+    }
+  }
+}
+
+/**
+ * L'ennemi le plus proche à portée et dans l'arc d'un canon pointant vers `angle`
+ * (repère du bateau : 0 = proue, +π/2 = bâbord, -π/2 = tribord), ou null. `cannon` : son calibre.
+ */
+export function findTarget(ship: Ship, angle: number, ships: readonly Ship[], cannon: CannonStats = ship.stats.cannon): Ship | null {
+  const { range, arcHalfAngle } = cannon;
+  const minCos = Math.cos(arcHalfAngle);
+  // Direction de tir en coordonnées monde.
+  const sx = Math.sin(ship.heading + angle);
+  const sz = Math.cos(ship.heading + angle);
+  let best: Ship | null = null;
+  let bestDistance = range * conditions.rangeFactor;
+  for (const other of ships) {
+    if (other === ship || !other.alive || !isHostile(ship, other)) continue;
+    const dx = other.position.x - ship.position.x;
+    const dz = other.position.z - ship.position.z;
+    const distance = Math.hypot(dx, dz);
+    if (distance > bestDistance || (dx * sx + dz * sz) / distance < minCos) continue;
+    best = other;
+    bestDistance = distance;
+  }
+  return best;
+}
+
+/** Le point assiégé par ce bateau, s'il est à portée et dans l'arc du canon pointant vers `angle`, sinon null. */
+function siegeTargetFor(ship: Ship, angle: number, cannon: CannonStats): CannonTarget | null {
+  const target = ship.siegeTarget;
+  if (!target) return null;
+  const dx = target.position.x - ship.position.x;
+  const dz = target.position.z - ship.position.z;
+  const distance = Math.hypot(dx, dz);
+  if (distance - (target.radius ?? 0) > cannon.range * conditions.rangeFactor) return null;
+  const facing = (dx * Math.sin(ship.heading + angle) + dz * Math.cos(ship.heading + angle)) / distance;
+  return facing >= Math.cos(cannon.arcHalfAngle) ? target : null;
+}
+
+/** Anticipation : où sera la cible quand le boulet arrivera (résultat dans `aim`). */
+function leadTarget(ship: Ship, target: CannonTarget, c: CannonStats) {
+  const speed = c.ballSpeed;
+  aim.x = target.position.x;
+  aim.z = target.position.z;
+  for (let k = 0; k < 3; k++) {
+    aim.flight = Math.hypot(aim.x - ship.position.x, aim.z - ship.position.z) / speed;
+    aim.x = target.position.x + target.velocityX * aim.flight;
+    aim.z = target.position.z + target.velocityZ * aim.flight;
+  }
+}
+
+/** Décalage du canon (par rapport au neutre) pour viser (tx, tz), limité à l'arc de tir. */
+function yawToward(ship: Ship, mount: CannonMount, c: CannonStats, tx: number, tz: number): number {
+  // Angle de la cible dans le repère du bateau, comparé à la direction neutre du canon.
+  const relative = Math.atan2(tx - ship.position.x, tz - ship.position.z) - ship.heading;
+  const limit = c.arcHalfAngle;
+  return THREE.MathUtils.clamp(wrapAngle(relative - mount.angle), -limit, limit);
+}
+
+function fire(ship: Ship, mount: CannonMount, c: CannonStats, target: CannonTarget, projectiles: Projectiles, effects: Effects) {
+  ship.model.root.updateMatrixWorld();
+  mount.object.localToWorld(muzzle.copy(mount.muzzle));
+
+  // Imprécision : un léger écart d'angle et de distance (le spread), qui peut faire rater.
+  const dx = aim.x - muzzle.x;
+  const dz = aim.z - muzzle.z;
+  const angle = Math.atan2(dx, dz) + centered() * c.spread;
+  const speed = c.ballSpeed * (1 + centered() * c.rangeError);
+  const flight = Math.hypot(dx, dz) / c.ballSpeed;
+  // Vitesse verticale pour retomber à hauteur de coque au bout du temps de vol.
+  const vy = (target.position.y + 0.6 - muzzle.y + 0.5 * COMBAT.gravity * flight * flight) / flight;
+  velocity.set(Math.sin(angle) * speed, vy, Math.cos(angle) * speed);
+
+  projectiles.fire(muzzle, velocity, ship, c.damage);
+  effects.muzzleFlash(muzzle, Math.sin(angle), Math.cos(angle));
+  ship.markCombat();
+  ship.recoil(mount.angle);
+}

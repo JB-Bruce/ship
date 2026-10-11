@@ -1,0 +1,1322 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #cde6ee;
+  font-family: system-ui, sans-serif;
+}
+
+#app canvas {
+  display: block;
+  touch-action: none;
+}
+
+/* Conteneur de la toile : il reste en place quand le moteur de rendu est recréé (anticrénelage). */
+.viewport {
+  position: fixed;
+  inset: 0;
+}
+
+/* Compteur d'images par seconde (paramètres, onglet Jeu). */
+.fps-counter {
+  position: fixed;
+  top: 8px;
+  left: 10px;
+  z-index: 5;
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: #f2e8d0;
+  font: 600 13px system-ui, sans-serif;
+  background: rgba(20, 30, 40, 0.55);
+  pointer-events: none;
+}
+
+.hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.hud-panel {
+  position: absolute;
+  left: 20px;
+  bottom: 48px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(10, 35, 55, 0.55);
+  min-width: 150px;
+}
+
+.hud-health {
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.hud-health-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(#7fdc6a, #3f9e3a);
+  transition: width 0.2s;
+}
+
+.hud-health-fill.low {
+  background: linear-gradient(#ff7a5a, #c0392b);
+}
+
+.hud-resources {
+  display: flex;
+  gap: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.hud-gold {
+  color: #ffd447;
+}
+
+.hud-wood {
+  color: #e0a86a;
+}
+
+.radar-wind {
+  position: fixed;
+  right: 20px;
+  bottom: 206px;
+  width: 180px;
+  text-align: center;
+  font-size: 12px;
+  color: #e6f5ff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}
+
+/* ---------- Chantier naval (menu d'améliorations, façon parchemin) ---------- */
+
+.upgrade-menu {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 20, 30, 0.55);
+  backdrop-filter: blur(2px);
+  z-index: 10;
+}
+
+.upgrade-menu.on {
+  display: flex;
+}
+
+.parchment {
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding: 28px 36px 20px;
+  border-radius: 6px;
+  color: #3b2410;
+  font-family: 'IM Fell English', Georgia, serif;
+  background:
+    radial-gradient(ellipse at 20% 15%, rgba(255, 250, 230, 0.7), transparent 55%),
+    radial-gradient(ellipse at 85% 90%, rgba(150, 100, 40, 0.25), transparent 60%),
+    linear-gradient(#f1deb4, #e2c58f);
+  box-shadow:
+    inset 0 0 40px rgba(110, 70, 20, 0.55),
+    inset 0 0 6px rgba(80, 50, 10, 0.6),
+    0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.parchment h1 {
+  margin: 0;
+  text-align: center;
+  font-family: 'Pirata One', Georgia, serif;
+  font-weight: 400;
+  font-size: 44px;
+  letter-spacing: 1px;
+  color: #5a2a10;
+}
+
+.parchment .subtitle {
+  margin: 2px 0 14px;
+  text-align: center;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.parchment .resources {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  margin-bottom: 14px;
+  font-size: 20px;
+}
+
+.parchment .gold {
+  color: #8a5a00;
+}
+
+.parchment .wood {
+  color: #7a4a20;
+}
+
+.parchment .short {
+  color: #a3221a;
+  text-decoration: line-through;
+}
+
+.upgrade-card {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  border: 1.5px solid rgba(90, 55, 20, 0.45);
+  border-radius: 4px;
+  background: rgba(255, 245, 215, 0.35);
+}
+
+.upgrade-card.maxed {
+  opacity: 0.7;
+}
+
+.upgrade-card .icon svg {
+  width: 52px;
+  height: 52px;
+  fill: none;
+  stroke: #4a2e14;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.upgrade-card .icon .solid {
+  fill: #4a2e14;
+}
+
+.upgrade-card h2 {
+  margin: 0 0 2px;
+  font-family: 'Pirata One', Georgia, serif;
+  font-weight: 400;
+  font-size: 24px;
+}
+
+.upgrade-card p {
+  margin: 0;
+  font-size: 15px;
+}
+
+.upgrade-card .effect {
+  margin-top: 3px;
+  font-style: italic;
+  color: #6a3a10;
+}
+
+.pips {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.pip {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1.5px solid #5a3a1a;
+}
+
+.pip.on {
+  background: #a3221a;
+  border-color: #6a120c;
+}
+
+/* Niveaux ouverts par l'allongement (vert-de-gris) ; cerclés en pointillé tant que le navire n'est pas allongé. */
+.pip.ext {
+  border-color: #2f6f62;
+}
+
+.pip.ext.on {
+  background: #3f8f7d;
+  border-color: #1f4f45;
+}
+
+.pip.ext.locked {
+  border-style: dashed;
+  opacity: 0.6;
+}
+
+.effect.ext {
+  color: #2f6f62;
+}
+
+.tag.extended {
+  color: #f1f7ef;
+  background: #2f6f62;
+}
+
+.upgrade-card.extension {
+  border-color: #2f6f62;
+  background: linear-gradient(100deg, rgba(63, 143, 125, 0.16), rgba(255, 245, 215, 0.35) 60%);
+}
+
+.upgrade-card.extension.done {
+  opacity: 0.8;
+}
+
+.buy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 130px;
+}
+
+.buy .cost {
+  display: flex;
+  gap: 10px;
+  font-size: 17px;
+}
+
+.buy button {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 18px;
+  padding: 5px 16px;
+  border: none;
+  border-radius: 20px;
+  color: #fbecc8;
+  background: radial-gradient(circle at 40% 35%, #c0392b, #7a1810);
+  box-shadow: 0 2px 0 #4a0c06, inset 0 0 6px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.buy button:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+
+.buy button:disabled {
+  background: #a89878;
+  box-shadow: none;
+  color: #e8dcc0;
+  cursor: not-allowed;
+}
+
+.buy .done {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 18px;
+  color: #6a3a10;
+}
+
+.parchment .footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 22px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1.5px solid rgba(90, 55, 20, 0.35);
+}
+
+.parchment .hint {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.hud-combat {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border-radius: 14px;
+  background: rgba(150, 30, 20, 0.7);
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.hud-combat.on {
+  opacity: 1;
+}
+
+.hud-banner {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  transform: translateX(-50%);
+  font-size: 26px;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity 0.4s;
+  white-space: nowrap;
+}
+
+.hud-banner.on {
+  opacity: 1;
+}
+
+.ship-bar {
+  position: fixed;
+  left: -30px;
+  top: -4px;
+  width: 60px;
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ship-bar-fill {
+  height: 100%;
+  background: linear-gradient(#ff7a5a, #c0392b);
+}
+
+
+
+
+.hud-sail {
+  font-weight: 600;
+}
+
+.hud-speed {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.radar {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(242, 232, 208, 0.35), 0 4px 14px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.hud-help {
+  position: absolute;
+  left: 20px;
+  bottom: 16px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* ---------- Flotte ---------- */
+
+.hud-ship-name {
+  font-weight: 700;
+  margin-bottom: 6px;
+  letter-spacing: 0.3px;
+}
+
+.hud-fleet {
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.hud-fleet-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px;
+  border-radius: 8px;
+  background: rgba(10, 35, 55, 0.5);
+}
+
+.hud-fleet-row.helm {
+  box-shadow: inset 0 0 0 1.5px rgba(242, 232, 208, 0.7);
+}
+
+.hud-fleet-row .name {
+  min-width: 96px;
+}
+
+.hud-fleet-row .bar {
+  width: 70px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.hud-fleet-row .bar span {
+  display: block;
+  height: 100%;
+  background: #6fe08a;
+}
+
+.hud-fleet-row .away {
+  opacity: 0.75;
+  font-style: italic;
+}
+
+.ship-bar.ally .ship-bar-fill {
+  background: linear-gradient(#8ff0a4, #3f9e5a);
+}
+
+.parchment .section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 8px;
+  font-family: 'Pirata One', Georgia, serif;
+  font-weight: 400;
+  font-size: 22px;
+  color: #5a2a10;
+}
+
+.parchment .section .count {
+  font-family: 'IM Fell English', Georgia, serif;
+  font-size: 17px;
+}
+
+.parchment .section button,
+.choices button,
+.buy button.secondary {
+  font-family: 'IM Fell English', Georgia, serif;
+  font-size: 15px;
+  padding: 4px 12px;
+  border-radius: 14px;
+  border: 1.5px solid #6a3a10;
+  color: #3b2410;
+  background: rgba(255, 245, 215, 0.6);
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.parchment .section button:disabled,
+.buy button.secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.choices {
+  display: flex;
+  gap: 8px;
+}
+
+.choices button.on {
+  color: #fbecc8;
+  border-color: #6a120c;
+  background: radial-gradient(circle at 40% 35%, #c0392b, #7a1810);
+}
+
+.upgrade-card.at-helm {
+  border-color: #a3221a;
+  background: rgba(255, 235, 200, 0.55);
+}
+
+.tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 8px;
+  border-radius: 10px;
+  font-family: 'IM Fell English', Georgia, serif;
+  font-size: 13px;
+  vertical-align: middle;
+  background: rgba(90, 55, 20, 0.15);
+}
+
+.tag.helm {
+  color: #fbecc8;
+  background: #8a2a1a;
+}
+
+.ship-health {
+  height: 8px;
+  margin: 3px 0 4px;
+  border-radius: 4px;
+  background: rgba(60, 30, 10, 0.25);
+  overflow: hidden;
+}
+
+.ship-health div {
+  height: 100%;
+  background: linear-gradient(#7fc86a, #3f8e3a);
+}
+
+.hud-sail-gauge {
+  height: 8px;
+  margin-bottom: 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+.hud-sail-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(#fbf3dc, #d9c79c);
+}
+
+/* ---------- Météo ---------- */
+
+.weather-buttons {
+  position: fixed;
+  right: 20px;
+  bottom: 228px;
+  width: 180px;
+  display: flex;
+  gap: 4px;
+}
+
+.weather-buttons button {
+  flex: 1;
+  padding: 4px 0;
+  border: 1px solid rgba(242, 232, 208, 0.35);
+  border-radius: 12px;
+  background: rgba(6, 28, 38, 0.72);
+  color: #e6f5ff;
+  font: 14px system-ui, sans-serif;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.weather-buttons button:hover {
+  opacity: 1;
+}
+
+.weather-buttons button.on {
+  opacity: 1;
+  border-color: rgba(255, 220, 140, 0.95);
+  background: rgba(60, 75, 85, 0.9);
+  box-shadow: 0 0 6px rgba(255, 220, 140, 0.5);
+}
+
+/* ---------- Carte (M) ---------- */
+
+.parchment.map-sheet {
+  width: auto;
+  max-width: calc(100vw - 32px);
+}
+
+.map-canvas {
+  display: block;
+  margin: 10px auto 8px;
+}
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+  font-size: 15px;
+}
+
+.map-legend b {
+  font-weight: 400;
+}
+
+.map-legend .me {
+  color: #1f1a14;
+}
+
+.map-legend .ally {
+  color: #2f7a3c;
+}
+
+.map-legend .enemy {
+  color: #b3261c;
+}
+
+.map-legend .gold {
+  color: #d9a514;
+}
+
+.map-legend .wood {
+  color: #8a5a2b;
+}
+
+.tag.kills {
+  background: rgba(60, 20, 10, 0.12);
+  color: #6a1c10;
+}
+
+/* Types de canons du chantier : une fiche par type, celui en place en évidence. */
+.gun-battery {
+  margin: 8px 0 4px;
+  font-size: 16px;
+}
+
+.gun-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.gun-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1.5px solid rgba(106, 58, 16, 0.45);
+  border-radius: 6px;
+  background: rgba(255, 245, 215, 0.35);
+}
+
+.gun-choice p {
+  margin: 0;
+  flex: 1;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.gun-choice .buy {
+  min-width: 0;
+  margin-top: 4px;
+}
+
+.gun-choice.on {
+  border-color: #6a120c;
+  background: rgba(192, 57, 43, 0.12);
+}
+
+/* Rang d'un navire (étoiles) et équipage. */
+.tag.trade {
+  color: #fbecc8;
+  background: #6a4a2a;
+}
+
+.tag.rank {
+  color: #fbecc8;
+  background: #2b2118;
+  letter-spacing: 1px;
+}
+
+.choices.trophies {
+  flex-wrap: wrap;
+  margin: 4px 0;
+}
+
+.buy.crew-assign {
+  max-width: 220px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.upgrade-card.ashore {
+  opacity: 0.85;
+  border-style: dashed;
+}
+
+.footer.crew-slots {
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+/* ---------- Notifications (navires coulés, butin ramassé) ---------- */
+
+.hud-top-right {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: min(300px, calc(100vw - 32px));
+}
+
+.notif-feed {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.notif-kill {
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: rgba(10, 35, 55, 0.6);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.notif-pickups {
+  position: absolute;
+  left: calc(100% + 10px);
+  bottom: 0;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 4px;
+}
+
+.notif-pickup {
+  padding: 3px 10px;
+  border-radius: 10px;
+  background: rgba(10, 35, 55, 0.55);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.notif-pickup.gold {
+  color: #ffd447;
+}
+
+.notif-pickup.wood {
+  color: #e0a86a;
+}
+
+/* ---------- Boss ---------- */
+
+.boss-bar {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  width: min(460px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.6s;
+  pointer-events: none;
+}
+
+.boss-bar.on {
+  opacity: 1;
+}
+
+.boss-name {
+  margin-bottom: 4px;
+  color: #f2d6c8;
+  font: 700 18px Georgia, 'Times New Roman', serif;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+}
+
+.boss-health {
+  height: 12px;
+  border: 1px solid rgba(255, 190, 160, 0.55);
+  border-radius: 6px;
+  background: rgba(20, 6, 6, 0.75);
+  overflow: hidden;
+}
+
+.boss-health div {
+  height: 100%;
+  background: linear-gradient(#d8432f, #7a140e);
+  transition: width 0.25s;
+}
+
+.hud-banner.danger {
+  color: #ff8a70;
+  font-family: Georgia, 'Times New Roman', serif;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 12px rgba(120, 0, 0, 0.9), 0 2px 4px rgba(0, 0, 0, 0.9);
+}
+
+/* ---------- Port, cales, pêche ---------- */
+
+.hud-hold {
+  color: #9fd8ef;
+}
+
+.parchment .hold {
+  color: #2d5f73;
+}
+
+.notif-pickup.rum {
+  color: #ef9a6a;
+}
+
+.notif-pickup.spices {
+  color: #ffb36a;
+}
+
+.notif-pickup.fish {
+  color: #9fe3ff;
+}
+
+.map-legend .rum {
+  color: #9a3f1c;
+}
+
+.map-legend .fish {
+  color: #2d7f9a;
+}
+
+.parchment.port-sheet {
+  width: min(820px, calc(100vw - 32px));
+}
+
+/* Paramètres (Échap) : un réglage par ligne, son explication à gauche, ses choix à droite. */
+.parchment.settings-sheet {
+  width: min(840px, calc(100vw - 32px));
+}
+
+.choices.settings-presets,
+.choices.settings-resume {
+  flex-wrap: wrap;
+  margin: 4px 0 6px;
+}
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.setting {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 0;
+  border-bottom: 1px dashed rgba(90, 55, 20, 0.35);
+}
+
+.setting-label p {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.setting .choices {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.setting .choices button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .setting {
+    grid-template-columns: 1fr;
+  }
+
+  .setting .choices {
+    justify-content: flex-start;
+  }
+}
+
+.choices.port-tabs {
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.port-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.port-tabs button svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.upgrade-card.compact {
+  grid-template-columns: 1fr auto;
+}
+
+.upgrade-card.compact:has(.icon) {
+  grid-template-columns: 56px 1fr auto;
+}
+
+.ship-health.contract div {
+  background: linear-gradient(#e0b24a, #a8741a);
+}
+
+.island-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px 18px;
+  margin: 4px 0 10px;
+}
+
+.island-facts div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px dashed rgba(90, 55, 20, 0.35);
+}
+
+.island-facts span {
+  opacity: 0.8;
+}
+
+.trade-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.trade-row {
+  display: grid;
+  grid-template-columns: 1fr 52px 56px 56px 244px;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 4px;
+  border-bottom: 1px dashed rgba(90, 55, 20, 0.35);
+}
+
+.trade-row.head {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 18px;
+  color: #5a2a10;
+}
+
+.trade-row b {
+  font-family: 'Pirata One', Georgia, serif;
+  font-weight: 400;
+  font-size: 20px;
+}
+
+.trade-row small {
+  display: block;
+  font-size: 13px;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.trade-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.trade-buttons button {
+  font-family: 'IM Fell English', Georgia, serif;
+  font-size: 14px;
+  padding: 3px 10px;
+  border: none;
+  border-radius: 12px;
+  color: #fbecc8;
+  background: radial-gradient(circle at 40% 35%, #c0392b, #7a1810);
+  cursor: pointer;
+}
+
+.trade-buttons button.secondary {
+  border: 1.5px solid #6a3a10;
+  color: #3b2410;
+  background: rgba(255, 245, 215, 0.6);
+}
+
+.trade-buttons button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.trophy {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 14px;
+  border: 1.5px solid #6a120c;
+  border-radius: 4px;
+  background: rgba(40, 10, 8, 0.12);
+}
+
+.trophy .flag {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 36px;
+  border-radius: 3px;
+  background: #121212;
+  color: #b3201a;
+  font-size: 24px;
+}
+
+.trophy p {
+  margin: 2px 0 0;
+  font-style: italic;
+}
+
+.trophy + .trophy {
+  margin-top: 8px;
+}
+
+.trophy.spectre .flag {
+  background: #262b2c;
+  color: #a9d6b8;
+}
+
+.trophy.unknown {
+  border-style: dashed;
+  opacity: 0.6;
+}
+
+.trophy.unknown .flag {
+  background: #3a3226;
+  color: #e8dcc0;
+}
+
+/* Missions spéciales de la taverne : liseré doré et étiquette. */
+.upgrade-card.special {
+  border-color: #9a6a1c;
+  background: rgba(201, 162, 39, 0.1);
+}
+
+.upgrade-card.special .tag {
+  margin: 0 6px 0 0;
+  color: #fbecc8;
+  background: #8a5a1a;
+}
+
+/*
+ * Barre de défilement des parchemins, « trait d'encre » : une fine rainure brune dans la marge, un curseur arrondi
+ * brun encre (plus foncé au survol), sans flèches, tenu à l'écart des coins arrondis.
+ */
+.parchment::-webkit-scrollbar {
+  width: 16px;
+}
+
+.parchment::-webkit-scrollbar-track {
+  margin: 14px 0;
+  background: linear-gradient(90deg, transparent 7px, rgba(110, 70, 30, 0.35) 7px, rgba(110, 70, 30, 0.35) 9px, transparent 9px);
+}
+
+.parchment::-webkit-scrollbar-thumb {
+  min-height: 40px;
+  border: 4px solid transparent;
+  border-radius: 8px;
+  background: rgba(70, 40, 15, 0.75) padding-box;
+  box-shadow: inset 0 0 0 1px rgba(40, 20, 5, 0.25);
+}
+
+.parchment::-webkit-scrollbar-thumb:hover,
+.parchment::-webkit-scrollbar-thumb:active {
+  background: #3e2610 padding-box;
+}
+
+.parchment::-webkit-scrollbar-button,
+.parchment::-webkit-scrollbar-corner {
+  display: none;
+  background: transparent;
+}
+
+/* Navigateurs sans ::-webkit-scrollbar (Firefox) : barre fine aux couleurs de l'encre. */
+@supports not selector(::-webkit-scrollbar) {
+  .parchment {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(70, 40, 15, 0.75) transparent;
+  }
+}
+
+@media (max-width: 600px) {
+  .trade-row {
+    grid-template-columns: 1fr 44px 52px 52px;
+  }
+
+  .trade-row.head span:last-child {
+    display: none;
+  }
+
+  .trade-buttons {
+    grid-column: 1 / -1;
+  }
+}
+
+.action-prompts {
+  position: absolute;
+  left: 50%;
+  bottom: 70px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.action-status {
+  display: none;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: rgba(6, 28, 38, 0.72);
+  color: #f2e8d0;
+  font: 600 15px system-ui, sans-serif;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.action-status.on {
+  display: block;
+}
+
+.action-prompt {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px 5px 6px;
+  border: 1px solid rgba(242, 232, 208, 0.45);
+  border-radius: 16px;
+  background: rgba(6, 28, 38, 0.78);
+  color: #f2e8d0;
+  font: 600 15px system-ui, sans-serif;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.action-prompt.on {
+  display: flex;
+}
+
+.action-prompt:hover {
+  border-color: rgba(255, 220, 140, 0.95);
+}
+
+.action-prompt kbd {
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: #f2e8d0;
+  color: #1f1a14;
+  font: 700 14px system-ui, sans-serif;
+}
+
+/* ---------- Suivi des contrats (haut droit) ---------- */
+
+.quest-tracker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 240px;
+  max-width: 100%;
+}
+
+.quest-tracker:empty {
+  display: none;
+}
+
+.quest {
+  padding: 6px 10px 7px;
+  border-left: 3px solid #e0b24a;
+  border-radius: 4px;
+  background: rgba(10, 35, 55, 0.6);
+}
+
+.quest.done {
+  border-left-color: #7fd07a;
+}
+
+.quest-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.quest-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.quest-bar {
+  flex: 1;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+.quest-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(#f0c860, #b8862a);
+}
+
+.quest.done .quest-bar span {
+  background: linear-gradient(#a8ec9c, #4fa64a);
+}
+
+.quest-note {
+  margin-top: 3px;
+  font-size: 12px;
+  font-style: italic;
+  color: #b8f0b0;
+}
+
+/* ---------- Port-Sabre : citadelle assiégée, carte ---------- */
+
+.boss-bar.siege {
+  top: 70px;
+}
+
+.boss-bar.siege .boss-name {
+  color: #e8e2d4;
+}
+
+.boss-bar.siege .boss-health div {
+  background: linear-gradient(#d9d2c2, #7d766a);
+}
+
+.map-legend .merchant {
+  color: #c9a227;
+}
+
+.map-legend .hunt {
+  color: #b3261c;
+}
+
+.quest:not(.done) .quest-note {
+  color: #f0dca8;
+}
+
+.map-legend .pirate {
+  color: #2f6fc0;
+}
+
+.stars {
+  margin-left: 6px;
+  color: #c98a12;
+  font-family: system-ui, sans-serif;
+  font-size: 0.75em;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.quest-icon {
+  display: inline-block;
+  width: 20px;
+  margin-right: 4px;
+  text-align: center;
+}
+
+/* Genres de mission (taverne). */
+.tag.mission {
+  color: #fbecc8;
+  background: #5a3a1c;
+}
+
+.tag.mission.combat { background: #8a2a1a; }
+.tag.mission.hunt { background: #7a4a12; }
+.tag.mission.bounty { background: #2b2118; }
+.tag.mission.defense { background: #4a5a2a; }
+.tag.mission.escort { background: #2a4a6a; }
+.tag.mission.convoy { background: #6a4a2a; }
+.tag.mission.delivery { background: #2a5a5a; }
+
+.quest-title .stars {
+  color: #f2c94c;
+}

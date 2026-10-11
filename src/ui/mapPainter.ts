@@ -1,0 +1,212 @@
+import type { MapZone } from '../missions/mission';
+import type { Ship } from '../ship/ship';
+import type { FishSchool } from '../world/fishSchools';
+import { ISLAND_INFO } from '../config';
+import { ISLAND_LIST, type Island } from '../world/island';
+import { LANDMARKS } from '../world/landmarks';
+import type { Crate, LootKind } from '../world/loot';
+import type { Wind } from '../world/wind';
+import { INK, paintCompass, paintLandmark, paintScale, paintShip } from './mapGlyphs';
+
+/** Ce que la carte montre. Les ennemis sont déjà filtrés : seulement ceux à portée du radar. */
+export interface MapData {
+  leader: Ship;
+  allies: readonly Ship[];
+  enemies: readonly Ship[];
+  crates: readonly Crate[];
+  schools: readonly FishSchool[];
+  wind: Wind;
+  /** Portée du radar du bateau piloté (m). */
+  radarRange: number;
+  zones: readonly MapZone[];
+  escorts: readonly Ship[];
+  /** Pirates alliés vus par le radar. */
+  pirates: readonly Ship[];
+}
+
+const COLORS = {
+  sea: 'rgba(60, 110, 120, 0.16)',
+  grid: 'rgba(74, 46, 20, 0.12)',
+  shallows: 'rgba(40, 95, 105, 0.45)',
+  land: '#dcc084',
+  forest: 'rgba(95, 120, 60, 0.5)',
+  player: '#1f1a14',
+  ally: '#2f7a3c',
+  enemy: '#b3261c',
+  radar: 'rgba(74, 46, 20, 0.45)',
+  fish: '#2d7f9a',
+  merchant: '#c9a227',
+  pirate: '#2f6fc0',
+  hunt: 'rgba(179, 38, 28, 0.8)',
+};
+const CRATE_COLORS: Record<LootKind, string> = { gold: '#d9a514', wood: '#8a5a2b', rum: '#9a3f1c', spices: '#e0782c' };
+/** Pas possibles du quadrillage (m) : on prend le premier qui laisse assez d'espace entre deux lignes. */
+const GRID_STEPS = [100, 250, 500, 1000, 2500, 5000];
+const MIN_GRID_PX = 70;
+/** Marge autour des îles et autour de la zone radar du joueur (m). */
+const ISLAND_MARGIN = 160;
+/** Étendue minimale montrée (m) : la carte ne zoome pas plus que ça. */
+const MIN_SPAN = 900;
+/** Collines dessinées sur chaque île : [cap depuis l'axe de la crique, distance à l'intérieur des terres (m)]. */
+const HILLS = [[Math.PI - 0.6, 55], [Math.PI, 60], [Math.PI + 0.6, 55], [Math.PI / 2 + 0.3, 50], [(3 * Math.PI) / 2 - 0.3, 50]] as const;
+
+/**
+ * Dessine la carte : nord en haut, ouest à gauche (+X monde = ouest). Le cadrage englobe toutes les îles et la zone
+ * radar du joueur, quelle que soit la distance qui les sépare.
+ */
+export function paintMap(ctx: CanvasRenderingContext2D, width: number, height: number, data: MapData) {
+  const { leader } = data;
+  const around = data.radarRange + 60;
+  let minX = leader.position.x - around;
+  let maxX = leader.position.x + around;
+  let minZ = leader.position.z - around;
+  let maxZ = leader.position.z + around;
+  for (const island of ISLAND_LIST) {
+    const reach = island.outerRadius + ISLAND_MARGIN;
+    minX = Math.min(minX, island.cx - reach);
+    maxX = Math.max(maxX, island.cx + reach);
+    minZ = Math.min(minZ, island.cz - reach);
+    maxZ = Math.max(maxZ, island.cz + reach);
+  }
+  // Les zones de mission et les navires escortés restent dans le cadre.
+  const extras = [...data.zones.map((z) => ({ x: z.x, z: z.z, r: z.radius + 40 })), ...data.escorts.map((e) => ({ x: e.position.x, z: e.position.z, r: 60 }))];
+  for (const e of extras) {
+    minX = Math.min(minX, e.x - e.r);
+    maxX = Math.max(maxX, e.x + e.r);
+    minZ = Math.min(minZ, e.z - e.r);
+    maxZ = Math.max(maxZ, e.z + e.r);
+  }
+  const scale = Math.min(width / Math.max(maxX - minX, MIN_SPAN), height / Math.max(maxZ - minZ, MIN_SPAN));
+  const midX = (minX + maxX) / 2;
+  const midZ = (minZ + maxZ) / 2;
+  const toX = (x: number) => width / 2 - (x - midX) * scale;
+  const toY = (z: number) => height / 2 - (z - midZ) * scale;
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = COLORS.sea;
+  ctx.fillRect(0, 0, width, height);
+
+  // Quadrillage.
+  const step = GRID_STEPS.find((s) => s * scale >= MIN_GRID_PX) ?? GRID_STEPS[GRID_STEPS.length - 1];
+  ctx.strokeStyle = COLORS.grid;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  const halfW = width / 2 / scale;
+  const halfH = height / 2 / scale;
+  for (let x = Math.ceil((midX - halfW) / step) * step; x <= midX + halfW; x += step) {
+    ctx.moveTo(toX(x), 0);
+    ctx.lineTo(toX(x), height);
+  }
+  for (let z = Math.ceil((midZ - halfH) / step) * step; z <= midZ + halfH; z += step) {
+    ctx.moveTo(0, toY(z));
+    ctx.lineTo(width, toY(z));
+  }
+  ctx.stroke();
+
+  for (const island of ISLAND_LIST) paintIsland(ctx, island, toX, toY, scale);
+  for (const l of LANDMARKS) paintLandmark(ctx, l.kind, l.name, toX(l.x), toY(l.z));
+
+  // Zone couverte par le radar : ce que tu « vois » autour de toi.
+  ctx.strokeStyle = COLORS.radar;
+  ctx.setLineDash([6, 5]);
+  ctx.beginPath();
+  ctx.arc(toX(leader.position.x), toY(leader.position.z), data.radarRange * scale, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  for (const { mesh, kind } of data.crates) {
+    ctx.fillStyle = CRATE_COLORS[kind];
+    ctx.fillRect(toX(mesh.position.x) - 3, toY(mesh.position.z) - 3, 6, 6);
+  }
+  ctx.fillStyle = COLORS.fish;
+  ctx.font = '15px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (const s of data.schools) if (!s.diving) ctx.fillText('≋', toX(s.x), toY(s.z));
+  for (const ship of data.enemies) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 7, COLORS.enemy);
+  for (const ship of data.allies) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 7, COLORS.ally);
+  for (const ship of data.pirates) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 7, COLORS.pirate);
+  for (const ship of data.escorts) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 8, COLORS.merchant);
+  for (const zone of data.zones) paintZone(ctx, zone, toX, toY, scale);
+  const px = toX(leader.position.x);
+  const py = toY(leader.position.z);
+  ctx.fillStyle = 'rgba(255, 245, 220, 0.8)';
+  ctx.beginPath();
+  ctx.arc(px, py, 13, 0, Math.PI * 2);
+  ctx.fill();
+  paintShip(ctx, px, py, leader.heading, 11, COLORS.player);
+
+  paintCompass(ctx, width - 52, 56, data.wind);
+  paintScale(ctx, 18, height - 18, step, scale);
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, width - 2, height - 2);
+}
+
+function paintIsland(ctx: CanvasRenderingContext2D, island: Island, toX: (x: number) => number, toY: (z: number) => number, scale: number) {
+  const outline = (inland: number) => {
+    ctx.beginPath();
+    for (let i = 0; i <= 180; i++) {
+      const p = island.pointAt((i / 180) * Math.PI * 2, inland);
+      if (i === 0) ctx.moveTo(toX(p.x), toY(p.z));
+      else ctx.lineTo(toX(p.x), toY(p.z));
+    }
+    ctx.closePath();
+  };
+  // Hauts-fonds : un pointillé au large du rivage.
+  outline(-20);
+  ctx.strokeStyle = COLORS.shallows;
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.setLineDash([]);
+  outline(0);
+  ctx.fillStyle = COLORS.land;
+  ctx.fill();
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  outline(30);
+  ctx.fillStyle = COLORS.forest;
+  ctx.fill();
+
+  // Collines : petits sommets à l'encre.
+  const size = Math.max(5, 18 * scale);
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 1.2;
+  for (const [theta, inland] of HILLS) {
+    const p = island.pointAt(theta + island.def.bay.angle, inland);
+    const x = toX(p.x);
+    const y = toY(p.z);
+    ctx.beginPath();
+    ctx.moveTo(x - size, y + size * 0.5);
+    ctx.lineTo(x, y - size * 0.6);
+    ctx.lineTo(x + size, y + size * 0.5);
+    ctx.stroke();
+  }
+
+  // Le nom s'écrit du côté opposé à la crique (le port y a déjà le sien).
+  const away = island.def.bay.angle + Math.PI;
+  const nameX = toX(island.cx + Math.sin(away) * island.def.radius * 0.45);
+  const name = toY(island.cz + Math.cos(away) * island.def.radius * 0.45);
+  ctx.fillStyle = INK;
+  ctx.font = `${Math.round(Math.min(24, Math.max(12, 45 * scale)))}px 'Pirata One', Georgia, serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(ISLAND_INFO[island.id].name, nameX, name);
+}
+
+/** Zone de chasse : un cercle rouge pointillé et le nom du capitaine. */
+function paintZone(ctx: CanvasRenderingContext2D, zone: MapZone, toX: (x: number) => number, toY: (z: number) => number, scale: number) {
+  ctx.strokeStyle = ctx.fillStyle = COLORS.hunt;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([7, 5]);
+  ctx.beginPath();
+  ctx.arc(toX(zone.x), toY(zone.z), zone.radius * scale, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = `15px 'Pirata One', Georgia, serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(zone.label, toX(zone.x), toY(zone.z));
+}

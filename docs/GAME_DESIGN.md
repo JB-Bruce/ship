@@ -1,0 +1,255 @@
+# Game design
+
+Décisions prises avec l'auteur (depuis le 2026-10-06). Les valeurs chiffrées sont des réglages à ajuster en jouant (`src/config.ts`).
+
+## Vision long terme
+- Améliorer son bateau : taille, voilure, nombre de canons…
+- Caméra arrière (faite) et vue du dessus (plus tard).
+- Bateaux alliés qui patrouillent et attaquent les ennemis.
+- Intempéries : pluie et orage faits (boutons) ; plus tard, une météo automatique et le tonnerre (avec le son).
+- Archipel : la Tortue (ton repaire) et Port-Sabre (faites) ; plus tard, une île de la Marine à conquérir et des comptoirs marchands, avec la même description (allégeance, marché, améliorations).
+
+## Flotte (fait)
+- **T** ouvre le menu de flotte, partout (jeu en pause) : formation (ligne, colonne, en V, libre), prise de barre, état et cale de chaque navire. L'achat, la vente et les places supplémentaires se font au port (onglet Navires).
+- Places : 3 au départ, puis +1 pour 60, 90 et 120 or (6 au maximum). Chaloupe : 30 or. Sloop : 120 or + 25 bois. La revente rend 50 % du prix du bateau et de ses améliorations.
+- Les navires non pilotés tiennent leur place dans la formation, attaquent les ennemis à moins de 160 m (sans s'éloigner à plus de 260 m du bateau piloté), puis reviennent. Hors combat, ils vont chercher le butin qui flotte à moins de 80 m d'eux (rhum et épices seulement s'il reste de la place dans leur cale), puis reprennent leur place.
+- Un navire coulé réapparaît intact à sa place au bout de 45 s (chaloupe) ou 55 s (sloop). Si le bateau piloté coule, tu prends la barre du navire à flot le plus proche. Si toute la flotte coule : perte de 25 % de l'or et réapparition au dernier port visité (la Tortue ou Port-Sabre).
+- Pas de dégâts d'éperonnage entre navires d'un même camp (ils se repoussent seulement).
+- **Éperonnage selon la masse et la vitesse** (fait) : chaque navire encaisse (vitesse de rapprochement − 2 m/s) × 10 × masse de l'autre / 220 (masse avec blindage, canons et voilure : chaloupe 50, sloop 220, brigantin 320, corvette 420, frégate 560 de base). Celui qui frappe de la proue n'en encaisse que 35 %. Une frégate lancée à pleine vitesse coule un sloop ou une chaloupe d'un seul choc (et n'y perd que 30 ou 7 PV) ; une chaloupe ne fait qu'érafler. Le plus lourd repousse le plus léger et garde plus de sa vitesse (une frégate qui coule une chaloupe file presque sans ralentir).
+- Les suiveurs évitent les navires amis : s'ils vont en frôler un de trop près dans les 3 s, ils le contournent par le côté libre. Pour rejoindre leur place, ils gardent toujours au moins 35 % de voile, car un bateau arrêté ne peut pas virer.
+- **Réparation** : après 8 s sans tirer ni être touché, un bateau regagne 2 % de sa vie max par seconde (ennemis compris).
+
+## Types de bateaux
+- **Corvette** (fait) : 22 m × 6 m, 320 de vie, 12,5 m/s, vire lentement. Trois-mâts mixte (misaine et grand mât à voiles carrées sur trois étages, artimon à voile aurique qui suit le vent, deux focs). Château arrière haut (roue, fenêtres, escaliers d'accès), pont principal bas au milieu, gaillard d'avant légèrement surélevé ; la batterie couverte reste 1,05 m sous le pont principal. Écoutilles vers la batterie : deux caillebotis et une trappe ouverte (échelle, panneau relevé). **Deux calibres** : batterie couverte de 4 canons lourds par flanc dans le bordé (18 dégâts, 4 s, angle ±20° seulement, portée 150 m) ; pont supérieur de 4 canons légers par flanc derrière le pavois (11 dégâts, 2,5 s, angle ±35°, portée 130 m), achetables deux par deux. Améliorations : précision 4, portée 2, canons du pont 2, coque 4, voilure 3 (précision et portée profitent aux deux calibres). Prix : 500 or + 150 bois, réapparition en 80 s. Pas de capacité spéciale. Ennemis : 10 % des apparitions à partir de 35 victoires, butin ×4,5.
+- **Frégate** (fait) : 28 m × 7,4 m, 480 de vie, 12 m/s, très lente à virer. Trois-mâts carré complet (basse voile, hunier et perroquet à la misaine et au grand mât ; hunier et perroquet à l'artimon au-dessus d'une brigantine qui suit le vent), civadière sous le beaupré et contre-civadière sur un mâtereau à son bout (avec son pavillon), un seul foc. Coque façon XVIIe : tonture marquée (préceintes et sabords remontent vers les bouts), flancs rentrants, château arrière en escalier (gaillard d'arrière puis dunette), éperon avec lisses dorées et figure de proue. Poupe très haute à deux galeries (fenêtres, balcons à balustres dorés, écusson, trois grands fanaux, galeries de bouteille sur deux niveaux). Bandes de bois ocre (batterie, pavois, étages des châteaux) alternées avec la couleur de la livrée, moulures dorées. Voiles de la livrée. **Deux calibres** : batterie couverte de 4 à 8 canons lourds par flanc (20 dégâts, 4,2 s, angle ±20°, portée 160 m) et 2 à 4 canons légers par flanc sur les gaillards (12 dégâts, 2,6 s, angle ±35°, portée 135 m). 4 achats de canons : chacun ajoute un canon de batterie par flanc, les achats 2 et 4 aussi un canon de gaillard (6 → 7 → 9 → 10 → 12 par flanc). Améliorations : précision 4, portée 2, canons 4, coque 4 (+80 à +380), voilure 3, cale 3 (100 → 220). Prix : 900 or + 300 bois, réapparition en 95 s. Ennemis : 10 % des apparitions à partir de 50 victoires (si ton plus gros navire est au moins une corvette), butin ×6.
+- **Brigantin** (fait) : 16 m, 200 de vie, 12,5 m/s, lent à virer. Le « tireur d'élite » de la flotte. Château arrière haut (fenêtres, roue de gouvernail animée, grand fanal), gaillard d'avant surélevé, 2 mâts à voiles carrées avec hunes, 2 focs sur le beaupré. Canons : 3 par flanc au départ (2 à l'abri dans le château, 1 à l'avant sur le pont découvert), puis 2 achetables un par un sur le pont principal (5 par flanc). Améliorations : précision 5 niveaux (imprécision jusqu'à −80 %), portée 2 (+15 / +30 %), défense de la coque 4 (+50 à +230 de vie), voilure 3 (+6 à +18 %). Prix : 300 or + 80 bois, réapparition en 70 s. Ennemis : 15 % des apparitions à partir de 20 victoires, butin ×3,5.
+- L'amélioration **Portée** n'existe que sur les navires qui l'ont dans leur table ; le chantier naval cache les améliorations indisponibles. « Coque renforcée » s'appelle désormais « Défense de la coque » (vie max).
+- La caméra recule et monte avec la taille du navire piloté.
+- **Barque** (ennemis seulement) : 5 m, 25 de vie, 8 m/s, à la rame (4 rameurs aux avirons animés), 1 pierrier à l'avant (portée 90 m, 5 dégâts). Elle attaque en passes : proue sur la cible pour tirer, dégagement à 28 m, puis demi-tour. Butin réduit de moitié.
+- **Chaloupe** : voir ci-dessous.
+- **Sloop** (polyvalent) : 12 m, 130 de vie, 13 m/s, tourne moins vite. Grand-voile aurique et foc qui s'orientent selon le vent, beaupré, pont fermé, cabine, canons sur affût (2 par flanc au départ, jusqu'à 4). Améliorations : précision 3 niveaux, canons 2 niveaux, coque 3, voilure 3.
+
+## Le bateau du joueur (fait)
+- **Chaloupe pirate** : petite, rapide (environ 27 nœuds), une voile carrée, 1 canon pivotant par flanc. 60 points de vie.
+- Allure : bois sombre, voile beige rapiécée, pavillon noir à tête de mort.
+- Détails : rames rangées, bancs, safran et barre animés, 3 marins, tonneaux, caisse, cordage, lanterne.
+- Flottaison vive. L'eau n'entre plus visuellement dans la coque.
+- **Flottaison (tous les bateaux)** : la coque suit le mouvement de la vague sans retard ; l'eau est mesurée sous le centre, la proue, la poupe et les flancs. Elle ne s'écarte jamais beaucoup de l'eau : le ressort se durcit à 25 cm d'écart, avec une butée à 40 cm (même en orage, même à 20 images/s). Plus un bateau est lourd (type, puis masse ajoutée par les améliorations), plus ses mouvements sont lents et posés.
+- **Inertie des gros navires** (fait) : au-delà d'un sloop, tangage et roulis prennent de l'inertie avec la masse (frégate ×3,8, corvette ×3,4, brigantin ×2,5, sloop ×1,6, chaloupe inchangée ; au-delà de la corvette, la masse compte moins, pour que la frégate ne soit pas lente à suivre la mer : en grosse tempête elle tangue et roule à ~80 % de la vitesse de la corvette) : ils suivent moins la vitesse de rotation de la vague, sont plus amortis, et leurs extrémités peuvent s'écarter davantage de l'eau (la proue reste levée ou plonge dans la vague). Une vague courte ne fait plus basculer une frégate d'un bord à l'autre : en grosse tempête, elle roule à ~5°/s en moyenne (13° au plus) contre ~11°/s pour un sloop. Au passage d'une crête pointue, un navire lourd ne bascule plus d'un coup vers l'avant : son ressort se durcit moins et sa vitesse de tangage et de roulis est plafonnée en douceur (frégate ~27°/s, corvette ~30°/s, brigantin ~41°/s, sloop ~65°/s, chaloupe libre).
+- **Pilonnement des gros navires** (fait) : la coque ne suit qu'une part de la hauteur de la houle (frégate 85 %, corvette 88 %, brigantin 91 %, sloop 95 %) : elle fend un peu les crêtes et reste plus haute dans les creux, et monte et descend d'autant moins vite (frégate −15 %), sans retard sur la vague.
+
+## Pilotage (fait)
+- **Jauge de voile** : maintenir Z la hisse et maintenir S l'affale (2 s de 0 à 100 %). La vitesse visée est proportionnelle à la jauge. Q/D tiennent la barre, avec de l'inertie.
+- Pas de virage à l'arrêt : la barre agit en proportion de la vitesse, et pleinement à partir de 40 % de la vitesse max.
+- **Vent** : sa direction et sa force changent lentement, la force restant dans la plage du temps qu'il fait (beau temps 3–20 nœuds, brouillard 0–2, pluie 12–25, grand vent 30–40, orage 28–38). Effet sur la vitesse : ±25 % pour 20 nœuds (vent arrière / de face), proportionnel à la force, plafonné à ±40 %. Il s'affiche sur le radar (flèche + force + effet sur ta vitesse), et les pavillons flottent dans son sens. Il s'applique aussi aux ennemis.
+- Caméra : orbite en glissant la souris, molette pour zoomer, retour automatique derrière le bateau. Elle tremble quand on est touché.
+
+## Océan et ciel (fait)
+- **Sillage** (dessiné par le shader de l'eau) : dès 0,8 m/s, chaque bateau laisse derrière la poupe un remous et deux fines traînées partant des coins du tableau arrière, sur une eau plus lisse et plus claire. Le sillage suit les virages, s'élargit et se défait en dentelle en ~8 s (écume semi-transparente, jamais un aplat blanc). Le long de la coque, un liseré d'écume qui épouse la vraie forme de la coque à la flottaison et suit son assiette (là où la proue ou un flanc est soulevé hors de l'eau, il se resserre puis disparaît ; il ne reste que là où la coque trempe vraiment) : des paquets d'écume glissent le long du bordé, marqués contre l'étrave et effacés avant la poupe (rien devant l'étrave, pas de V). Son bord extérieur est fondu et irrégulier. En virage, le flanc extérieur projette une gerbe d'écume en éventail (jusqu'à ~3 m de la coque), qui laisse une large traînée courbe. À l'arrêt, un clapotis pâle s'éclaircit en s'éloignant de la coque et va et vient par endroits. Laissent aussi une trace : les boulets tombés à l'eau (anneau), les naufrages (tache bouillonnante au contour irrégulier, propre à chaque épave) et le butin qui flotte (petit remous). Embruns : gouttes projetées depuis la pointe de l'étrave, de part et d'autre, au-dessus de 3 m/s (presque aussi vite que le bateau, pour ne pas être rattrapées par la coque). Les particules d'eau (écume, embruns, gerbes) disparaissent dès qu'elles entrent dans une coque.
+- Houle longue et douce. Eau stylisée lisse : reflet du ciel, soleil qui scintille, crêtes turquoise à contre-jour, écume rare par mer calme.
+- Ciel en dégradé avec soleil. Brume au loin (visibilité d'environ 500 m).
+- **Météo** : six boutons au-dessus du radar (☀ beau temps, 🌫 brouillard, 💨 grand vent, 🌧 pluie, ⛈ orage, 🌊 grosse tempête). On passe de n'importe quel temps à n'importe quel autre, petit à petit, en 20 s.
+- **Beau temps** : la houle change d'elle-même toutes les 1 à 3 min, tirée au hasard entre quasi plate (6 %) et la houle normale ; la mer y passe en 40 s au plus.
+- **Brouillard** : visibilité ~70 m, ciel blanc-gris, mer quasi plate (vagues ×0,1), vent quasi nul (0–2 nœuds), portée de tir −40 %, ennemis qui repèrent 60 % moins loin.
+- **Bourrasques** : hors grand vent, par vent fort (à partir de ~13 nœuds, pleinement à 19), des filets de vent passent de temps en temps (environ 30 % du temps, au plus 30 % de ceux du grand vent). Jamais sous la pluie.
+- **Grand vent** : visibilité ~650 m, ciel bleu profond, vagues ×2, vent 30–40 nœuds (±40 % de vitesse), filets de vent blancs qui ondulent dans l'air. Portée et repérage inchangés. (Les embruns arrachés aux crêtes ont été retirés, par grand vent comme en grosse tempête.)
+- **Pluie** : visibilité ~220 m, ciel gris, soleil caché, vagues ×1,6 (plus d'écume), vent 12–25 nœuds, portée de tir −20 % pour tout le monde (fort compris), et les ennemis repèrent leurs proies 25 % moins loin.
+- **Orage** : visibilité ~140 m, ciel presque noir, pluie battante, vagues ×2,3, vent 28–38 nœuds, portée de tir −30 %, repérage −40 %.
+- **Grosse tempête** : houle ×3 (crêtes jusqu'à ~11 m) plus un clapot de vagues courtes et raides qui casse l'arrondi ; pas de lignes d'écume sur les crêtes (trop répétitives) : seulement quelques petites taches éparses au sommet des plus hautes vagues, jamais deux fois au même endroit ; visibilité ~180 m, ciel gris-vert ; vent 44–56 nœuds ; pluie battante ; éclairs deux fois plus fréquents et foudre deux fois plus dangereuse. Portée de tir −40 %, repérage −50 %, barre 20 % plus dure. **Paquets de mer** : quand une crête passe sous l'étrave (tous les 5–12 s environ par bateau), elle déferle sur le pont (gerbe d'eau) et fait 4 % de la vie max en dégâts, jusqu'à ×1,5 pour les petits bateaux.
+- **Éclairs** (orage) : toutes les 3 à 8 s, surtout au loin (50 à 480 m), parfois tout près. Le ciel, la brume et la scène s'illuminent ; la caméra tremble s'il tombe à moins de 180 m. Rarement (6 % des éclairs), la foudre frappe le mât d'un bateau à moins de 300 m du joueur (ami ou ennemi) : 15 % de sa vie max, et un message si c'est un navire de ta flotte.
+
+## Île principale et port (fait)
+- Île moyenne (environ 340 m de large) avec une crique au nord ; on y apparaît devant le quai, proue vers le large. Plages, collines, palmiers, rochers, lagon turquoise et ressac.
+- Port : quai, jetée et ponton, village pirate (taverne et maisons), fort sur la pointe ouest de la crique, phare sur la pointe est.
+- **Fort bastionné** (façon Caraïbes) : enceinte basse en pierre à 5 bastions en pointe (le principal tourné vers le large), parapet, guérites sur les deux bastions côté terre, tour de guet avec le pavillon, caserne, porte côté terre. Les canons tirent en barbette par-dessus le parapet, depuis les bastions et les courtines côté mer : 2 au départ (bastions des flancs), puis 3, 4, 5 avec l'amélioration. Chaque canon a un secteur de tir de ±80° vers le large et vise l'ennemi le plus proche dans ce secteur. Portée 220 m, 10 dégâts, rechargement 4 s (jusqu'à 290 m et 17 dégâts).
+- **Phare** : par temps sombre (brouillard, pluie, orage, grosse tempête), la lanterne s'allume, avec un halo visible de loin et deux faisceaux qui balaient l'horizon à travers la brume (le halo s'avive quand un faisceau passe vers toi). L'amélioration « Phare » le fait grandir : tour de 12, 15 puis 18 m, faisceaux de 70, 95 puis 120 m.
+- **Réparation au quai** : à moins de 150 m du port, la flotte regagne 10 % de vie par seconde (jusqu'à 30 % avec le chantier amélioré), seulement hors combat : aucun ennemi à moins de 250 m du port. L'état s'affiche en bas de l'écran (« Réparation au quai… » ou « Réparation suspendue : ennemis près du port »).
+
+## Port-Sabre (fait)
+- Deuxième île, 1,2 km à l'est de la Tortue (hors de vue derrière la brume : on la trouve avec la carte). Plus petite, haute et rocheuse : falaises au-dessus d'une plage étroite, sommets à ~60 m, herbe sèche, peu de palmiers. Sa crique regarde vers la Tortue. Village de pierre (taverne du Sabre Rouillé, entrepôt des contrebandiers), quais.
+- Tenue par les Frères du Sabre (pirates, alliés) : on peut y faire escale, commercer, réparer, améliorer ses navires et en acheter, prendre des contrats. Rachat de l'île : 1 500 or + 300 bois (onglet Île) ; elle t'appartient alors et ses améliorations s'ouvrent.
+- **Citadelle** : fort bastionné à 6 bastions, plus haut et plus large que celui de la Tortue, sur la falaise qui domine la crique, son bastion principal tourné vers l'entrée de la crique. 4 canons (portée 240 m, 11 dégâts), jusqu'à 8 avec l'amélioration Citadelle (6/7/8 canons, 260–320 m, 14–20 dégâts). 900 de vie, qui ne comptent que pendant un siège.
+- **Comptoir de contrebande** (3 niveaux) : ventes +10/20/30 %, achats −5/10/15 % au marché de Port-Sabre, et il attire les marchands alliés comme le comptoir de la Tortue.
+- **Marché** (route à deux sens) : rhum vendu 13 or (acheté 8 à la Tortue), épices achetées 9 or (revendues 14 à la Tortue), bois rare (acheté 3, vendu 2), poisson 3 or.
+- **Offres du jour** (fait) : 3 par taverne, remplacées à chaque nouvelle journée (10 min de jeu, hors pause ; la taverne affiche « nouvelles dans X min », le fil annonce la nouvelle journée). Les offres acceptées restent. Leur difficulté (1 à 5 étoiles, ★★☆☆☆) suit le niveau de ta flotte (somme des tailles de tes navires, chaloupe 1 … frégate 6, divisée par 3,5) : ce niveau ou une étoile de moins, et une fois sur cinq une de plus. Au début, que des 1★ et quelques 2★. Les primes fixes sont multipliées par 1 / 1,6 / 2,3 / 3,1 / 4 ; les livraisons demandent plus d'unités.
+- **Toutes les tavernes pirates proposent les mêmes offres du jour** (fait) ; seuls les convois dépendent du marché de l'île. Une île de la Marine n'en proposerait aucune. Pas deux offres du même genre dans une taverne, ni d'offre d'un genre déjà accepté : « Nettoyer les eaux » (2 + étoiles navires), « Chasse aux … » (type plus gros avec les étoiles), « Humilier la Couronne » (1, 1, 2, 2, 3 élites), « Commande de la taverne » (poisson, 10 par étoile), et les missions ci-dessous.
+- **Missions spéciales** (fait) : sous les offres du jour, une liste fixe par île, uniques (une fois réussies, elles ne reviennent jamais ; ratées ou abandonnées, elles restent proposées). Deux sont affichées à la fois (étiquette « Spéciale », liseré doré) ; la suivante apparaît après chaque réussite. Prime ×2 d'une offre du jour du même genre et de la même difficulté (primes sur les boss fixes : La Veuve Noire 600 or + 150 bois, Le Spectre 450 or + 110 bois).
+  - La Tortue : ★★ Le lieutenant Morrow (chasse : sloop d'élite + chaloupe) · ★★★ La grande pêche (80 poissons, 800 or) · ★★★★ Commodore Vane (chasse : brigantin d'élite + 2 sloops) · ★★★★ La flotte de la Couronne (défendre la Tortue contre 6 navires) · ★★★★★ Prime sur La Veuve Noire.
+  - Port-Sabre : ★★ Le rhum des Frères (30 tonneaux de rhum) · ★★★ Capitaine Rackham (chasse : brigantin d'élite + sloop) · ★★★★ La Fortune en péril (escorte vers la Tortue, 3 embuscades) · ★★★★ Le siège de Port-Sabre (6 navires, corvette en tête) · ★★★★★ Prime sur Le Spectre.
+- **Missions de la taverne** (4 contrats en cours au plus, toutes tavernes confondues) :
+  - *Convois, selon le marché* : chaque île propose d'amener ce qu'elle vend là où ça se revend plus cher. La Tortue : 10–25 tonneaux de rhum pour Port-Sabre (22 or l'unité) ; Port-Sabre : 8–20 caisses d'épices pour la Tortue (24 or l'unité). Payés à la taverne d'arrivée.
+  - *Chasse à un capitaine* : un capitaine de la Marine nommé (élite : chaloupe, sloop, sloop, brigantin, corvette selon les étoiles) et 0 à 3 navires d'escorte patrouillent dans une zone marquée sur la carte, à 500–800 m de l'île qui offre la prime ; ils ne disparaissent pas quand on s'éloigne. Le couler : 350 or + 80 bois, à toucher à cette taverne.
+  - *Défendre le port* (« Défendre la Tortue », « Défendre Port-Sabre ») : 40 s après l'accord, une escadre de 3, 4, 4, 5 ou 6 navires selon les étoiles (chef d'élite : sloop, sloop, brigantin, brigantin, corvette ; suiveurs au moins chaloupes, puis sloops) surgit à ~480 m devant le fort de l'île (fort de la Tortue, citadelle de Port-Sabre) et le bombarde à ~95 m, sans jamais fuir ; un navire du joueur qui s'approche à moins de 160 m les détourne. Barre de vie du fort en haut de l'écran. Toute l'escadre coulée : 450 or + 120 bois sur-le-champ. Fort tombé : échec, l'escadre repart, le fort est remis en état.
+  - *Escorter un marchand* : le sloop « La Fortune » (livrée brune et dorée, point jaune sur le radar et la carte) quitte le port de l'île à mi-voile vers une autre île, par une route chaque fois différente ; les ennemis peuvent l'attaquer, et selon les étoiles 0, 1, 1, 2 ou 2 embuscades surgissent devant lui (à 35 % et 70 % du trajet). Arrivé : prime sur-le-champ ; coulé : échec.
+- **Genres de mission**, affichés par une étiquette sur les offres et les contrats en cours, et par une icône dans le suivi : ⚔ Combat (couler des navires, un type, des élites), 🎯 Chasse, ☠ Prime (boss), 🏰 Défense, ⛵ Escorte, 📦 Convoi (rhum, épices), 🐟 Livraison (poisson).
+- Le suivi des contrats (haut droit) montre l'état des missions (« Citadelle 86 % · 2 assaillants », « La Fortune : vie 100 % · 840 m de la Tortue ») et où toucher la prime.
+
+## Port et escale (fait)
+- À moins de 150 m d'un port (la Tortue ou Port-Sabre), un bouton « E · <nom du port> » apparaît en bas de l'écran ; E (ou un clic) ouvre le panneau du port (parchemin, jeu en pause). Tab y ouvre directement le chantier ; loin du port, Tab rappelle qu'il faut faire escale.
+- Chaque onglet a un pictogramme gravé (île, balance, compas, carcasse de navire, navire, tricorne, tour, chope, registre).
+- **Île** : allégeance (Pirates), propriétaire (toi), ressources (bois de charpente, rhum), réparation, fort ; si elle t'appartient, sa **réserve** : l'or laissé par les marchands alliés et le bois de la scierie, avec le montant et un bouton « Récupérer » (plus rien n'est versé automatiquement à l'escale).
+- **Marché** : bois (réserve commune) acheté 2 or / vendu 1 or ; poisson vendu 3 or ; rhum acheté 8 or / vendu 6 or ; épices vendues 14 or. Prix fixes. Les marchandises voyagent dans les cales de la flotte.
+- **Routes** (fait) : on confie un navire de la flotte (pas celui qu'on pilote) à une route entre ce port et un autre, avec une marchandise pour l'aller et une pour le retour (ou à vide) ; l'onglet propose les plus rentables et estime le bénéfice d'un aller-retour, cale pleine (sloop sur rhum puis épices : ~400 or). Le navire quitte la flotte (⚖ dans le bandeau, hors formation, pas de prise de barre ni de vente tant qu'il commerce) et navigue vraiment : il achète au départ (sur ton or, autant que sa cale et ta bourse le permettent), vend à l'arrivée (l'or te revient aussitôt, ligne dans le fil avec le bénéfice), et recommence jusqu'à son rappel. Il est visible et attaquable, ses canons se défendent seuls. Coulé : la cargaison est perdue et il réapparaît au port de départ de son étape après le délai habituel, puis reprend sa route. Rappelé : il rejoint la flotte avec ce qu'il a en cale. Ses cales ne comptent pas dans celles de la flotte tant qu'il commerce.
+- **Chantier** : les améliorations du bateau piloté (l'ancien menu Tab).
+- **Navires** : achat (avec la remise du chantier) et vente de navires, places supplémentaires.
+- **Améliorations de l'île** (seulement si elle t'appartient) : Fort (3 niveaux : 3–4 canons, portée 240–290 m, 12–17 dégâts), Quai et chantier (3 niveaux : réparation ×1,5 à ×3, retour des navires −15 à −45 %, navires −5 à −15 %), Scierie (3 niveaux : 6–20 bois par minute, même au large ; la réserve garde 15 min de production), Comptoir (3 niveaux, voir les marchands alliés), Phare (2 niveaux : radar 520 / 640 m à moins de 700 / 900 m de la côte, et les ennemis de cette zone apparaissent sur la carte).
+- **Taverne** : tes contrats en cours (4 au plus), les 3 offres du jour, puis les missions spéciales de l'île (voir plus haut). Les navires coulés font avancer les contrats acceptés ; la prime se touche à la taverne indiquée.
+- **Registre** : navires coulés par type (dont élites), trophées (un pavillon par boss coulé ; ceux qu'on n'a pas encore pris sont évoqués par les rumeurs des tavernes), or gagné, poissons pêchés, marchandises vendues, bénéfice des routes commerciales, escales de marchands alliés, contrats remplis, navires perdus.
+- **Marchands alliés** (fait) : l'or de tes îles vient du commerce. Pour chaque île à toi, un sloop (parfois un brigantin) marchand, livrée brune et dorée, point jaune sur le radar et la carte, arrive du large (loin de toi), mouille devant le port, laisse son or dans la réserve de l'île, puis repart au large et disparaît. Sans comptoir : un toutes les 150 s, 25 or par escale, réserve de 400 or au plus ; Comptoir de la Tortue (ou comptoir de contrebande de Port-Sabre) niveaux 1 à 3 : 120 / 95 / 75 s, 35 / 45 / 60 or, réserve 700 / 1 000 / 1 500 or. Deux à la fois au plus par île. La Marine peut les couler (ligne dans le fil) ; leurs canons se défendent seuls.
+
+## Cales, marchandises et pêche (fait)
+- Chaque navire a une **cale** (chaloupe 20, sloop 40, brigantin 60, corvette 80 places) pour le poisson, le rhum et les épices, et une amélioration « Cale » (chaloupe 30/40, sloop 55/70/90, brigantin 80/105/130, corvette 110/140/180), qui alourdit le navire (masse +4/+8 pour la chaloupe … +12/+22/+34 pour la frégate). Le bois et l'or restent dans la réserve commune. Un navire qui sombre perd sa cargaison (ligne dans le fil) ; un navire vendu part avec.
+- Les épaves laissent parfois un **tonneau de rhum** (12 %, 2–4 unités) ou une **caisse d'épices** (6 %, 1–3), plus souvent pour les gros navires. Ils vont dans la cale du navire qui passe dessus (en partie si elle est presque pleine ; « cale pleine » sinon).
+- **Bancs de poissons** : 2 ou 3 en mer, entre 100 et 600 m de la côte, 30 à 60 poissons chacun. On les repère de loin aux mouettes qui tournent au-dessus, aux poissons qui sautent et à l'eau qui frémit, avec de petits bouillons d'écume. Ils figurent sur le radar et la carte. Un banc vidé ou trop vieux (6–10 min) plonge ; un autre apparaît ailleurs 20 à 45 s plus tard.
+- **Pêcher** : à moins de 30 m d'un banc, « F · Pêcher » apparaît. Les chaloupes et sloops de la flotte qui ont de la place y vont (les alliés à un poste autour du banc) ; le bateau piloté, s'il pêche, doit affaler la voile au-dessus du banc. Presque à l'arrêt, chaque pêcheur remonte un poisson toutes les 1,5 s. Si tu pilotes un navire qui ne pêche pas, F envoie tes pêcheurs.
+- La pêche s'arrête si un ennemi est en vue (260 m, réduits par le temps), si le bateau piloté s'éloigne à plus de 60 m du banc, si le banc est épuisé ou si les cales sont pleines (F l'arrête aussi). Les alliés reprennent alors leur place.
+- Le poisson se vend au port (3 or) ou se livre à la taverne (contrats).
+- La houle s'apaise près de l'île : nulle au rivage, normale à 160 m de la côte.
+- **Côte** : un bateau qui la touche bute (vitesse ramenée à 2 m/s), sans dégâts. Les quais et la jetée ne bloquent pas encore les bateaux.
+- Les ennemis contournent l'île à 40 m au moins, les alliés à 14 m ; une place de formation qui tomberait à terre est repoussée au large.
+- Les ennemis peuvent venir près du port (pas de zone protégée). Un boulet qui touche la terre soulève une gerbe de terre.
+
+## Combat (fait)
+- Les canons pivotent en continu (1,3 rad/s) vers leur cible, même pendant le rechargement, et reviennent au neutre sans cible. Ils ne tirent que bien pointés. Avant chaque tir, un canon chargé et pointé attend un délai aléatoire de 0 à 0,3 s (compté seulement une fois pointé) : la bordée part en cascade, pas d'un bloc.
+- **Tir automatique** : chaque canon rechargé tire seul sur l'ennemi le plus proche à portée (120 m) et dans sa zone de tir (±35° autour de la perpendiculaire au flanc). Rechargement : 3 s.
+- **Visée** : avec anticipation de la position de la cible, puis spread (écart d'angle et de distance) qui peut faire rater.
+- **Effets** : flash et fumée au départ, traînée derrière le boulet, éclats de bois et fumée à l'impact, gerbe d'eau et anneau d'écume quand le boulet tombe à l'eau.
+- **Dégâts** : barre de vie unique. 12 dégâts par boulet du joueur, 8 pour les ennemis.
+- **Bateau endommagé** : un foyer apparaît tous les 15 % de vie perdue (à partir de 85 % de vie), à des endroits cohérents propres à chaque modèle (ponts, château, brèches dans le bordé), dans un ordre différent pour chaque bateau. Chaque foyer fume d'abord, puis prend feu 30 % de vie plus loin. Les voiles se trouent (trous aux bords déchiquetés, de tailles variées et placés au hasard, différents sur chaque voile ; jusqu’à ~45 % de la toile) et la vitesse max baisse jusqu'à −30 % (atteint à 90 % de vie perdue). La réparation efface tout.
+- **Recul** : chaque coup de canon fait rouler le bateau du côté opposé (un canon de proue le fait cabrer), d'autant moins qu'il est lourd : ~2° pour une chaloupe, ~0,75° pour un brigantin ; les tirs d'une bordée s'additionnent un peu. Le balancement a de l'inertie : le bateau oscille lentement (1,5 s par oscillation pour une chaloupe, ~2,7 s pour un brigantin) et met ~2 s à se redresser.
+- **Naufrage** : le bateau s'enfonce par l'avant en se couchant, avec bouillonnement d'écume, puis disparaît (7 s).
+- **Éperonnage** : les bateaux se repoussent. Un choc rapide fait des dégâts aux deux ; celui qui frappe avec sa proue encaisse moins.
+- **Défaite** : seulement si toute la flotte coule. On perd alors 25 % de son or et la flotte réapparaît au port.
+
+## Ennemis
+- **Fait** : la composition dépend des victoires. 0 à 4 ennemis coulés : barques seulement. À partir de 5 : moitié barques, moitié chaloupes. À partir de 12 : 25 % de barques, 50 % de chaloupes, 25 % de sloops (deux fois plus de butin). Les ennemis sont améliorés de plus en plus souvent à mesure que tu en coules (menace maximale après 20 victoires), et leur butin augmente avec leurs améliorations.
+- **Fait** : chaloupes de la marine royale (coque bleue, liseré doré, pavillon rouge à couronne). Elles sont plus lentes, moins précises et plus fragiles (45 points de vie).
+- **Fait** : apparition continue à environ 380 m, jamais à moins de 110 m d'une côte ni à moins de 350 m du port. Nombre max en même temps : 3, puis 4 dès 5 victoires, 5 dès 12, 6 dès 20, 8 dès 30. Une apparition toutes les 6–12 s, jusqu'à 4–8 s à 30 victoires.
+- **Fait** : flottilles. Dès 5 victoires, une apparition sur quatre est un groupe de 2–3 navires ; dès 15 victoires, jusqu'à 4, mené par un navire un cran plus gros. Les suiveurs naviguent en V derrière le chef ; dès qu'un membre repère une proie, toute la flottille attaque.
+- **Fait** : navires d'élite (coque noire, liseré rouge, voiles blanches frappées d'une couronne dorée de la Marine sur la plus grande voile) à partir de 10 victoires, de plus en plus fréquents (+1,25 % par victoire, jusqu'à 50 % ; chance doublée pour un chef de flottille). Vie ×1,4, dégâts ×1,3, rechargement −15 %, imprécision −30 %, butin ×2. Le fil des navires coulés précise « d'élite ».
+- **Fait** : patrouille, puis repérage du joueur à 300 m et poursuite. À environ 60 m, l'ennemi se place flanc à flanc. Il perd le joueur au-delà de 480 m.
+- **Fait** : sous 20 % de vie, il fuit. Il se répare normalement (après 8 s sans être touché, 2 % par seconde) et revient au combat dès 80 % de vie. S'il s'éloigne à plus de 900 m, il disparaît.
+- À faire : les ennemis s'évitent activement entre eux (pour l'instant, ils se repoussent seulement au contact).
+
+- **Fait** : les ennemis ordinaires s'adaptent à ta flotte : un groupe ne compte jamais plus de navires que ta flotte (seul avec un navire), et leur plus gros navire ne dépasse pas ton plus gros navire d'un cran (avec des sloops, au plus des brigantins). Les escadres des missions et le boss n'ont pas ces limites.
+
+## Pirates alliés (fait)
+- 1 à 3 pirates alliés indépendants en mer (points bleus sur le radar et la carte, coque verte et pavillon noir), de la chaloupe jusqu'à un cran au-dessus de ton plus gros navire.
+- Ils naviguent d'un port à l'autre (la Tortue ↔ Port-Sabre), par une route chaque fois différente : sortie et entrée de crique tirées au hasard, 1 ou 2 détours en pleine mer (jusqu'à 150 m de côté), cap qui ondule un peu. Ils mouillent à une place tirée au hasard devant le port, sur un côté de la crique (hors du chemin de la flotte), à 30 m au moins des autres navires et des places déjà promises ; ils y font escale 20 à 40 s, puis repartent.
+- En route (loin des ports), toutes les 25 à 45 s, ils peuvent changer d'activité : chasser un navire de la Marine repéré à moins de 450 m (35 %), s'arrêter pêcher 15 à 30 s sur un banc à moins de 300 m (30 %), patrouiller 20 à 40 s au large (25 %). Ensuite ils reprennent leur route.
+- Sur leur route, ils attaquent un navire de la Marine à moins de 200 m ; la Marine peut aussi les attaquer. Sous 25 % de vie, ils fuient vers le port le plus proche et ne repartent qu'à 80 %.
+- Leurs victimes ne comptent pas pour toi (ni victoires, ni contrats, ni progression des ennemis ; le fil indique « coulé par des pirates ») ; ils vont ramasser eux-mêmes le butin à moins de 120 m.
+- Ils apparaissent à un mouillage loin de toi (450 m au moins) ; un pirate coulé est remplacé 45 à 90 s plus tard.
+
+## Boss : La Veuve Noire (fait)
+- Corvette pirate : coque et voiles noires, liseré rouge sang, pavillon noir à tête de mort rouge.
+- Elle apparaît une fois par grosse tempête, 30 à 60 s après que la tempête s'est installée, à 210 m (juste au-delà de la brume), jamais près du port. Bandeau rouge « ☠ La Veuve Noire approche ! » et grande barre de vie en haut de l'écran (à moins de 280 m).
+- Elle sait toujours où tu es et ne fuit jamais. C'est une corvette du joueur (pas la version ennemie affaiblie) avec toutes ses améliorations au maximum (précision 4, portée 2, 8 canons par flanc, coque +300, voilure 3), plus vie ×1,5 et dégâts ×1,2 : 930 PV, portée 195 m, ~14 m/s.
+- Coulée : butin énorme (×6 celui d'une corvette, plus 2 tonneaux de rhum et 2 caisses d'épices) et son pavillon rejoint le registre (trophée).
+- Si la tempête se calme avant, elle s'éloigne puis disparaît dans la brume ; elle reviendra intacte à la tempête suivante.
+- Si elle coule toute ta flotte, elle disparaît aussitôt et ne revient qu'à la tempête suivante (vaut pour tous les boss).
+
+## Boss : Le Spectre (fait)
+- Deuxième boss : un brigantin fantôme. Coque gris-noir délavée, préceintes vert-de-gris, voiles grises en lambeaux (trouées même intactes), fanal verdâtre, pavillon gris à tête de mort pâle.
+- Il apparaît une fois par brouillard, 30 à 60 s après que le brouillard s'est installé, à 160 m (hors de vue), jamais près du port. Bandeau « ☠ Le Spectre approche ! ».
+- Brigantin du joueur avec toutes ses améliorations au maximum, plus vie ×1,5 et vitesse +15 % (645 PV, 16 m/s), dégâts normaux. Il sait toujours où tu es et ne fuit jamais pour de bon.
+- **Harcèlement** : il fond sur sa proie et la bombarde 12 à 18 s (comptées une fois à portée), ou moins s'il perd 12 % de sa vie ; puis il replonge dans la brume, s'éloigne à ~150 m (au-delà de 90 m, il disparaît du radar et de la carte, et sa barre de vie s'efface), fait le tour de sa proie de 70 à 125° et revient par un autre côté. Barre de vie en haut de l'écran quand il est visible (à moins de 140 m).
+- Les barres de vie au-dessus des navires ne s'affichent plus au-delà de la brume (pour tous les navires).
+- Coulé : butin ×6 celui d'un brigantin (plus 2 tonneaux de rhum et 2 caisses d'épices) et son pavillon rejoint le registre. Si le brouillard se lève avant, il s'éloigne et disparaît ; il reviendra intact au brouillard suivant.
+
+## Améliorations (fait)
+- Le « Chantier naval » est un onglet du port (E près du quai, ou Tab). Le jeu se met en pause.
+- Rythme rapide : tout acheter demande une dizaine d'ennemis coulés.
+
+| Amélioration | Niveaux | Coût | Effet |
+|---|---|---|---|
+| Précision des canons | 3 | 20 / 40 / 60 or | Imprécision −30 / −50 / −70 % |
+| Canons supplémentaires | 1 | 40 or + 30 bois | 2 canons par flanc |
+| Coque renforcée | 2 | 15 or + 20 bois / 30 or + 35 bois | Vie max +25 / +55 |
+| Voilure | 2 | 25 or + 5 bois / 40 or + 10 bois | Vitesse +8 / +16 % |
+
+- **Masse** : de base 100. +5 par canon ajouté, +10 / +22 pour la coque, +2 / +4 pour la voilure. Chaque point au-dessus de 100 retire 0,15 % de vitesse (environ −5 % avec tout).
+- Les améliorations se voient : canons en plus, bandes et ferrures de fer sur la coque, voiles plus larges (pas plus hautes).
+- Chaque navire a ses propres améliorations : le chantier améliore le bateau piloté.
+- Elles sont conservées après un naufrage.
+
+## Butin et interface (fait)
+- Un ennemi coulé laisse 2 à 4 **caisses d'or** (5 à 12 pièces chacune) et 2 à 3 **paquets de planches** (3 à 5 bois chacun), à ramasser en passant dessus. Le butin coule au bout de 90 s.
+- Interface : vie, or, bois, places dans les cales de la flotte, cran de voile, vitesse, et l'indicateur « À portée de tir ». Des messages s'affichent au naufrage et à la réapparition de tes navires.
+- **Parchemins** (port, flotte, carte) : quand le contenu dépasse, une barre de défilement « trait d'encre » (fine rainure brune dans la marge, curseur arrondi brun encre, sans flèches).
+- **Contrats** : ceux que tu as acceptés s'affichent en haut à droite (titre, progression et petite barre ; « Prime à toucher à la taverne » une fois remplis), au-dessus du fil des navires coulés.
+- **Popups** : le butin ramassé s'affiche à droite des ressources (« +23 or », « +9 bois »), les caisses ramassées d'affilée s'additionnent ; la popup s'efface 2 s après le dernier ramassage. Un ennemi coulé ajoute une ligne en haut à droite (« ☠ Sloop ennemi coulé par La Mouette », ou « par le fort »), effacée après 4 s.
+- **Menu T** : chaque navire affiche le nombre d'ennemis qu'il a coulés (celui qui porte le coup fatal, au canon ou à l'éperon).
+- Barres de vie au-dessus des ennemis.
+- Radar : rouge = ennemi qui chasse, orange = en patrouille, violet = en fuite, gros point rouge cerclé = boss ; carrés = butin (or, bois, rhum, épices) ; petit poisson bleu = banc. Le phare agrandit sa portée près de l'île.
+- **Carte (M)** : parchemin, jeu en pause. Nord en haut. L'île de la Tortue et ses lieux (port, fort, phare), ta position et ta flotte, les ennemis à portée du radar seulement, le butin, la rose des vents avec le vent actuel, une échelle. Le cadrage englobe toujours l'île et ta zone radar. Un nouveau lieu s'ajoute dans `world/landmarks.ts`.
+- Son : plus tard.
+
+## Paramètres et qualité graphique (fait)
+- **Échap** met le jeu en pause et ouvre les paramètres (si un autre menu est ouvert, Échap le ferme d'abord). Deux onglets :
+  - *Jeu* : reprendre la partie, afficher le compteur d'images par seconde (en haut à gauche), rappel des touches.
+  - *Graphismes* : préréglages **Bas / Moyen / Haut / Auto** (Auto au premier lancement : Haut + résolution dynamique) ; changer un réglage à la main affiche « Personnalisé ». Tout s'applique tout de suite et reste d'une partie à l'autre (gardé dans le navigateur).
+- Réglages : résolution (pixels dessinés par pixel d'écran, de ×0,5 à la densité de l'écran, affichés en taille d'image), résolution dynamique, anticrénelage (le rendu redémarre une seconde, sans perdre la partie), limite d'images par seconde (aucune, 60, 30), grille de l'eau (fine, moyenne, légère), eau au loin (détaillée ou simplifiée), sillages (fins ou légers), pluie et vent (30, 60, 100 %), particules (30, 60, 100 %).
+
+| Préréglage | Résolution | Anticrénelage | Grille d'eau | Eau au loin | Sillages | Pluie, vent, particules |
+|---|---|---|---|---|---|---|
+| Bas | ×0,75 | non | légère (128) | simplifiée | légers (512) | 30 % |
+| Moyen | ×1 | non | moyenne (192) | simplifiée | fins (1024) | 60 % |
+| Haut | ×1,5 | oui | fine (256) | détaillée | fins | 100 % |
+| Auto | comme Haut, + résolution dynamique | | | | | |
+
+- **Résolution dynamique** : mesure le temps de rendu de chaque image (chronomètres GPU) ; au-delà de 80 % du budget d'une image (60 images/s, ou la limite choisie), l'échelle baisse (jusqu'à 50 %), sous 50 % elle remonte d'un cran par seconde.
+- **Optimisations toujours actives** (sans différence à l'écran) : l'eau noyée dans la brume ne calcule plus rien ; détails fins de l'eau sautés au loin ; distance au rivage calculée seulement près des îles ; écume de tempête calculée seulement en haut des vagues ; liseré d'écume des coques seulement pour les navires proches de la caméra et devant elle ; décor des îles et navires noyés dans la brume pas dessinés ; radar redessiné 30 fois par seconde ; shaders compilés au chargement (pas d'à-coup à la première pluie, au premier éclair) ; puce graphique « haute performance ».
+- Mesures (grosse tempête, 2560×1600, Intel UHD) : Haut ~9 ms de GPU par image, Moyen ~4,3 ms, Bas ~3,5 ms ; dans le brouillard, les optimisations font gagner 25 à 33 %.
+
+## Équipage, canons et rang (fait)
+- **Officiers de bord** (onglet Équipage du port) : 6 fonctions, un effet par étoile de talent :
+  - Canonnier : rechargement −4 %, dispersion −5 % ; Maître d'équipage : vitesse +3 %, virage +5 % ; Charpentier : vie +5 %, réparation en mer +25 % ; Navigateur : effet du vent +10 % (favorable plus fort, contraire plus faible), portée du radar +6 % ; Quartier-maître : butin (or, bois) +6 %, cale +6 % ; Maître d'armes : éperonnage +10 %, dégâts reçus −3 %.
+  - Talent de 1★ à 3★ à l'engagement (55 % / 33 % / 12 %), et un trait pour un tiers d'entre eux (Œil de lynx, Vieux loup de mer, Bras de fer, Débrouillard, Chanceux, Tête brûlée, Prudent, Tireur d'élite).
+  - Chaque taverne propose 3 candidats, renouvelés chaque journée (10 min) : 120 / 300 / 600 or selon le talent, ×1,4 avec un trait. Officiers uniques gagnés par les missions spéciales : Mary Read (maîtresse d'armes ★★★, Tête brûlée) pour « La flotte de la Couronne », Israel Hands (canonnier ★★★, Œil de lynx) pour « Le siège de Port-Sabre », Esteban le Borgne (navigateur ★★★, Vieux loup de mer) pour « La Fortune en péril ».
+  - Places à bord : chaloupe et sloop 1, brigantin et corvette 2, frégate 3. Les officiers se déplacent librement au port ; un navire vendu les débarque ; ils survivent aux naufrages.
+  - Ils progressent : +1★ après 12 victoires de leur navire, +2★ après 30 (5★ au plus). Une barre montre leur progression jusqu'à la prochaine étoile (onglet Équipage).
+- **Types de canons** (Chantier, pour le navire piloté ; la frégate choisit pour sa batterie et ses canons de gaillard) : canons (équilibrés), canons longs (portée +30 %, rechargement +15 %, fût long et fin), caronades (rechargement −30 %, portée −40 %, fût court et trapu). Les trois types et leurs effets sont affichés côte à côte avant l'achat. Le premier passage à un type se paie selon le navire (chaloupe 60 or + 30 bois … frégate 400 or + 200 bois, moitié pour les gaillards) ; revenir à un type déjà acheté est gratuit.
+- **Rang** selon les victoires du navire (coups fatals) : Recrue, Vétéran (15, ★), Élite (50, ★★), Légende (100, ★★★). Drapeau noir à queue d'aronde et étoiles dorées : sur une hampe à la poupe (chaloupe, sloop, brigantin) ou en tête du mât d'artimon (corvette, frégate, dont la bôme passe au-dessus de la poupe). Chaque étoile : vie +4 %, précision +4 %, rechargement −4 %.
+- **Pavillons des boss** : le navire qui coule un boss hisse son pavillon sous le sien (une fois par boss), au-dessus des voiles (son pavillon pirate monte d'autant). On peut le retirer ou le hisser à nouveau (onglet Navires).
+
+## Brigantin allongé (fait)
+- Au chantier, la fiche « Allongement » du brigantin piloté : 500 or + 250 bois. Le pont principal s'allonge de 3 m (16 → 19 m) ; vie +20 %, vitesse +4 %, virage −10 %, masse +70 (en proportion de la corvette).
+- 2 canons de plus par bord : le pont principal porte 4 canons au lieu de 3 (celui de l'avant compris, répartis régulièrement), et un dernier s'abrite sous le gaillard d'avant (comme les deux du château arrière).
+- Niveaux débloqués : canons 3 (6 par bord, 200 or + 110 bois) et 4 (7 par bord, sous le gaillard d'avant, 250 + 140), défense de la coque 5 (vie +320, 190 + 190), voilure 4 et 5 (vitesse +26 % puis +35 %, 180 + 50 et 240 + 65 ; les voiles ne s'élargissent presque plus à ces niveaux, la toile est surtout mieux taillée), cale 4 (165 places, 190 + 120). Brigantin allongé tout amélioré : 19 m, 624 PV, 14 canons, 29 nœuds (le plus rapide de la flotte ; sloop 28, corvette et frégate 27).
+
+## Équipage animé (fait)
+- Sur le sloop, le brigantin, la corvette et la frégate (et leurs versions allongées), l'équipage vit sur le pont : un barreur, les mains à la roue, qui se penche dans les virages ; une vigie, la main en visière, qui balaie l'horizon ; des matelots (3 à 8 selon le navire) qui flânent, s'arrêtent, regardent la mer contre le pavois. Leur buste compense une part du roulis et du tangage.
+- **Combat** (tir ou coup reçu depuis moins de 10 s, ou ennemi à moins de 220 m) : les matelots courent aux canons servis à découvert (gaillards de la frégate, pont de la corvette, pont principal du brigantin, tout le sloop), accroupis derrière la culasse ; ils reculent à chaque tir et refoulent la charge pendant le rechargement. Les autres s'accroupissent à couvert derrière le pavois.
+- **Manœuvres** : quand la voilure change, deux matelots halent les cordages au pied des mâts.
+- **Dégâts** : moins le navire a de vie, moins il reste de matelots sur le pont (jusqu'à 35 %) : les coups en jettent par-dessus bord (gerbe d'eau). Après le combat, deux matelots réparent à genoux, et les autres remontent peu à peu sur le pont pendant la réparation. Quand le navire sombre, tout le monde saute à l'eau.
+- Pour changer de pont, un marin descend par une écoutille et remonte ailleurs.
+- Pirates en chemises blanches, rouges ou brunes, souvent en bandana ; marine royale en blanc et bleu, presque toujours en tricorne. Les rameurs des barques restent assis.
+- Seuls les navires à moins de 120 m de la caméra et hors de la brume ont un équipage animé (environ 0,3 à 0,5 ms par image avec une douzaine de navires proches).
+
+## Corvette allongée (fait)
+- Au chantier, pour la corvette pilotée, la même fiche « Allongement » (vert-de-gris) : 800 or + 400 bois. Le milieu de la coque s'allonge de 4 m (22 → 26 m) ; vie +20 %, vitesse +4 %, virage −10 %, masse +90.
+- 6 sabords de batterie par bord au lieu de 4. Niveaux débloqués : canons 3 (9 par bord : +1 en batterie, 300 or + 170 bois) et 4 (10 par bord, 380 + 210), défense de la coque 5 (vie +400, 240 + 240), voilure 4 (vitesse +24 %, 220 + 60), cale 4 (230 places, 230 + 150). Corvette allongée tout améliorée : 26 m, 864 PV, 20 canons.
+- Nom « Corvette allongée » (étiquette vert-de-gris) et silhouette plus longue partout.
+
+## Frégate allongée et grande frégate (fait)
+- Au chantier, pour la frégate pilotée, une fiche à part « Allongement » (couleur vert-de-gris), au-dessus des types de canons : 1 200 or + 600 bois, immédiat. Le chantier scie la coque et y insère 5 m : 28 → 33 m, vie +20 %, vitesse +4 %, virage −10 %, masse +90.
+- La coque s'allonge par le milieu (partie droite) : les mâts s'espacent, l'avant et l'arrière gardent leur forme. 10 sabords de batterie par bord au lieu de 8, 3 canons sur le gaillard d'avant au lieu de 2, une écoutille de plus.
+- Niveaux débloqués (points vert-de-gris, en pointillé tant que la frégate n'est pas allongée) : canons 5 (14 par bord : +2 en batterie) et 6 (15 par bord : +1 sur le gaillard d'avant), voilure 4 (vitesse +24 %), cale 4 (280 places).
+- **2e allongement : « Grande frégate »** (fiche suivante, 1 800 or + 900 bois) : +5 m répartis, arrière +1,5 m (gaillard d'arrière plus long), milieu +2 m, avant +1,5 m (gaillard d'avant plus long) → 38 m. Mêmes effets, cumulés : vie +20 %, vitesse +4 %, virage −10 %, masse +90. 12 sabords de batterie par bord, 3 canons sur le gaillard d'arrière. Niveaux débloqués : canons 7 (17 par bord : +2 en batterie, 600 or + 330 bois) et 8 (18 par bord : +1 sur le gaillard d'arrière, 700 + 380), défense de la coque 5 (vie +500, 300 + 300), voilure 5 (vitesse +30 %, 350 + 100), cale 5 (350 places, 360 + 230). Grande frégate tout améliorée : 38 m, 1 411 PV, 36 canons.
+- Partout, le navire s'appelle « Frégate allongée » puis « Grande frégate » (étiquette vert-de-gris dans Navires, le menu T, les Routes ; bandeau du navire piloté), avec une silhouette plus longue. Ligne dans le fil à l'allongement, et « Navires allongés » dans le registre.
+
+## Idées de navires (non commencées, à choisir)
+Chaque navire suit le même schéma : un modèle `ShipModel` + une entrée dans `shipTypes.ts` (stats, prix, tables d'amélioration et de masse) + éventuellement une capacité spéciale.
+
+| Navire | Rôle | Visuel | Technique | Améliorations | Spécial |
+|---|---|---|---|---|---|
+| Cotre de contrebandier | Éclaireur rapide | Coque fine et noire, grande voile aurique, foc, pas de pavois | 9 m, 50 de vie, très rapide (16 m/s), 1 pierrier par flanc | Précision 2, coque 1, voilure 3 | **Voiles noires** : repéré par les ennemis à 150 m au lieu de 300 m |
+| Goélette | Polyvalent, bon au près | 2 mâts auriques, long beaupré, coque élancée | 15 m, 150 de vie, 14 m/s, 3 → 5 canons par flanc | Précision 3, canons 2, coque 3, voilure 3 | **Bonne au près** : malus de vent de face divisé par deux |
+| Bombarde | Artillerie à longue portée | Coque large et trapue, mortier au centre du pont, un seul mât en arrière | 14 m, 160 de vie, lente (9 m/s), 2 canons par flanc | Précision 3, mortier 2, coque 2 | **Mortier** : tir en cloche à 250 m, dégâts de zone, lent à recharger |
+| Brûlot | Sacrifice | Vieille coque chargée de tonneaux de poudre, voiles rapiécées, fumée | 10 m, 40 de vie, 13 m/s, aucun canon | Coque 1, voilure 2 | **Explosion** : éperonner un ennemi le fait exploser (gros dégâts de zone) ; il réapparaît ensuite |
+| Navire-atelier | Soutien de flotte | Coque ronde, grue et caisses d'outils sur le pont | 13 m, 180 de vie, 10 m/s, 1 canon par flanc | Coque 3, atelier 2 | **Réparation** : répare les alliés proches, même en combat |
+| Brick | Ligne de bataille | 2 mâts à voiles carrées, batterie de sabords peints | 20 m, 320 de vie, 11 m/s, 6 → 8 canons par flanc, tourne lentement | Précision 3, canons 2, coque 3, voilure 3 | **Bordée** : tous les canons d'un flanc tirent ensemble (rechargement plus long) |
+| Frégate | Navire amiral | 3 mâts, 2 ponts de canons, poupe sculptée et dorée | 30 m, 600 de vie, 12 m/s, 10 → 14 canons par flanc | Toutes (4 niveaux) | **Pavillon d'amiral** : bonus de précision pour la flotte proche |
+| Galion du trésor (ennemi) | Boss | Énorme château arrière, coque rouge et or | 35 m, 1 200 de vie, lent, nombreux canons, escorte | — | Butin énorme ; il fuit vers le bord de la carte |
+| Navire fantôme (fantasy) | Spécial | Coque délabrée, voiles en lambeaux, lueurs vertes | 18 m, 250 de vie, 13 m/s | Précision 3, canons 2, coque 3 | **Brume** : invulnérable et invisible quelques secondes (temps de recharge) |
