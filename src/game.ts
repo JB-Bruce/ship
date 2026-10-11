@@ -16,6 +16,7 @@ import { WakeMap } from './ocean/wakeMap';
 import { Waves } from './ocean/waves';
 import { PlayerState } from './progression/playerState';
 import { Display } from './render/display';
+import { SaveManager } from './save/saveManager';
 import { applyQuality } from './render/quality';
 import { Settings } from './settings/settings';
 import type { Combatant, Ship } from './ship/ship';
@@ -64,6 +65,7 @@ export class Game {
   private readonly weather: Weather;
   private readonly weatherButtons: WeatherButtons;
   private readonly state = new PlayerState();
+  private readonly saves = new SaveManager();
   /** Tous les bateaux dans le monde : ceux de la flotte du joueur et les ennemis. */
   private readonly ships: Ship[] = [];
   private readonly fleet = new Fleet(this.scene, this.ships);
@@ -116,11 +118,8 @@ export class Game {
     ({ forts: this.forts, lighthouse: this.lighthouse } = islands);
     for (const decor of islands.decor) this.fogCulling.add(decor);
 
-    // On commence avec une chaloupe (comptée comme achetée, pour sa valeur de revente).
-    this.fleet.add('longboat', SHIP_TYPES.longboat.price);
-    const start = tortuga.portSpawn;
-    this.fleet.leader.respawn(start.x, start.z);
-    this.fleet.leader.heading = start.heading;
+    // La flotte de la sauvegarde à charger, ou la chaloupe de départ.
+    this.saves.start(this.fleet);
     this.controller = new KeyboardController(this.fleet.leader.controls);
     this.chaseCamera = new ChaseCamera(this.camera, this.display.viewport);
     this.hud = new Hud(container);
@@ -142,8 +141,11 @@ export class Game {
       vanish: (id) => this.hud.notifications.kill(`${BOSSES[id].name} a disparu dans la brume`),
     });
 
-    const { state, fleet, campaign, hud, wind, spawner, loot, schools, radar, pirates, settings, display } = this;
-    this.portMenu = createMenus({ container, state, fleet, campaign, hud, wind, spawner, loot, schools, radar, pirates, settings, display, takeHelm: (m) => this.takeHelm(m) });
+    const loaded = this.saves.finish({ state: this.state, fleet: this.fleet, campaign: this.campaign, spawner: this.spawner, weather: this.weather, ships: this.ships });
+    if (loaded) this.hud.message(`Partie chargée : « ${loaded} »`, 3);
+
+    const { state, fleet, campaign, hud, wind, spawner, loot, schools, radar, pirates, settings, display, saves } = this;
+    this.portMenu = createMenus({ container, state, fleet, campaign, hud, wind, spawner, loot, schools, radar, pirates, settings, display, saves, takeHelm: (m) => this.takeHelm(m) });
     this.weatherButtons = new WeatherButtons(container, this.weather);
     this.fpsCounter = new FpsCounter(container, this.settings, this.display);
     this.prompts = new ActionPrompts(container, () => this.portMenu.openOn(), () => this.toggleFishing());

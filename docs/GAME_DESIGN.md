@@ -255,3 +255,11 @@ Chaque navire suit le même schéma : un modèle `ShipModel` + une entrée dans 
 | Frégate | Navire amiral | 3 mâts, 2 ponts de canons, poupe sculptée et dorée | 30 m, 600 de vie, 12 m/s, 10 → 14 canons par flanc | Toutes (4 niveaux) | **Pavillon d'amiral** : bonus de précision pour la flotte proche |
 | Galion du trésor (ennemi) | Boss | Énorme château arrière, coque rouge et or | 35 m, 1 200 de vie, lent, nombreux canons, escorte | — | Butin énorme ; il fuit vers le bord de la carte |
 | Navire fantôme (fantasy) | Spécial | Coque délabrée, voiles en lambeaux, lueurs vertes | 18 m, 250 de vie, 13 m/s | Précision 3, canons 2, coque 3 | **Brume** : invulnérable et invisible quelques secondes (temps de recharge) |
+
+## Sauvegarde (fait, 2026-10-11)
+- Menu Échap, onglet **Partie** : sauvegarder (nom facultatif, Entrée valide), liste des parties sauvegardées (nom, date, « 4 navires · 5 432 or · 17 victoires ») avec Charger, Écraser, Exporter, Supprimer (chaque action à confirmer), Importer un fichier, Nouvelle partie.
+- Nombre illimité, gardées dans le navigateur. Exporter télécharge un fichier `.bateau.json` qu'on peut donner à quelqu'un : il l'importe (il s'ajoute à sa liste), puis le charge. Un fichier qui n'est pas une sauvegarde du jeu est refusé.
+- Pas de sauvegarde automatique. Impossible de sauvegarder avec un ennemi à moins de 300 m d'un navire de ta flotte, ni pendant un naufrage.
+- Gardé : or, bois, places, victoires, météo, formation, chaque navire (type, nom, améliorations, allongements, cale, canons, victoires, pavillons, route commerciale, position, cap, vie, voile ; un navire en attente de réapparition garde son délai), îles (allégeance, améliorations, réserve), dernier port, registre, contrats (offres du jour, contrats acceptés et leur avancement, missions spéciales réussies), équipage (officiers, affectations, candidats). On reprend à l'endroit exact.
+- Pas gardé : ennemis en mer, butin flottant, pirates et marchands alliés (ils reviennent d'eux-mêmes). Les missions en cours (chasse, défense, escorte) recommencent au chargement ; un navire en commerce en pleine traversée repart de là où il était.
+- Charger ou commencer une nouvelle partie recharge la page (les sauvegardes restent). Recharger la page soi-même commence une nouvelle partie.

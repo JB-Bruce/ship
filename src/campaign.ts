@@ -1,17 +1,17 @@
 import { BOSSES, ISLAND_INFO, OFFICERS, PORT, type BossId, type IslandId } from './config';
-import { Crew } from './fleet/crew';
+import { Crew, type CrewSnapshot } from './fleet/crew';
 import { rankName, rankOf } from './fleet/officers';
 import { refit } from './fleet/refit';
-import { TradeRoutes } from './fleet/tradeRoutes';
+import { TradeRoutes, type RunnerSnapshot } from './fleet/tradeRoutes';
 import { factor } from './progression/modifiers';
 import type { Fleet, FleetMember } from './fleet/fleet';
 import { loseCargo, store } from './fleet/holds';
 import { MissionDirector } from './missions/missionDirector';
 import type { MissionWorld } from './missions/mission';
-import { Contracts, fleetLevel, type Contract, type ContractOptions } from './progression/contracts';
+import { Contracts, fleetLevel, type Contract, type ContractOptions, type ContractsSnapshot } from './progression/contracts';
 import { Harbor } from './progression/harbor';
-import { IslandState } from './progression/islandState';
-import { Ledger } from './progression/ledger';
+import { IslandState, type IslandSnapshot } from './progression/islandState';
+import { Ledger, type LedgerSnapshot } from './progression/ledger';
 import type { PlayerState } from './progression/playerState';
 import { isHostile, type Combatant, type Ship } from './ship/ship';
 import { SHIP_TYPES } from './shipTypes';
@@ -24,6 +24,16 @@ import type { LootKind } from './world/loot';
 
 /** Délai entre deux avertissements « cale pleine » (s). */
 const FULL_WARNING_DELAY = 5;
+
+/** Ce qu'une sauvegarde garde de la campagne. */
+export interface CampaignSnapshot {
+  islands: Record<IslandId, IslandSnapshot>;
+  lastPort: IslandId;
+  ledger: LedgerSnapshot;
+  contracts: ContractsSnapshot;
+  crew: CrewSnapshot;
+  routes: RunnerSnapshot[];
+}
 
 /**
  * La campagne du joueur, hors du combat lui-même : les îles et leurs ports (escales, rachat, améliorations), le
@@ -82,6 +92,29 @@ export class Campaign {
       this.applyIsland(this.islands[island.id]);
     }
     this.crew.newDay();
+  }
+
+  /** État à sauvegarder : îles, dernier port, registre, contrats, équipage, routes commerciales. */
+  snapshot(): CampaignSnapshot {
+    const islands = Object.fromEntries(ISLAND_LIST.map((i) => [i.id, this.islands[i.id].snapshot()])) as Record<IslandId, IslandSnapshot>;
+    return { islands, lastPort: this.lastPort, ledger: this.ledger.snapshot(), contracts: this.contracts.snapshot(), crew: this.crew.snapshot(), routes: this.routes.snapshot() };
+  }
+
+  /** Reprend une sauvegarde, la flotte déjà rétablie. Les missions en cours (chasse, défense, escorte) recommencent. */
+  restore(s: CampaignSnapshot) {
+    for (const island of ISLAND_LIST) {
+      const state = this.islands[island.id];
+      if (s.islands[island.id]) state.restore(s.islands[island.id]);
+      this.applyIsland(state);
+    }
+    this.lastPort = s.lastPort;
+    this.ledger.restore(s.ledger);
+    this.contracts.restore(s.contracts);
+    this.crew.restore(s.crew);
+    this.routes.restore(s.routes);
+    for (const c of this.contracts.active) {
+      if ((c.kind === 'hunt' || c.kind === 'defend' || c.kind === 'escort') && !this.contracts.isDone(c)) this.missions.start(c);
+    }
   }
 
   /** Ce que les contrats peuvent demander, et le niveau de ta flotte (étoiles des offres). */

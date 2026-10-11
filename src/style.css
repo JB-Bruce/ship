@@ -1369,3 +1369,61 @@ body {
 .quest-title .stars {
   color: #f2c94c;
 }
+
+/* ---------- Onglet Partie (sauvegardes) ---------- */
+.save-new {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.save-name {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  font-family: 'IM Fell English', Georgia, serif;
+  font-size: 16px;
+  color: #3b2410;
+  background: rgba(255, 248, 225, 0.75);
+  border: 1.5px solid rgba(90, 55, 20, 0.55);
+  border-radius: 4px;
+}
+
+.save-name:focus {
+  outline: 2px solid rgba(160, 40, 25, 0.5);
+}
+
+.save-notice {
+  margin: 8px 0;
+  padding: 6px 10px;
+  font-style: italic;
+  color: #3b2410;
+  background: rgba(255, 240, 200, 0.7);
+  border-left: 3px solid #a3221a;
+}
+
+.save-blocked {
+  color: #8a2a1a;
+}
+
+.save-actions {
+  min-width: 110px;
+}
+
+.save-actions button {
+  width: 100%;
+}
+
+.save-confirm {
+  margin-top: 8px;
+}
+
+.save-confirm p {
+  margin: 0 0 6px;
+  font-weight: bold;
+  color: #8a2a1a;
+}
+
+.save-import {
+  margin-top: 4px;
+}

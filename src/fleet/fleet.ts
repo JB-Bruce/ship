@@ -116,6 +116,21 @@ export class Fleet {
     return member;
   }
 
+  /**
+   * Reprend un navire d'une sauvegarde (même identifiant) : à flot à `at`, ou en attente de réapparition (null).
+   * Le premier repris devient le bateau piloté, jusqu'à ce que la sauvegarde désigne le bon.
+   */
+  adopt(member: FleetMember, at: { x: number; z: number; heading: number } | null) {
+    this.members.push(member);
+    this.refreshHand();
+    this.nextId = Math.max(this.nextId, member.id + 1);
+    if (this.members.length === 1) this.controlled = member;
+    if (!at) return;
+    this.enterWorld(member);
+    member.ship.respawn(at.x, at.z);
+    member.ship.heading = at.heading;
+  }
+
   /** Vend un bateau (jamais celui qu'on pilote). Renvoie ce qu'il rapporte, ou null si impossible. */
   sell(member: FleetMember): Cost | null {
     if (member === this.controlled || this.members.length <= 1) return null;

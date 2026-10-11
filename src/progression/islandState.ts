@@ -26,6 +26,13 @@ export const ISLAND_UPGRADE_INFO: Record<IslandUpgradeId, { name: string; descri
   smuggling: { name: 'Comptoir de contrebande', description: 'Des receleurs sûrs : le marché de l’île t’achète plus cher et te vend moins cher, et plus de marchands alliés y font escale.' },
 };
 
+/** Ce qu'une sauvegarde garde d'une île. */
+export interface IslandSnapshot {
+  owned: boolean;
+  levels: Record<IslandUpgradeId, number>;
+  stock: { gold: number; wood: number };
+}
+
 /**
  * Une île : son allégeance, son marché et, si elle t'appartient, ses améliorations et sa réserve (bois de la scierie,
  * or des marchands alliés), qu'on récupère au port.
@@ -41,6 +48,17 @@ export class IslandState {
   constructor(readonly id: IslandId) {
     this.info = ISLAND_INFO[id];
     this.owned = this.info.owned;
+  }
+
+  /** État à sauvegarder : allégeance, améliorations et réserve. */
+  snapshot(): IslandSnapshot {
+    return { owned: this.owned, levels: { ...this.levels }, stock: { ...this.stock } };
+  }
+
+  restore(s: IslandSnapshot) {
+    this.owned = s.owned;
+    Object.assign(this.levels, s.levels);
+    Object.assign(this.stock, s.stock);
   }
 
   /** Production de la scierie, dans la limite de la réserve. */

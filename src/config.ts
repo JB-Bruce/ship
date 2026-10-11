@@ -507,6 +507,12 @@ export interface EncounterStage {
   readonly interval: readonly [number, number];
 }
 
+/** Sauvegarde de la partie (menu Échap, onglet Partie). */
+export const SAVE = {
+  /** Pas de sauvegarde si un ennemi est à moins de cette distance d'un navire de ta flotte (m). */
+  enemyRange: 300,
+};
+
 /** Registre du capitaine. */
 export const LEDGER = {
   /** Au-delà de ce déplacement en une image (m), le bateau piloté a été déplacé (réapparition) : ce n'est pas de la navigation. */

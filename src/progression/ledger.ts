@@ -3,6 +3,22 @@ import { LEDGER } from '../config';
 import type { Ship } from '../ship/ship';
 import type { ShipType } from '../shipTypes';
 
+/** Ce qu'une sauvegarde garde du registre. */
+export interface LedgerSnapshot {
+  sunk: Partial<Record<ShipType, number>>;
+  bossFlags: Partial<Record<BossId, number>>;
+  elites: number;
+  goldEarned: number;
+  fishCaught: number;
+  goodsSold: number;
+  contractsDone: number;
+  shipsExtended: number;
+  merchantVisits: number;
+  tradeProfit: number;
+  shipsLost: number;
+  distanceSailed: number;
+}
+
 /** Registre du capitaine : tout ce qui s'est passé depuis le début de la partie (onglet Registre du port). */
 export class Ledger {
   /** Ennemis coulés par type (élites et boss compris). */
@@ -30,6 +46,19 @@ export class Ledger {
   private lastShip: Ship | null = null;
   private lastX = 0;
   private lastZ = 0;
+
+  /** État à sauvegarder (tout le registre). */
+  snapshot(): LedgerSnapshot {
+    const { elites, goldEarned, fishCaught, goodsSold, contractsDone, shipsExtended, merchantVisits, tradeProfit, shipsLost, distanceSailed } = this;
+    return { sunk: { ...this.sunk }, bossFlags: { ...this.bossFlags }, elites, goldEarned, fishCaught, goodsSold, contractsDone, shipsExtended, merchantVisits, tradeProfit, shipsLost, distanceSailed };
+  }
+
+  restore(s: LedgerSnapshot) {
+    const { sunk, bossFlags, ...counts } = s;
+    Object.assign(this.sunk, sunk);
+    Object.assign(this.bossFlags, bossFlags);
+    Object.assign(this, counts);
+  }
 
   get totalSunk(): number {
     return Object.values(this.sunk).reduce((sum, n) => sum + n, 0);

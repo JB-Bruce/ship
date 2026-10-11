@@ -79,6 +79,15 @@ export function missionTag(c: Contract): string {
 /** « ★★★☆☆ » */
 export const starsText = (stars: number) => '★'.repeat(stars) + '☆'.repeat(CONTRACTS.stars - stars);
 
+/** Ce qu'une sauvegarde garde des contrats. */
+export interface ContractsSnapshot {
+  offers: Record<IslandId, Contract[]>;
+  active: Contract[];
+  dayLeft: number;
+  specialsDone: string[];
+  nextId: number;
+}
+
 /**
  * Contrats des tavernes. Chaque île pirate affiche ses offres du jour (contractOffers.ts : les mêmes genres partout,
  * plus les convois de son marché), tirées autour du niveau de ta flotte et remplacées à chaque nouvelle journée, et ses
@@ -97,6 +106,23 @@ export class Contracts {
   /** Contrat de chaque mission spéciale proposée ou en cours (le même tant qu'elle n'est ni réussie ni ratée). */
   private readonly specialContracts = new Map<string, Contract>();
   private nextId = 1;
+
+  /** État à sauvegarder : offres du jour, contrats acceptés (avec leur avancement), missions spéciales réussies. */
+  snapshot(): ContractsSnapshot {
+    return { offers: structuredClone(this.offers), active: structuredClone(this.active), dayLeft: this.dayLeft, specialsDone: [...this.specialsDone], nextId: this.nextId };
+  }
+
+  restore(s: ContractsSnapshot) {
+    for (const id of Object.keys(this.offers) as IslandId[]) this.offers[id] = s.offers[id] ?? [];
+    this.active.splice(0, this.active.length, ...s.active);
+    this.dayLeft = s.dayLeft;
+    this.specialsDone.clear();
+    for (const id of s.specialsDone) this.specialsDone.add(id);
+    // Une mission spéciale acceptée reste la même (elle n'est plus proposée tant qu'elle est en cours).
+    this.specialContracts.clear();
+    for (const c of this.active) if (c.special) this.specialContracts.set(c.special, c);
+    this.nextId = s.nextId;
+  }
 
   /** Le temps passe : à chaque nouvelle journée, les offres du jour non acceptées sont retirées. Renvoie true alors. */
   tick(dt: number): boolean {

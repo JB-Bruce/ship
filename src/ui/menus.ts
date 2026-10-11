@@ -2,6 +2,7 @@ import type { Campaign } from '../campaign';
 import type { Fleet, FleetMember } from '../fleet/fleet';
 import type { PlayerState } from '../progression/playerState';
 import type { Display } from '../render/display';
+import type { SaveManager } from '../save/saveManager';
 import type { Settings } from '../settings/settings';
 import type { EnemySpawner } from '../world/enemySpawner';
 import type { FishSchools } from '../world/fishSchools';
@@ -30,6 +31,7 @@ export interface MenuWorld {
   readonly pirates: PirateTraffic;
   readonly settings: Settings;
   readonly display: Display;
+  readonly saves: SaveManager;
   takeHelm(member: FleetMember): void;
 }
 
@@ -56,6 +58,6 @@ export function createMenus(w: MenuWorld): PortMenu {
     escorts: () => campaign.escorts(),
     pirates: () => [...w.pirates.pirates.map((p) => p.ship), ...campaign.merchants.ships],
   });
-  new SettingsMenu(container, { settings: w.settings, display: w.display });
+  new SettingsMenu(container, { settings: w.settings, display: w.display, saves: w.saves });
   return portMenu;
 }

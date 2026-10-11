@@ -20,6 +20,14 @@ export interface TradeOrder {
   leg: 0 | 1;
 }
 
+/** Ce qu'une sauvegarde garde d'un navire en commerce (sa route est dans `FleetMember.trade`). */
+export interface RunnerSnapshot {
+  memberId: number;
+  phase: 'docked' | 'sailing' | 'lost';
+  stay: number;
+  load: { good: Good; amount: number; cost: number } | null;
+}
+
 interface Runner {
   readonly member: FleetMember;
   phase: 'docked' | 'sailing' | 'lost';
@@ -49,6 +57,28 @@ export class TradeRoutes {
     private readonly ships: readonly Ship[],
     private readonly say: (text: string) => void,
   ) {}
+
+  /** État à sauvegarder : où en est chaque navire en commerce. */
+  snapshot(): RunnerSnapshot[] {
+    return this.runners.map((r) => ({ memberId: r.member.id, phase: r.phase, stay: r.stay, load: r.load && { ...r.load } }));
+  }
+
+  /**
+   * Reprend les navires en commerce d'une sauvegarde (la flotte est déjà rétablie, chacun à sa place) : celui qui était
+   * en route repart de là où il est vers le port de destination de son étape.
+   */
+  restore(list: readonly RunnerSnapshot[]) {
+    for (const s of list) {
+      const member = this.fleet.members.find((m) => m.id === s.memberId);
+      if (!member?.trade || this.runner(member)) continue;
+      const r: Runner = { member, phase: s.phase, ai: null, stay: s.stay, load: s.load && { ...s.load } };
+      this.runners.push(r);
+      if (r.phase !== 'sailing') continue;
+      const to = islandById(member.trade.ports[1 - member.trade.leg]);
+      const here = { x: member.ship.position.x, z: member.ship.position.z };
+      r.ai = new MerchantAI(member.ship, [...seaRoute(here, bayMouth(to)), mooringSpot(to, this.ships, member.ship)], TRADE_ROUTES.sail);
+    }
+  }
 
   /** Marchandises qu'on peut acheter à `from` et revendre à `to`. */
   goods(from: IslandId, to: IslandId): Good[] {
