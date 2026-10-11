@@ -204,7 +204,8 @@ export const LOOT = {
   spicesChance: 0.06,
   spicesPerCrate: [1, 3] as const,
   rareFactorExponent: 0.75,
-  pickupRadius: 4.5,
+  /** Un bateau ramasse le butin à moins de cette distance de sa coque (contour de sa longueur et de sa largeur, m). */
+  pickupMargin: 3,
   /** Les caisses coulent au bout de ce temps (s). */
   lifetime: 90,
   /** Part de l'or perdue quand le joueur coule. */

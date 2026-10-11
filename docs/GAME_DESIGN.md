@@ -175,7 +175,7 @@ Décisions prises avec l'auteur (depuis le 2026-10-06). Les valeurs chiffrées s
 - Elles sont conservées après un naufrage.
 
 ## Butin et interface (fait)
-- Un ennemi coulé laisse 2 à 4 **caisses d'or** (5 à 12 pièces chacune) et 2 à 3 **paquets de planches** (3 à 5 bois chacun), à ramasser en passant dessus. Le butin coule au bout de 90 s.
+- Un ennemi coulé laisse 2 à 4 **caisses d'or** (5 à 12 pièces chacune) et 2 à 3 **paquets de planches** (3 à 5 bois chacun), à ramasser en passant dessus : la zone de ramassage suit la coque de chaque navire (sa longueur et sa largeur, allongements compris, orientée selon son cap), plus 3 m tout autour. Une frégate ramasse donc aussi par la proue et la poupe, une chaloupe seulement tout près d'elle. Le butin coule au bout de 90 s.
 - Interface : vie, or, bois, places dans les cales de la flotte, cran de voile, vitesse, et l'indicateur « À portée de tir ». Des messages s'affichent au naufrage et à la réapparition de tes navires.
 - **Parchemins** (port, flotte, carte) : quand le contenu dépasse, une barre de défilement « trait d'encre » (fine rainure brune dans la marge, curseur arrondi brun encre, sans flèches).
 - **Contrats** : ceux que tu as acceptés s'affichent en haut à droite (titre, progression et petite barre ; « Prime à toucher à la taverne » une fois remplis), au-dessus du fil des navires coulés.

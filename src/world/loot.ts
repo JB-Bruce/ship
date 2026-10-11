@@ -156,12 +156,21 @@ export class Loot {
   }
 
   /**
-   * Un bateau non ennemi à flot passe-t-il sur la caisse ? Rayon élargi selon sa taille (un sloop ramasse depuis son
-   * flanc). Le collecteur décide qui garde le butin (ta flotte, un pirate allié… ou personne).
+   * Un bateau non ennemi à flot passe-t-il sur la caisse ? La zone suit sa coque : une gélule de sa longueur et de sa
+   * largeur (allongements compris), orientée selon son cap, plus LOOT.pickupMargin tout autour. Le collecteur décide qui
+   * garde le butin (ta flotte, un pirate allié… ou personne).
    */
   private reaches(ship: Ship, p: THREE.Vector3): boolean {
     if (ship.faction === 'enemy' || !ship.alive) return false;
-    return Math.hypot(p.x - ship.position.x, p.z - ship.position.z) < LOOT.pickupRadius + ship.stats.width / 2;
+    const { length, width } = ship.stats;
+    const dx = p.x - ship.position.x;
+    const dz = p.z - ship.position.z;
+    // Position le long de l'axe proue-poupe, ramenée sur le segment central de la gélule.
+    const half = Math.max(0, (length - width) / 2);
+    const along = Math.max(-half, Math.min(half, dx * Math.sin(ship.heading) + dz * Math.cos(ship.heading)));
+    const ex = dx - Math.sin(ship.heading) * along;
+    const ez = dz - Math.cos(ship.heading) * along;
+    return Math.hypot(ex, ez) < width / 2 + LOOT.pickupMargin;
   }
 
   private spawn(kind: LootKind, x: number, z: number, value: number) {
