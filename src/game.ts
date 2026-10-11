@@ -143,15 +143,15 @@ export class Game {
     this.siegeBar = new ObjectiveBar(container, 'siege');
     const world = { scene: this.scene, ships: this.ships, spawner: this.spawner, forts: this.forts, wreckLoot: (ship: Ship) => this.wreckLoot(ship) };
     this.campaign = new Campaign(this.state, this.fleet, this.hud, world, this.lighthouse, this.spawner);
-    this.fishing = new Fishing(this.fleet, { caught: () => this.campaign.fishCaught(), say: (text) => this.hud.message(text, 2.5) });
+    this.fishing = new Fishing(this.fleet, { caught: () => this.campaign.fishCaught(), say: (text) => this.hud.toast(text, 2.5) });
     this.bosses = new Bosses(this.spawner, {
       appear: (id) => this.hud.message(`☠ ${BOSSES[id].name} approche !`, 5, true),
-      leave: (id) => this.hud.message(`${BOSSES[id].calm} : ${BOSSES[id].name} s'éloigne…`, 4),
+      leave: (id) => this.hud.toast(`${BOSSES[id].calm} : ${BOSSES[id].name} s'éloigne…`, 4),
       vanish: (id) => this.hud.notifications.kill(`${BOSSES[id].name} a disparu dans la brume`),
     });
 
     const loaded = this.saves.finish({ state: this.state, fleet: this.fleet, campaign: this.campaign, spawner: this.spawner, weather: this.weather, ships: this.ships });
-    if (loaded) this.hud.message(`Partie chargée : « ${loaded} »`, 3);
+    if (loaded) this.hud.toast(`Partie chargée : « ${loaded} »`, 3, 'good');
 
     const { state, fleet, campaign, hud, wind, spawner, loot, schools, radar, pirates, settings, display, saves } = this;
     this.portMenu = createMenus({ container, state, fleet, campaign, hud, wind, spawner, loot, schools, radar, pirates, settings, display, saves, takeHelm: (m) => this.takeHelm(m) });
@@ -169,7 +169,7 @@ export class Game {
       // Triche de test : B donne 1000 or et 1000 bois.
       if (e.code === 'KeyB') {
         this.state.earn({ gold: 1000, wood: 1000 });
-        this.hud.message('+1000 or et +1000 bois', 1.5);
+        this.hud.toast('+1000 or et +1000 bois', 1.5, 'good');
       } else if (e.code === 'KeyF') {
         this.toggleFishing();
       }
@@ -269,7 +269,7 @@ export class Game {
     const switched = this.fleet.autoSwitch();
     if (switched) {
       this.controller.controls = switched.ship.controls;
-      this.hud.message(`Tu prends la barre de ${switched.name}`, 3);
+      this.hud.toast(`Tu prends la barre de ${switched.name}`, 3);
       return;
     }
     if (!this.fleet.leader.sunk || this.fleet.anyAlive()) return;
@@ -283,7 +283,7 @@ export class Game {
     if (!this.fleet.takeControl(member)) return;
     member.station = null;
     this.controller.controls = member.ship.controls;
-    this.hud.message(`Tu prends la barre de ${member.name}`, 2.5);
+    this.hud.toast(`Tu prends la barre de ${member.name}`, 2.5);
   }
 
   private onBallHit(ship: Ship, ball: Ball) {
@@ -309,7 +309,7 @@ export class Game {
     if (!member) return;
     this.campaign.memberSunk(member);
     if (ship === leader) this.hud.message(`${this.fleet.controlled.name} sombre…`, 3);
-    else this.hud.message(`${member.name} a coulé. De retour dans ${Math.round(SHIP_TYPES[member.type].respawnTime * this.fleet.respawnFactor)} s.`, 3);
+    else this.hud.toast(`${member.name} a coulé. De retour dans ${Math.round(SHIP_TYPES[member.type].respawnTime * this.fleet.respawnFactor)} s.`, 3.5, 'danger');
   }
 
   /** Épave d'un allié hors de ta flotte (pirate, marchand des îles) : le butin d'un navire de son type, comme un ennemi. */

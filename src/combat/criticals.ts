@@ -63,7 +63,11 @@ export class Criticals {
       }
       this.popups.show(ship, CRIT_TEXT[kind]);
       const leader = this.world.leader();
-      if (ship === leader) hud.message(CRIT_TEXT[kind], 2.5, true);
+      // Sur ton navire : la sainte-barbe au centre, les autres avaries en petit message.
+      if (ship === leader) {
+        if (kind === 'magazine') hud.message(CRIT_TEXT[kind], 2.5, true);
+        else hud.toast(CRIT_TEXT[kind], 3, 'danger');
+      }
       if (kind === 'magazine' && ship.distanceTo(leader) < BOSS_SINK.shakeRange) camera.shake(CRIT.magazineShake);
       return kind;
     }

@@ -65,7 +65,8 @@ export class Campaign {
     private readonly spawner: EnemySpawner,
   ) {
     this.missions = new MissionDirector(world, {
-      say: (text, danger) => hud.message(text, 4, danger),
+      // Les alertes de mission (embuscade, attaque) au centre ; le reste en petit message.
+      say: (text, danger) => (danger ? hud.message(text, 4, true) : hud.toast(text, 4)),
       succeeded: (c) => this.missionSucceeded(c),
       failed: (c, reason) => {
         this.contracts.remove(c);
@@ -75,7 +76,7 @@ export class Campaign {
     });
     this.routes = new TradeRoutes(fleet, state, this.ledger, this.islands, world.ships, (text) => hud.notifications.kill(text));
     this.harbor = new Harbor(state, fleet, this.islands.tortuga, this.contracts, this.ledger, this.crew, this.routes, {
-      say: (text) => hud.message(text, 2.5),
+      say: (text) => hud.toast(text, 2.5),
       log: (text) => hud.notifications.kill(text),
       islandChanged: (island) => this.applyIsland(island),
       contractOptions: () => this.contractOptions(),
@@ -218,7 +219,7 @@ export class Campaign {
     const info = ISLAND_INFO[c.from];
     const place = info.shortName.charAt(0).toUpperCase() + info.shortName.slice(1);
     const thanks = c.kind === 'defend' ? `${place} a tenu ! ${info.holders} te remercient` : 'Le marchand est arrivé à bon port';
-    this.hud.message(`${thanks} : +${c.reward.gold} or${c.reward.wood ? `, +${c.reward.wood} bois` : ''}`, 4);
+    this.hud.toast(`${thanks} : +${c.reward.gold} or${c.reward.wood ? `, +${c.reward.wood} bois` : ''}`, 4, 'good');
   }
 
   /** Port de réapparition de la flotte (le dernier port visité). */
@@ -241,7 +242,7 @@ export class Campaign {
       taken = member ? store(member, kind, value) : 0;
       if (taken === 0 && member && this.fullWarning === 0) {
         this.fullWarning = FULL_WARNING_DELAY;
-        this.hud.message(`${member.name} a la cale pleine`, 2);
+        this.hud.toast(`${member.name} a la cale pleine`, 2.5);
       }
     }
     if (taken > 0) this.hud.notifications.pickup(kind, taken);

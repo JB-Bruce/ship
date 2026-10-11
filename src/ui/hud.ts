@@ -5,6 +5,7 @@ import type { Ship } from '../ship/ship';
 import { typeName } from '../shipTypes';
 import { Notifications } from './notifications';
 import { QuestTracker } from './questTracker';
+import { Toasts, type ToastTone } from './toasts';
 
 /** Intervalle de rafraîchissement du bandeau de flotte (s) : inutile de le refaire à chaque image. */
 const FLEET_REFRESH = 0.3;
@@ -30,6 +31,7 @@ export class Hud {
   private readonly banner: HTMLElement;
   private readonly shipName: HTMLElement;
   private readonly fleetStrip: HTMLElement;
+  private readonly toasts: Toasts;
   private bannerTime = 0;
   private fleetTimer = 0;
   private last = { sail: -1, knots: -1, health: -1, maxHealth: -1, gold: -1, wood: -1, combat: false };
@@ -60,12 +62,21 @@ export class Hud {
       'Z / S (maintenir) : hisser / affaler la voile · Q / D : barre · T : flotte · M : carte · E : port (près du quai) · F : pêcher (près d’un banc) · Glisser la souris : caméra · Molette : zoom · Échap : paramètres · Les canons tirent seuls';
     const topRight = el('div', 'hud-top-right');
     root.append(this.fleetStrip, panel, this.combat, this.banner, help, topRight);
+    this.toasts = new Toasts(root);
     parent.appendChild(root);
     this.quests = new QuestTracker(topRight);
     this.notifications = new Notifications(topRight, panel);
   }
 
-  /** Affiche un message au centre de l'écran pendant quelques secondes. `danger` : alerte en rouge (boss). */
+  /** Petit message d'information en haut de l'écran (achats, pêche, barre…), qui s'efface seul. */
+  toast(text: string, seconds = 3, tone: ToastTone = 'info') {
+    this.toasts.show(text, seconds, tone);
+  }
+
+  /**
+   * Grand bandeau au centre de l'écran, réservé aux alertes et aux moments forts (boss, rencontre, naufrage) ;
+   * le reste passe par `toast`. `danger` : alerte en rouge.
+   */
   message(text: string, seconds = 3, danger = false) {
     this.banner.textContent = text;
     this.banner.classList.add('on');
@@ -75,6 +86,7 @@ export class Hud {
 
   update(dt: number, ship: Ship, state: PlayerState, inCombat: boolean, fleet: Fleet) {
     this.notifications.update(dt);
+    this.toasts.update(dt);
     this.fleetTimer -= dt;
     if (this.fleetTimer <= 0 || dt === 0) {
       this.fleetTimer = FLEET_REFRESH;
