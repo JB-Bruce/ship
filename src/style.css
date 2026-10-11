@@ -572,6 +572,17 @@ body {
   background: #8a2a1a;
 }
 
+/* Trait d'un officier (Tireur d'élite…) : son étiquette et son bonus, d'une couleur à part. */
+.tag.trait {
+  color: #eef7f8;
+  background: #1f6274;
+}
+
+.trait-effect {
+  color: #1f6274;
+  font-weight: bold;
+}
+
 .ship-health {
   height: 8px;
   margin: 3px 0 4px;

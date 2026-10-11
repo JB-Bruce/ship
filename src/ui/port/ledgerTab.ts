@@ -22,6 +22,10 @@ export function ledgerTab(ctx: PortContext): string {
     <div class="island-facts">${sunk}<div><span>Dont d’élite</span><b>${l.elites}</b></div></div>
     <h3 class="section">Trophées</h3>
     ${trophy}
+    <h3 class="section">Navigation</h3>
+    <div class="island-facts">
+      <div><span>Distance parcourue à la barre</span><b>${(l.distanceSailed / 1000).toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km</b></div>
+    </div>
     <h3 class="section">Commerce et campagnes</h3>
     <div class="island-facts">
       <div><span>Or gagné</span><b>${l.goldEarned}</b></div>

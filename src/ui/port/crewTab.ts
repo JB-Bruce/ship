@@ -1,6 +1,6 @@
 import { OFFICERS } from '../../config';
 import type { FleetMember } from '../../fleet/fleet';
-import { effectText, officerEffect, officerPrice, starProgress, talentText, type Officer } from '../../fleet/officers';
+import { effectText, officerPrice, roleEffect, starProgress, talentText, type Officer } from '../../fleet/officers';
 import { typeName } from '../../shipTypes';
 import { costHtml } from '../parchmentMenu';
 import { resourcesHtml, type PortContext } from './portContext';
@@ -25,15 +25,17 @@ export function crewTab(ctx: PortContext): string {
     <div class="list">${candidates.length ? candidates.map((o) => candidateCard(ctx, o)).join('') : '<p class="effect">Plus personne aujourd’hui.</p>'}</div>`;
 }
 
-/** Nom, fonction, talent et trait d'un officier, et ce qu'il apporte. */
+/** Nom, fonction, talent et trait d'un officier, et ce qu'il apporte (le bonus du trait dans la couleur du trait). */
 function describe(o: Officer): string {
   const role = OFFICERS.roles[o.role];
-  const trait = o.trait ? `<span class="tag">${OFFICERS.traits[o.trait].name}</span>` : '';
+  const traitDef = o.trait ? OFFICERS.traits[o.trait] : null;
+  const trait = traitDef ? `<span class="tag trait">${traitDef.name}</span>` : '';
+  const traitBonus = traitDef ? ` · <span class="trait-effect" title="${traitDef.name}">${effectText(traitDef.effect)}</span>` : '';
   const unique = o.unique ? '<span class="tag helm">Unique</span>' : '';
   return `
     <h2>${role.icon} ${o.name} <span class="stars" title="Talent">${talentText(o.talent)}</span> ${unique}</h2>
     <p>${role.name}${trait}</p>
-    <p class="effect">${effectText(officerEffect(o))}</p>`;
+    <p class="effect">${effectText(roleEffect(o))}${traitBonus}</p>`;
 }
 
 function candidateCard(ctx: PortContext, o: Officer): string {

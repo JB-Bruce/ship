@@ -91,6 +91,7 @@ export class Campaign {
 
   /** Les îles produisent même quand tu es au large ; le port où se trouve le bateau piloté devient l'escale. */
   update(dt: number, leader: Ship) {
+    this.ledger.logSailing(leader);
     for (const island of Object.values(this.islands)) island.update(dt);
     // Nouvelle journée : les tavernes affichent de nouvelles offres du jour.
     if (this.contracts.tick(dt)) {

@@ -43,8 +43,16 @@ export function officerEffect(o: Officer): StatEffect {
   const add = (e: StatEffect, scale: number) => {
     for (const key of Object.keys(e) as ModifierKey[]) effect[key] = (effect[key] ?? 0) + (e[key] ?? 0) * scale;
   };
-  add(OFFICERS.roles[o.role].perStar, o.talent);
+  add(roleEffect(o), 1);
   if (o.trait) add(OFFICERS.traits[o.trait].effect, 1);
+  return effect;
+}
+
+/** La part de sa fonction seule (× son talent), sans son trait. */
+export function roleEffect(o: Officer): StatEffect {
+  const effect: StatEffect = {};
+  const perStar = OFFICERS.roles[o.role].perStar;
+  for (const key of Object.keys(perStar) as ModifierKey[]) effect[key] = (perStar[key] ?? 0) * o.talent;
   return effect;
 }
 

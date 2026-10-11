@@ -507,6 +507,12 @@ export interface EncounterStage {
   readonly interval: readonly [number, number];
 }
 
+/** Registre du capitaine. */
+export const LEDGER = {
+  /** Au-delà de ce déplacement en une image (m), le bateau piloté a été déplacé (réapparition) : ce n'est pas de la navigation. */
+  maxStep: 30,
+};
+
 export const ENEMIES = {
   /**
    * Rencontres ordinaires selon les victoires (le dernier palier atteint s'applique) : au début, plusieurs navires seuls
