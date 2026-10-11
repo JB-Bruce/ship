@@ -154,6 +154,7 @@ Décisions prises avec l'auteur (depuis le 2026-10-06). Les valeurs chiffrées s
 
 ## Boss : Le Spectre (fait)
 - Deuxième boss : un brigantin fantôme. Coque gris-noir délavée, préceintes vert-de-gris, voiles grises en lambeaux (trouées même intactes), fanal verdâtre, pavillon gris à tête de mort pâle.
+- **Naufrage d'un boss mis en scène** (fait, seulement les boss) : au coup fatal, grosse explosion sur le pont (éclair, boule de feu, éclats, fumée noire), secousse de la caméra s'il est à moins de 400 m et léger zoom (2,5 s) ; puis 4 explosions le long de l'épave pendant qu'elle coule (réglages `BOSS_SINK`).
 - Il apparaît une fois par brouillard, 30 à 60 s après que le brouillard s'est installé, à 160 m (hors de vue), jamais près du port. Bandeau « ☠ Le Spectre approche ! ».
 - Brigantin du joueur avec toutes ses améliorations au maximum, plus vie ×1,5 et vitesse +15 % (645 PV, 16 m/s), dégâts normaux. Il sait toujours où tu es et ne fuit jamais pour de bon.
 - **Harcèlement** : il fond sur sa proie et la bombarde 12 à 18 s (comptées une fois à portée), ou moins s'il perd 12 % de sa vie ; puis il replonge dans la brume, s'éloigne à ~150 m (au-delà de 90 m, il disparaît du radar et de la carte, et sa barre de vie s'efface), fait le tour de sa proie de 70 à 125° et revient par un autre côté. Barre de vie en haut de l'écran quand il est visible (à moins de 140 m).

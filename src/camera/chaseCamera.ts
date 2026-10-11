@@ -20,6 +20,8 @@ export class ChaseCamera {
   private initialized = false;
   /** Intensité de la secousse en cours (0..1). */
   private trauma = 0;
+  /** Zoom passager en cours (punch), ou null. */
+  private zoom: { amount: number; duration: number; time: number } | null = null;
 
   constructor(
     readonly camera: THREE.PerspectiveCamera,
@@ -48,6 +50,11 @@ export class ChaseCamera {
       { passive: false },
     );
     dom.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
+  /** Léger zoom passager (champ de vision réduit de `amount`) sur `duration` s : montée rapide, retour lent. */
+  punch(amount: number, duration: number) {
+    this.zoom = { amount, duration, time: 0 };
   }
 
   /** Secoue la caméra (s'additionne aux secousses en cours, plafonné à 1). */
@@ -91,6 +98,16 @@ export class ChaseCamera {
     );
     cam.y = Math.max(cam.y, waves.heightAt(cam.x, cam.z) + 1.5);
     this.camera.lookAt(this.target);
+
+    if (this.zoom) {
+      const z = this.zoom;
+      z.time += dt;
+      const t = Math.min(1, z.time / z.duration);
+      const envelope = t < 0.2 ? Math.sin((t / 0.2) * (Math.PI / 2)) : 0.5 + 0.5 * Math.cos(((t - 0.2) / 0.8) * Math.PI);
+      this.camera.fov = CAMERA.fov * (1 - z.amount * envelope);
+      this.camera.updateProjectionMatrix();
+      if (t >= 1) this.zoom = null;
+    }
 
     // Secousse : décalage aléatoire proportionnel au carré du trauma (les petits chocs restent discrets).
     if (this.trauma > 0) {

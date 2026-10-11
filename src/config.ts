@@ -534,6 +534,19 @@ export const SAIL_BILLOW = {
   yardBlend: 1.5,
 };
 
+/** Naufrage d'un boss (seulement les boss) : explosion, secousse et léger zoom de la caméra, explosions sur l'épave. */
+export const BOSS_SINK = {
+  /** Secousse de la caméra (0 à 1) si le boss est à moins de `shakeRange` m du bateau piloté. */
+  shake: 0.7,
+  shakeRange: 400,
+  /** Zoom : champ de vision réduit de cette fraction, pendant `zoomTime` s (montée rapide, retour lent). */
+  zoom: 0.15,
+  zoomTime: 2.5,
+  /** Explosions sur l'épave qui coule : combien, et l'écart entre deux (s). */
+  aftershocks: 4,
+  aftershockInterval: [0.5, 0.9] as const,
+};
+
 /** Registre du capitaine. */
 export const LEDGER = {
   /** Au-delà de ce déplacement en une image (m), le bateau piloté a été déplacé (réapparition) : ce n'est pas de la navigation. */

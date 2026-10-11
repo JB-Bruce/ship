@@ -146,6 +146,30 @@ export class Effects {
     }
   }
 
+  /** Explosion (réserve de poudre, naufrage d'un boss) : éclair, boule de feu, éclats projetés et colonne de fumée noire. */
+  explosion(p: THREE.Vector3, scale = 1) {
+    for (let i = 0; i < 4; i++) {
+      const s = reset(p.x, p.y + 1, p.z, COLORS.gold);
+      Object.assign(s, { vx: rand(-1, 1), vy: rand(0, 2), vz: rand(-1, 1), life: rand(0.3, 0.45), size: 2.6 * scale, sizeEnd: 0.6 * scale });
+      this.glow.spawn(s);
+    }
+    for (let i = 0; i < 40; i++) {
+      const s = reset(p.x, p.y + 0.8, p.z, i % 3 ? COLORS.fire : COLORS.gold);
+      Object.assign(s, {
+        vx: rand(-7, 7) * scale, vy: rand(2, 10) * scale, vz: rand(-7, 7) * scale, life: rand(0.6, 1.2),
+        size: rand(0.7, 1.2) * scale, sizeEnd: 0.15, gravity: 4, drag: 1.4,
+      });
+      this.glow.spawn(s);
+    }
+    this.impact(p);
+    this.impact(p);
+    for (let i = 0; i < 16; i++) {
+      const s = reset(p.x + rand(-1, 1) * scale, p.y + 1.5, p.z + rand(-1, 1) * scale, COLORS.darkSmoke);
+      Object.assign(s, { vx: rand(-1.2, 1.2), vy: rand(2.5, 5.5), vz: rand(-1.2, 1.2), life: rand(3, 5), size: rand(1, 1.6) * scale, sizeEnd: rand(3.5, 5) * scale, drag: 0.9 });
+      this.lit.spawn(s);
+    }
+  }
+
   /** Coup fatal : grosse gerbe d'éclats et de fumée. */
   wreck(p: THREE.Vector3) {
     for (let i = 0; i < 3; i++) this.impact(p);

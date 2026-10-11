@@ -8,6 +8,7 @@ import { setupDebug } from './debug';
 import { DeckCrew } from './deckCrew/deckCrew';
 import { Fishing } from './fleet/fishing';
 import { Fleet, type FleetMember } from './fleet/fleet';
+import { BossSinking } from './fx/bossSinking';
 import { Effects } from './fx/effects';
 import { FishSchoolFx } from './fx/fishSchoolFx';
 import { KeyboardController } from './input/keyboardController';
@@ -92,6 +93,7 @@ export class Game {
   private readonly campaign: Campaign;
   private readonly controller: KeyboardController;
   private readonly chaseCamera: ChaseCamera;
+  private readonly bossSinking: BossSinking;
   private readonly hud: Hud;
   private readonly radar: Radar;
   private readonly healthBars: HealthBars;
@@ -122,6 +124,7 @@ export class Game {
     this.saves.start(this.fleet);
     this.controller = new KeyboardController(this.fleet.leader.controls);
     this.chaseCamera = new ChaseCamera(this.camera, this.display.viewport);
+    this.bossSinking = new BossSinking(this.effects, this.chaseCamera);
     this.hud = new Hud(container);
     const hazards = weatherHazards(this.chaseCamera, this.effects, this.fleet, this.hud, (ship, damage) => this.applyDamage(ship, damage));
     this.weather = new Weather(this.scene, this.waves, this.ambient, this.sun, hazards);
@@ -205,6 +208,7 @@ export class Game {
     this.projectiles.update(dt, this.ships, this.waves, this.effects, (ship, ball) => this.onBallHit(ship, ball), besieged, (fort, ball) => fort.takeDamage(ball.damage));
     for (const ship of this.ships) this.effects.shipAmbient(dt, ship, this.waves);
     this.effects.update(dt, this.waves, this.ships);
+    this.bossSinking.update(dt);
     this.schoolFx.update(dt, this.schools.list, this.waves);
     this.loot.update(dt, this.ships, this.waves);
     this.handleLeaderLoss();
@@ -287,6 +291,7 @@ export class Game {
     if (!sank) return;
     this.effects.wreck(ship.position);
     if (ship.faction === 'enemy') {
+      if (this.spawner.enemies.some((e) => e.ship === ship && e.boss)) this.bossSinking.start(ship, leader);
       this.campaign.enemySunk(ship, attacker);
       return;
     }
