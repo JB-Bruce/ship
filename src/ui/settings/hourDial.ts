@@ -58,7 +58,8 @@ export class HourDial {
   /** Le soleil (ou la lune) suit le pointeur. */
   private follow(dial: HTMLElement, e: PointerEvent) {
     const svg = dial.querySelector('svg');
-    if (!svg) return;
+    // Menu refermé en plein glisser (Échap) : le cadran caché n'a plus de taille, on ne suit plus le pointeur.
+    if (!svg || !svg.getBoundingClientRect().width) return;
     const p = dialPoint(svg, e.clientX, e.clientY);
     const hour = dialHourAt(p.x, p.y);
     if (hour !== null) this.set(dial, hour + this.grabOffset - DAY_NIGHT.dawnHour);
@@ -82,8 +83,9 @@ export class HourDial {
 
   /** Règle l'heure (heures depuis l'aube) : le ciel du jeu, le cadran et le libellé suivent. */
   private set(dial: HTMLElement, sinceDawn: number) {
+    if (!Number.isFinite(sinceDawn)) return;
     const value = snapHours(sinceDawn);
-    if (value.toFixed(2) === dial.getAttribute('aria-valuenow')) return;
+    if (Math.abs(value - this.day.sinceDawn) < 1e-6) return;
     this.day.setHour(DAY_NIGHT.dawnHour + value);
     refreshDial(dial, this.day);
     this.onChange();

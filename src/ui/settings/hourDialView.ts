@@ -136,7 +136,7 @@ const SKY_VARS = (day: DayCycle): [string, string][] => [
 ];
 
 /** Valeur du curseur (heures depuis l'aube) telle que l'annoncent les lecteurs d'écran. */
-export const dialValue = (day: DayCycle) => snapHours(day.sinceDawn).toFixed(2);
+export const dialValue = (day: DayCycle) => Math.min(DIAL_HOURS - DIAL_STEP, Math.round(day.sinceDawn / DIAL_STEP) * DIAL_STEP).toFixed(2);
 
 /** Ce qui suit l'heure : place du soleil et de la lune, teinte du ciel, valeur lue par les lecteurs d'écran. */
 export function refreshDial(root: HTMLElement, day: DayCycle) {
