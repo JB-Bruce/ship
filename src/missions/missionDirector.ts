@@ -77,7 +77,7 @@ export class MissionDirector {
     return zones;
   }
 
-  /** Navires escortés (marchands), pour le radar et la carte. */
+  /** Navires escortés (à protéger), en bleu ciel sur le radar et la carte. */
   escorts(): Ship[] {
     const ships: Ship[] = [];
     for (const mission of this.running.values()) if (mission instanceof EscortMission) ships.push(mission.ship);

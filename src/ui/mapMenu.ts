@@ -27,9 +27,9 @@ export interface MapSource {
   coverage(): number;
   /** Zones de mission (chasse à un capitaine). */
   zones(): readonly MapZone[];
-  /** Navires escortés (marchands). */
+  /** Navires à protéger (marchand escorté). */
   escorts(): readonly Ship[];
-  /** Pirates alliés en mer. */
+  /** Autres alliés en mer (pirates, marchands des îles). */
   pirates(): readonly Ship[];
 }
 
@@ -58,8 +58,8 @@ export class MapMenu extends ParchmentMenu {
       <span><b class="rum">■</b> Rhum, épices</span>
       <span><b class="fish">≋</b> Banc de poissons</span>
       <span><b class="zone">◌</b> Portée du radar</span>
-      <span><b class="merchant">▲</b> Marchands alliés</span>
-      <span><b class="pirate">▲</b> Pirates alliés</span>
+      <span><b class="pirate">▲</b> Alliés</span>
+      <span><b class="escort">▲</b> À protéger</span>
       <span><b class="hunt">◌</b> Zone de chasse</span>`;
     this.body.append(this.canvas, legend);
   }

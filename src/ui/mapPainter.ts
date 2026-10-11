@@ -20,7 +20,7 @@ export interface MapData {
   radarRange: number;
   zones: readonly MapZone[];
   escorts: readonly Ship[];
-  /** Pirates alliés vus par le radar. */
+  /** Autres alliés hors de ta flotte (pirates, marchands des îles) vus par le radar. */
   pirates: readonly Ship[];
 }
 
@@ -35,7 +35,7 @@ const COLORS = {
   enemy: '#b3261c',
   radar: 'rgba(74, 46, 20, 0.45)',
   fish: '#2d7f9a',
-  merchant: '#c9a227',
+  escort: '#3fb4e8',
   pirate: '#2f6fc0',
   hunt: 'rgba(179, 38, 28, 0.8)',
 };
@@ -126,7 +126,7 @@ export function paintMap(ctx: CanvasRenderingContext2D, width: number, height: n
   for (const ship of data.enemies) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 7, COLORS.enemy);
   for (const ship of data.allies) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 7, COLORS.ally);
   for (const ship of data.pirates) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 7, COLORS.pirate);
-  for (const ship of data.escorts) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 8, COLORS.merchant);
+  for (const ship of data.escorts) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 8, COLORS.escort);
   for (const zone of data.zones) paintZone(ctx, zone, toX, toY, scale);
   const px = toX(leader.position.x);
   const py = toY(leader.position.z);

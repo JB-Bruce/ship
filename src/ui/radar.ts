@@ -17,7 +17,7 @@ const COLORS = {
   boss: '#ff2a1a',
   ally: '#6fe08a',
   fish: '#8fe3ff',
-  merchant: '#f2c94c',
+  escort: '#a6ecff',
   pirate: '#4a9bff',
   wind: 'rgba(205, 238, 255, 0.9)',
   land: 'rgba(214, 190, 128, 0.85)',
@@ -28,7 +28,7 @@ const COLORS = {
 
 /**
  * Radar circulaire qui tourne avec le bateau : le haut = devant toi.
- * Vert = navire de ta flotte. Rouge = ennemi qui te chasse, orange = en patrouille, violet = en fuite, gros point
+ * Vert = navire de ta flotte, bleu = autre allié (pirate, marchand), bleu ciel cerclé de blanc = navire à protéger. Rouge = ennemi qui te chasse, orange = en patrouille, violet = en fuite, gros point
  * rouge cerclé = boss, poisson bleu = banc de poissons. Le butin n'y figure pas (il encombrait le radar).
  * Hors de portée : point pâle au bord, dans sa direction. La portée grandit près de l'île avec le phare.
  * La flèche claire montre où souffle le vent ; la légende au-dessus donne sa force et son effet sur ta vitesse.
@@ -57,7 +57,7 @@ export class Radar {
   }
 
   /** `ships` : tous les bateaux (les alliés y sont repérés par leur camp). */
-  /** `escorts` : navires alliés escortés (en jaune) ; les autres alliés hors de ta flotte sont des pirates (en bleu). */
+  /** `escorts` : navires à protéger (en bleu ciel) ; les autres alliés hors de ta flotte sont en bleu. */
   update(dt: number, player: Ship, enemies: readonly Enemy[], wind: Wind, ships: readonly Ship[], schools: readonly FishSchool[], escorts: readonly Ship[]) {
     // Redessiner un dessin 2D à chaque image coûte cher : RADAR.refreshRate fois par seconde suffit.
     this.sinceDraw += dt;
@@ -135,11 +135,17 @@ export class Radar {
     }
     for (const ship of ships) {
       if (ship === player || ship.faction === 'enemy' || !ship.alive) continue;
-      // Vert : ta flotte ; jaune : marchands alliés (escorté ou de tes îles) ; bleu : pirate allié.
-      ctx.fillStyle = ship.faction === 'player' ? COLORS.ally : escorts.includes(ship) ? COLORS.merchant : COLORS.pirate;
+      // Vert : ta flotte ; bleu ciel cerclé : navire à protéger ; bleu : autre allié (pirate, marchand des îles).
+      const escort = escorts.includes(ship);
+      ctx.fillStyle = ship.faction === 'player' ? COLORS.ally : escort ? COLORS.escort : COLORS.pirate;
       const p = place(ship.position.x, ship.position.z);
-      this.circle(p.x, p.y, p.outside ? 3 : 4);
+      this.circle(p.x, p.y, escort ? 5.5 : p.outside ? 3 : 4);
       ctx.fill();
+      if (!escort) continue;
+      ctx.strokeStyle = COLORS.player;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.lineWidth = 1;
     }
     for (const { ship, ai, boss } of enemies) {
       // Un boss caché dans la brume (harcèlement) n'apparaît pas.

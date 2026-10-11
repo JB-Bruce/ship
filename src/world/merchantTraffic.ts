@@ -31,7 +31,7 @@ export interface MerchantEvents {
 }
 
 /**
- * Marchands alliés (camp « ally », points jaunes) qui commercent avec tes îles : pour chaque île à toi, un sloop ou un
+ * Marchands alliés (camp « ally », points bleus comme les autres alliés) qui commercent avec tes îles : pour chaque île à toi, un sloop ou un
  * brigantin arrive du large de temps en temps (plus souvent avec le comptoir), mouille devant le port, laisse son or
  * dans la réserve de l'île à l'arrivée, puis repart vers le large où il disparaît, loin de toi. La Marine peut les
  * couler ; leurs canons se défendent seuls. Tient à jour la liste `ships` partagée.

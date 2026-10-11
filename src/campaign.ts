@@ -105,9 +105,9 @@ export class Campaign {
     this.routes.update(dt);
   }
 
-  /** Navires alliés hors de ta flotte en jaune sur le radar et la carte : marchand escorté, marchands des îles. */
+  /** Navires à protéger (marchand escorté), en bleu ciel sur le radar et la carte. */
   escorts(): Ship[] {
-    return [...this.missions.escorts(), ...this.merchants.ships];
+    return this.missions.escorts();
   }
 
   /** L'île dont le port est à portée du bateau (zone d'escale et de réparation), ou null. */

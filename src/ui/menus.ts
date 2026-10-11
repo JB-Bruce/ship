@@ -54,7 +54,7 @@ export function createMenus(w: MenuWorld): PortMenu {
     coverage: () => campaign.islands.tortuga.coverage,
     zones: () => campaign.missions.zones(),
     escorts: () => campaign.escorts(),
-    pirates: () => w.pirates.pirates.map((p) => p.ship),
+    pirates: () => [...w.pirates.pirates.map((p) => p.ship), ...campaign.merchants.ships],
   });
   new SettingsMenu(container, { settings: w.settings, display: w.display });
   return portMenu;
