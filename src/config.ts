@@ -547,6 +547,13 @@ export const BOSS_SINK = {
   aftershockInterval: [0.5, 0.9] as const,
 };
 
+/** « Voile à l'horizon ! » : annonce quand un ennemi repère un navire de ta flotte. */
+export const ENCOUNTER_ALERT = {
+  /** Durée du bandeau (s), et de l'anneau qui pulse autour de l'ennemi sur le radar (s). */
+  bannerTime: 4,
+  radarPing: 5,
+};
+
 /** Registre du capitaine. */
 export const LEDGER = {
   /** Au-delà de ce déplacement en une image (m), le bateau piloté a été déplacé (réapparition) : ce n'est pas de la navigation. */

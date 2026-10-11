@@ -59,6 +59,8 @@ export class EnemyAI {
   private returnBearing = 0;
   private circleSide = 1;
   private targetDistance = Infinity;
+  /** Sa proie du moment (le plus proche des bateaux qu'il repère), ou null. */
+  target: Ship | null = null;
 
   constructor(
     private readonly ship: Ship,
@@ -81,6 +83,7 @@ export class EnemyAI {
     const hunting = this.state !== 'patrol' || this.group?.alerted;
     const range = this.options.relentless ? Infinity : hunting ? ENEMIES.loseRange : ENEMIES.detectionRange * conditions.detectionFactor;
     const target = nearest(this.ship, targets, range);
+    this.target = target;
     const distance = target ? this.ship.distanceTo(target) : Infinity;
     this.targetDistance = distance;
     this.updateState(target, distance);

@@ -56,6 +56,9 @@ export class Radar {
   private lastWindText = '';
   /** Temps écoulé depuis le dernier dessin (s). */
   private sinceDraw = Infinity;
+  /** Ennemis signalés (« Voile à l'horizon ! ») : temps restant de l'anneau qui pulse autour d'eux (s). */
+  private readonly pings = new Map<Ship, number>();
+  private time = 0;
   /** Portée actuelle (m) : plus grande près de l'île quand le phare est amélioré. */
   range = RADAR.range;
 
@@ -72,13 +75,24 @@ export class Radar {
     parent.append(canvas, this.windLabel);
   }
 
+  /** Fait pulser un anneau autour d'un ennemi pendant `seconds` s (rencontre signalée). */
+  ping(ship: Ship, seconds: number) {
+    this.pings.set(ship, seconds);
+  }
+
   /** `ships` : tous les bateaux (les alliés y sont repérés par leur camp). */
   /** `escorts` : navires à protéger (en bleu ciel) ; les autres alliés hors de ta flotte sont en bleu. */
   update(dt: number, player: Ship, enemies: readonly Enemy[], wind: Wind, ships: readonly Ship[], schools: readonly FishSchool[], escorts: readonly Ship[]) {
     // Redessiner un dessin 2D à chaque image coûte cher : RADAR.refreshRate fois par seconde suffit.
     this.sinceDraw += dt;
     if (this.sinceDraw < 1 / RADAR.refreshRate) return;
+    const elapsed = Math.min(this.sinceDraw, 0.25);
     this.sinceDraw = 0;
+    this.time += elapsed;
+    for (const [ship, left] of this.pings) {
+      if (left - elapsed <= 0 || !ship.alive) this.pings.delete(ship);
+      else this.pings.set(ship, left - elapsed);
+    }
     const ctx = this.ctx;
     const c = RADAR.size / 2;
     const r = c - 3;
@@ -162,6 +176,18 @@ export class Radar {
       ctx.fillStyle = boss ? COLORS.boss : ai.state === 'patrol' ? COLORS.patrolling : ai.state === 'flee' ? COLORS.fleeing : COLORS.hunting;
       this.circle(p.x, p.y, boss ? 6.5 : p.outside ? 3 : 4.5);
       ctx.fill();
+      const ping = this.pings.get(ship);
+      if (ping !== undefined) {
+        // Anneau qui s'élargit et s'efface, deux fois par seconde.
+        const k = (this.time * 2) % 1;
+        ctx.strokeStyle = COLORS.hunting;
+        ctx.globalAlpha = (1 - k) * (p.outside ? 0.6 : 1);
+        ctx.lineWidth = 2;
+        this.circle(p.x, p.y, 5 + k * 9);
+        ctx.stroke();
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = p.outside ? 0.45 : 1;
+      }
       if (!boss) continue;
       ctx.strokeStyle = '#1a0505';
       ctx.lineWidth = 2;

@@ -27,6 +27,7 @@ import { ObjectiveBar } from './ui/bossBar';
 import { FpsCounter } from './ui/fpsCounter';
 import { HealthBars } from './ui/healthBars';
 import { Hud } from './ui/hud';
+import { EncounterAlerts } from './ui/encounterAlerts';
 import { createMenus } from './ui/menus';
 import { ParchmentMenu } from './ui/parchmentMenu';
 import type { PortMenu } from './ui/port/portMenu';
@@ -96,6 +97,7 @@ export class Game {
   private readonly bossSinking: BossSinking;
   private readonly hud: Hud;
   private readonly radar: Radar;
+  private readonly encounters: EncounterAlerts;
   private readonly healthBars: HealthBars;
   private readonly bossBar: ObjectiveBar;
   private readonly siegeBar: ObjectiveBar;
@@ -132,6 +134,7 @@ export class Game {
     applyGraphics();
     this.settings.onChange(applyGraphics);
     this.radar = new Radar(container);
+    this.encounters = new EncounterAlerts(this.hud, this.radar);
     this.healthBars = new HealthBars(container);
     this.bossBar = new ObjectiveBar(container, 'boss');
     this.siegeBar = new ObjectiveBar(container, 'siege');
@@ -226,6 +229,7 @@ export class Game {
     this.hud.update(dt, leader, this.state, this.inCombat(), this.fleet);
     this.hud.quests.update(dt, this.campaign.contracts, this.fleet, (c) => this.campaign.missions.status(c));
     this.radar.range = this.campaign.islands.tortuga.radarRange(tortuga.sdf(leader.position.x, leader.position.z)) * this.fleet.radarFactor();
+    this.encounters.update(this.spawner.enemies, leader);
     this.radar.update(dt, leader, this.spawner.enemies, this.wind, this.ships, this.schools.list, this.campaign.escorts());
     this.healthBars.update(this.camera, this.ships, leader, (this.scene.fog as THREE.Fog).far, this.spawner.enemies);
     const boss = this.bosses.inSight(leader);
