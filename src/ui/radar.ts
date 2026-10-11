@@ -2,7 +2,6 @@ import { RADAR } from '../config';
 import type { Ship } from '../ship/ship';
 import type { Enemy } from '../world/enemySpawner';
 import type { FishSchool } from '../world/fishSchools';
-import type { Crate, LootKind } from '../world/loot';
 import { ISLAND_LIST, type Island } from '../world/island';
 import type { Wind } from '../world/wind';
 
@@ -26,12 +25,11 @@ const COLORS = {
   port: '#ffffff',
   north: 'rgba(242, 232, 208, 0.85)',
 };
-const CRATE_COLORS: Record<LootKind, string> = { gold: '#ffd447', wood: '#c8874a', rum: '#c0602e', spices: '#ff9a4a' };
 
 /**
  * Radar circulaire qui tourne avec le bateau : le haut = devant toi.
  * Vert = navire de ta flotte. Rouge = ennemi qui te chasse, orange = en patrouille, violet = en fuite, gros point
- * rouge cerclé = boss. Carrés = butin (or, planches, rhum, épices), poisson bleu = banc de poissons.
+ * rouge cerclé = boss, poisson bleu = banc de poissons. Le butin n'y figure pas (il encombrait le radar).
  * Hors de portée : point pâle au bord, dans sa direction. La portée grandit près de l'île avec le phare.
  * La flèche claire montre où souffle le vent ; la légende au-dessus donne sa force et son effet sur ta vitesse.
  */
@@ -60,7 +58,7 @@ export class Radar {
 
   /** `ships` : tous les bateaux (les alliés y sont repérés par leur camp). */
   /** `escorts` : navires alliés escortés (en jaune) ; les autres alliés hors de ta flotte sont des pirates (en bleu). */
-  update(dt: number, player: Ship, enemies: readonly Enemy[], crates: readonly Crate[], wind: Wind, ships: readonly Ship[], schools: readonly FishSchool[], escorts: readonly Ship[]) {
+  update(dt: number, player: Ship, enemies: readonly Enemy[], wind: Wind, ships: readonly Ship[], schools: readonly FishSchool[], escorts: readonly Ship[]) {
     // Redessiner un dessin 2D à chaque image coûte cher : RADAR.refreshRate fois par seconde suffit.
     this.sinceDraw += dt;
     if (this.sinceDraw < 1 / RADAR.refreshRate) return;
@@ -129,11 +127,6 @@ export class Radar {
       return { x: c + x, y: c + y, outside };
     };
 
-    for (const { mesh, kind } of crates) {
-      const p = place(mesh.position.x, mesh.position.z);
-      ctx.fillStyle = CRATE_COLORS[kind];
-      ctx.fillRect(p.x - 2.5, p.y - 2.5, 5, 5);
-    }
     ctx.fillStyle = COLORS.fish;
     for (const school of schools) {
       if (school.diving) continue;

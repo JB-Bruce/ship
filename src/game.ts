@@ -218,7 +218,7 @@ export class Game {
     this.hud.update(dt, leader, this.state, this.inCombat(), this.fleet);
     this.hud.quests.update(dt, this.campaign.contracts, this.fleet, (c) => this.campaign.missions.status(c));
     this.radar.range = this.campaign.islands.tortuga.radarRange(tortuga.sdf(leader.position.x, leader.position.z)) * this.fleet.radarFactor();
-    this.radar.update(dt, leader, this.spawner.enemies, this.loot.crates, this.wind, this.ships, this.schools.list, this.campaign.escorts());
+    this.radar.update(dt, leader, this.spawner.enemies, this.wind, this.ships, this.schools.list, this.campaign.escorts());
     this.healthBars.update(this.camera, this.ships, leader, (this.scene.fog as THREE.Fog).far);
     const boss = this.bosses.inSight(leader);
     this.bossBar.update(boss?.boss ? `☠ ${BOSSES[boss.boss].name}` : null, boss ? boss.ship.health / boss.ship.stats.maxHealth : 0);

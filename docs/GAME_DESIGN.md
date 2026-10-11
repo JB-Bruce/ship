@@ -181,7 +181,7 @@ Décisions prises avec l'auteur (depuis le 2026-10-06). Les valeurs chiffrées s
 - **Popups** : le butin ramassé s'affiche à droite des ressources (« +23 or », « +9 bois »), les caisses ramassées d'affilée s'additionnent ; la popup s'efface 2 s après le dernier ramassage. Un ennemi coulé ajoute une ligne en haut à droite (« ☠ Sloop ennemi coulé par La Mouette », ou « par le fort »), effacée après 4 s.
 - **Menu T** : chaque navire affiche le nombre d'ennemis qu'il a coulés (celui qui porte le coup fatal, au canon ou à l'éperon).
 - Barres de vie au-dessus des ennemis.
-- Radar : rouge = ennemi qui chasse, orange = en patrouille, violet = en fuite, gros point rouge cerclé = boss ; carrés = butin (or, bois, rhum, épices) ; petit poisson bleu = banc. Le phare agrandit sa portée près de l'île.
+- Radar : rouge = ennemi qui chasse, orange = en patrouille, violet = en fuite, gros point rouge cerclé = boss ; petit poisson bleu = banc. Le butin n'y est plus affiché (trop nombreux, il encombrait le radar) ; il reste sur la carte (M). Le phare agrandit sa portée près de l'île.
 - **Carte (M)** : parchemin, jeu en pause. Nord en haut. L'île de la Tortue et ses lieux (port, fort, phare), ta position et ta flotte, les ennemis à portée du radar seulement, le butin, la rose des vents avec le vent actuel, une échelle. Le cadrage englobe toujours l'île et ta zone radar. Un nouveau lieu s'ajoute dans `world/landmarks.ts`.
 - Son : plus tard.
 
