@@ -514,14 +514,18 @@ export const SAVE = {
 };
 
 /**
- * Voiles gonflées par le vent : face au vent, leur creux d'origine ; vent arrière, jusqu'à `max` fois ce creux, atteint
- * à partir de la force `fullStrength` (1 = WIND.referenceKnots, 20 nœuds : 1,75 = 35 nœuds). Vent de travers : à moitié.
+ * Voiles gonflées par le vent : face au vent, leur creux d'origine ; vent arrière, jusqu'à leur maximum, atteint à partir
+ * de la force `fullStrength` (1 = WIND.referenceKnots, 20 nœuds : 1,75 = 35 nœuds). Vent de travers : à moitié. Le maximum
+ * dépend de la hauteur de la voile : `small.max` fois son creux jusqu'à `small.height` m de haut, `large.max` à partir de
+ * `large.height` m (grand-voile basse de la frégate), et entre les deux en proportion.
  */
 export const SAIL_BILLOW = {
-  max: 4,
+  small: { height: 2.4, max: 2.5 },
+  large: { height: 8.4, max: 5.5 },
   fullStrength: 1.75,
-  /** Finesse des toiles : environ une facette par `facet` mètres, entre `minSegments` et `maxSegments` par côté. */
+  /** Finesse des toiles : environ une facette par `facet` mètres (`triangleFacet` pour un foc), entre `minSegments` et `maxSegments` par côté. */
   facet: 1,
+  triangleFacet: 2,
   minSegments: 4,
   maxSegments: 14,
   /** Voile carrée : hauteur sous la vergue sur laquelle le surplus de creux s'installe (m), pour rester attachée à la vergue. */

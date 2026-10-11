@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Livery } from '../../config';
+import { SAIL_BILLOW, type Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } from '../parts/common';
 import { HullShape } from '../parts/hullShape';
@@ -210,7 +210,7 @@ function buildMainPatches(): THREE.BufferGeometry {
 function buildJib(): THREE.BufferGeometry {
   const head = JIB.head.clone().sub(BOWSPRIT_TIP);
   const clew = JIB.clew.clone().sub(BOWSPRIT_TIP);
-  const n = sailSegments(Math.max(head.length(), clew.length()));
+  const n = sailSegments(Math.max(head.length(), clew.length()), SAIL_BILLOW.triangleFacet);
   const positions: number[] = [];
   const index: number[] = [];
   const ids: number[][] = [];

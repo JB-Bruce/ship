@@ -76,12 +76,12 @@ export class SloopModel implements ShipModel {
     this.gunportMaterial = t.palette.dark;
     for (const { geometry, material } of t.statics) this.root.add(new THREE.Mesh(geometry, material));
 
-    this.hoist.add(new THREE.Mesh(t.mainSail, this.tornSail.material('x', t.mainSail)), new THREE.Mesh(t.gaff, t.palette.wood));
-    if (t.patchMaterial) this.hoist.add(new THREE.Mesh(t.patches, this.tornSail.patchMaterial(t.patchMaterial, 'x')));
+    this.hoist.add(new THREE.Mesh(t.mainSail, this.tornSail.material(t.mainSail, 'x', true)), new THREE.Mesh(t.gaff, t.palette.wood));
+    if (t.patchMaterial) this.hoist.add(new THREE.Mesh(t.patches, this.tornSail.patchMaterial(t.patchMaterial, t.mainSail, 'x')));
     this.rig.add(new THREE.Mesh(t.boom, t.palette.wood), this.hoist, new THREE.LineSegments(t.rigLines, riggingMaterial));
     this.rig.position.set(0, BOOM_Y, MAST_Z);
 
-    this.jib = new THREE.Mesh(t.jib, this.tornSail.material('x'));
+    this.jib = new THREE.Mesh(t.jib, this.tornSail.material(t.jib, 'x'));
     this.jib.position.copy(BOWSPRIT_TIP);
 
     this.rudder = new THREE.Mesh(t.rudder, t.palette.trim);

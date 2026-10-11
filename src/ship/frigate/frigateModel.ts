@@ -197,7 +197,7 @@ export class FrigateModel implements ShipModel {
 
     L.squareSails.forEach((s, i) => {
       // La grand-voile (la plus grande) porte l'emblème de la livrée, s'il y en a un.
-      const sail = new THREE.Mesh(t.squareSails[i], this.tornSail.material('z', i === MAIN_COURSE ? t.squareSails[i] : undefined));
+      const sail = new THREE.Mesh(t.squareSails[i], this.tornSail.material(t.squareSails[i], 'z', i === MAIN_COURSE));
       sail.position.set(0, s.yardY, s.z);
       const yard = new THREE.Mesh(t.yards[i], t.palette.wood);
       yard.position.set(0, s.yardY, s.z - 0.13);
@@ -206,13 +206,13 @@ export class FrigateModel implements ShipModel {
       this.body.add(sail, yard);
     });
     L.jibs.forEach((j, i) => {
-      const jib = new THREE.Mesh(t.jibs[i], this.tornSail.material('x'));
+      const jib = new THREE.Mesh(t.jibs[i], this.tornSail.material(t.jibs[i], 'x'));
       jib.position.copy(j.tack);
       this.jibs.push(jib);
       this.body.add(jib);
     });
     this.hoist = new THREE.Group();
-    this.hoist.add(new THREE.Mesh(t.spanker, this.tornSail.material('x')), new THREE.Mesh(t.spankerGaff, t.palette.wood));
+    this.hoist.add(new THREE.Mesh(t.spanker, this.tornSail.material(t.spanker, 'x')), new THREE.Mesh(t.spankerGaff, t.palette.wood));
     this.spankerRig = new THREE.Group();
     this.spankerRig.add(new THREE.Mesh(t.spankerBoom, t.palette.wood), this.hoist);
     this.spankerRig.position.set(0, L.spankerBoomY, L.mizzenMast.z);

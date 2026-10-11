@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import { SAIL_BILLOW } from '../../config';
 
 /** Nombre de facettes le long d'un côté de voile de `length` mètres : les grandes voiles restent souples une fois gonflées. */
-export function sailSegments(length: number): number {
-  return THREE.MathUtils.clamp(Math.ceil(length / SAIL_BILLOW.facet), SAIL_BILLOW.minSegments, SAIL_BILLOW.maxSegments);
+export function sailSegments(length: number, facet: number = SAIL_BILLOW.facet): number {
+  return THREE.MathUtils.clamp(Math.ceil(length / facet), SAIL_BILLOW.minSegments, SAIL_BILLOW.maxSegments);
 }
 
 /**
@@ -25,7 +25,7 @@ export function buildSquareSail(width: number, height: number, bulge: number): T
  * Voile triangulaire (foc), origine au point d'amure. `head` et `clew` sont relatifs à l'amure ;
  * la toile se creuse sur +X (on la retourne en X pour l'autre bord).
  */
-export function buildTriangleSail(head: THREE.Vector3, clew: THREE.Vector3, bulge: number, n = sailSegments(Math.max(head.length(), clew.length()))): THREE.BufferGeometry {
+export function buildTriangleSail(head: THREE.Vector3, clew: THREE.Vector3, bulge: number, n = sailSegments(Math.max(head.length(), clew.length()), SAIL_BILLOW.triangleFacet)): THREE.BufferGeometry {
   const positions: number[] = [];
   const index: number[] = [];
   const ids: number[][] = [];

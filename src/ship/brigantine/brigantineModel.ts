@@ -171,7 +171,7 @@ export class BrigantineModel implements ShipModel {
 
     L.squareSails.forEach((s, i) => {
       // La grand-voile (la plus grande) porte l'emblème de la livrée, s'il y en a un.
-      const sail = new THREE.Mesh(t.squareSails[i], this.tornSail.material('z', i === MAIN_COURSE ? t.squareSails[i] : undefined));
+      const sail = new THREE.Mesh(t.squareSails[i], this.tornSail.material(t.squareSails[i], 'z', i === MAIN_COURSE));
       sail.position.set(0, s.yardY, s.mastZ + 0.2);
       const yard = new THREE.Mesh(t.yards[i], t.palette.wood);
       yard.position.set(0, s.yardY, s.mastZ + 0.1);
@@ -180,7 +180,7 @@ export class BrigantineModel implements ShipModel {
       this.body.add(sail, yard);
     });
     L.jibs.forEach((j, i) => {
-      const jib = new THREE.Mesh(t.jibs[i], this.tornSail.material('x'));
+      const jib = new THREE.Mesh(t.jibs[i], this.tornSail.material(t.jibs[i], 'x'));
       jib.position.copy(j.tack);
       this.jibs.push(jib);
       this.body.add(jib);
