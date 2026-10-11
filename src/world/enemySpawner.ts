@@ -1,6 +1,6 @@
 import type * as THREE from 'three';
 import { EnemyAI, type EnemyAIOptions, type EnemyGroup, type FlotillaSlot } from '../ai/enemyAI';
-import { BOSSES, ELITE_LIVERY, ENEMIES, LAND, type BossId } from '../config';
+import { BOSSES, ELITE_LIVERY, ENEMIES, LAND, type BossId, type EncounterStage } from '../config';
 import type { ContractOptions } from '../progression/contracts';
 import { deriveStats, maxLevels, randomLevels, totalLevels } from '../progression/upgrades';
 import { createShip, type Ship } from '../ship/ship';
@@ -59,9 +59,12 @@ export class EnemySpawner {
   ) {}
 
   /** Nombre max d'ennemis en même temps, selon les victoires. */
-  /** Rencontres ordinaires possibles en même temps (un navire seul ou une flottille = un groupe). */
-  get maxGroups(): number {
-    return [...ENEMIES.maxGroups].reverse().find(([kills]) => this.kills >= kills)![1];
+  /** Palier de rencontres atteint (nombre de groupes, taille, délai), selon les victoires. */
+  private get encounter(): EncounterStage {
+    const list = ENEMIES.encounters;
+    let stage = list[0];
+    for (const e of list) if (this.kills >= e.fromKills) stage = e;
+    return stage;
   }
 
   /** Décisions des IA. Le déplacement des bateaux est fait ensuite par Ship.update. */
@@ -69,7 +72,7 @@ export class EnemySpawner {
     // Près d'une côte : le temps avant la prochaine apparition s'écoule plus lentement, et la place est plafonnée.
     const near = ENEMIES.nearIsland;
     const closeness = Math.max(0, Math.min(1, 1 - land.sdf(center.position.x, center.position.z) / near.radius));
-    const room = this.ordinaryGroups() >= this.maxGroups ? 0 : closeness > 0 ? near.maxAlive - this.ordinaryCount() : Infinity;
+    const room = this.ordinaryGroups() >= this.encounter.groups ? 0 : closeness > 0 ? near.maxAlive - this.ordinaryCount() : Infinity;
     if (room > 0) {
       this.timer -= dt / (1 + (near.slowdown - 1) * closeness);
       if (this.timer <= 0) this.timer = this.spawn(center, room) ? this.nextInterval() : 2;
@@ -121,9 +124,7 @@ export class EnemySpawner {
   }
 
   private nextInterval(): number {
-    const t = Math.min(1, this.kills / ENEMIES.fastSpawnKills);
-    const min = ENEMIES.spawnInterval[0] + (ENEMIES.fastSpawnInterval[0] - ENEMIES.spawnInterval[0]) * t;
-    const max = ENEMIES.spawnInterval[1] + (ENEMIES.fastSpawnInterval[1] - ENEMIES.spawnInterval[1]) * t;
+    const [min, max] = this.encounter.interval;
     return min + Math.random() * (max - min);
   }
 
@@ -187,9 +188,9 @@ export class EnemySpawner {
     const z = center.position.z + Math.cos(angle) * ENEMIES.spawnDistance;
     // Cap vers la zone du joueur, à ±45° près : il croisera sa route.
     const heading = wrapAngle(angle + Math.PI + (Math.random() - 0.5) * (Math.PI / 2));
-    // Jamais plus nombreux que ta flotte, ni plus gros que ton plus gros navire + 1 cran.
+    // Jamais plus nombreux que ta flotte + ENEMIES.fleetMargin, ni plus gros que ton plus gros navire + 1 cran.
     const power = this.fleetPower();
-    const size = Math.min(this.groupSize(), room, Math.max(1, power.ships));
+    const size = Math.min(randInt(this.encounter.size), room, Math.max(1, power.ships) + ENEMIES.fleetMargin);
     const largest = SIZE_ORDER[Math.min(SIZE_ORDER.length - 1, sizeRank(power.best) + 1)];
     const cap = (type: ShipType) => (sizeRank(type) > sizeRank(largest) ? largest : type);
 
@@ -215,13 +216,6 @@ export class EnemySpawner {
       this.add(types[k], sx, sz, heading, Math.random() < chance, group, slot);
     }
     return true;
-  }
-
-  /** Taille du groupe à faire apparaître : un navire seul, ou une flottille de plus en plus grosse. */
-  private groupSize(): number {
-    const f = ENEMIES.flotilla;
-    if (this.kills < f.fromKills || Math.random() >= f.chance) return 1;
-    return randInt(this.kills >= f.bigFromKills ? f.bigSize : f.size);
   }
 
   /** Crée un ennemi (d'élite ou non) et l'ajoute au monde. */

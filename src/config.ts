@@ -499,36 +499,38 @@ export const LIVERIES: Record<Faction, Livery> = {
   enemy: { hull: 0x2c4466, hullInside: 0x6b4a30, trim: 0xd9b44a, sail: 0xf4f1e8, sailPatch: null, flag: 'crown' },
 };
 
+/** Un palier de rencontres ordinaires (voir ENEMIES.encounters). */
+export interface EncounterStage {
+  readonly fromKills: number;
+  readonly groups: number;
+  readonly size: readonly [number, number];
+  readonly interval: readonly [number, number];
+}
+
 export const ENEMIES = {
   /**
-   * Rencontres ordinaires en même temps : [victoires à partir desquelles, maximum de groupes]. Un navire seul ou une
-   * flottille compte pour un groupe ; les escadres de mission et les boss ne comptent pas.
+   * Rencontres ordinaires selon les victoires (le dernier palier atteint s'applique) : au début, plusieurs navires seuls
+   * assez souvent ; plus tard, une seule grosse flottille, plus rarement. `groups` : rencontres en même temps (un navire
+   * seul ou une flottille = un groupe ; escadres de mission et boss à part) ; `size` : navires par rencontre (au plus ta
+   * flotte + `fleetMargin`) ; `interval` : délai avant la rencontre suivante (s), décompté seulement sous `groups`.
    */
-  maxGroups: [
-    [0, 1],
-    [12, 2],
-    [30, 3],
-  ] as const,
+  encounters: [
+    { fromKills: 0, groups: 3, size: [1, 1], interval: [40, 80] },
+    { fromKills: 10, groups: 2, size: [1, 2], interval: [60, 120] },
+    { fromKills: 25, groups: 2, size: [2, 3], interval: [90, 150] },
+    { fromKills: 40, groups: 1, size: [3, 5], interval: [120, 180] },
+  ] as readonly EncounterStage[],
+  fleetMargin: 1,
   /** Délai avant le premier ennemi (s). */
   firstSpawnDelay: 30,
-  /**
-   * Délai entre deux rencontres, décompté tant qu'on est sous le maximum de groupes (s) : il raccourcit jusqu'à
-   * fastSpawnInterval à fastSpawnKills victoires. Combats rares mais marquants.
-   */
-  spawnInterval: [60, 120] as const,
-  fastSpawnInterval: [45, 90] as const,
-  fastSpawnKills: 30,
   /**
    * Abords des îles, plus calmes : à moins de `radius` m d'une côte, les apparitions ordinaires ralentissent de plus en
    * plus en approchant (jusqu'à `slowdown` fois plus lentes au rivage), et au plus `maxAlive` ennemis ordinaires à la
    * fois (les escadres de mission et les boss ne comptent pas).
    */
   nearIsland: { radius: 500, slowdown: 4, maxAlive: 2 },
-  /**
-   * Flottilles : à partir de fromKills victoires, une apparition sur quatre est un groupe de size navires ;
-   * à partir de bigFromKills, jusqu'à bigSize, mené par un navire plus gros. Écart entre deux places (m).
-   */
-  flotilla: { fromKills: 5, chance: 0.25, size: [2, 3] as const, bigFromKills: 15, bigSize: [2, 4] as const, spacing: 18, slotTolerance: 8 },
+  /** Flottilles : à partir de bigFromKills victoires, menées par un navire un cran plus gros. Écart entre deux places (m). */
+  flotilla: { bigFromKills: 15, spacing: 18, slotTolerance: 8 },
   /**
    * Navires d'élite (voiles noires) : de plus en plus fréquents à partir de fromKills victoires
    * (+chancePerKill par victoire, jusqu'à maxChance ; doublé pour un chef de flottille). Multiplicateurs de stats et de butin.
