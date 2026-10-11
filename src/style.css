@@ -100,37 +100,30 @@ body {
   pointer-events: none;
 }
 
-/* Crans de force du vent : 5 barres de plus en plus hautes, allumées selon la force. */
-.wind-bars {
-  display: inline-flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 15px;
+/* Force du vent : 5 filets ondulés, allumés selon la force. */
+.wind-gusts {
   --wind: #eaf8ff;
+  overflow: visible;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.75));
 }
 
-.wind-bars i {
-  width: 4px;
-  border-radius: 1px;
-  background: rgba(6, 28, 38, 0.55);
-  box-shadow: 0 0 0 1px rgba(6, 28, 38, 0.6);
+.wind-gusts path {
+  fill: none;
+  stroke: rgba(6, 28, 38, 0.3);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.wind-bars i:nth-child(1) { height: 5px; }
-.wind-bars i:nth-child(2) { height: 7.5px; }
-.wind-bars i:nth-child(3) { height: 10px; }
-.wind-bars i:nth-child(4) { height: 12.5px; }
-.wind-bars i:nth-child(5) { height: 15px; }
-
-.wind-bars i.on {
-  background: var(--wind);
+.wind-gusts path.on {
+  stroke: var(--wind);
 }
 
-.wind-bars.level-4 {
+.wind-gusts.level-4 {
   --wind: #ffd166;
 }
 
-.wind-bars.level-5 {
+.wind-gusts.level-5 {
   --wind: #ff6b4a;
 }
 

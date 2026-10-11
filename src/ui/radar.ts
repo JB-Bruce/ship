@@ -25,6 +25,24 @@ const COLORS = {
   north: 'rgba(242, 232, 208, 0.85)',
 };
 
+/** Filets de vent, du plus faible (en bas) au plus fort (en haut) : départ (x, y), longueur, et boucle au bout (ou non). */
+const GUSTS: readonly [number, number, number, boolean][] = [
+  [8, 20, 10, false],
+  [2, 15.5, 20, true],
+  [10, 11, 8, false],
+  [0, 6.5, 24, true],
+  [6, 2, 14, false],
+];
+
+/** Pictogramme de la force du vent : 1 à 5 filets allumés selon la force (jaunes à 4, rouges à 5). */
+function gustsIcon(level: number): string {
+  const paths = GUSTS.map(([x, y, length, curl], i) => {
+    const d = `M${x} ${y} h${length}${curl ? ' a1.8 1.8 0 1 0 -1.8 -1.8' : ''}`;
+    return `<path class="${i < level ? 'on' : ''}" d="${d}"/>`;
+  }).join('');
+  return `<svg class="wind-gusts level-${level}" viewBox="0 0 28 22" width="28" height="22" role="img" aria-label="Force du vent : ${level} / 5"><title>Force du vent : ${level} / 5</title>${paths}</svg>`;
+}
+
 /**
  * Radar circulaire qui tourne avec le bateau : le haut = devant toi.
  * Vert = navire de ta flotte, bleu = autre allié (pirate, marchand), bleu ciel cerclé de blanc = navire à protéger. Rouge = ennemi qui te chasse, orange = en patrouille, violet = en fuite, gros point
@@ -233,9 +251,7 @@ export class Radar {
     const text = `${level}|${wind.knots} nœuds · vitesse ${effect >= 0 ? '+' : '−'}${Math.abs(effect)} %`;
     if (text === this.lastWindText) return;
     this.lastWindText = text;
-    let bars = '';
-    for (let i = 1; i <= WIND.levels.length + 1; i++) bars += `<i${i <= level ? ' class="on"' : ''}></i>`;
-    this.windLabel.innerHTML = `<span class="wind-bars level-${level}" title="Force du vent : ${level} / 5">${bars}</span>${text.slice(text.indexOf('|') + 1)}`;
+    this.windLabel.innerHTML = `${gustsIcon(level)}${text.slice(text.indexOf('|') + 1)}`;
   }
 
   /** Petit poisson (banc), queue à gauche. */
