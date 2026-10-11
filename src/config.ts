@@ -365,7 +365,7 @@ export const FLEET = {
   startSlots: 3,
   maxSlots: 6,
   /** Prix de chaque place supplémentaire (4e, 5e, 6e). */
-  slotPrices: [60, 90, 120],
+  slotPrices: [500, 1200, 2500],
   /** Part du prix (bateau + améliorations) rendue à la revente. */
   sellRatio: 0.5,
   /** Délai avant que le bateau piloté qui coule passe la barre à un autre (s). */
