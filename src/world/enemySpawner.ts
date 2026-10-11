@@ -59,8 +59,9 @@ export class EnemySpawner {
   ) {}
 
   /** Nombre max d'ennemis en même temps, selon les victoires. */
-  get maxAlive(): number {
-    return [...ENEMIES.maxAlive].reverse().find(([kills]) => this.kills >= kills)![1];
+  /** Rencontres ordinaires possibles en même temps (un navire seul ou une flottille = un groupe). */
+  get maxGroups(): number {
+    return [...ENEMIES.maxGroups].reverse().find(([kills]) => this.kills >= kills)![1];
   }
 
   /** Décisions des IA. Le déplacement des bateaux est fait ensuite par Ship.update. */
@@ -68,7 +69,7 @@ export class EnemySpawner {
     // Près d'une côte : le temps avant la prochaine apparition s'écoule plus lentement, et la place est plafonnée.
     const near = ENEMIES.nearIsland;
     const closeness = Math.max(0, Math.min(1, 1 - land.sdf(center.position.x, center.position.z) / near.radius));
-    const room = closeness > 0 ? Math.min(this.maxAlive - this.enemies.length, near.maxAlive - this.ordinaryCount()) : this.maxAlive - this.enemies.length;
+    const room = this.ordinaryGroups() >= this.maxGroups ? 0 : closeness > 0 ? near.maxAlive - this.ordinaryCount() : Infinity;
     if (room > 0) {
       this.timer -= dt / (1 + (near.slowdown - 1) * closeness);
       if (this.timer <= 0) this.timer = this.spawn(center, room) ? this.nextInterval() : 2;
@@ -94,10 +95,28 @@ export class EnemySpawner {
   }
 
   /** Délai avant la prochaine apparition : il raccourcit avec les victoires. */
-  /** Ennemis ordinaires à flot (ni escadre de mission, ni boss). */
+  /** Ennemi ordinaire à flot (ni escadre de mission, ni boss). */
+  private ordinary(e: Enemy): boolean {
+    return !e.persistent && !e.boss && e.ship.alive;
+  }
+
   private ordinaryCount(): number {
     let count = 0;
-    for (const e of this.enemies) if (!e.persistent && !e.boss && e.ship.alive) count++;
+    for (const e of this.enemies) if (this.ordinary(e)) count++;
+    return count;
+  }
+
+  /** Groupes ordinaires à flot : chaque navire seul, et chaque flottille comptée une fois (par son premier membre à flot). */
+  private ordinaryGroups(): number {
+    let count = 0;
+    for (let i = 0; i < this.enemies.length; i++) {
+      const e = this.enemies[i];
+      if (!this.ordinary(e)) continue;
+      const group = e.ai.group;
+      let counted = false;
+      for (let j = 0; j < i && group && !counted; j++) counted = this.enemies[j].ai.group === group && this.ordinary(this.enemies[j]);
+      if (!counted) count++;
+    }
     return count;
   }
 
@@ -160,7 +179,7 @@ export class EnemySpawner {
   }
 
   /** Fait apparaître un ennemi ou une flottille. Renvoie false si aucun endroit valable n'a été trouvé. */
-  /** `room` : nombre de navires qui peuvent encore apparaître. */
+  /** `room` : nombre de navires qui peuvent encore apparaître (plafond près des îles, sinon Infinity). */
   private spawn(center: Ship, room: number): boolean {
     const angle = this.findSpawnAngle(center, ENEMIES.spawnDistance);
     if (angle === null) return false;

@@ -62,7 +62,7 @@ export class EnemyAI {
 
   constructor(
     private readonly ship: Ship,
-    private readonly group: EnemyGroup | null = null,
+    readonly group: EnemyGroup | null = null,
     private readonly slot: FlotillaSlot | null = null,
     private readonly options: EnemyAIOptions = {},
   ) {

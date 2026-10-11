@@ -500,19 +500,23 @@ export const LIVERIES: Record<Faction, Livery> = {
 };
 
 export const ENEMIES = {
-  /** Nombre max d'ennemis en même temps : [victoires à partir desquelles, maximum]. */
-  maxAlive: [
-    [0, 3],
-    [5, 4],
-    [12, 5],
-    [20, 6],
-    [30, 8],
+  /**
+   * Rencontres ordinaires en même temps : [victoires à partir desquelles, maximum de groupes]. Un navire seul ou une
+   * flottille compte pour un groupe ; les escadres de mission et les boss ne comptent pas.
+   */
+  maxGroups: [
+    [0, 1],
+    [12, 2],
+    [30, 3],
   ] as const,
   /** Délai avant le premier ennemi (s). */
-  firstSpawnDelay: 4,
-  /** Délai entre deux apparitions, tant qu'on est sous le maximum (s) : il raccourcit jusqu'à fastSpawnInterval à fastSpawnKills victoires. */
-  spawnInterval: [12, 24] as const,
-  fastSpawnInterval: [8, 16] as const,
+  firstSpawnDelay: 30,
+  /**
+   * Délai entre deux rencontres, décompté tant qu'on est sous le maximum de groupes (s) : il raccourcit jusqu'à
+   * fastSpawnInterval à fastSpawnKills victoires. Combats rares mais marquants.
+   */
+  spawnInterval: [60, 120] as const,
+  fastSpawnInterval: [45, 90] as const,
   fastSpawnKills: 30,
   /**
    * Abords des îles, plus calmes : à moins de `radius` m d'une côte, les apparitions ordinaires ralentissent de plus en
