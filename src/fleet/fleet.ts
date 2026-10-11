@@ -8,6 +8,7 @@ import { createShip, type Ship } from '../ship/ship';
 import { SHIP_TYPES, sizeRank, type ShipType } from '../shipTypes';
 import { islandById, land } from '../world/island';
 import type { Crate } from '../world/loot';
+import { guardSlot } from './escortGuard';
 import { freeSpace } from './holds';
 import type { TradeOrder } from './tradeRoutes';
 
@@ -63,6 +64,8 @@ export class Fleet {
   formation: Formation = 'vee';
   /** Multiplicateur du délai de réapparition (chantier du port amélioré). */
   respawnFactor = 1;
+  /** Navire à protéger (escorte en cours), ou null : les suiveurs l'entourent au lieu de suivre le bateau piloté. */
+  guarded: Ship | null = null;
   private nextId = 1;
 
   constructor(
@@ -72,6 +75,11 @@ export class Fleet {
 
   get leader(): Ship {
     return this.controlled.ship;
+  }
+
+  /** Ce qu'accompagnent les suiveurs : le navire à protéger s'il y en a un, sinon le bateau piloté. */
+  get anchor(): Ship {
+    return this.guarded ?? this.leader;
   }
 
   /** Ajoute un bateau : le premier est piloté, les suivants arrivent à leur place dans la formation. */
@@ -181,26 +189,28 @@ export class Fleet {
       }
       // Un navire en commerce est mené par sa route (TradeRoutes).
       if (m === this.controlled || !m.ship.alive || m.trade) continue;
-      if (m.station) {
+      // L'escorte passe avant la pêche : le poste est gardé pour après.
+      if (m.station && !this.guarded) {
         m.ai.holdStation(m.station.x, m.station.z, this.ships);
         continue;
       }
       const slot = this.slotPosition(m, dt);
-      m.ai.update(this.leader, slot.x, slot.z, this.ships, this.pickupFor(m, crates));
+      m.ai.update(this.anchor, slot.x, slot.z, this.ships, this.pickupFor(m, crates));
     }
   }
 
-  /** Le butin le plus proche d'un suiveur, à moins de ALLY.lootRange de lui et pas trop loin du chef, ou null. */
+  /** Le butin le plus proche d'un suiveur, à moins de ALLY.lootRange de lui et pas trop loin de ce qu'il accompagne, ou null. */
   private pickupFor(member: FleetMember, crates: readonly Crate[]): THREE.Vector3 | null {
     let best: THREE.Vector3 | null = null;
     let bestDistance = ALLY.lootRange;
     const ship = member.ship;
+    const anchor = this.anchor;
     for (const { mesh, kind } of crates) {
       const p = mesh.position;
       // Rhum et épices : seulement s'il reste de la place dans sa cale.
       if ((kind === 'rum' || kind === 'spices') && freeSpace(member) === 0) continue;
       const d = Math.hypot(p.x - ship.position.x, p.z - ship.position.z);
-      if (d >= bestDistance || Math.hypot(p.x - this.leader.position.x, p.z - this.leader.position.z) > ALLY.leash) continue;
+      if (d >= bestDistance || Math.hypot(p.x - anchor.position.x, p.z - anchor.position.z) > ALLY.leash) continue;
       best = p;
       bestDistance = d;
     }
@@ -217,11 +227,12 @@ export class Fleet {
   }
 
   /**
-   * Place d'un bateau dans la formation, en coordonnées monde.
+   * Place d'un bateau dans la formation, en coordonnées monde (pendant une escorte : son poste autour du navire protégé).
    * Le décalage est exprimé dans le repère du bateau piloté : vers l'arrière et vers bâbord.
    */
   slotPosition(member: FleetMember, dt = 0): { x: number; z: number } {
     const others = this.hand.filter((m) => m !== this.controlled && m.inWorld);
+    if (this.guarded) return guardSlot(Math.max(0, others.indexOf(member)), others.length, this.guarded, member.ship);
     const rank = Math.max(1, others.indexOf(member) + 1);
     const pair = Math.ceil(rank / 2);
     const alternate = rank % 2 === 1 ? 1 : -1;
@@ -270,7 +281,7 @@ export class Fleet {
       return;
     }
     const slot = this.slotPosition(member);
-    const leader = this.leader;
+    const leader = this.anchor;
     const spot = land.keepOffshore(slot.x - Math.sin(leader.heading) * extraBack, slot.z - Math.cos(leader.heading) * extraBack, LAND.allyMargin + 6);
     member.ship.respawn(spot.x, spot.z);
     member.ship.heading = leader.heading;

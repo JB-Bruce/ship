@@ -189,6 +189,8 @@ export class Game {
     this.pirates.update(dt, this.loot.crates, this.schools.list, this.fleet.leader);
     this.schools.update(dt);
     this.fishing.update(dt, this.ships);
+    // Pendant une escorte, les suiveurs entourent le navire à protéger au lieu de te suivre.
+    this.fleet.guarded = this.campaign.escorts().find((s) => s.alive) ?? null;
     this.fleet.update(dt, this.loot.crates);
     for (const ship of this.ships) ship.update(dt, this.waves, this.wind);
     resolveCollisions(this.ships, this.effects, (ship, damage, other) => this.applyDamage(ship, damage, other));

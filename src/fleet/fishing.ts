@@ -56,12 +56,18 @@ export class Fishing {
     }
     this.school = school;
     const helm = this.fleet.controlled;
-    const allies = fishers.filter((m) => m !== helm);
+    // Pendant une escorte, les suiveurs restent autour du navire protégé : seul le bateau piloté pêche.
+    const allies = this.fleet.guarded ? [] : fishers.filter((m) => m !== helm);
     allies.forEach((m, i) => {
       const angle = school.seed + (i / allies.length) * Math.PI * 2;
       m.station = { x: school.x + Math.sin(angle) * FISHING.stationRadius, z: school.z + Math.cos(angle) * FISHING.stationRadius };
     });
-    for (const m of fishers) this.crew.set(m, FISHING.catchInterval);
+    if (!fishers.includes(helm) && !allies.length) {
+      this.events.say('Ta flotte escorte le marchand : elle ne peut pas pêcher.');
+      this.school = null;
+      return;
+    }
+    for (const m of fishers) if (m === helm || allies.includes(m)) this.crew.set(m, FISHING.catchInterval);
     const sent = allies.length ? `${allies.length} navire${allies.length > 1 ? 's' : ''} part${allies.length > 1 ? 'ent' : ''} pêcher.` : '';
     this.events.say(fishers.includes(helm) ? `Affale la voile au-dessus du banc pour pêcher. ${sent}` : sent);
   }

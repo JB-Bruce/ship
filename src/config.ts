@@ -371,6 +371,8 @@ export const FLEET = {
   switchDelay: 2.5,
   /** Écart entre deux bateaux en formation (m). */
   spacing: 18,
+  /** Escorte : écart entre la coque du navire protégé et celle de chacun de ses gardes (m). */
+  guardGap: 12,
 };
 
 /** Formations proposées dans le menu de flotte. */
