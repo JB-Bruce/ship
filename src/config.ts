@@ -532,8 +532,6 @@ export const ENEMIES = {
   detectionRange: 300,
   /** Distance à laquelle il perd le joueur de vue (m). */
   loseRange: 480,
-  /** Distance de combat visée, flanc à flanc (m). */
-  engageRange: 60,
   /**
    * Types d'ennemis selon le nombre d'ennemis déjà coulés : on commence contre des barques,
    * les chaloupes arrivent à partir de 5 victoires, les sloops à partir de 12, les brigantins à partir de 20,
@@ -657,10 +655,23 @@ export const BOSS_IDS = Object.keys(BOSSES) as BossId[];
  * Harcèlement (Le Spectre) : il surgit de la brume, lâche ses bordées un moment, puis replonge dans le brouillard hors
  * de vue (et du radar), tourne autour de sa proie et revient sous un autre angle.
  */
+/**
+ * Combat flanc à flanc (tous les camps), réglé sur la portée de tir de chaque navire : ses canons de flanc, améliorations
+ * et météo comprises.
+ */
+export const BROADSIDE = {
+  /** Distance tenue une fois de flanc, en part de la portée (m / m). */
+  holdFraction: 0.75,
+  /** Il fonce droit sur sa cible au-delà de cette part de sa portée, et commence à virer en deçà. */
+  turnAt: 1.15,
+  /** Un ennemi qui a engagé le combat reprend la chasse (droit dessus, toute voile) au-delà de cette part de sa portée. */
+  chaseAgain: 1.8,
+};
+
 export const HARASS = {
-  /** Durée d'une attaque, comptée à moins de strikeRange × ENEMIES.engageRange de sa proie, avant de replonger dans la brume (s). */
+  /** Durée d'une attaque, comptée à moins de strikeRange × sa portée de tir de sa proie, avant de replonger dans la brume (s). */
   strikeTime: [12, 18] as const,
-  strikeRange: 1.6,
+  strikeRange: 1,
   /** Dégâts reçus pendant une attaque qui le font replonger aussitôt (fraction de sa vie max). */
   hitLimit: 0.12,
   /** Distance à sa proie où il se cache, bien au-delà de la brume (m). */

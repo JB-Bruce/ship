@@ -1,8 +1,10 @@
 import * as THREE from 'three';
-import { ENEMIES, LAND } from '../config';
+import { BROADSIDE, LAND, SAIL } from '../config';
+import { cannonStatsOf } from '../combat/cannons';
 import { isHostile, type Ship } from '../ship/ship';
 import { wrapAngle } from '../utils/math';
 import { land } from '../world/island';
+import { conditions } from '../world/weather';
 
 /** Avantage (rad) qu'il faut pour changer de flanc pendant un engagement : évite d'hésiter. */
 const SIDE_SWITCH_MARGIN = 0.5;
@@ -65,17 +67,37 @@ export function nearest(ship: Ship, candidates: readonly Ship[], maxDistance: nu
   return best;
 }
 
+/** Portée de tir d'un navire (m) : son canon qui porte le plus loin, améliorations et météo comprises. */
+export function firingRange(ship: Ship): number {
+  let range = 0;
+  for (const mount of ship.model.cannons) range = Math.max(range, cannonStatsOf(ship, mount).range);
+  return range * conditions.rangeFactor;
+}
+
 /**
- * Engagement flanc à flanc : cap perpendiculaire à la cible (elle se retrouve sur un flanc, face aux canons),
- * corrigé pour tenir la distance `range`. La cible peut être un bateau ou un point fixe (une citadelle assiégée).
- * Renvoie le flanc choisi (+1 / -1), à repasser à l'appel suivant.
+ * Engagement flanc à flanc, réglé sur la portée de tir du navire : au-delà de BROADSIDE.turnAt × sa portée, il fonce
+ * droit sur la cible (toute voile) ; en deçà, il vire peu à peu pour lui présenter son flanc, jusqu'à être
+ * perpendiculaire à `hold` (par défaut BROADSIDE.holdFraction × sa portée) ; plus près, il ouvre l'angle pour s'écarter.
+ * La cible peut être un bateau ou un point fixe (une citadelle assiégée). Renvoie le flanc choisi (+1 / -1), à repasser
+ * à l'appel suivant.
  */
-export function broadside(ship: Ship, target: { position: THREE.Vector3 }, side: number, sail: number, range = ENEMIES.engageRange): number {
+export function broadside(ship: Ship, target: { position: THREE.Vector3 }, side: number, sail: number, hold?: number): number {
+  const reach = firingRange(ship);
+  const keep = hold ?? reach * BROADSIDE.holdFraction;
+  const start = Math.max(reach * BROADSIDE.turnAt, keep * 1.2);
   const distance = Math.hypot(target.position.x - ship.position.x, target.position.z - ship.position.z);
   const bearing = bearingTo(ship, target.position.x, target.position.z);
-  // Trop loin : on referme l'angle vers la cible. Trop près : on l'ouvre pour s'écarter.
-  const correction = THREE.MathUtils.clamp((distance - range) / range, -0.6, 0.6);
-  const headingFor = (s: number) => wrapAngle(bearing + s * (Math.PI / 2 - correction));
+  if (distance >= start) {
+    steerTo(ship, bearing, SAIL.full);
+    return side;
+  }
+  // Écart du cap avec la direction de la cible : 0 en entrant à portée, 90° à la distance tenue (racine : il vire
+  // franchement dès qu'il arrive à portée), plus de 90° trop près.
+  const offset =
+    distance > keep
+      ? (Math.PI / 2) * Math.sqrt((start - distance) / (start - keep))
+      : Math.PI / 2 + THREE.MathUtils.clamp((keep - distance) / keep, 0, 0.6);
+  const headingFor = (s: number) => wrapAngle(bearing + s * offset);
   const turnFor = (s: number) => Math.abs(wrapAngle(headingFor(s) - ship.heading));
   if (turnFor(-side) + SIDE_SWITCH_MARGIN < turnFor(side)) side = -side;
   steerTo(ship, headingFor(side), sail);

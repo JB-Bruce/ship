@@ -1,10 +1,10 @@
 import type * as THREE from 'three';
-import { COMBAT, CONTRACTS, ENEMIES, HARASS, SAIL } from '../config';
+import { BROADSIDE, COMBAT, CONTRACTS, ENEMIES, HARASS, SAIL } from '../config';
 import type { Ship } from '../ship/ship';
 import { SHIP_TYPES } from '../shipTypes';
 import { wrapAngle } from '../utils/math';
 import { conditions } from '../world/weather';
-import { bearingTo, broadside, nearest, steerTo } from './steering';
+import { bearingTo, broadside, firingRange, nearest, steerTo } from './steering';
 
 /** `leave` : s'éloigne pour de bon (boss quand la tempête se calme), sans plus attaquer. */
 export type EnemyState = 'patrol' | 'chase' | 'engage' | 'flee' | 'leave';
@@ -128,8 +128,8 @@ export class EnemyAI {
     if (!brave && this.ship.health < this.ship.stats.maxHealth * COMBAT.fleeHealth) this.state = 'flee';
     else if (!target) this.state = 'patrol';
     else if (this.state === 'patrol') this.state = 'chase';
-    else if (this.state === 'chase' && distance < ENEMIES.engageRange * 1.2) this.state = 'engage';
-    else if (this.state === 'engage' && distance > ENEMIES.engageRange * 2.5) this.state = 'chase';
+    else if (this.state === 'chase' && distance < firingRange(this.ship) * BROADSIDE.turnAt) this.state = 'engage';
+    else if (this.state === 'engage' && distance > firingRange(this.ship) * BROADSIDE.chaseAgain) this.state = 'chase';
   }
 
   /**
@@ -170,7 +170,7 @@ export class EnemyAI {
     const angle = Math.atan2(ship.position.x - target.position.x, ship.position.z - target.position.z);
     if (this.phase === 'strike') {
       // L'attaque ne se décompte qu'à portée de tir (pas pendant l'approche).
-      if (distance < ENEMIES.engageRange * HARASS.strikeRange) this.phaseTimer -= dt;
+      if (distance < firingRange(ship) * HARASS.strikeRange) this.phaseTimer -= dt;
       const hurt = this.strikeHealth - ship.health > ship.stats.maxHealth * h.hitLimit;
       if (this.phaseTimer <= 0 || hurt) {
         this.phase = 'fade';
@@ -178,8 +178,7 @@ export class EnemyAI {
         this.returnBearing = angle + this.circleSide * (h.circleAngle[0] + Math.random() * (h.circleAngle[1] - h.circleAngle[0]));
         return;
       }
-      if (distance > ENEMIES.engageRange * 1.2) steerTo(ship, bearingTo(ship, target.position.x, target.position.z), SAIL.full);
-      else this.side = broadside(ship, target, this.side, SAIL.half);
+      this.side = broadside(ship, target, this.side, SAIL.half);
       return;
     }
     // Retraite : il s'éloigne en biais, puis tourne autour de sa proie à distance, jusqu'à l'angle de retour.
