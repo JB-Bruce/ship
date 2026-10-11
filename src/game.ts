@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import { BOSSES, CAMERA, COMBAT, ISLAND_INFO, OCEAN, SKY, WORLD, type IslandId } from './config';
+import { BOSSES, CAMERA, COMBAT, CRIT, ISLAND_INFO, OCEAN, SKY, WORLD, type IslandId } from './config';
 import { Campaign } from './campaign';
 import { ChaseCamera } from './camera/chaseCamera';
 import { cannonStatsOf, findTarget, updateCannons } from './combat/cannons';
+import { Criticals } from './combat/criticals';
 import { Projectiles, type Ball } from './combat/projectiles';
 import { setupDebug } from './debug';
 import { DeckCrew } from './deckCrew/deckCrew';
@@ -98,6 +99,7 @@ export class Game {
   private readonly hud: Hud;
   private readonly radar: Radar;
   private readonly encounters: EncounterAlerts;
+  private readonly criticals: Criticals;
   private readonly healthBars: HealthBars;
   private readonly bossBar: ObjectiveBar;
   private readonly siegeBar: ObjectiveBar;
@@ -135,6 +137,7 @@ export class Game {
     this.settings.onChange(applyGraphics);
     this.radar = new Radar(container);
     this.encounters = new EncounterAlerts(this.hud, this.radar);
+    this.criticals = new Criticals({ container, effects: this.effects, hud: this.hud, camera: this.chaseCamera, leader: () => this.fleet.leader });
     this.healthBars = new HealthBars(container);
     this.bossBar = new ObjectiveBar(container, 'boss');
     this.siegeBar = new ObjectiveBar(container, 'siege');
@@ -212,6 +215,7 @@ export class Game {
     for (const ship of this.ships) this.effects.shipAmbient(dt, ship, this.waves);
     this.effects.update(dt, this.waves, this.ships);
     this.bossSinking.update(dt);
+    this.criticals.update(dt, this.ships, this.camera);
     this.schoolFx.update(dt, this.schools.list, this.waves);
     this.loot.update(dt, this.ships, this.waves);
     this.handleLeaderLoss();
@@ -285,6 +289,7 @@ export class Game {
   private onBallHit(ship: Ship, ball: Ball) {
     this.effects.impact(ball.position);
     this.applyDamage(ship, ball.damage, ball.owner);
+    if (this.criticals.strike(ship) === 'magazine') this.applyDamage(ship, ship.stats.maxHealth * CRIT.magazineDamage, ball.owner);
   }
 
   /** `attacker` : qui a porté le coup (bateau, fort), pour savoir qui a coulé un ennemi ; null pour la foudre et la mer. */

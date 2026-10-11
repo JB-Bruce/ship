@@ -25,6 +25,8 @@ export class Hud {
   private readonly sailFill: HTMLElement;
   private readonly sailName: HTMLElement;
   private readonly speed: HTMLElement;
+  private readonly crits: HTMLElement;
+  private critText = '';
   private readonly banner: HTMLElement;
   private readonly shipName: HTMLElement;
   private readonly fleetStrip: HTMLElement;
@@ -46,7 +48,8 @@ export class Hud {
     this.sailFill = sailGauge.appendChild(el('div', 'hud-sail-fill'));
     this.sailName = el('div', 'hud-sail');
     this.speed = el('div', 'hud-speed');
-    panel.append(this.shipName, health, resources, sailGauge, this.sailName, this.speed);
+    this.crits = el('div', 'hud-crits');
+    panel.append(this.shipName, health, resources, sailGauge, this.sailName, this.speed, this.crits);
     this.fleetStrip = el('div', 'hud-fleet');
 
     this.combat = el('div', 'hud-combat');
@@ -97,6 +100,8 @@ export class Hud {
       this.healthFill.style.width = `${fraction * 100}%`;
       this.healthFill.classList.toggle('low', fraction < 0.3);
     }
+    const crits = critsText(ship);
+    if (crits !== this.critText) this.crits.textContent = this.critText = crits;
     if (state.gold !== l.gold) {
       l.gold = state.gold;
       this.gold.textContent = `${state.gold} or`;
@@ -133,10 +138,19 @@ export class Hud {
         const state = afloat
           ? `<span class="bar"><span style="width:${(m.ship.health / m.ship.stats.maxHealth) * 100}%"></span></span>`
           : `<span class="away">${m.inWorld ? 'coule…' : `retour ${Math.ceil(m.respawnIn)} s`}</span>`;
-        return `<div class="hud-fleet-row${m === c ? ' helm' : ''}"><span class="name">${m.trade ? '⚖ ' : ''}${m.name}</span>${state}</div>`;
+        const icons = afloat ? m.ship.crits.icons : '';
+        return `<div class="hud-fleet-row${m === c ? ' helm' : ''}"><span class="name">${m.trade ? '⚖ ' : ''}${m.name}${icons ? ` <span class="crits">${icons}</span>` : ''}</span>${state}</div>`;
       })
       .join('');
   }
+}
+
+/** Avaries du navire piloté, en toutes lettres (« Avaries : 🔥 incendie · ⛵ gréement »), ou chaîne vide. */
+function critsText(ship: Ship): string {
+  const c = ship.crits;
+  if (!c.any) return '';
+  const parts = [c.fire > 0 ? '🔥 incendie' : '', c.rudder > 0 ? '☸ gouvernail' : '', c.rigging > 0 ? '⛵ gréement' : ''].filter(Boolean);
+  return `Avaries : ${parts.join(' · ')}`;
 }
 
 function el(tag: string, className: string): HTMLElement {

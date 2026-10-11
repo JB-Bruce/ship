@@ -554,6 +554,31 @@ export const ENCOUNTER_ALERT = {
   radarPing: 5,
 };
 
+/**
+ * Coups critiques (tous les camps) : chance par boulet qui touche, tirée dans l'ordre (un seul par coup). Gréement,
+ * gouvernail et incendie durent jusqu'à la réparation en mer : une fois qu'elle commence (REPAIR.delay sans combat),
+ * chacun demande `repairTime` s (l'incendie d'abord, puis les deux autres ensemble).
+ */
+export const CRIT = {
+  chance: { magazine: 0.006, fire: 0.05, rudder: 0.03, rigging: 0.05 },
+  repairTime: { fire: 3, rudder: 5, rigging: 8 },
+  /** Gréement touché : une voile tombe, vitesse max réduite de cette fraction. */
+  riggingSpeedLoss: 0.25,
+  /** Gouvernail touché : vitesse de virage réduite de cette fraction. */
+  rudderTurnLoss: 0.5,
+  /** Incendie : dégâts par seconde (fraction de la vie max), sans jamais descendre sous `fireFloor` de la vie max. */
+  fireDamage: 0.006,
+  fireFloor: 0.1,
+  /** Sainte-barbe : la réserve de poudre explose, dégâts (fraction de la vie max), secousse si c'est près de toi. */
+  magazineDamage: 0.25,
+  magazineShake: 0.6,
+  /** Flammes et fumée d'avarie (par seconde). */
+  flameRate: 7,
+  smokeRate: 2.5,
+  /** Texte flottant au-dessus du navire touché (s). */
+  popupTime: 1.8,
+};
+
 /** Registre du capitaine. */
 export const LEDGER = {
   /** Au-delà de ce déplacement en une image (m), le bateau piloté a été déplacé (réapparition) : ce n'est pas de la navigation. */

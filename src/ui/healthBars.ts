@@ -13,6 +13,9 @@ interface Bar {
   /** Étiquette d'un ennemi (type, élite, menace), ou null pour un allié. */
   tag: HTMLElement | null;
   threat: Threat | null;
+  /** Pictogrammes des avaries (coups critiques), à droite de la barre. */
+  crits: HTMLElement;
+  critIcons: string;
   seen: number;
 }
 
@@ -44,12 +47,16 @@ export class HealthBars {
       bar.root.style.transform = transform;
       bar.fill.style.width = `${(ship.health / ship.stats.maxHealth) * 100}%`;
       if (bar.tag) this.updateTag(bar, bar.tag, transform, ship, player, enemies);
+      bar.crits.style.transform = transform;
+      const icons = ship.crits.icons;
+      if (icons !== bar.critIcons) bar.crits.textContent = bar.critIcons = icons;
     }
     // Retire les barres des bateaux non affichés à cette image (hors champ, coulés, trop loin).
     for (const [ship, bar] of this.bars) {
       if (bar.seen === this.frame) continue;
       bar.root.remove();
       bar.tag?.remove();
+      bar.crits.remove();
       this.bars.delete(ship);
     }
   }
@@ -74,7 +81,9 @@ export class HealthBars {
     this.parent.appendChild(root);
     const tag = ship.faction === 'enemy' ? this.parent.appendChild(document.createElement('div')) : null;
     if (tag) tag.className = 'ship-tag';
-    const bar: Bar = { root, fill, tag, threat: null, seen: this.frame };
+    const crits = this.parent.appendChild(document.createElement('div'));
+    crits.className = 'ship-crits';
+    const bar: Bar = { root, fill, tag, threat: null, crits, critIcons: '', seen: this.frame };
     this.bars.set(ship, bar);
     return bar;
   }

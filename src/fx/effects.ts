@@ -170,6 +170,20 @@ export class Effects {
     }
   }
 
+  /** Flammes d'un incendie à bord en `p` : flammèches qui montent, parfois une bouffée de fumée noire. */
+  flame(p: THREE.Vector3) {
+    const f = reset(p.x + rand(-0.3, 0.3), p.y + 0.1, p.z + rand(-0.3, 0.3), Math.random() < 0.3 ? COLORS.gold : COLORS.fire);
+    Object.assign(f, { vx: rand(-0.4, 0.4), vy: rand(1.5, 3), vz: rand(-0.4, 0.4), life: rand(0.4, 0.7), size: rand(0.3, 0.5), sizeEnd: 0.05 });
+    this.glow.spawn(f);
+  }
+
+  /** Bouffée de fumée (incendie, gouvernail brisé) en `p`. */
+  puff(p: THREE.Vector3, dark: boolean) {
+    const s = reset(p.x + rand(-0.2, 0.2), p.y + 0.2, p.z + rand(-0.2, 0.2), dark ? COLORS.darkSmoke : COLORS.smoke);
+    Object.assign(s, { vx: rand(-0.3, 0.3), vy: rand(1.5, 2.6), vz: rand(-0.3, 0.3), life: rand(1.6, 2.4), size: rand(0.5, 0.8), sizeEnd: 0.1, drag: 0.3, spin: rand(-0.5, 0.5) });
+    this.lit.spawn(s);
+  }
+
   /** Coup fatal : grosse gerbe d'éclats et de fumée. */
   wreck(p: THREE.Vector3) {
     for (let i = 0; i < 3; i++) this.impact(p);

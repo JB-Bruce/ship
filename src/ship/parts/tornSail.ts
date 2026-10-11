@@ -89,6 +89,8 @@ ${emblemOn ? EMBLEM_FRAGMENT : ''}
   }`,
         );
     };
+    // Repère des voiles (un coup critique au gréement en fait tomber une).
+    material.userData.sail = true;
     // Même programme pour toutes les voiles trouées (seuls les uniforms changent d'une voile à l'autre).
     material.customProgramCacheKey = () => (emblemOn ? 'torn-sail-emblem' : 'torn-sail');
     this.materials.push(material);

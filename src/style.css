@@ -410,6 +410,36 @@ body {
   background: linear-gradient(#ff7a5a, #c0392b);
 }
 
+/* Avaries d'un navire (coups critiques) : pictogrammes à droite de sa barre de vie. */
+.ship-crits {
+  position: fixed;
+  left: 34px;
+  top: -10px;
+  font-size: 13px;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
+
+/* Coup critique : texte qui monte au-dessus du navire touché et s'efface. */
+.crit-popup {
+  position: fixed;
+  left: -110px;
+  top: 0;
+  width: 220px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #ffcf6a;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 6px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+.crit-popup.ally {
+  color: #ff7a5a;
+}
+
 /* Étiquette au-dessus de la barre d'un ennemi : type (ou nom), couronne d'élite, couleur selon sa menace. */
 .ship-tag {
   position: fixed;
@@ -1456,3 +1486,20 @@ body {
 .save-import {
   margin-top: 4px;
 }
+
+/* Avaries du navire piloté, sous sa vitesse. */
+.hud-crits {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ff9a6a;
+}
+
+.hud-crits:empty {
+  display: none;
+}
+
+.hud-fleet-row .crits {
+  font-size: 11px;
+}
+

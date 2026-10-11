@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COMBAT, DAMAGE, LIVERIES, RECOIL, REPAIR, type Faction, type Livery, type ShipStats } from '../config';
+import { COMBAT, CRIT, DAMAGE, LIVERIES, RECOIL, REPAIR, type Faction, type Livery, type ShipStats } from '../config';
 import type { CannonTarget } from '../combat/cannons';
 import type { Waves } from '../ocean/waves';
 import { applyModifiers, factor, noModifiers, standardGuns, type Guns, type StatModifiers } from '../progression/modifiers';
@@ -11,6 +11,7 @@ import { conditions } from '../world/weather';
 import { Buoyancy } from './buoyancy';
 import { ShipDressing } from './shipDressing';
 import { createShipModel, type ShipModel } from './shipModel';
+import { ShipCrits } from './shipCrits';
 
 /** Ordres donnés à un bateau. Écrits par un contrôleur (clavier, IA), lus par Ship. */
 export interface ShipControls {
@@ -69,6 +70,8 @@ export class Ship {
   /** Secondes écoulées sans tirer ni être touché : au-delà de REPAIR.delay, le bateau se répare. */
   calmTime = 0;
   readonly controls: ShipControls = { sail: 0, rudder: 0 };
+  /** Avaries des coups critiques (gréement, gouvernail, incendie). */
+  readonly crits = new ShipCrits();
   readonly model: ShipModel;
   /** Point que ce bateau bombarde quand aucun ennemi n'est à portée (assiégeant d'une mission de défense), ou null. */
   siegeTarget: CannonTarget | null = null;
@@ -221,15 +224,20 @@ export class Ship {
     this.sinkTime = null;
     this.calmTime = 0;
     this.controls.sail = 0;
+    this.crits.reset();
   }
 
   update(dt: number, waves: Waves, wind: Wind) {
     if (this.sinkTime !== null) this.sinkTime += dt;
     this.ramCooldown = Math.max(0, this.ramCooldown - dt);
     this.calmTime += dt;
-    if (this.alive && this.calmTime > REPAIR.delay) {
+    const repairing = this.alive && this.calmTime > REPAIR.delay;
+    if (repairing) {
       this.health = Math.min(this.stats.maxHealth, this.health + REPAIR.rate * factor(this.modifiers, 'repair') * this.stats.maxHealth * dt);
     }
+    // Avaries : l'incendie ronge la coque (sans la couler), la réparation en mer les efface peu à peu.
+    const burn = this.crits.update(dt, repairing);
+    if (burn > 0 && this.alive) this.health = Math.max(Math.min(this.health, CRIT.fireFloor * this.stats.maxHealth), this.health - burn * this.stats.maxHealth);
     const controls = this.alive ? this.controls : ADRIFT;
     this.updateMotion(dt, controls, wind);
     this.updateBuoyancy(dt, waves);
@@ -253,7 +261,7 @@ export class Ship {
     // Un navigateur tire plus du vent favorable et souffre moins du vent contraire.
     const w = wind.speedFactor(this.heading) - 1;
     const windEffect = 1 + w * (w > 0 ? factor(this.modifiers, 'wind') : 1 / factor(this.modifiers, 'wind'));
-    const targetSpeed = s.maxSpeed * torn * controls.sail * windEffect;
+    const targetSpeed = s.maxSpeed * torn * this.crits.speedFactor * controls.sail * windEffect;
     const accel = targetSpeed > this.speed ? s.acceleration : s.deceleration;
     this.speed = moveTowards(this.speed, targetSpeed, accel * dt);
 
@@ -262,7 +270,7 @@ export class Ship {
     // et la barre devient pleinement efficace à 40 % de la vitesse max.
     const steering = Math.min(1, this.speed / (0.4 * s.maxSpeed));
     // Par mer démontée, la barre est plus dure (conditions.turnFactor < 1).
-    this.yawRate = damp(this.yawRate, this.rudder * s.turnRate * steering * conditions.turnFactor, 3, dt);
+    this.yawRate = damp(this.yawRate, this.rudder * s.turnRate * steering * conditions.turnFactor * this.crits.turnFactor, 3, dt);
     this.heading = wrapAngle(this.heading + this.yawRate * dt);
 
     this.position.x += this.velocityX * dt;
