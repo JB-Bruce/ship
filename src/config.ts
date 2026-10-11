@@ -511,9 +511,15 @@ export const ENEMIES = {
   /** Délai avant le premier ennemi (s). */
   firstSpawnDelay: 4,
   /** Délai entre deux apparitions, tant qu'on est sous le maximum (s) : il raccourcit jusqu'à fastSpawnInterval à fastSpawnKills victoires. */
-  spawnInterval: [6, 12] as const,
-  fastSpawnInterval: [4, 8] as const,
+  spawnInterval: [12, 24] as const,
+  fastSpawnInterval: [8, 16] as const,
   fastSpawnKills: 30,
+  /**
+   * Abords des îles, plus calmes : à moins de `radius` m d'une côte, les apparitions ordinaires ralentissent de plus en
+   * plus en approchant (jusqu'à `slowdown` fois plus lentes au rivage), et au plus `maxAlive` ennemis ordinaires à la
+   * fois (les escadres de mission et les boss ne comptent pas).
+   */
+  nearIsland: { radius: 500, slowdown: 4, maxAlive: 2 },
   /**
    * Flottilles : à partir de fromKills victoires, une apparition sur quatre est un groupe de size navires ;
    * à partir de bigFromKills, jusqu'à bigSize, mené par un navire plus gros. Écart entre deux places (m).

@@ -65,9 +65,13 @@ export class EnemySpawner {
 
   /** Décisions des IA. Le déplacement des bateaux est fait ensuite par Ship.update. */
   update(dt: number, center: Ship) {
-    if (this.enemies.length < this.maxAlive) {
-      this.timer -= dt;
-      if (this.timer <= 0) this.timer = this.spawn(center) ? this.nextInterval() : 2;
+    // Près d'une côte : le temps avant la prochaine apparition s'écoule plus lentement, et la place est plafonnée.
+    const near = ENEMIES.nearIsland;
+    const closeness = Math.max(0, Math.min(1, 1 - land.sdf(center.position.x, center.position.z) / near.radius));
+    const room = closeness > 0 ? Math.min(this.maxAlive - this.enemies.length, near.maxAlive - this.ordinaryCount()) : this.maxAlive - this.enemies.length;
+    if (room > 0) {
+      this.timer -= dt / (1 + (near.slowdown - 1) * closeness);
+      if (this.timer <= 0) this.timer = this.spawn(center, room) ? this.nextInterval() : 2;
     }
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const enemy = this.enemies[i];
@@ -90,6 +94,13 @@ export class EnemySpawner {
   }
 
   /** Délai avant la prochaine apparition : il raccourcit avec les victoires. */
+  /** Ennemis ordinaires à flot (ni escadre de mission, ni boss). */
+  private ordinaryCount(): number {
+    let count = 0;
+    for (const e of this.enemies) if (!e.persistent && !e.boss && e.ship.alive) count++;
+    return count;
+  }
+
   private nextInterval(): number {
     const t = Math.min(1, this.kills / ENEMIES.fastSpawnKills);
     const min = ENEMIES.spawnInterval[0] + (ENEMIES.fastSpawnInterval[0] - ENEMIES.spawnInterval[0]) * t;
@@ -149,7 +160,8 @@ export class EnemySpawner {
   }
 
   /** Fait apparaître un ennemi ou une flottille. Renvoie false si aucun endroit valable n'a été trouvé. */
-  private spawn(center: Ship): boolean {
+  /** `room` : nombre de navires qui peuvent encore apparaître. */
+  private spawn(center: Ship, room: number): boolean {
     const angle = this.findSpawnAngle(center, ENEMIES.spawnDistance);
     if (angle === null) return false;
     const x = center.position.x + Math.sin(angle) * ENEMIES.spawnDistance;
@@ -158,7 +170,7 @@ export class EnemySpawner {
     const heading = wrapAngle(angle + Math.PI + (Math.random() - 0.5) * (Math.PI / 2));
     // Jamais plus nombreux que ta flotte, ni plus gros que ton plus gros navire + 1 cran.
     const power = this.fleetPower();
-    const size = Math.min(this.groupSize(), this.maxAlive - this.enemies.length, Math.max(1, power.ships));
+    const size = Math.min(this.groupSize(), room, Math.max(1, power.ships));
     const largest = SIZE_ORDER[Math.min(SIZE_ORDER.length - 1, sizeRank(power.best) + 1)];
     const cap = (type: ShipType) => (sizeRank(type) > sizeRank(largest) ? largest : type);
 
