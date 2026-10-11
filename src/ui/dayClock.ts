@@ -16,9 +16,9 @@ const svg = (tag: string, attrs: Record<string, string | number>) => {
   return el;
 };
 
-/** « 21 h 30 » (minutes arrondies au pas `step`). */
+/** « 21 h 30 » (à la minute près, puis au pas `step` en dessous). */
 export function formatHour(hour: number, step = 1): string {
-  const minutes = Math.floor((hour * 60) / step) * step;
+  const minutes = Math.floor(Math.round(hour * 60) / step) * step;
   return `${Math.floor(minutes / 60) % 24} h ${String(minutes % 60).padStart(2, '0')}`;
 }
 
@@ -28,6 +28,9 @@ export function periodOf(day: DayCycle): string {
   if (day.twilight > 0.4) return day.hour < 12 ? 'Aube' : 'Crépuscule';
   return 'Jour';
 }
+
+/** « 22 h 00 (nuit) » : heure et moment de la journée (curseur d'heure du menu Échap). */
+export const clockLabel = (day: DayCycle) => `${formatHour(day.hour)} (${periodOf(day).toLowerCase()})`;
 
 /**
  * Horloge au-dessus des boutons de météo : un petit cadran où le soleil (ou la lune) suit sa course au-dessus de

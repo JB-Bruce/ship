@@ -1,11 +1,13 @@
-import { DAY_NIGHT, GRAPHICS, type GraphicsSettings, type QualityPreset } from '../../config';
+import { GRAPHICS, type GraphicsSettings, type QualityPreset } from '../../config';
 import type { Display } from '../../render/display';
 import type { SaveManager } from '../../save/saveManager';
 import type { Settings } from '../../settings/settings';
 import type { DayCycle } from '../../world/dayCycle';
+import { clockLabel } from '../dayClock';
 import { ParchmentMenu } from '../parchmentMenu';
-import { clockLabel, gameTab } from './gameTab';
+import { gameTab } from './gameTab';
 import { graphicsTab } from './graphicsTab';
+import { HourDial } from './hourDial';
 import { saveTab, type SaveView } from './saveTab';
 
 /** Ce que les onglets des paramètres lisent et modifient. */
@@ -56,26 +58,21 @@ export class SettingsMenu extends ParchmentMenu {
         this.render();
       });
     });
-    // Le nom de la sauvegarde se tape (et le curseur d'heure se règle au clavier) sans déclencher les touches du jeu
+    // Le nom de la sauvegarde se tape, et le curseur d'heure se règle au clavier, sans déclencher les touches du jeu
     // (T, M, Z…) ; Entrée sauvegarde.
     this.body.addEventListener('keydown', (e) => {
-      if (!(e.target instanceof HTMLInputElement) || e.code === 'Escape') return;
+      const target = e.target instanceof Element ? e.target : null;
+      if (!target || e.code === 'Escape' || !(target instanceof HTMLInputElement || target.closest('.hour-dial'))) return;
       e.stopPropagation();
-      if (!e.target.classList.contains('save-name') || (e.code !== 'Enter' && e.code !== 'NumpadEnter')) return;
+      if (!target.classList.contains('save-name') || (e.code !== 'Enter' && e.code !== 'NumpadEnter')) return;
       this.onAction('save', '');
       this.render();
     });
-    this.body.addEventListener('input', (e) => {
-      if (e.target instanceof HTMLInputElement && e.target.classList.contains('clock-slider')) this.onHourInput(e.target);
+    // Curseur d'heure : le ciel suit pendant qu'on le glisse (sans redessiner l'onglet, qui lâcherait le curseur).
+    new HourDial(this.body, ctx.clock, () => {
+      const label = this.body.querySelector('.clock-label');
+      if (label) label.textContent = clockLabel(ctx.clock);
     });
-  }
-
-  /** Curseur d'heure : le ciel suit pendant qu'on le glisse (sans redessiner l'onglet, qui lâcherait le curseur). */
-  private onHourInput(input: HTMLInputElement) {
-    const clock = this.ctx.clock;
-    clock.setHour(DAY_NIGHT.dawnHour + Number(input.value));
-    const label = this.body.querySelector('.clock-label');
-    if (label) label.textContent = clockLabel(clock);
   }
 
   render() {

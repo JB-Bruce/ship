@@ -1,5 +1,5 @@
-import type { DayCycle } from '../../world/dayCycle';
-import { formatHour, periodOf } from '../dayClock';
+import { clockLabel } from '../dayClock';
+import { hourDialHtml } from './hourDialView';
 import type { SettingsContext } from './settingsMenu';
 
 /** Touches du jeu (ZQSD en AZERTY = WASD en QWERTY). */
@@ -15,9 +15,6 @@ const CONTROLS: readonly [string, string][] = [
   ['Échap', 'Paramètres (pause)'],
 ];
 
-/** Heure et moment de la journée, à côté du curseur d'heure. */
-export const clockLabel = (clock: DayCycle) => `${formatHour(clock.hour)} (${periodOf(clock).toLowerCase()})`;
-
 /** Onglet Jeu : reprendre la partie, heure du jour, affichage du compteur d'images, rappel des touches. */
 export function gameTab(ctx: SettingsContext): string {
   const showFps = ctx.settings.showFps;
@@ -30,9 +27,9 @@ export function gameTab(ctx: SettingsContext): string {
       <div class="setting">
         <div class="setting-label">
           <b>Il est <span class="clock-label">${clockLabel(ctx.clock)}</span></b>
-          <p>De l’aube à l’aube suivante, sans changer de journée : les offres des tavernes restent celles du jour. La nuit, les rencontres sont plus rares.</p>
+          <p>Faites glisser le soleil (ou la lune) sur sa course, ou réglez-le aux flèches. De l’aube à l’aube suivante, sans changer de journée : les offres des tavernes restent celles du jour. La nuit, les rencontres sont plus rares.</p>
         </div>
-        <input class="clock-slider" type="range" min="0" max="23.75" step="0.25" value="${ctx.clock.sinceDawn}" aria-label="Heure du jour" />
+        ${hourDialHtml(ctx.clock)}
       </div>
     </div>
     <h3 class="section">Affichage</h3>
