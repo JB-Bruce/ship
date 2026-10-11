@@ -108,8 +108,8 @@ export function effectText(effect: StatEffect): string {
     .join(' · ');
 }
 
-/** « ★★☆☆☆ » (talent sur le maximum possible). */
-export const talentText = (talent: number) => '★'.repeat(talent) + '☆'.repeat(OFFICERS.maxTalent - talent);
+/** « ★★ » : seulement les étoiles de talent. */
+export const talentText = (talent: number) => '★'.repeat(talent);
 
 /** Rang d'un navire (0 à 3 étoiles) selon ses victoires. */
 export function rankOf(kills: number): number {

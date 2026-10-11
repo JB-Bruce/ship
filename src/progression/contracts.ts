@@ -76,8 +76,8 @@ export function missionTag(c: Contract): string {
   return `<span class="tag mission ${type}">${icon} ${name}</span>`;
 }
 
-/** « ★★★☆☆ » */
-export const starsText = (stars: number) => '★'.repeat(stars) + '☆'.repeat(CONTRACTS.stars - stars);
+/** « ★★★ » : seulement les étoiles gagnées. */
+export const starsText = (stars: number) => '★'.repeat(stars);
 
 /** Ce qu'une sauvegarde garde des contrats. */
 export interface ContractsSnapshot {

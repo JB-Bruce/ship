@@ -52,7 +52,7 @@ function rankLine(m: FleetMember): string {
   const stars = rankOf(m.kills);
   const next = RANKS.levels[stars + 1];
   const nextText = next ? ` · ${next.name} à ${next.kills}` : '';
-  return `${'★'.repeat(stars) || '☆'} ${rankName(stars)} · ${m.kills} victoire${m.kills > 1 ? 's' : ''}${nextText}`;
+  return `${stars ? `${'★'.repeat(stars)} ` : ''}${rankName(stars)} · ${m.kills} victoire${m.kills > 1 ? 's' : ''}${nextText}`;
 }
 
 function officersLine(ctx: PortContext, m: FleetMember): string {
