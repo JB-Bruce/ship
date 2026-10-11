@@ -37,9 +37,10 @@ export class TornSail {
   /**
    * Un nouveau matériau pour la voile `sail`, avec son propre motif de trous et son gonflement maximal (selon sa
    * hauteur). `axis` : l'axe du creux de la voile dans son repère (voile carrée : 'z' ; foc et voile aurique : 'x').
-   * `emblem` : c'est la voile qui porte l'emblème de la livrée (s'il y en a un).
+   * `emblem` : c'est la voile qui porte l'emblème de la livrée (s'il y en a un). `curve` : multiplie toute sa courbure
+   * (creux d'origine et gonflement), 1 = telle que dessinée.
    */
-  material(sail: THREE.BufferGeometry, axis: SailAxis, emblem = false): THREE.Material {
+  material(sail: THREE.BufferGeometry, axis: SailAxis, emblem = false, curve = 1): THREE.Material {
     const material = this.base.clone();
     const seed = { value: new THREE.Vector2(Math.random() * 100, Math.random() * 100) };
     const emblemOn = this.emblem && emblem ? emblemUniforms(sail) : null;
@@ -48,7 +49,7 @@ export class TornSail {
       shader.uniforms.uTear = this.tear;
       shader.uniforms.uTearSeed = seed;
       if (emblemOn) Object.assign(shader.uniforms, emblemOn);
-      this.addBillow(shader, axis, max);
+      this.addBillow(shader, axis, max, curve);
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vSailPos;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\nvSailPos = position;');
@@ -98,7 +99,7 @@ ${emblemOn ? EMBLEM_FRAGMENT : ''}
   patchMaterial(base: THREE.Material, sail: THREE.BufferGeometry, axis: SailAxis): THREE.Material {
     const material = base.clone();
     const max = maxBillow(sail);
-    material.onBeforeCompile = (shader) => this.addBillow(shader, axis, max);
+    material.onBeforeCompile = (shader) => this.addBillow(shader, axis, max, 1);
     material.customProgramCacheKey = () => 'billow-patch';
     this.materials.push(material);
     return material;
@@ -114,20 +115,21 @@ ${emblemOn ? EMBLEM_FRAGMENT : ''}
 
   /**
    * Creux variable : chaque point de la toile s'écarte de son plan le long de l'axe du creux, jusqu'à `max` fois plus
-   * que dans la géométrie selon le vent (la voile est plane à 0 sur cet axe) ; la normale suit la nouvelle courbure. Une voile carrée
+   * que dans la géométrie selon le vent (la voile est plane à 0 sur cet axe), le tout multiplié par `curve` ; la normale suit la nouvelle courbure. Une voile carrée
    * pend de sa vergue (en y = 0) : le surplus de creux y est nul et s'installe sur SAIL_BILLOW.yardBlend mètres, pour
    * que la toile reste attachée à la vergue droite. Foc et voile aurique ont déjà un creux nul sur leurs bords.
    */
-  private addBillow(shader: THREE.WebGLProgramParametersWithUniforms, axis: SailAxis, max: number) {
+  private addBillow(shader: THREE.WebGLProgramParametersWithUniforms, axis: SailAxis, max: number, curve: number) {
     shader.uniforms.uBillowFill = this.fill;
     shader.uniforms.uBillowMax = { value: max };
+    shader.uniforms.uSailCurve = { value: curve };
     shader.uniforms.uBillowAxis = { value: axis === 'z' ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0) };
     shader.uniforms.uYardBlend = { value: axis === 'z' ? SAIL_BILLOW.yardBlend : 0 };
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nuniform float uBillowFill;\nuniform float uBillowMax;\nuniform vec3 uBillowAxis;\nuniform float uYardBlend;')
+      .replace('#include <common>', '#include <common>\nuniform float uBillowFill;\nuniform float uBillowMax;\nuniform vec3 uBillowAxis;\nuniform float uYardBlend;\nuniform float uSailCurve;')
       .replace(
         '#include <beginnormal_vertex>',
-        '#include <beginnormal_vertex>\nfloat sailBillow = 1.0 + (uBillowMax - 1.0) * uBillowFill;\nobjectNormal = normalize(objectNormal - uBillowAxis * dot(objectNormal, uBillowAxis) * (1.0 - 1.0 / sailBillow));',
+        '#include <beginnormal_vertex>\nfloat sailBillow = (1.0 + (uBillowMax - 1.0) * uBillowFill) * uSailCurve;\nobjectNormal = normalize(objectNormal - uBillowAxis * dot(objectNormal, uBillowAxis) * (1.0 - 1.0 / sailBillow));',
       )
       .replace(
         '#include <begin_vertex>',

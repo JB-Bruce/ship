@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Livery, ShipStats } from '../../config';
+import { SAIL_BILLOW, type Livery, type ShipStats } from '../../config';
 import { wrapAngle } from '../../utils/math';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import { armorFor, cannonMount, fireSpots, mastheadStaff, riggingMaterial, waterMaskMaterial, WavingFlag } from '../parts/common';
@@ -212,7 +212,7 @@ export class FrigateModel implements ShipModel {
       this.body.add(jib);
     });
     this.hoist = new THREE.Group();
-    this.hoist.add(new THREE.Mesh(t.spanker, this.tornSail.material(t.spanker, 'x')), new THREE.Mesh(t.spankerGaff, t.palette.wood));
+    this.hoist.add(new THREE.Mesh(t.spanker, this.tornSail.material(t.spanker, 'x', false, SAIL_BILLOW.aftSailCurve)), new THREE.Mesh(t.spankerGaff, t.palette.wood));
     this.spankerRig = new THREE.Group();
     this.spankerRig.add(new THREE.Mesh(t.spankerBoom, t.palette.wood), this.hoist);
     this.spankerRig.position.set(0, L.spankerBoomY, L.mizzenMast.z);

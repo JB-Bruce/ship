@@ -523,6 +523,8 @@ export const SAIL_BILLOW = {
   small: { height: 2.4, max: 2.5 },
   large: { height: 8.4, max: 5.5 },
   fullStrength: 1.75,
+  /** Voile aurique de poupe (brigantine de la frégate, artimon de la corvette) : toute sa courbure est multipliée par ceci. */
+  aftSailCurve: 0.5,
   /** Finesse des toiles : environ une facette par `facet` mètres (`triangleFacet` pour un foc), entre `minSegments` et `maxSegments` par côté. */
   facet: 1,
   triangleFacet: 2,

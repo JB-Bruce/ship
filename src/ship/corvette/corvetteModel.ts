@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Livery, ShipStats } from '../../config';
+import { SAIL_BILLOW, type Livery, type ShipStats } from '../../config';
 import { wrapAngle } from '../../utils/math';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import { armorFor, cannonMount, fireSpots, mastheadStaff, riggingMaterial, waterMaskMaterial, WavingFlag } from '../parts/common';
@@ -200,7 +200,7 @@ export class CorvetteModel implements ShipModel {
       this.body.add(jib);
     });
     this.hoist = new THREE.Group();
-    this.hoist.add(new THREE.Mesh(t.mizzenSail, this.tornSail.material(t.mizzenSail, 'x')), new THREE.Mesh(t.mizzenGaff, t.palette.wood));
+    this.hoist.add(new THREE.Mesh(t.mizzenSail, this.tornSail.material(t.mizzenSail, 'x', false, SAIL_BILLOW.aftSailCurve)), new THREE.Mesh(t.mizzenGaff, t.palette.wood));
     this.mizzenRig = new THREE.Group();
     this.mizzenRig.add(new THREE.Mesh(t.mizzenBoom, t.palette.wood), this.hoist);
     this.mizzenRig.position.set(0, L.mizzenBoomY, L.mizzenMast.z);
