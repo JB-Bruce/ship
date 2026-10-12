@@ -423,23 +423,7 @@ body {
 }
 
 /* Coup critique : texte qui monte au-dessus du navire touché et s'efface. */
-.crit-popup {
-  position: fixed;
-  left: -110px;
-  top: 0;
-  width: 220px;
-  text-align: center;
-  font-size: 15px;
-  font-weight: 700;
-  white-space: nowrap;
-  color: #ffcf6a;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 6px rgba(0, 0, 0, 0.6);
-  pointer-events: none;
-}
 
-.crit-popup.ally {
-  color: #ff7a5a;
-}
 
 /* Étiquette au-dessus de la barre d'un ennemi : type (ou nom), couronne d'élite, couleur selon sa menace. */
 .ship-tag {
@@ -503,13 +487,6 @@ body {
   pointer-events: none;
 }
 
-.hud-help {
-  position: absolute;
-  left: 20px;
-  bottom: 16px;
-  font-size: 12px;
-  opacity: 0.8;
-}
 
 /* ---------- Flotte ---------- */
 

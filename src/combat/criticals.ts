@@ -5,7 +5,6 @@ import { CritFx } from '../fx/critFx';
 import type { Effects } from '../fx/effects';
 import type { Ship } from '../ship/ship';
 import type { CritKind } from '../ship/shipCrits';
-import { CritPopups } from '../ui/critPopups';
 import type { Hud } from '../ui/hud';
 
 const ORDER: readonly CritKind[] = ['magazine', 'fire', 'rudder', 'rigging'];
@@ -36,16 +35,13 @@ export interface CriticalsWorld {
  */
 export class Criticals {
   private readonly fx: CritFx;
-  private readonly popups: CritPopups;
 
   constructor(private readonly world: CriticalsWorld) {
     this.fx = new CritFx(world.effects);
-    this.popups = new CritPopups(world.container);
   }
 
-  update(dt: number, ships: readonly Ship[], camera: THREE.Camera) {
+  update(dt: number, ships: readonly Ship[]) {
     this.fx.update(dt, ships);
-    this.popups.update(dt, camera);
   }
 
   /** Tire un éventuel coup critique sur `ship`. Renvoie lequel, ou null. */
@@ -61,7 +57,6 @@ export class Criticals {
         // Une voile qui tombe : éclats de bois et gerbe d'eau le long du bord.
         if (kind === 'rigging') effects.wreck(deckPoint(ship));
       }
-      this.popups.show(ship, CRIT_TEXT[kind]);
       const leader = this.world.leader();
       // Sur ton navire : la sainte-barbe au centre, les autres avaries en petit message.
       if (ship === leader) {

@@ -562,8 +562,13 @@ export const ENCOUNTER_ALERT = {
 export const CRIT = {
   chance: { magazine: 0.006, fire: 0.05, rudder: 0.03, rigging: 0.05 },
   repairTime: { fire: 3, rudder: 5, rigging: 8 },
-  /** Gréement touché : une voile tombe, vitesse max réduite de cette fraction. */
-  riggingSpeedLoss: 0.25,
+  /**
+   * Gréement touché : une voile tombe, vitesse max réduite de cette fraction par voile abattue (au plus
+   * `riggingMaxLoss`) ; plusieurs coups peuvent en abattre plusieurs, tant qu'il en reste cette part (`minSailsLeft`).
+   */
+  riggingSpeedLoss: 0.2,
+  riggingMaxLoss: 0.45,
+  minSailsLeft: 0.5,
   /** Gouvernail touché : vitesse de virage réduite de cette fraction. */
   rudderTurnLoss: 0.5,
   /** Incendie : dégâts par seconde (fraction de la vie max), sans jamais descendre sous `fireFloor` de la vie max. */

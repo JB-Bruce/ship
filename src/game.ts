@@ -229,7 +229,7 @@ export class Game {
     for (const ship of this.ships) this.effects.shipAmbient(dt, ship, this.waves);
     this.effects.update(dt, this.waves, this.ships);
     this.bossSinking.update(dt);
-    this.criticals.update(dt, this.ships, this.camera);
+    this.criticals.update(dt, this.ships);
     this.schoolFx.update(dt, this.schools.list, this.waves);
     this.loot.update(dt, this.ships, this.waves);
     this.handleLeaderLoss();

@@ -58,11 +58,8 @@ export class Hud {
     this.combat = el('div', 'hud-combat');
     this.combat.textContent = '⚔ À portée de tir';
     this.banner = el('div', 'hud-banner');
-    const help = el('div', 'hud-help');
-    help.textContent =
-      'Z / S (maintenir) : hisser / affaler la voile · Q / D : barre · T : flotte · M : carte · E : port (près du quai) · F : pêcher (près d’un banc) · Glisser la souris : caméra · Molette : zoom · Échap : paramètres · Les canons tirent seuls';
     const topRight = el('div', 'hud-top-right');
-    root.append(this.fleetStrip, panel, this.combat, this.banner, help, topRight);
+    root.append(this.fleetStrip, panel, this.combat, this.banner, topRight);
     this.toasts = new Toasts(root);
     parent.appendChild(root);
     this.quests = new QuestTracker(topRight);
