@@ -177,6 +177,20 @@ export class Effects {
     this.glow.spawn(f);
   }
 
+  /** Braise d'un incendie : une étincelle qui monte haut en tourbillonnant. */
+  ember(p: THREE.Vector3) {
+    const s = reset(p.x + rand(-0.4, 0.4), p.y + 0.3, p.z + rand(-0.4, 0.4), COLORS.gold);
+    Object.assign(s, { vx: rand(-1, 1), vy: rand(3, 6), vz: rand(-1, 1), life: rand(1, 1.8), size: 0.09, sizeEnd: 0.02, drag: 0.6 });
+    this.glow.spawn(s);
+  }
+
+  /** Grosse bouffée de fumée noire qui monte haut (panache d'un incendie, colonne d'une explosion) ; `scale` = taille. */
+  plume(p: THREE.Vector3, scale = 1) {
+    const s = reset(p.x + rand(-0.4, 0.4) * scale, p.y + 0.5, p.z + rand(-0.4, 0.4) * scale, COLORS.darkSmoke);
+    Object.assign(s, { vx: rand(-0.5, 0.5), vy: rand(2.2, 3.4) * scale, vz: rand(-0.5, 0.5), life: rand(2.5, 3.5), size: rand(0.35, 0.6) * scale, sizeEnd: rand(1.4, 2) * scale, drag: 0.4, spin: rand(-0.4, 0.4) });
+    this.lit.spawn(s);
+  }
+
   /** Bouffée de fumée (incendie, gouvernail brisé) en `p`. */
   puff(p: THREE.Vector3, dark: boolean) {
     const s = reset(p.x + rand(-0.2, 0.2), p.y + 0.2, p.z + rand(-0.2, 0.2), dark ? COLORS.darkSmoke : COLORS.smoke);

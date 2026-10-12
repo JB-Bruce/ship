@@ -461,9 +461,15 @@ body {
   color: #ff4a3a;
 }
 
-/* Un navire de ta flotte : son nom, en bleu clair comme les alliés. */
-.ship-tag.mine {
+/* Un navire de ta flotte : son nom, en bleu clair comme les alliés, puis son type ; un autre allié : son type. */
+.ship-tag.mine,
+.ship-tag.ally {
   color: #cfe8ff;
+}
+
+.ship-tag .type {
+  font-weight: 400;
+  opacity: 0.8;
 }
 
 

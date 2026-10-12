@@ -17,6 +17,8 @@ export class ShipCrits {
   /** Foyer (index dans ShipModel.fireSpots) où brûle l'incendie. */
   fireSpot = 0;
   private readonly droppedSails: THREE.Object3D[] = [];
+  /** Dernière voile abattue (elle tombe à l'eau : fx/fallingSails.ts). */
+  lastDropped: THREE.Object3D | null = null;
 
   get any(): boolean {
     return this.fire > 0 || this.rudder > 0 || this.rigging > 0;
@@ -57,6 +59,7 @@ export class ShipCrits {
       const sail = sails[Math.floor(Math.random() * sails.length)];
       sail.visible = false;
       this.droppedSails.push(sail);
+      this.lastDropped = sail;
     } else if (this[kind] > 0) return false;
     if (kind === 'fire') this.fireSpot = Math.floor(Math.random() * Math.max(1, spots));
     this[kind] = CRIT.repairTime[kind];

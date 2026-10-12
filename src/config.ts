@@ -577,11 +577,26 @@ export const CRIT = {
   /** Sainte-barbe : la réserve de poudre explose, dégâts (fraction de la vie max), secousse si c'est près de toi. */
   magazineDamage: 0.25,
   magazineShake: 0.6,
-  /** Flammes et fumée d'avarie (par seconde). */
-  flameRate: 7,
-  smokeRate: 2.5,
-  /** Texte flottant au-dessus du navire touché (s). */
-  popupTime: 1.8,
+  /** Flammes, fumée noire en panache et braises de l'incendie (par seconde) ; lueur orange la nuit (taille du halo, ×). */
+  flameRate: 12,
+  smokeRate: 4,
+  emberRate: 5,
+  fireGlow: 3.5,
+  /**
+   * Sainte-barbe : taille de l'explosion, colonne de fumée noire qui reste (durée s, bouffées par seconde), débris
+   * projetés autour (nombre, distance m).
+   */
+  magazineScale: 1.8,
+  magazineSmoke: { time: 8, rate: 7 },
+  magazineDebris: 9,
+  magazineDebrisRange: [5, 14] as const,
+  /**
+   * Voile abattue : elle tombe (gravité m/s², dérive m/s, rotation rad/s), flotte (s, à cette hauteur au-dessus de
+   * l'eau), puis coule (s, m/s) ; au plus `max` à la fois.
+   */
+  sailFall: { gravity: 7, drift: 1.6, spin: 1.6, float: 8, floatHeight: 0.15, sink: 4, sinkSpeed: 0.5, max: 8 },
+  /** Un navire hors de ta flotte touché par un coup critique lâche un peu de butin (part du butin d'une épave). */
+  lootFactor: 0.3,
 };
 
 /** Registre du capitaine. */

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { FleetMember } from '../fleet/fleet';
 import { rankName, rankOf } from '../fleet/officers';
 import type { Ship } from '../ship/ship';
+import { typeName } from '../shipTypes';
 import type { Enemy } from '../world/enemySpawner';
 import { enemyTagHtml, threatOf, type Threat } from './enemyTags';
 
@@ -79,18 +80,24 @@ export class HealthBars {
     tag.innerHTML = enemyTagHtml(enemy, threat);
   }
 
-  /** Étiquette d'un navire de ta flotte : étoiles de rang et nom (rien pour un pirate ou un marchand allié). */
+  /** Étiquette d'un allié : pour ta flotte, étoiles de rang, nom et type ; pour un pirate ou un marchand allié, son type. */
   private updateMine(bar: Bar, transform: string, ship: Ship, fleet: readonly FleetMember[]) {
     let member: FleetMember | null = null;
     for (const m of fleet) if (m.ship === ship) member = m;
-    if (!member) return;
-    const tag = (bar.tag ??= this.tagElement('ship-tag mine'));
+    const tag = (bar.tag ??= this.tagElement(member ? 'ship-tag mine' : 'ship-tag ally'));
     tag.style.transform = transform;
-    const stars = rankOf(member.kills);
-    const label = `${stars}|${member.name}`;
+    const stars = member ? rankOf(member.kills) : 0;
+    const type = typeName(ship.type, ship.extension);
+    const label = `${stars}|${member?.name ?? ''}|${type}`;
     if (label === bar.label) return;
     bar.label = label;
-    tag.textContent = member.name;
+    tag.textContent = member ? member.name : type;
+    if (member) {
+      const kind = document.createElement('span');
+      kind.className = 'type';
+      kind.textContent = ` · ${type}`;
+      tag.append(kind);
+    }
     if (!stars) return;
     const rank = document.createElement('span');
     rank.className = 'rank';

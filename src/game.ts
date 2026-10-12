@@ -150,7 +150,15 @@ export class Game {
     this.settings.onChange(applyGraphics);
     this.radar = new Radar(container);
     this.encounters = new EncounterAlerts(this.hud, this.radar);
-    this.criticals = new Criticals({ container, effects: this.effects, hud: this.hud, camera: this.chaseCamera, leader: () => this.fleet.leader });
+    this.criticals = new Criticals({
+      container,
+      effects: this.effects,
+      hud: this.hud,
+      camera: this.chaseCamera,
+      scene: this.scene,
+      leader: () => this.fleet.leader,
+      struck: (ship) => this.critLoot(ship),
+    });
     this.healthBars = new HealthBars(container);
     this.bossBar = new ObjectiveBar(container, 'boss');
     this.siegeBar = new ObjectiveBar(container, 'siege');
@@ -192,6 +200,13 @@ export class Game {
     this.display.start(this.scene, this.camera, (time) => this.frame(time));
   }
 
+  /** Un navire hors de ta flotte touché par un coup critique lâche un peu de butin. */
+  private critLoot(ship: Ship) {
+    if (this.fleet.members.some((m) => m.ship === ship)) return;
+    const factor = this.spawner.enemies.find((e) => e.ship === ship)?.lootFactor ?? 1;
+    this.loot.spawnWreckLoot(ship.position.x, ship.position.z, factor * CRIT.lootFactor);
+  }
+
   /** Le moteur de rendu (accès console en ?debug pour les tests). */
   get renderer(): THREE.WebGLRenderer {
     return this.display.renderer;
@@ -229,7 +244,7 @@ export class Game {
     for (const ship of this.ships) this.effects.shipAmbient(dt, ship, this.waves);
     this.effects.update(dt, this.waves, this.ships);
     this.bossSinking.update(dt);
-    this.criticals.update(dt, this.ships);
+    this.criticals.update(dt, this.ships, this.waves);
     this.schoolFx.update(dt, this.schools.list, this.waves);
     this.loot.update(dt, this.ships, this.waves);
     this.handleLeaderLoss();
