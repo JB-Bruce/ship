@@ -15,6 +15,8 @@ const TWINS = {
   'src/ocean/oceanMesh.ts': 'Formule de Gerstner : la version TS de src/ocean/waves.ts doit rester identique (calme près des îles compris).',
   'src/world/island.ts': 'Îles : la formule TS (rayon, lobes, crique, sdf, calme) et ISLAND_GLSL (même fichier, utilisé par oceanMesh.ts) doivent rester identiques.',
   'src/ship/parts/hullShape.ts': 'WATERLINE_SAMPLES doit rester égal au float[8] du shader de src/ocean/wakeShaders.ts.',
+  'src/save/saveData.ts': 'Sauvegarde : tout changement de forme de SaveData augmente SAVE_VERSION, avec une conversion des anciennes sauvegardes.',
+  'src/save/fleetSnapshot.ts': 'Sauvegarde : tout changement de forme augmente SAVE_VERSION (save/saveData.ts), avec une conversion des anciennes sauvegardes.',
   'src/ocean/wakeShaders.ts': 'Le float[8] du shader doit rester égal à WATERLINE_SAMPLES (src/ship/parts/hullShape.ts).',
 };
 
@@ -27,6 +29,10 @@ if (!rel.startsWith('src/') || !existsSync(filePath)) process.exit(0);
 
 const notes = [];
 if (TWINS[rel]) notes.push(TWINS[rel]);
+// Un module qui garde son état via snapshot()/restore() : un nouvel état durable doit y entrer.
+if (rel.endsWith('.ts') && !rel.startsWith('src/save/') && /\bsnapshot\(\)/.test(readFileSync(filePath, 'utf8'))) {
+  notes.push(`${rel} est sauvegardé (snapshot/restore) : tout nouvel état durable doit entrer dans le snapshot (et SAVE_VERSION + conversion si la forme change).`);
+}
 if (rel.endsWith('.ts') && !LONG_OK.has(rel)) {
   const lines = readFileSync(filePath, 'utf8').split('\n').length;
   if (lines > MAX_LINES) notes.push(`${rel} fait ${lines} lignes (> ~300) : envisager de le découper (un module par responsabilité).`);
