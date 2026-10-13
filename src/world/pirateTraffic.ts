@@ -3,7 +3,7 @@ import { mooringSpot, PirateAI } from '../ai/pirateAI';
 import { ENEMIES, LIVERIES, PIRATES } from '../config';
 import { randomLevels } from '../progression/upgrades';
 import { createShip, type Ship } from '../ship/ship';
-import { SHIP_SIZE_ORDER, sizeRank, type ShipType } from '../shipTypes';
+import { maxRank, sizeRank, typeOfRank, type ShipType } from '../shipTypes';
 import type { FleetPower } from './enemySpawner';
 import type { FishSchool } from './fishSchools';
 import { ISLAND_LIST } from './island';
@@ -85,9 +85,9 @@ export class PirateTraffic {
 
   /** De la chaloupe jusqu'à un cran au-dessus de ton plus gros navire. */
   private pickType(): ShipType {
-    const max = Math.min(SHIP_SIZE_ORDER.length - 1, sizeRank(this.fleetPower().best) + 1);
+    const max = Math.min(maxRank(), sizeRank(this.fleetPower().best) + 1);
     const min = sizeRank('longboat');
-    return SHIP_SIZE_ORDER[min + Math.floor(Math.random() * (max - min + 1))];
+    return typeOfRank(min + Math.floor(Math.random() * (max - min + 1)));
   }
 
   private remove(index: number) {

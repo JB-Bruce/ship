@@ -63,7 +63,9 @@ function extensionCard(ctx: PortContext): string {
   const ext = all[index];
   const pct = (f: number) => `${f >= 1 ? '+' : '−'}${Math.round(Math.abs(f - 1) * 100)} %`;
   const from = def.stats.length + all.slice(0, index).reduce((sum, e) => sum + e.length, 0);
-  const effects = `Coque ${from} → ${from + ext.length} m · vie ${pct(ext.healthFactor)} · vitesse ${pct(ext.speedFactor)} · virage ${pct(ext.turnFactor)} · masse +${ext.mass}`;
+  const hull = ext.length > 0 ? `Coque ${from} → ${from + ext.length} m · ` : '';
+  const turn = ext.turnFactor !== 1 ? ` · virage ${pct(ext.turnFactor)}` : '';
+  const effects = `${hull}vie ${pct(ext.healthFactor)} · vitesse ${pct(ext.speedFactor)}${turn} · masse +${ext.mass}`;
   // Niveaux qu'il ouvre : ceux qui suivent les niveaux déjà ouverts avant lui.
   const unlocks = UPGRADE_IDS.filter((id) => ext.extraLevels[id])
     .map((id) => {

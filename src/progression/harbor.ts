@@ -91,7 +91,8 @@ export class Harbor {
     refit(member, this.crew);
     this.ledger.shipsExtended++;
     this.events.say(`${member.name} reprend la mer en ${ext.name.toLowerCase()} !`);
-    this.events.log(`⟷ Le chantier a allongé ${member.name} de ${ext.length} m`);
+    // Un gréement neuf (goélette à hunier) ne rallonge pas la coque.
+    this.events.log(ext.length > 0 ? `⟷ Le chantier a allongé ${member.name} de ${ext.length} m` : `⟷ Le chantier a regréé ${member.name}`);
   }
 
   /** Achète le niveau suivant d'une amélioration pour le bateau piloté. */

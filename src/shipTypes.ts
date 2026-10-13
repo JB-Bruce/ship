@@ -2,24 +2,35 @@
 // Un tableau d'amélioration = une valeur par niveau (le niveau 1 est la première case).
 
 import { UPGRADE_INFO, type ShipTypeDef } from './shipTypeDef';
-import { BRIGANTINE_STATS, CARAVEL_STATS, CORVETTE_STATS, FRIGATE_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SLOOP_STATS, weaker } from './shipStats';
+import { BRIGANTINE_STATS, CARAVEL_STATS, CORVETTE_STATS, FRIGATE_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, weaker } from './shipStats';
 
-export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'caravel' | 'brigantine' | 'corvette' | 'frigate';
-/** Du plus petit au plus gros. */
-export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', 'brigantine', 'corvette', 'frigate'];
+export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'caravel' | 'schooner' | 'brigantine' | 'corvette' | 'frigate';
+/** Du plus petit au plus gros (par rang de taille ; à rang égal, dans l'ordre d'affichage). */
+export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'corvette', 'frigate'];
 /** Nom du type d'un navire selon ses allongements (« Frégate allongée », « Grande frégate »). */
 export function typeName(type: ShipType, extension = 0): string {
   return extension > 0 ? (SHIP_TYPES[type].extensions?.[extension - 1]?.name ?? SHIP_TYPES[type].name) : SHIP_TYPES[type].name;
 }
 
-/** Rang de taille d'un type (0 = barque). */
-export const sizeRank = (type: ShipType) => SHIP_SIZE_ORDER.indexOf(type);
+/** Rang de taille d'un type (0 = barque) ; plusieurs types peuvent partager un rang. */
+export const sizeRank = (type: ShipType) => SHIP_TYPES[type].rank;
+
+/** Rang de taille le plus élevé. */
+export const maxRank = () => sizeRank(SHIP_SIZE_ORDER[SHIP_SIZE_ORDER.length - 1]);
+
+/** Un type au hasard parmi ceux d'un rang (parmi `allowed` s'il en reste, sinon parmi tous ceux du rang). */
+export function typeOfRank(rank: number, allowed: (type: ShipType) => boolean = () => true): ShipType {
+  const all = SHIP_SIZE_ORDER.filter((t) => sizeRank(t) === rank);
+  const ok = all.filter(allowed);
+  const pool = ok.length ? ok : all;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 export { UPGRADE_INFO };
 export type { ExtensionDef, MassTable, ShipTypeDef, UpgradeTable } from './shipTypeDef';
 
 /** Types que le joueur peut acheter (la barque est réservée aux ennemis). */
-export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'caravel', 'brigantine', 'corvette', 'frigate'];
+export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'corvette', 'frigate'];
 
 export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
   rowboat: {
@@ -27,6 +38,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     feminine: true,
     description: 'Barque à rames de la marine, un pierrier à l’avant.',
     armament: 'bow',
+    rank: 0,
     threat: 1,
     lootFactor: 0.5,
     price: { gold: 0, wood: 0 },
@@ -50,6 +62,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     feminine: true,
     description: 'Petite et nerveuse : une voile carrée, un pierrier par flanc.',
     armament: 'broadside',
+    rank: 1,
     threat: 2,
     lootFactor: 1,
     price: { gold: 150, wood: 0 },
@@ -72,6 +85,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     name: 'Sloop',
     description: 'Polyvalent : grand-voile et foc, pont fermé, canons sur affût. Solide et presque aussi rapide.',
     armament: 'broadside',
+    rank: 2,
     threat: 3,
     lootFactor: 2,
     price: { gold: 600, wood: 125 },
@@ -95,6 +109,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     feminine: true,
     description: 'Courte et haute : château arrière, gaillard d’avant, grand mât à voiles carrées et artimon latin. Lente mais très maniable, robuste, avec un gros canon de chasse à la proue.',
     armament: 'broadside',
+    rank: 3,
     threat: 3.5,
     lootFactor: 2.7,
     price: { gold: 1000, wood: 250 },
@@ -120,10 +135,55 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     },
     mass: { base: 270, perExtraCannon: 8, chaseGun: 14, hull: [14, 30, 48, 68], sails: [4, 9, 14], hold: [7, 12, 19], speedLossPerUnit: 0.00055 },
   },
+  schooner: {
+    name: 'Goélette',
+    feminine: true,
+    description: 'Longue et fine, deux mâts à voiles auriques : la plus rapide, et elle remonte bien au vent. Grande cale, discrète, ses ventes rapportent plus sur les routes commerciales ; fragile et peu armée.',
+    armament: 'broadside',
+    threat: 3.5,
+    rank: 3,
+    lootFactor: 2.5,
+    price: { gold: 1000, wood: 220 },
+    respawnTime: 60,
+    hold: 60,
+    canFish: true,
+    upwindLoss: 0.5,
+    detectability: 0.75,
+    tradeBonus: 0.1,
+    stats: SCHOONER_STATS,
+    enemyStats: weaker(SCHOONER_STATS, 110, 9),
+    upgrades: {
+      accuracy: { costs: [{ gold: 45, wood: 0 }, { gold: 75, wood: 0 }, { gold: 110, wood: 0 }], spreadFactor: [0.75, 0.55, 0.38] },
+      range: { costs: [], rangeFactor: [] },
+      cannons: { costs: [{ gold: 70, wood: 45 }, { gold: 110, wood: 65 }], cannonsPerSide: [3, 4] },
+      hull: { costs: [{ gold: 35, wood: 35 }, { gold: 60, wood: 60 }, { gold: 95, wood: 95 }], healthBonus: [35, 70, 110] },
+      // Goélette à hunier : un niveau de voilure et un de cale en plus.
+      sails: {
+        costs: [{ gold: 45, wood: 12 }, { gold: 70, wood: 18 }, { gold: 100, wood: 28 }, { gold: 140, wood: 40 }],
+        speedFactor: [1.05, 1.1, 1.15, 1.21],
+      },
+      hold: { costs: [{ gold: 50, wood: 30 }, { gold: 85, wood: 50 }, { gold: 120, wood: 75 }, { gold: 160, wood: 100 }], capacity: [75, 95, 120, 145] },
+    },
+    mass: { base: 240, perExtraCannon: 7, hull: [12, 26, 42], sails: [3, 6, 9, 12], hold: [8, 14, 22, 30], speedLossPerUnit: 0.0006 },
+    extensions: [
+      {
+        name: 'Goélette à hunier',
+        description: 'Le chantier lui grée un hunier, une voile carrée en tête du mât de misaine : plus de vitesse vent arrière, un pont renforcé, de la place pour une voilure et une cargaison plus grandes.',
+        cost: { gold: 900, wood: 350 },
+        length: 0,
+        healthFactor: 1.08,
+        speedFactor: 1.06,
+        turnFactor: 1,
+        mass: 25,
+        extraLevels: { sails: 1, hold: 1 },
+      },
+    ],
+  },
   brigantine: {
     name: 'Brigantin',
     description: 'Tireur d’élite : château arrière abritant deux canons, gaillard d’avant, deux mâts à voiles carrées. Très précis, longue portée, lent à virer.',
     armament: 'broadside',
+    rank: 4,
     threat: 4,
     lootFactor: 3.5,
     price: { gold: 1800, wood: 480 },
@@ -171,6 +231,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     feminine: true,
     description: 'Navire de guerre à trois mâts : une batterie couverte de canons lourds (angle de tir étroit) et, en achetant le pont, des canons légers et rapides au-dessus.',
     armament: 'broadside',
+    rank: 5,
     threat: 5,
     lootFactor: 4.5,
     price: { gold: 3500, wood: 1050 },
@@ -214,6 +275,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     feminine: true,
     description: 'Trois-mâts carré de guerre, château arrière à galeries : batterie couverte de canons lourds (angle de tir étroit) et canons légers sur les gaillards. Très solide, longue portée, lente à virer.',
     armament: 'broadside',
+    rank: 6,
     threat: 6,
     lootFactor: 6,
     price: { gold: 7200, wood: 2400 },

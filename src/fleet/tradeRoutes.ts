@@ -8,6 +8,7 @@ import type { IslandState } from '../progression/islandState';
 import type { Ledger } from '../progression/ledger';
 import type { PlayerState } from '../progression/playerState';
 import type { Ship } from '../ship/ship';
+import { SHIP_TYPES } from '../shipTypes';
 import { islandById } from '../world/island';
 import type { Fleet, FleetMember } from './fleet';
 import { freeSpace, store } from './holds';
@@ -95,7 +96,9 @@ export class TradeRoutes {
   /** Bénéfice estimé d'un aller-retour, cale pleine, aux prix d'aujourd'hui. */
   estimate(member: FleetMember, ports: readonly [IslandId, IslandId], goods: readonly [Good | null, Good | null]): number {
     const room = freeSpace(member) + (this.runner(member)?.load?.amount ?? 0);
-    const leg = (good: Good | null, from: IslandId, to: IslandId) => (good ? room * (this.margin(good, from, to) ?? 0) : 0);
+    // Négoce (goélette) : ses ventes rapportent un peu plus.
+    const bonus = SHIP_TYPES[member.type].tradeBonus ?? 0;
+    const leg = (good: Good | null, from: IslandId, to: IslandId) => (good ? room * ((this.margin(good, from, to) ?? 0) + (this.islands[to].price(good).sell ?? 0) * bonus) : 0);
     return leg(goods[0], ports[0], ports[1]) + leg(goods[1], ports[1], ports[0]);
   }
 
@@ -172,7 +175,7 @@ export class TradeRoutes {
       const n = Math.min(amount, m.cargo[good]);
       if (sell !== null && n > 0) {
         m.cargo[good] -= n;
-        const revenue = n * sell;
+        const revenue = Math.round(n * sell * (1 + (SHIP_TYPES[m.type].tradeBonus ?? 0)));
         const profit = Math.round(revenue - (cost * n) / amount);
         this.state.earn({ gold: revenue, wood: 0 });
         this.ledger.goldEarned += revenue;

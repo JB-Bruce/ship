@@ -287,8 +287,10 @@ export class Ship {
     // Voilure trouée : la vitesse max baisse avec les dégâts.
     const torn = 1 - DAMAGE.maxSpeedLoss * Math.min(1, this.damageLevel / DAMAGE.fullDamageAt);
     // Un navigateur tire plus du vent favorable et souffre moins du vent contraire.
+    // Vent de face : la goélette (upwindLoss) perd moins de vitesse que les autres.
     const w = wind.speedFactor(this.heading) - 1;
-    const windEffect = 1 + w * (w > 0 ? factor(this.modifiers, 'wind') : 1 / factor(this.modifiers, 'wind'));
+    const upwind = SHIP_TYPES[this.type].upwindLoss ?? 1;
+    const windEffect = 1 + w * (w > 0 ? factor(this.modifiers, 'wind') : upwind / factor(this.modifiers, 'wind'));
     const targetSpeed = s.maxSpeed * torn * this.crits.speedFactor * controls.sail * windEffect;
     const accel = targetSpeed > this.speed ? s.acceleration : s.deceleration;
     this.speed = moveTowards(this.speed, targetSpeed, accel * dt);

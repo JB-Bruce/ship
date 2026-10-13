@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { BROADSIDE, LAND, SAIL } from '../config';
 import { cannonStatsOf } from '../combat/cannons';
 import { isHostile, type Ship } from '../ship/ship';
+import { SHIP_TYPES } from '../shipTypes';
 import { wrapAngle } from '../utils/math';
 import { land } from '../world/island';
 import { conditions } from '../world/weather';
@@ -54,13 +55,16 @@ export function bearingTo(ship: Ship, x: number, z: number): number {
   return Math.atan2(x - ship.position.x, z - ship.position.z);
 }
 
-/** Le bateau hostile vivant le plus proche parmi `candidates`, s'il est à moins de `maxDistance`. */
-export function nearest(ship: Ship, candidates: readonly Ship[], maxDistance: number): Ship | null {
+/**
+ * Le bateau hostile vivant le plus proche parmi `candidates`, s'il est à moins de `maxDistance`. `spotting` : il faut
+ * d'abord le repérer (patrouille) ; un navire discret (ShipTypeDef.detectability) ne l'est qu'à une part de la portée.
+ */
+export function nearest(ship: Ship, candidates: readonly Ship[], maxDistance: number, spotting = false): Ship | null {
   let best: Ship | null = null;
   let bestDistance = maxDistance;
   for (const other of candidates) {
     if (other === ship || !other.alive || !isHostile(ship, other)) continue;
-    const d = ship.distanceTo(other);
+    const d = ship.distanceTo(other) / (spotting ? (SHIP_TYPES[other.type].detectability ?? 1) : 1);
     if (d < bestDistance) {
       best = other;
       bestDistance = d;

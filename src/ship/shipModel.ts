@@ -3,6 +3,7 @@ import type { Livery, ShipStats } from '../config';
 import type { ShipType } from '../shipTypes';
 import { BrigantineModel } from './brigantine/brigantineModel';
 import { CaravelModel } from './caravel/caravelModel';
+import { SchoonerModel } from './schooner/schoonerModel';
 import { CorvetteModel } from './corvette/corvetteModel';
 import type { DeckPlan } from './deckPlan';
 import type { LanternSpot } from './parts/nightGlow';
@@ -87,6 +88,7 @@ export function createShipModel(type: ShipType, stats: ShipStats, livery: Livery
   if (type === 'sloop') return new SloopModel(stats, livery);
   if (type === 'rowboat') return new RowboatModel(stats, livery);
   if (type === 'caravel') return new CaravelModel(stats, livery);
+  if (type === 'schooner') return new SchoonerModel(stats, livery);
   if (type === 'brigantine') return new BrigantineModel(stats, livery);
   if (type === 'corvette') return new CorvetteModel(stats, livery);
   if (type === 'frigate') return new FrigateModel(stats, livery);

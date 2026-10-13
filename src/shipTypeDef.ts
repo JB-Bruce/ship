@@ -67,6 +67,11 @@ export interface ShipTypeDef {
    * flotte. Elle ne suit pas l'ordre de SHIP_SIZE_ORDER (la caravelle, entre le sloop et le brigantin, vaut 3,5).
    */
   threat: number;
+  /**
+   * Rang de taille (0 = barque) : il sert à adapter les ennemis à ta flotte (« un cran au-dessus ») et aux escadres.
+   * Plusieurs types peuvent partager un rang (caravelle et goélette).
+   */
+  rank: number;
   /** Butin laissé par l'épave, relatif à une chaloupe. */
   lootFactor: number;
   price: Cost;
@@ -82,6 +87,12 @@ export interface ShipTypeDef {
   enemyStats: ShipStats;
   upgrades: UpgradeTable;
   mass: MassTable;
+  /** Vent de face : part de la perte de vitesse habituelle qu'il subit (goélette 0,5 = deux fois moins ; 1 par défaut). */
+  upwindLoss?: number;
+  /** Discrétion : les ennemis en patrouille le repèrent à cette part de leur portée habituelle (1 par défaut). */
+  detectability?: number;
+  /** Négoce : ses ventes sur une route commerciale rapportent cette part en plus (0 par défaut). */
+  tradeBonus?: number;
   /** Noms des deux calibres au chantier (par défaut « Batterie » et « Canons des gaillards »). */
   gunLabels?: { main: string; deck: string };
   /** Allongements possibles, dans l'ordre (frégate). */

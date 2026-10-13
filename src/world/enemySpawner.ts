@@ -4,7 +4,7 @@ import { BOSSES, DAY_NIGHT, ELITE_LIVERY, ENEMIES, LAND, type BossId, type Encou
 import type { ContractOptions } from '../progression/contracts';
 import { deriveStats, maxLevels, randomLevels, totalLevels } from '../progression/upgrades';
 import { createShip, Ship } from '../ship/ship';
-import { SHIP_SIZE_ORDER, SHIP_TYPES, sizeRank, type ShipType } from '../shipTypes';
+import { maxRank, SHIP_SIZE_ORDER, SHIP_TYPES, sizeRank, typeOfRank, type ShipType } from '../shipTypes';
 import { wrapAngle } from '../utils/math';
 import { ISLAND_LIST, land } from './island';
 import { conditions } from './weather';
@@ -194,17 +194,17 @@ export class EnemySpawner {
     // Jamais plus nombreux que ta flotte + ENEMIES.fleetMargin, ni plus gros que ton plus gros navire + 1 cran.
     const power = this.fleetPower();
     const size = Math.min(randInt(this.encounter.size), room, Math.max(1, power.ships) + ENEMIES.fleetMargin);
-    const largest = SIZE_ORDER[Math.min(SIZE_ORDER.length - 1, sizeRank(power.best) + 1)];
-    const cap = (type: ShipType) => (sizeRank(type) > sizeRank(largest) ? largest : type);
+    const top = Math.min(maxRank(), sizeRank(power.best) + 1);
+    const cap = (type: ShipType) => (sizeRank(type) > top ? typeOfRank(top, (t) => this.weight(t) > 0) : type);
 
     // Types : les suiveurs tirés selon la composition du moment ; le chef un cran au-dessus (grosse flottille).
     const types = Array.from({ length: size }, () => cap(this.pickType()));
     if (size > 1 && this.kills >= ENEMIES.flotilla.bigFromKills) types[0] = cap(this.biggerType(types));
     // Un seul navire plus gros que ton plus gros à la fois sur la carte (le chef d'abord) : les autres prennent ta taille.
-    if (sizeRank(largest) > sizeRank(power.best)) {
-      let allowed = this.enemies.some((e) => e.ship.alive && e.ship.type === largest) ? 0 : 1;
+    if (top > sizeRank(power.best)) {
+      let allowed = this.enemies.some((e) => e.ship.alive && sizeRank(e.ship.type) === top) ? 0 : 1;
       for (let k = 0; k < types.length; k++) {
-        if (types[k] !== largest) continue;
+        if (sizeRank(types[k]) !== top) continue;
         if (allowed > 0) allowed--;
         else types[k] = power.best;
       }
@@ -302,12 +302,16 @@ export class EnemySpawner {
 
   /** Un cran au-dessus du plus gros des types tirés, parmi ceux qui peuvent déjà apparaître. */
   private biggerType(types: readonly ShipType[]): ShipType {
-    const weights = this.stage().weights as Partial<Record<ShipType, number>>;
-    const biggest = Math.max(...types.map((t) => SIZE_ORDER.indexOf(t)));
-    for (let i = Math.min(biggest + 1, SIZE_ORDER.length - 1); i >= 0; i--) {
-      if ((weights[SIZE_ORDER[i]] ?? 0) > 0) return SIZE_ORDER[i];
+    const biggest = Math.max(...types.map(sizeRank));
+    for (let rank = Math.min(biggest + 1, maxRank()); rank >= 0; rank--) {
+      if (SIZE_ORDER.some((t) => sizeRank(t) === rank && this.weight(t) > 0)) return typeOfRank(rank, (t) => this.weight(t) > 0);
     }
     return types[0];
+  }
+
+  /** Poids d'apparition d'un type dans la composition du moment (0 = il n'apparaît pas encore). */
+  private weight(type: ShipType): number {
+    return (this.stage().weights as Partial<Record<ShipType, number>>)[type] ?? 0;
   }
 
   private stage() {

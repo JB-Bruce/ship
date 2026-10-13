@@ -1,7 +1,7 @@
 import type * as THREE from 'three';
 import type { IslandId } from '../config';
 import type { Ship } from '../ship/ship';
-import { SHIP_SIZE_ORDER, sizeRank, type ShipType } from '../shipTypes';
+import { sizeRank, typeOfRank, type ShipType } from '../shipTypes';
 import type { EnemySpawner } from '../world/enemySpawner';
 import type { Fort } from '../world/fort';
 
@@ -34,7 +34,7 @@ export function squadronTypes(leader: string, followers: number, followerMin: st
   const top = sizeRank(leader as ShipType);
   const low = Math.min(top, sizeRank(followerMin as ShipType));
   const types: ShipType[] = [leader as ShipType];
-  for (let i = 0; i < followers; i++) types.push(SHIP_SIZE_ORDER[low + Math.floor(Math.random() * (top - low + 1))]);
+  for (let i = 0; i < followers; i++) types.push(typeOfRank(low + Math.floor(Math.random() * (top - low + 1))));
   return types;
 }
 

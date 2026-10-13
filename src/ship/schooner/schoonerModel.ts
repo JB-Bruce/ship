@@ -1,0 +1,247 @@
+import * as THREE from 'three';
+import type { Livery, ShipStats } from '../../config';
+import { wrapAngle } from '../../utils/math';
+import { RENDER_ORDER } from '../../utils/renderOrder';
+import type { DeckPlan } from '../deckPlan';
+import { armorFor, cannonMount, fireSpots, mastheadStaff, riggingMaterial, waterMaskMaterial, WavingFlag } from '../parts/common';
+import { addStatics, type LanternSpot } from '../parts/nightGlow';
+import { TornSail } from '../parts/tornSail';
+import type { CannonMount, EnsignStaff, FlagMount, ShipModel } from '../shipModel';
+import {
+  BOOM_HEIGHT,
+  DECK_Y,
+  FLAG,
+  FORE_MAST,
+  FORE_TOP,
+  GUN_ZONE,
+  JIB_TACKS,
+  MAIN_MAST,
+  MAIN_TOP,
+  MAIN_TOPSAIL,
+  RAKE,
+  SCHOONER_HULL as hull,
+  SCHOONER_LENGTH,
+  schoonerDeck,
+  schoonerTemplateFor,
+  TOPSAIL,
+  type SchoonerTemplate,
+} from './schoonerTemplate';
+
+const RUDDER_MAX_ANGLE = 0.55;
+/** Allongement des bômes et des voiles auriques par niveau de voilure (en longueur seulement). */
+const SAIL_GROWTH = 0.06;
+/** Élargissement du hunier par niveau de voilure. */
+const TOPSAIL_GROWTH = 0.05;
+const GUN_INSET = 0.62;
+const MUZZLE = new THREE.Vector3(1, 0.38, 0);
+const { damp } = THREE.MathUtils;
+
+/** Un gréement aurique (bôme, voile, corne) qui pivote autour de son mât incliné ; `hoist` porte la voile et la corne. */
+interface GaffRig {
+  rig: THREE.Group;
+  hoist: THREE.Group;
+}
+
+/**
+ * Goélette : coque longue et basse, pont ras, deux mâts inclinés vers l'arrière portant chacun une voile aurique qui
+ * pivote selon le vent (et une flèche au-dessus de la grand-voile), deux focs sur un long beaupré, canons sur affût le
+ * long du pont. Goélette à hunier (setExtension) : une voile carrée en tête du mât de misaine.
+ */
+export class SchoonerModel implements ShipModel {
+  readonly root = new THREE.Group();
+  readonly cannons: CannonMount[] = [];
+  readonly barHeight = 14.8;
+  readonly waterline = hull.waterlineProfile();
+  readonly flagMount: FlagMount = { position: new THREE.Vector3(0, MAIN_TOP.y + 0.1, MAIN_TOP.z), length: FLAG.length, height: FLAG.height };
+  /** La bôme de la grand-voile passe au-dessus de la poupe : le drapeau de rang flotte en tête de misaine. */
+  readonly ensignStaff: EnsignStaff = mastheadStaff(FORE_TOP.z, FORE_TOP.y);
+  readonly lanterns: LanternSpot[];
+  readonly fireSpots = fireSpots(hull, [
+    [-0.7, 0.3, DECK_Y],
+    [-0.2, -0.4, DECK_Y],
+    [0.45, 0.3, DECK_Y],
+    [0.75, -0.2, DECK_Y],
+    [0.1, 1, 0.45],
+    [-0.5, -1, 0.45],
+  ]);
+  private readonly plans: readonly DeckPlan[] = [schoonerDeck(0), schoonerDeck(1)];
+  private readonly template: SchoonerTemplate;
+  private readonly tornSail: TornSail;
+  private readonly rigs: GaffRig[];
+  private readonly jibs: THREE.Mesh[];
+  private readonly topsail: THREE.Group;
+  private readonly topsailSail: THREE.Mesh;
+  private readonly rudder: THREE.Mesh;
+  private readonly flag: WavingFlag;
+  private readonly gunports: THREE.Mesh[] = [];
+  private armor: THREE.Mesh | null = null;
+  private extension = 0;
+  private sailAmount = 0;
+  private sailLevel = 0;
+  /** Côté sous le vent : +1 bâbord, -1 tribord (où les bômes sont poussées). */
+  private leeSide = 1;
+  private boomTarget = 0;
+
+  constructor(stats: ShipStats, livery: Livery) {
+    const t = (this.template = schoonerTemplateFor(livery));
+    this.tornSail = new TornSail(t.sailMaterial, livery.sailEmblem);
+    this.lanterns = addStatics(this.root, t.statics);
+
+    // Grand-voile (elle porte l'emblème de la livrée, s'il y en a un) et sa flèche, puis la misaine.
+    const main = this.gaffRig(MAIN_MAST.z, t.mainBoom, t.mainSail, t.mainGaff, true);
+    const topsail = new THREE.Mesh(t.mainTopsail, this.tornSail.material(t.mainTopsail, 'x'));
+    topsail.position.copy(MAIN_TOPSAIL.tack);
+    main.hoist.add(topsail);
+    this.rigs = [main, this.gaffRig(FORE_MAST.z, t.foreBoom, t.foreSail, t.foreGaff, false)];
+
+    this.jibs = t.jibs.map((geometry, i) => {
+      const jib = new THREE.Mesh(geometry, this.tornSail.material(geometry, 'x'));
+      jib.position.copy(JIB_TACKS[i]);
+      this.root.add(jib);
+      return jib;
+    });
+
+    // Hunier (goélette à hunier), sur le mât de misaine incliné.
+    this.topsail = new THREE.Group();
+    this.topsail.position.set(0, DECK_Y, FORE_MAST.z);
+    this.topsail.rotation.x = -RAKE;
+    this.topsailSail = new THREE.Mesh(t.topsail, this.tornSail.material(t.topsail, 'z'));
+    this.topsailSail.position.set(0, TOPSAIL.along, 0.2);
+    const yard = new THREE.Mesh(t.topsailYard, t.palette.wood);
+    yard.position.set(0, TOPSAIL.along, 0.1);
+    this.topsail.add(this.topsailSail, yard);
+    this.topsail.visible = false;
+
+    this.rudder = new THREE.Mesh(t.rudder, t.palette.trim);
+    this.rudder.position.set(0, 0.85, hull.stationAt(-1).z - 0.04);
+    this.flag = new WavingFlag(t.flagMaterial, FLAG.length, FLAG.height);
+    this.flag.mesh.position.copy(this.flagMount.position);
+
+    const waterMask = new THREE.Mesh(t.waterMask, waterMaskMaterial);
+    waterMask.renderOrder = RENDER_ORDER.waterMask;
+    this.root.add(this.topsail, this.rudder, this.flag.mesh, new THREE.LineSegments(t.rigging, riggingMaterial), waterMask);
+    this.setCannons(stats.cannonsPerSide);
+    this.applySails();
+    this.root.scale.setScalar(stats.length / SCHOONER_LENGTH);
+  }
+
+  /** Pont de l'équipage animé : le hunier embarque un matelot de plus. */
+  get deckPlan(): DeckPlan {
+    return this.plans[this.extension];
+  }
+
+  /** Goélette à hunier (1) : le hunier apparaît en tête de misaine ; la coque ne change pas. Renvoie true s'il a changé. */
+  setExtension(level: number): boolean {
+    const extension = Math.min(level, this.plans.length - 1);
+    if (extension === this.extension) return false;
+    this.extension = extension;
+    this.topsail.visible = extension > 0;
+    return true;
+  }
+
+  setSailAmount(amount: number) {
+    this.sailAmount = amount;
+    this.tornSail.setDeployment(amount);
+    this.applySails();
+  }
+
+  setSailLevel(level: number) {
+    this.sailLevel = level;
+    this.applySails();
+  }
+
+  setRudder(rudder: number) {
+    this.rudder.rotation.y = -rudder * RUDDER_MAX_ANGLE;
+  }
+
+  /** Les bômes partent du côté où va le vent : presque dans l'axe au près, largement ouvertes au vent arrière. */
+  setWind(relativeDirection: number, strength: number) {
+    this.flag.setWind(relativeDirection, strength);
+    this.tornSail.setWind(relativeDirection, strength);
+    const s = Math.sin(relativeDirection);
+    // Hystérésis : au vent arrière pile, les bômes ne passent pas d'un bord à l'autre sans arrêt.
+    if (s > 0.15) this.leeSide = 1;
+    else if (s < -0.15) this.leeSide = -1;
+    const opening = 0.12 + 1.1 * (1 - Math.abs(wrapAngle(relativeDirection)) / Math.PI);
+    this.boomTarget = -this.leeSide * opening;
+  }
+
+  setArmorLevel(level: number) {
+    if (this.armor) this.root.remove(this.armor);
+    this.armor = null;
+    const armor = armorFor(hull, level);
+    if (armor) this.root.add((this.armor = new THREE.Mesh(armor.geometry, armor.material)));
+  }
+
+  /** Canons sur affût, tirant par des sabords répartis régulièrement le long de chaque bord. */
+  setCannons(perSide: number) {
+    const t = this.template;
+    for (const { object } of this.cannons) this.root.remove(object);
+    for (const port of this.gunports) this.root.remove(port);
+    this.cannons.length = 0;
+    this.gunports.length = 0;
+    for (let i = 0; i < perSide; i++) {
+      const z = perSide === 1 ? (GUN_ZONE.aft + GUN_ZONE.fore) / 2 : THREE.MathUtils.lerp(GUN_ZONE.aft, GUN_ZONE.fore, i / (perSide - 1));
+      const s = hull.stationAt(z / hull.halfLength);
+      for (const side of [1, -1] as const) {
+        const cannon = new THREE.Mesh(t.cannon, t.palette.metal);
+        cannon.position.set(side * (s.halfWidth - GUN_INSET), DECK_Y, s.z);
+        const port = new THREE.Mesh(t.gunport, t.palette.dark);
+        port.position.set(side * (s.halfWidth + 0.02), DECK_Y + 0.35, s.z);
+        this.root.add(cannon, port);
+        this.gunports.push(port);
+        this.cannons.push(cannonMount(cannon, (side * Math.PI) / 2, MUZZLE));
+      }
+    }
+  }
+
+  animate(dt: number) {
+    this.flag.update(dt);
+    for (const { rig, hoist } of this.rigs) {
+      rig.rotation.y = damp(rig.rotation.y, this.boomTarget, 1.2, dt);
+      hoist.scale.x = this.leeSide;
+    }
+    for (const jib of this.jibs) jib.scale.x = Math.abs(jib.scale.x) * this.leeSide;
+  }
+
+  setFlagLift(lift: number) {
+    this.flag.mesh.position.y = this.flagMount.position.y + lift;
+  }
+
+  setDamage(damage: number) {
+    this.tornSail.setDamage(damage);
+  }
+
+  dispose() {
+    this.flag.dispose();
+    this.tornSail.dispose();
+  }
+
+  /** Un gréement aurique sur le mât incliné posé en `mastZ` : bôme, et la partie hissée (voile + corne). */
+  private gaffRig(mastZ: number, boom: THREE.BufferGeometry, sail: THREE.BufferGeometry, gaff: THREE.BufferGeometry, emblem: boolean): GaffRig {
+    const t = this.template;
+    const tilt = new THREE.Group();
+    tilt.position.set(0, DECK_Y, mastZ);
+    tilt.rotation.x = -RAKE;
+    const rig = new THREE.Group();
+    rig.position.y = BOOM_HEIGHT;
+    const hoist = new THREE.Group();
+    hoist.add(new THREE.Mesh(sail, this.tornSail.material(sail, 'x', emblem)), new THREE.Mesh(gaff, t.palette.wood));
+    rig.add(new THREE.Mesh(boom, t.palette.wood), hoist);
+    tilt.add(rig);
+    this.root.add(tilt);
+    return { rig, hoist };
+  }
+
+  /** Voiles hissées (cran de voile) et agrandies (niveau de voilure) ; focs enroulés vers le beaupré. */
+  private applySails() {
+    const hoisted = 0.1 + 0.9 * this.sailAmount;
+    for (const { rig, hoist } of this.rigs) {
+      rig.scale.z = 1 + SAIL_GROWTH * this.sailLevel;
+      hoist.scale.set(this.leeSide, hoisted, 1);
+    }
+    this.topsailSail.scale.set(1 + TOPSAIL_GROWTH * this.sailLevel, hoisted, 1);
+    const jib = 0.15 + 0.85 * this.sailAmount;
+    for (const j of this.jibs) j.scale.set(jib * this.leeSide, jib, jib);
+  }
+}

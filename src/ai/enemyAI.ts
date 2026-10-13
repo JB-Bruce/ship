@@ -82,7 +82,8 @@ export class EnemyAI {
     // Une flottille alertée cherche ses proies aussi loin qu'un ennemi déjà lancé à leur poursuite.
     const hunting = this.state !== 'patrol' || this.group?.alerted;
     const range = this.options.relentless ? Infinity : hunting ? ENEMIES.loseRange : ENEMIES.detectionRange * conditions.detectionFactor;
-    const target = nearest(this.ship, targets, range);
+    // En patrouille, il faut d'abord repérer sa proie (un navire discret se laisse approcher).
+    const target = nearest(this.ship, targets, range, !hunting && !this.options.relentless);
     this.target = target;
     const distance = target ? this.ship.distanceTo(target) : Infinity;
     this.targetDistance = distance;

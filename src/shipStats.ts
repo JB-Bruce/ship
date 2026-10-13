@@ -76,6 +76,25 @@ export const CARAVEL_STATS: ShipStats = {
 };
 
 /**
+ * Goélette : longue et fine, deux mâts à voiles auriques et focs, pont ras. La plus rapide, fragile, petits canons :
+ * un navire de commerce et de course, qui remonte bien au vent.
+ */
+export const SCHOONER_STATS: ShipStats = {
+  length: 15,
+  width: 3.8,
+  maxSpeed: 14.5,
+  acceleration: 3.4,
+  deceleration: 4,
+  turnRate: 0.55,
+  rudderSpeed: 3,
+  turnHeel: 0.008,
+  maxHealth: 140,
+  cannonsPerSide: 2,
+  cannon: { range: 125, reloadTime: 2.9, arcHalfAngle: 35 * DEG, spread: 2.5 * DEG, rangeError: 0.07, damage: 12, ballSpeed: 58 },
+  buoyancy: { stiffness: 38, damping: 10, tiltResponse: 6 },
+};
+
+/**
  * Corvette : deux calibres. Batterie couverte = canons lourds, lents à recharger, coincés dans leurs sabords
  * (angle de tir étroit) ; pont supérieur = canons légers et rapides, angle de tir normal.
  */
