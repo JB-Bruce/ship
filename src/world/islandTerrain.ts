@@ -3,7 +3,7 @@ import type { IslandId } from '../config';
 import { std } from '../ship/parts/common';
 import { GeometryBatch, tf } from '../utils/geometryBatch';
 import type { Island } from './island';
-import { CITADEL_SPOT, FORT_SPOT, LIGHTHOUSE_SPOT, ROYAL_FORT_SPOT } from './landmarks';
+import { CITADEL_SPOT, DAUPHIN_FORT_SPOT, FORT_SPOT, LIGHTHOUSE_SPOT, ROYAL_FORT_SPOT } from './landmarks';
 
 /** Marge de la grille du terrain au-delà du rayon de l'île (m), et taille d'une case (m). */
 const EXTENT_MARGIN = 80;
@@ -20,6 +20,7 @@ const DECOR: Record<IslandId, { palms: number; pines: number; rocks: number; see
   tortuga: { palms: 34, pines: 0, rocks: 26, seed: 42, palmHeight: 9, pineFrom: 0, pineHeight: 0, clear: 50 },
   sabre: { palms: 12, pines: 0, rocks: 48, seed: 97, palmHeight: 22, pineFrom: 0, pineHeight: 0, clear: 50 },
   royale: { palms: 10, pines: 90, rocks: 40, seed: 131, palmHeight: 6, pineFrom: 6, pineHeight: 55, clear: 105 },
+  dauphin: { palms: 16, pines: 5, rocks: 18, seed: 211, palmHeight: 12, pineFrom: 10, pineHeight: 24, clear: 50 },
 };
 
 const COLORS = {
@@ -135,6 +136,7 @@ const BUILT_UP = [
   [LIGHTHOUSE_SPOT, 8],
   [CITADEL_SPOT, 22],
   [ROYAL_FORT_SPOT, 36],
+  [DAUPHIN_FORT_SPOT, 17],
 ] as const;
 
 /** Palmiers sur les plages et les basses terres, rochers au bord de l'eau, pour une île. */

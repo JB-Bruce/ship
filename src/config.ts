@@ -996,6 +996,7 @@ export const SPECIAL_CONTRACTS: Record<IslandId, readonly SpecialContractDef[]> 
     { id: 'spectreBounty', kind: 'sinkBoss', stars: 5, boss: 'spectre', title: 'Prime sur Le Spectre', description: 'Coule Le Spectre, le brigantin fantôme qui hante le brouillard.' },
   ],
   royale: [],
+  dauphin: [],
 };
 
 /**
@@ -1583,7 +1584,7 @@ export interface IslandShapeDef {
 /** Nombre d'ondulations de chaque côte (taille des tableaux du shader de l'eau). */
 export const ISLAND_LOBES = 4;
 
-export type IslandId = 'tortuga' | 'sabre' | 'royale';
+export type IslandId = 'tortuga' | 'sabre' | 'royale' | 'dauphin';
 
 export const ISLANDS: Record<IslandId, IslandShapeDef> = {
   /** Île de la Tortue : ton repaire, verte et vallonnée. */
@@ -1651,6 +1652,26 @@ export const ISLANDS: Record<IslandId, IslandShapeDef> = {
     // La ville de l'arsenal, derrière Port-Royal.
     town: { inland: 50, radius: [55, 120] },
   },
+  /** Île du Dauphin : 1,3 km à l'ouest (+X), petite et basse, poste de la Marine ; sa crique regarde vers la Tortue. */
+  dauphin: {
+    center: [1300, 200],
+    radius: 110,
+    lobes: [
+      [2, 9, 0.7],
+      [3, 7, 2.1],
+      [5, 4, 4.0],
+      [7, 2, 1.3],
+    ],
+    bay: { angle: -1.72, width: 0.5, depth: 55 },
+    relief: 'hills',
+    peak: 22,
+    cliff: 0,
+    calmDistance: 120,
+    lagoonWidth: 55,
+    surfWidth: 5,
+    grass: 0x6aa64a,
+    darkGrass: 0x4d8a3a,
+  },
 };
 
 /** Navigation près des terres. */
@@ -1697,8 +1718,8 @@ export interface IslandInfoDef {
   portName: string;
   /** Nom court dans les phrases (« jusqu'à la Tortue », « attaque Port-Sabre »). */
   shortName: string;
-  /** Son fort : nom affiché, nom commun et genre (« le fort », « la citadelle »). */
-  fort: { name: string; noun: string; feminine: boolean };
+  /** Son fort : nom affiché, nom commun et genre (« le fort », « la citadelle ») ; `proper` : nom propre, sans article dans une phrase (Fort-Royal). */
+  fort: { name: string; noun: string; feminine: boolean; proper?: boolean };
   allegiance: Allegiance;
   /** Qui tient l'île tant qu'elle n'est pas à toi. */
   holders: string;
@@ -1757,7 +1778,7 @@ export const ISLAND_INFO: Record<IslandId, IslandInfoDef> = {
     name: 'Île Royale',
     portName: 'Port-Royal',
     shortName: 'Port-Royal',
-    fort: { name: 'Fort-Royal', noun: 'fort', feminine: false },
+    fort: { name: 'Fort-Royal', noun: 'fort', feminine: false, proper: true },
     allegiance: 'navy',
     holders: 'La Marine royale',
     owned: false,
@@ -1773,6 +1794,26 @@ export const ISLAND_INFO: Record<IslandId, IslandInfoDef> = {
     },
     upgrades: ['royalFort', 'dock', 'shipyard', 'workshop', 'counter'],
     captureLevels: { shipyard: 2 },
+  },
+  dauphin: {
+    name: 'Île du Dauphin',
+    portName: 'Port-Dauphin',
+    shortName: 'Port-Dauphin',
+    fort: { name: 'Fortin du Dauphin', noun: 'fortin', feminine: false },
+    allegiance: 'navy',
+    holders: 'La Marine royale',
+    owned: false,
+    // Pas à vendre : il faut abattre le fortin, puis accoster.
+    price: null,
+    description: 'Petite île basse à l’ouest de la Tortue : un village de pêcheurs sous la garde d’un poste de la Marine et de son fortin. Ses eaux sont poissonneuses et son bois bon marché.',
+    resources: ['Poisson', 'Bois'],
+    market: {
+      wood: { buy: 1, sell: 1 },
+      fish: { buy: 2, sell: 2 },
+      rum: { buy: null, sell: 9 },
+      spices: { buy: null, sell: 12 },
+    },
+    upgrades: ['fort', 'dock', 'shipyard', 'workshop', 'counter'],
   },
 };
 
@@ -1905,30 +1946,8 @@ export const CITADEL = {
   facingOffing: 120,
 };
 
-/**
- * Fort-Royal (Île Royale). Tant que la Marine tient l'île, il tire sur ta flotte et tes alliés ; tes boulets peuvent
- * le toucher, et il se répare si on le laisse en paix. Abattu, il se tait jusqu'à ce que tu prennes l'île (accoster).
- */
-export const ROYAL_FORT = {
-  /** Armement de la Marine (les autres réglages de tir sont ceux de FORT). */
-  navy: { guns: 11, range: 270, damage: 9 },
-  /**
-   * Vie de l'enceinte : contre ta flotte sous la Marine, contre ses escadres une fois à toi. Premier fort de la Marine :
-   * une frégate bien améliorée doit pouvoir l'abattre seule.
-   */
-  health: 1400,
-  /** Réparation : après `regenDelay` s sans être touché, il regagne `regenRate` de sa vie par seconde. */
-  regenDelay: 60,
-  regenRate: 0.003,
-  /** Armement une fois l'île à toi, avant amélioration (voir ISLAND_UPGRADES.royalFort). */
-  guns: 5,
-  range: 260,
-  damage: 13,
-  /** Il est orienté vers ce point, au large de l'entrée de sa crique (m). */
-  facingOffing: 140,
-  /** Sa barre de vie s'affiche à moins de cette distance de ton navire (m). */
-  barRange: 700,
-};
+/** Fort-Royal une fois l'Île Royale à toi : armement avant amélioration (voir ISLAND_UPGRADES.royalFort). */
+export const ROYAL_FORT = { guns: 5, range: 260, damage: 13 };
 
 /** Fumée et flammes d'un fort touché : fumée sous `smokeBelow` de sa vie, incendie une fois tombé (émissions par seconde). */
 export const FORT_FX = {
@@ -1941,51 +1960,94 @@ export const FORT_FX = {
 };
 
 /**
- * Garnison de la Marine à l'Île Royale, tant qu'elle la tient : des navires amarrés dans la crique, qui appareillent
- * quand on approche du port ou que le fort est touché, et des patrouilles qui tournent autour de l'île. Un navire coulé
- * est remplacé après un délai, tant que le fort tient. Ils ne sont en mer que quand tu es dans les parages.
+ * Défense d'une île de la Marine (NAVY_HOLDS), tant qu'elle la tient, et ses contre-attaques une fois prise.
+ * Le fort tire sur ta flotte et tes alliés ; tes boulets peuvent le toucher, et il se répare si on le laisse en paix.
+ * Abattu, il se tait jusqu'à ce que tu prennes l'île (accoster). La garnison : des navires amarrés dans la crique, qui
+ * appareillent quand on approche du port ou que le fort est touché, et des rondes autour de l'île ; un navire coulé est
+ * remplacé après un délai, tant que le fort tient. Contre-attaques : une escadre (tables de CONTRACTS.defend, selon le
+ * niveau de ta flotte) assiège le fort après un préavis ; repoussée, son butin va dans la réserve de l'île ; si le fort
+ * tombe, la Marine reprend l'île.
  */
+export interface NavyHoldDef {
+  /** Armement (les autres réglages de tir sont ceux de FORT), vie, réparation (après `regenDelay` s sans être touché, `regenRate` de sa vie par seconde), orientation vers ce point au large de l'entrée de la crique (m). */
+  fort: { guns: number; range: number; damage: number; health: number; regenDelay: number; regenRate: number; facingOffing: number };
+  garrison: {
+    /** Navires amarrés : type, place (écart d'angle depuis l'axe de la crique (rad), distance au large de la côte (m)). */
+    moored: readonly { readonly type: ShipType; readonly angle: number; readonly offing: number }[];
+    /** Rondes, chacune dans un sens, à `patrolOffing` m au-delà du rayon extérieur de l'île. */
+    patrols: readonly ShipType[];
+    patrolOffing: number;
+    /** Améliorations des navires (0 à 1, comme la menace des ennemis), fixes : ils ne suivent pas tes victoires. */
+    threat: number;
+    /** Un navire coulé est remplacé après ce délai (s), tant que le fort tient. */
+    reinforceDelay: readonly [number, number];
+    /** La garnison prend la mer quand ton navire est à moins de `activeRadius` m du centre de l'île ; au-delà de `releaseRadius`, ses navires au repos rentrent. */
+    activeRadius: number;
+    releaseRadius: number;
+  };
+  counterAttack: {
+    /** Temps entre deux contre-attaques (s), préavis entre l'alerte et l'arrivée de l'escadre (s). */
+    interval: readonly [number, number];
+    warning: number;
+    /** Étoiles de l'escadre = niveau de ta flotte + `starBonus`, entre 1 et `maxStars`. */
+    starBonus: number;
+    maxStars: number;
+    /** Butin d'un navire de l'escadre coulé, déposé dans la réserve de l'île quand elle est repoussée. */
+    spoilsPerShip: Cost;
+  };
+}
+
+export const NAVY_HOLDS: Partial<Record<IslandId, NavyHoldDef>> = {
+  /** Île Royale : premier grand fort de la Marine ; une frégate bien améliorée doit pouvoir l'abattre seule. */
+  royale: {
+    fort: { guns: 11, range: 270, damage: 9, health: 1400, regenDelay: 60, regenRate: 0.003, facingOffing: 140 },
+    garrison: {
+      moored: [
+        { type: 'corvette', angle: 0, offing: 90 },
+        { type: 'brigantine', angle: 0.16, offing: 55 },
+      ],
+      patrols: ['caravel'],
+      patrolOffing: 170,
+      threat: 0.25,
+      reinforceDelay: [180, 300],
+      activeRadius: 1400,
+      releaseRadius: 1800,
+    },
+    counterAttack: { interval: [1100, 1300], warning: 120, starBonus: 1, maxStars: 5, spoilsPerShip: { gold: 140, wood: 50 } },
+  },
+  /** Île du Dauphin : petit poste de la Marine, fortin et deux navires ; prenable avec un brigantin ou une corvette bien équipés. */
+  dauphin: {
+    fort: { guns: 4, range: 220, damage: 5, health: 600, regenDelay: 60, regenRate: 0.004, facingOffing: 100 },
+    garrison: {
+      moored: [
+        { type: 'sloop', angle: 0.12, offing: 45 },
+        { type: 'caravel', angle: -0.14, offing: 50 },
+      ],
+      patrols: [],
+      patrolOffing: 120,
+      threat: 0.15,
+      reinforceDelay: [200, 320],
+      activeRadius: 900,
+      releaseRadius: 1200,
+    },
+    // Plus petites et plus rares que sur l'Île Royale.
+    counterAttack: { interval: [1800, 2200], warning: 120, starBonus: 0, maxStars: 3, spoilsPerShip: { gold: 90, wood: 35 } },
+  },
+};
+
+/** Réglages communs aux garnisons de la Marine (le reste dans NAVY_HOLDS). */
 export const GARRISON = {
-  /** Navires amarrés : type, place (écart d'angle depuis l'axe de la crique (rad), distance au large de la côte (m)). */
-  moored: [
-    { type: 'corvette', angle: 0, offing: 90 },
-    { type: 'brigantine', angle: 0.16, offing: 55 },
-  ] as const,
-  /** Patrouilles, chacune dans un sens, à `patrolOffing` m au-delà du rayon extérieur de l'île. */
-  patrols: ['caravel'] as const,
-  /** Améliorations des navires de la garnison (0 à 1, comme la menace des ennemis), fixes : ils ne suivent pas tes victoires. */
-  threat: 0.25,
-  patrolOffing: 170,
-  /** La garnison prend la mer quand ton navire est à moins de `activeRadius` m du centre de l'île ; au-delà de `releaseRadius`, ses navires au repos rentrent. */
-  activeRadius: 1400,
-  releaseRadius: 1800,
   /** Pas d'apparition à moins de cette distance de ton navire (m) : toujours hors de vue. */
   spawnClearance: 550,
   /** Les navires amarrés appareillent quand un navire hostile approche à moins de ce rayon du port (m), ou `hitAlarm` s après un coup sur le fort. */
   alertRadius: 500,
   hitAlarm: 5,
-  /** Un navire coulé est remplacé après ce délai (s), tant que le fort tient. */
-  reinforceDelay: [180, 300] as const,
   /** Au-delà de cette distance de son poste (m), un navire de la garnison lâche sa proie et rentre. */
   leash: 900,
   /** Un navire amarré qui a appareillé rejette l'ancre à moins de cette distance de sa place (m). */
   mooringRadius: 25,
-};
-
-/**
- * Contre-attaques de la Marine sur une île que tu lui as prise : une escadre (tables de CONTRACTS.defend, selon le
- * niveau de ta flotte) assiège son fort après un préavis. Repoussée : son butin va dans la réserve de l'île. Si le fort
- * tombe, la Marine reprend l'île.
- */
-export const COUNTER_ATTACK = {
-  /** Temps entre deux contre-attaques (s) : environ deux journées. */
-  interval: [1100, 1300] as const,
-  /** Préavis entre l'alerte et l'arrivée de l'escadre (s). */
-  warning: 120,
-  /** Étoiles de l'escadre = niveau de ta flotte + ce bonus (1 à 5). */
-  starBonus: 1,
-  /** Butin d'un navire de l'escadre coulé, déposé dans la réserve de l'île quand elle est repoussée. */
-  spoilsPerShip: { gold: 140, wood: 50 },
+  /** La barre de vie d'un fort de la Marine s'affiche à moins de cette distance de ton navire (m). */
+  fortBarRange: 700,
 };
 
 /** Fort du port (canons d'appoint qui tirent sur les ennemis). */

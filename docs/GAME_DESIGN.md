@@ -7,7 +7,7 @@ Décisions prises avec l'auteur (depuis le 2026-10-06). Les valeurs chiffrées s
 - Caméra arrière (faite) et vue du dessus (plus tard).
 - Bateaux alliés qui patrouillent et attaquent les ennemis.
 - Intempéries : pluie et orage faits (boutons) ; plus tard, une météo automatique et le tonnerre (avec le son).
-- Archipel : la Tortue (ton repaire), Port-Sabre et l'Île Royale de la Marine, à conquérir (faites) ; plus tard, des comptoirs marchands, avec la même description (allégeance, marché, améliorations).
+- Archipel : la Tortue (ton repaire), Port-Sabre, et deux îles de la Marine à conquérir, l'Île Royale et l'Île du Dauphin (faites) ; plus tard, des comptoirs marchands, avec la même description (allégeance, marché, améliorations).
 
 ## Flotte (fait)
 - **T** ouvre le menu de flotte, partout (jeu en pause) : formation (ligne, colonne, en V, libre), prise de barre, état et cale de chaque navire. L'achat, la vente et les places supplémentaires se font au port (onglet Navires).
@@ -99,6 +99,17 @@ Décisions prises avec l'auteur (depuis le 2026-10-06). Les valeurs chiffrées s
 - **Prise** : le fort abattu (« Fort-Royal est tombé ! Accoste à Port-Royal pour prendre l'île »), il faut entrer au port (150 m) sans navire de la Marine à moins de 250 m du port. L'île est alors à toi (« Port-Royal est à toi ! L'arsenal de la Marine t'appartient ») : port ouvert, taverne, marché, marchands alliés ; les survivants de la garnison s'en vont. **Arsenal** : chantier naval déjà au niveau 2 (frégate tout de suite). Améliorations : Fort-Royal (5 canons, 260 m, 13 dégâts ; puis 7/9/11 canons, 280–320 m, 15–19 dégâts), Quai, Chantier naval, Scierie, Comptoir.
 - **Marché** : le bois le moins cher (acheté 1, vendu 1), poisson 5 or, rhum 11, épices 16 (le meilleur prix de l'archipel) ; rien d'autre à acheter.
 - **Contre-attaques** : une fois l'île à toi, la Marine revient l'assiéger toutes les 1 100 à 1 300 s (environ deux journées). Grand bandeau « ⚔ La Marine marche sur Port-Royal ! Son escadre attaquera dans 2 min », où que tu sois, puis un siège comme une mission de défense (escadre des tables de la défense, étoiles = niveau de ta flotte + 1) ; le suivi des contrats l'affiche en tête (« ⚔ Défendre Port-Royal » : compte à rebours, puis vie du fort et assaillants). Le fort se défend seul en attendant. Escadre repoussée : petit message, et son butin (140 or + 50 bois par navire) dans la réserve de l'île, à récupérer au port. Fort tombé : **la Marine reprend l'île** (fort remis en état, garnison de retour) ; la réserve est perdue, les améliorations restent pour le jour où tu la reprendras ; les navires en route commerciale vers Port-Royal rejoignent la flotte, et si c'était ton dernier port, la flotte réapparaîtra à la Tortue.
+
+## Île du Dauphin (fait, 2026-10-13)
+- Quatrième île, petite (rayon ~110 m) et basse, 1,3 km à l'ouest de la Tortue ; sa crique regarde vers la Tortue. Collines herbeuses, palmiers, quelques pins. Port-Dauphin : village de pêcheurs (quatre cabanes) autour du poste de garde de la Marine, quais de bois.
+- **Tenue par la Marine**, avec les mêmes règles que l'Île Royale (port fermé, fort ennemi qui se répare, garnison, prise en accostant, contre-attaques), en plus petit :
+  - **Fortin du Dauphin** : le fort à 5 bastions de la Tortue, sur la pointe nord de la crique. Sous la Marine : 4 canons (portée 220 m, 5 dégâts), 600 de vie, réparation après 60 s (0,4 %/s).
+  - **Garnison** : un sloop et une caravelle amarrés dans la crique, pas de ronde, améliorations légères (menace 0,15) ; remplacés 200 à 320 s après un naufrage tant que le fortin tient. Ils ne prennent la mer qu'à moins de 900 m de l'île.
+  - Essai (brigantin bien équipé : 360 de vie, 6 canons par bord, ancré par le travers à 150 m) : seul contre le fortin, il l'abat en ~32 s et garde la moitié de sa coque ; avec la garnison, il faut d'abord couler le sloop et la caravelle en manœuvrant.
+- **Une fois prise** : village (pas d'arsenal) : marché (bois 1, poisson acheté 2 ou vendu 2 : le moins cher de l'archipel ; rhum 9, épices 12), améliorations Fort (2 canons de base, puis 3/4/5), Quai, Chantier naval (à construire), Scierie, Comptoir ; taverne, marchands alliés.
+- **Contre-attaques** plus petites et plus rares qu'à l'Île Royale : toutes les 1 800 à 2 200 s, préavis de 2 min, étoiles = niveau de ta flotte (au plus 3) ; repoussées : 90 or + 35 bois par navire dans la réserve ; fortin tombé : la Marine reprend l'île.
+- Messages : « Le fortin du Dauphin donne l'alarme », « Port de la Marine : abats le fortin du Dauphin pour prendre l'île » (article devant un nom commun ; Fort-Royal reste sans article).
+- Correctif (même jour) : chaque fort de la Marine n'est plus visé que par tes navires à moins de 700 m de lui (avant, le premier fort de la liste, Fort-Royal, prenait tes navires pour cible où qu'ils soient, et le fortin n'était jamais touché).
 
 ## Port et escale (fait)
 - À moins de 150 m d'un port (la Tortue ou Port-Sabre), un bouton « E · <nom du port> » apparaît en bas de l'écran ; E (ou un clic) ouvre le panneau du port (parchemin, jeu en pause). Tab y ouvre directement le chantier ; loin du port, Tab rappelle qu'il faut faire escale.

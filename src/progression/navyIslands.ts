@@ -1,4 +1,4 @@
-import { ISLAND_INFO, type IslandId } from '../config';
+import { NAVY_HOLDS, type IslandId } from '../config';
 import type { MissionWorld } from '../missions/mission';
 import type { Ship } from '../ship/ship';
 import type { Fort } from '../world/fort';
@@ -10,14 +10,16 @@ export interface NavyIslandsEvents extends Omit<NavyIslandEvents, 'changed'> {
   changed(island: Island, captured: boolean): void;
 }
 
-/** Les îles de la Marine (aujourd'hui l'Île Royale), vues ensemble par la campagne, le jeu et la sauvegarde. */
+/** Les îles de la Marine (NAVY_HOLDS : l'Île Royale, l'Île du Dauphin), vues ensemble par la campagne, le jeu et la sauvegarde. */
 export class NavyIslands {
   private readonly list: NavyIsland[];
 
   constructor(states: Record<IslandId, IslandState>, world: MissionWorld, events: NavyIslandsEvents) {
-    this.list = ISLAND_LIST.filter((i) => ISLAND_INFO[i.id].allegiance === 'navy').map(
-      (i) => new NavyIsland(i, states[i.id], world.forts[i.id], world, { ...events, changed: (captured) => events.changed(i, captured) }),
-    );
+    this.list = [];
+    for (const i of ISLAND_LIST) {
+      const def = NAVY_HOLDS[i.id];
+      if (def) this.list.push(new NavyIsland(i, states[i.id], world.forts[i.id], world, { ...events, changed: (captured) => events.changed(i, captured) }, def));
+    }
   }
 
   update(dt: number, leader: Ship) {

@@ -1,4 +1,4 @@
-import { COUNTER_ATTACK, GARRISON, PORT, ROYAL_FORT, type Cost } from '../config';
+import { CONTRACTS, GARRISON, PORT, type Cost, type IslandInfoDef, type NavyHoldDef } from '../config';
 import type { CannonTarget } from '../combat/cannons';
 import type { MissionWorld } from '../missions/mission';
 import { SiegeMission } from '../missions/siegeMission';
@@ -16,8 +16,8 @@ export interface NavyIslandEvents {
   toast(text: string, tone: ToastTone): void;
   /** L'île vient d'être prise (true) ou reprise par la Marine (false) : la campagne met le reste à jour. */
   changed(captured: boolean): void;
-  /** Étoiles de l'escadre d'une contre-attaque. */
-  stars(): number;
+  /** Niveau de ta flotte (étoiles des offres de la taverne) : les contre-attaques s'y règlent. */
+  fleetLevel(): number;
 }
 
 /** Une ligne du suivi des contrats (contre-attaque en cours). */
@@ -27,6 +27,14 @@ export interface Objective {
 }
 
 const rand = ([min, max]: readonly [number, number]) => min + Math.random() * (max - min);
+
+/** Le fort dans une phrase : « Fort-Royal », « le fortin du Dauphin » ; `start` : en tête de phrase (« Le fortin… »). */
+function fortPhrase(fort: IslandInfoDef['fort'], start = false): string {
+  if (fort.proper) return fort.name;
+  const article = fort.feminine ? 'la' : 'le';
+  const phrase = `${article} ${fort.name.charAt(0).toLowerCase()}${fort.name.slice(1)}`;
+  return start ? phrase.charAt(0).toUpperCase() + phrase.slice(1) : phrase;
+}
 
 /**
  * Une île de la Marine (l'Île Royale). Tant qu'elle la tient : port fermé, fort ennemi qui se répare si on le laisse en
@@ -40,7 +48,7 @@ export class NavyIsland {
   /** Ce que visent tes canons quand le fort est à portée : le centre de l'enceinte, sous le parapet. */
   private readonly target: CannonTarget;
   private counter: SiegeMission | null = null;
-  private attackIn = rand(COUNTER_ATTACK.interval);
+  private attackIn: number;
   /** Le fort tenait à l'image précédente (null avant la première image). */
   private wasStanding: boolean | null = null;
   /** L'alarme a sonné pour cette approche (un seul message). */
@@ -54,10 +62,12 @@ export class NavyIsland {
     private readonly fort: Fort,
     private readonly world: MissionWorld,
     private readonly events: NavyIslandEvents,
+    private readonly def: NavyHoldDef,
   ) {
-    this.garrison = new NavyGarrison(island, world.spawner);
+    this.garrison = new NavyGarrison(island, world.spawner, def.garrison);
+    this.attackIn = rand(def.counterAttack.interval);
     this.target = { position: fort.aim, velocityX: 0, velocityZ: 0, radius: fort.bounds.radius };
-    this.orders = [`Port de la Marine : abats ${state.info.fort.name} pour prendre l'île`, 'Coule les navires de la Marine près du port, puis accoste pour prendre l’île'];
+    this.orders = [`Port de la Marine : abats ${fortPhrase(state.info.fort)} pour prendre l'île`, 'Coule les navires de la Marine près du port, puis accoste pour prendre l’île'];
     this.sync();
   }
 
@@ -65,7 +75,7 @@ export class NavyIsland {
   sync() {
     const navy = this.state.navyHeld;
     this.fort.setFaction(navy ? 'enemy' : 'player');
-    this.fort.regen = navy ? { delay: ROYAL_FORT.regenDelay, rate: ROYAL_FORT.regenRate } : null;
+    this.fort.regen = navy ? { delay: this.def.fort.regenDelay, rate: this.def.fort.regenRate } : null;
     harbors.setClosed(this.island.id, navy);
   }
 
@@ -95,7 +105,7 @@ export class NavyIsland {
   barFort(leader: Ship): Fort | null {
     if (this.counter) return this.counter.besieged;
     const b = this.fort.bounds;
-    const near = Math.hypot(leader.position.x - b.x, leader.position.z - b.z) < ROYAL_FORT.barRange;
+    const near = Math.hypot(leader.position.x - b.x, leader.position.z - b.z) < GARRISON.fortBarRange;
     return this.state.navyHeld && this.fort.alive && near ? this.fort : null;
   }
 
@@ -114,25 +124,32 @@ export class NavyIsland {
 
   private holdByNavy(dt: number, leader: Ship) {
     const standing = this.fort.alive;
-    const fortName = this.state.info.fort.name;
-    if (this.wasStanding && !standing) this.events.alert(`${fortName} est tombé ! Accoste à ${this.state.info.portName} pour prendre l'île.`);
+    const fort = this.state.info.fort;
+    const fell = `${fortPhrase(fort, true)} est tombé${fort.feminine ? 'e' : ''}`;
+    if (this.wasStanding && !standing) this.events.alert(`${fell} ! Accoste à ${this.state.info.portName} pour prendre l'île.`);
     this.wasStanding = standing;
     const port = this.island.port;
     const alarm = this.fort.sinceHit < GARRISON.hitAlarm || this.shipsNear(port, GARRISON.alertRadius, false);
-    if (alarm && standing && !this.alarmed) this.events.toast(`${fortName} donne l'alarme : la garnison appareille !`, 'danger');
+    if (alarm && standing && !this.alarmed) this.events.toast(`${fortPhrase(fort, true)} donne l'alarme : la garnison appareille !`, 'danger');
     if (alarm) this.alarmed = true;
-    else if (Math.hypot(leader.position.x - port.x, leader.position.z - port.z) > GARRISON.activeRadius) this.alarmed = false;
+    else if (Math.hypot(leader.position.x - port.x, leader.position.z - port.z) > this.def.garrison.activeRadius) this.alarmed = false;
     this.garrison.update(dt, leader, standing, alarm);
     this.aimFleet(standing);
     if (!standing && this.canLand(leader)) this.capture();
   }
 
-  /** Tes navires (et tes alliés) bombardent le fort de la Marine quand il est à portée et qu'aucun navire ne l'est. */
+  /**
+   * Tes navires (et tes alliés) dans les parages du fort de la Marine (GARRISON.fortBarRange) le bombardent quand il
+   * est à portée et qu'aucun navire ne l'est ; plus loin, ils n'ont plus de cible (une autre île de la Marine peut les
+   * prendre).
+   */
   private aimFleet(on: boolean) {
+    const b = this.fort.bounds;
     for (const ship of this.world.ships) {
       if (ship.faction === 'enemy') continue;
-      if (on && ship.siegeTarget === null) ship.siegeTarget = this.target;
-      else if (!on && ship.siegeTarget === this.target) ship.siegeTarget = null;
+      const near = on && Math.hypot(ship.position.x - b.x, ship.position.z - b.z) < GARRISON.fortBarRange;
+      if (near && ship.siegeTarget === null) ship.siegeTarget = this.target;
+      else if (!near && ship.siegeTarget === this.target) ship.siegeTarget = null;
     }
   }
 
@@ -155,7 +172,7 @@ export class NavyIsland {
     this.fort.restore();
     this.sync();
     this.alarmed = false;
-    this.attackIn = rand(COUNTER_ATTACK.interval);
+    this.attackIn = rand(this.def.counterAttack.interval);
     this.events.changed(true);
     this.events.alert(`${this.state.info.portName} est à toi ! L'arsenal de la Marine t'appartient.`);
   }
@@ -170,12 +187,12 @@ export class NavyIsland {
       // Fin du siège : les survivants repartent, le fort est remis en état.
       this.counter.dispose();
       this.counter = null;
-      this.attackIn = rand(COUNTER_ATTACK.interval);
+      this.attackIn = rand(this.def.counterAttack.interval);
       if (outcome === 'failure') {
         this.lose();
         return;
       }
-      const s = COUNTER_ATTACK.spoilsPerShip;
+      const s = this.def.counterAttack.spoilsPerShip;
       const spoils: Cost = { gold: s.gold * size, wood: s.wood * size };
       this.state.addSpoils(spoils);
       this.events.toast(`${info.shortName} a tenu ! Butin de l'escadre dans la réserve de l'île : +${spoils.gold} or, +${spoils.wood} bois`, 'good');
@@ -183,9 +200,11 @@ export class NavyIsland {
     }
     this.attackIn -= dt;
     if (this.attackIn > 0) return;
-    const order = { island: this.island.id, stars: this.events.stars(), delay: COUNTER_ATTACK.warning };
-    this.counter = new SiegeMission(this.world, order, () => this.events.alert(`⚔ L'escadre de la Marine attaque ${info.fort.name} !`));
-    this.events.alert(`⚔ La Marine marche sur ${info.shortName} ! Son escadre attaquera dans ${Math.round(COUNTER_ATTACK.warning / 60)} min.`);
+    const c = this.def.counterAttack;
+    const stars = Math.max(1, Math.min(c.maxStars, CONTRACTS.stars, this.events.fleetLevel() + c.starBonus));
+    const order = { island: this.island.id, stars, delay: c.warning };
+    this.counter = new SiegeMission(this.world, order, () => this.events.alert(`⚔ L'escadre de la Marine attaque ${fortPhrase(info.fort)} !`));
+    this.events.alert(`⚔ La Marine marche sur ${info.shortName} ! Son escadre attaquera dans ${Math.round(c.warning / 60)} min.`);
   }
 
   /** Le fort est tombé pendant une contre-attaque : la Marine reprend l'île (fort remis en état, garnison de retour). */
@@ -194,6 +213,7 @@ export class NavyIsland {
     this.sync();
     this.wasStanding = null;
     this.events.changed(false);
-    this.events.alert(`${this.state.info.fort.name} est tombé : la Marine reprend ${this.state.info.shortName} !`);
+    const fort = this.state.info.fort;
+    this.events.alert(`${fortPhrase(fort, true)} est tombé${fort.feminine ? 'e' : ''} : la Marine reprend ${this.state.info.shortName} !`);
   }
 }

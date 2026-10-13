@@ -22,6 +22,7 @@ export function contractProgress(c: Contract, contracts: Contracts, fleet: Fleet
 const TAVERNS: Record<IslandId, string> = {
   tortuga: 'À la taverne du Perroquet Borgne, armateurs et marchands offrent des primes aux capitaines audacieux.',
   sabre: 'À la taverne du Sabre Rouillé, les Frères du Sabre cherchent des capitaines pour leurs coups durs.',
+  dauphin: 'À la cantine de l’ancien poste de garde, pêcheurs et matelots du Dauphin cherchent des capitaines pour leurs affaires.',
   royale: 'À l’Ancre Royale, ancienne cantine des officiers du roi, tes nouveaux voisins cherchent des capitaines pour tenir l’île.',
 };
 

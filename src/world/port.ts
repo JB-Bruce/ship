@@ -43,7 +43,7 @@ interface House {
 
 /**
  * Village de chaque île. La Tortue : cabanes de bois et de chaux. Port-Sabre : maisons de pierre aux toits sombres.
- * (Port-Royal est bâti à part : arsenalPort.ts.)
+ * Port-Dauphin : cabanes de pêcheurs autour du poste de garde de la Marine. (Port-Royal est bâti à part : arsenalPort.ts.)
  */
 const HOUSES: Partial<Record<IslandId, House[]>> = {
   tortuga: [
@@ -54,6 +54,13 @@ const HOUSES: Partial<Record<IslandId, House[]>> = {
   { u: -12, v: -34, w: 6, d: 5, h: 3.2, wall: 0x9a7048, roof: 0x8a3b2a, rot: 0.15 },
   { u: 10, v: -38, w: 5, d: 4.5, h: 3, wall: 0xb08a5a, roof: 0x7a6a3a, rot: -0.1 },
   { u: -30, v: -30, w: 5.5, d: 5, h: 3, wall: 0x9a7048, roof: 0x4a5a6a, rot: 0.4 },
+  ],
+  dauphin: [
+    { u: 0, v: -22, w: 9, d: 7, h: 4.4, wall: 0x9a948a, roof: 0x3e4a5e, rot: 0 }, // poste de garde de la Marine (et sa cantine)
+    { u: -17, v: -13, w: 6, d: 5, h: 3, wall: 0x9a7048, roof: 0x7a6a3a, rot: 0.2 }, // cabanes de pêcheurs
+    { u: 16, v: -15, w: 6, d: 5, h: 3, wall: 0xd8cfb8, roof: 0x8a3b2a, rot: -0.15 },
+    { u: -10, v: -32, w: 5, d: 4.5, h: 3, wall: 0xb08a5a, roof: 0x5a4a3a, rot: 0.3 },
+    { u: 12, v: -31, w: 5.5, d: 5, h: 3, wall: 0x9a7048, roof: 0x4a5a6a, rot: -0.25 },
   ],
   sabre: [
     { u: 2, v: -22, w: 11, d: 7, h: 4.6, wall: 0x9a948a, roof: 0x5a2a22, rot: 0 }, // taverne des Frères du Sabre
@@ -67,13 +74,14 @@ const HOUSES: Partial<Record<IslandId, House[]>> = {
 const VILLAGE_PALMS: Partial<Record<IslandId, [number, number][]>> = {
   tortuga: [[-6, -10], [12, -26], [-24, -24], [26, -10]],
   sabre: [[-4, -12], [26, -26]],
+  dauphin: [[-6, -10], [22, -24], [-24, -26]],
 };
 
 /** Îles dont le port est un arsenal de la Marine (une ville de pierre) plutôt qu'un village. */
 const ARSENALS: readonly IslandId[] = ['royale'];
 
 /** Graine du tirage des palmiers de chaque village. */
-const VILLAGE_SEED: Partial<Record<IslandId, number>> = { tortuga: 7, sabre: 11 };
+const VILLAGE_SEED: Partial<Record<IslandId, number>> = { tortuga: 7, sabre: 11, dauphin: 17 };
 
 /**
  * Le port d'une île : quais et pontons sur pilotis, village pirate ; ses lanternes (repère du monde) pour les halos de

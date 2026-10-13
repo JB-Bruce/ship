@@ -19,6 +19,12 @@ const NOTES: Record<IslandId, Record<TradeGood, string>> = {
     rum: 'Les Frères du Sabre en raffolent. Achète-le à la Tortue.',
     spices: 'Écoulées par les contrebandiers. La Tortue les rachète plus cher.',
   },
+  dauphin: {
+    wood: 'Les bois de l’île ne coûtent presque rien.',
+    fish: 'Pêché par les gens du Dauphin : le moins cher de l’archipel. Port-Royal le paie bien.',
+    rum: 'Les pêcheurs en manquent. Achète-le à la Tortue.',
+    spices: 'Rares ici : la Marine les rachète correctement.',
+  },
   royale: {
     wood: 'Les forêts de l’île en regorgent : le bois le moins cher de l’archipel.',
     fish: 'La garnison et l’arsenal en consomment beaucoup.',

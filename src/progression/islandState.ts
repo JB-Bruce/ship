@@ -5,6 +5,7 @@ import {
   ISLAND_INFO,
   ISLAND_TRADE,
   ISLAND_UPGRADES,
+  NAVY_HOLDS,
   PORT,
   RADAR,
   ROYAL_FORT,
@@ -180,9 +181,10 @@ export class IslandState {
     return this.levels[id] > 0 ? values[this.levels[id] - 1] : base;
   }
 
-  /** Armement du fort de l'île (fort de la Tortue, citadelle de Port-Sabre, Fort-Royal sous la Marine ou à toi). */
+  /** Armement du fort de l'île (fort de la Tortue, citadelle de Port-Sabre, fort d'une île de la Marine, Fort-Royal à toi). */
   get fortArmament(): { guns: number; range: number; damage: number } {
-    if (this.navyHeld) return ROYAL_FORT.navy;
+    const hold = NAVY_HOLDS[this.id];
+    if (this.navyHeld && hold) return hold.fort;
     if (this.info.upgrades.includes('royalFort')) {
       const r = ISLAND_UPGRADES.royalFort;
       return { guns: this.at(r.guns, 'royalFort', ROYAL_FORT.guns), range: this.at(r.range, 'royalFort', ROYAL_FORT.range), damage: this.at(r.damage, 'royalFort', ROYAL_FORT.damage) };

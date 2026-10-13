@@ -1,4 +1,4 @@
-import { BOSSES, CONTRACTS, COUNTER_ATTACK, ISLAND_INFO, OFFICERS, PORT, type BossId, type IslandId } from './config';
+import { BOSSES, ISLAND_INFO, OFFICERS, PORT, type BossId, type IslandId } from './config';
 import { Crew, type CrewSnapshot } from './fleet/crew';
 import { rankName, rankOf } from './fleet/officers';
 import { refit } from './fleet/refit';
@@ -100,7 +100,7 @@ export class Campaign {
       alert: (text) => hud.message(text, 5, true),
       toast: (text, tone) => hud.toast(text, 4, tone),
       changed: (island, captured) => this.navyIslandChanged(island, captured),
-      stars: () => Math.min(CONTRACTS.stars, fleetLevel(fleet.members.map((m) => m.type)) + COUNTER_ATTACK.starBonus),
+      fleetLevel: () => fleetLevel(fleet.members.map((m) => m.type)),
     });
     for (const island of ISLAND_LIST) {
       this.contracts.refresh(island.id, this.contractOptions());

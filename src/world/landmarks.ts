@@ -1,5 +1,5 @@
 import { ISLAND_INFO, ISLANDS, type IslandId } from '../config';
-import { royale, sabre, tortuga } from './island';
+import { dauphin, royale, sabre, tortuga } from './island';
 
 export type LandmarkKind = 'port' | 'fort' | 'lighthouse';
 
@@ -21,6 +21,8 @@ export const LIGHTHOUSE_SPOT = tortuga.pointAt(ISLANDS.tortuga.bay.angle - 0.62,
 export const CITADEL_SPOT = sabre.pointAt(ISLANDS.sabre.bay.angle - 0.62, 30);
 /** Fort-Royal : sur les hauteurs à l'est de la crique de l'Île Royale, ses bastions au-dessus de l'entrée. */
 export const ROYAL_FORT_SPOT = royale.pointAt(ISLANDS.royale.bay.angle + 0.5, 48);
+/** Fortin du Dauphin : sur la pointe nord de la crique de l'Île du Dauphin, au-dessus de l'entrée. */
+export const DAUPHIN_FORT_SPOT = dauphin.pointAt(ISLANDS.dauphin.bay.angle - 0.6, 20);
 
 /** Tous les lieux à montrer sur la carte. Un nouveau lieu (île, épave, trésor…) s'ajoute ici. */
 export const LANDMARKS: readonly Landmark[] = [
@@ -31,4 +33,6 @@ export const LANDMARKS: readonly Landmark[] = [
   { kind: 'fort', name: ISLAND_INFO.sabre.fort.name, island: 'sabre', ...CITADEL_SPOT },
   { kind: 'port', name: ISLAND_INFO.royale.portName, island: 'royale', ...royale.port },
   { kind: 'fort', name: ISLAND_INFO.royale.fort.name, island: 'royale', ...ROYAL_FORT_SPOT },
+  { kind: 'port', name: ISLAND_INFO.dauphin.portName, island: 'dauphin', ...dauphin.port },
+  { kind: 'fort', name: ISLAND_INFO.dauphin.fort.name, island: 'dauphin', ...DAUPHIN_FORT_SPOT },
 ];

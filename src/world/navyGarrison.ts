@@ -1,4 +1,4 @@
-import { GARRISON } from '../config';
+import { GARRISON, type NavyHoldDef } from '../config';
 import type { Ship } from '../ship/ship';
 import type { ShipType } from '../shipTypes';
 import type { Enemy, EnemySpawner } from './enemySpawner';
@@ -23,7 +23,7 @@ const RETRY = 2;
 
 /**
  * Garnison de la Marine autour d'une île qu'elle tient : navires amarrés dans la crique et rondes au large
- * (GARRISON). Ils ne sont en mer que quand ton navire est dans les parages, et apparaissent toujours hors de vue. Un
+ * (`NavyHoldDef.garrison`, réglages communs GARRISON). Ils ne sont en mer que quand ton navire est dans les parages, et apparaissent toujours hors de vue. Un
  * navire coulé est remplacé après un délai, tant que le fort tient ; quand tu prends l'île, les survivants s'en vont.
  */
 export class NavyGarrison {
@@ -34,14 +34,15 @@ export class NavyGarrison {
   constructor(
     private readonly island: Island,
     private readonly spawner: EnemySpawner,
+    private readonly def: NavyHoldDef['garrison'],
   ) {
-    this.orbit = island.outerRadius + GARRISON.patrolOffing;
+    this.orbit = island.outerRadius + def.patrolOffing;
     const bay = island.def.bay.angle;
-    const moored = GARRISON.moored.map(({ type, angle, offing }) => {
+    const moored = def.moored.map(({ type, angle, offing }) => {
       const p = island.pointAt(bay + angle, -offing);
       return { type, mooring: land.keepOffshore(p.x, p.z, GARRISON.mooringRadius * 2), turn: 1, enemy: null, wait: 0 };
     });
-    const patrols = GARRISON.patrols.map((type, i) => ({ type, mooring: null, turn: i % 2 === 0 ? 1 : -1, enemy: null, wait: 0 }));
+    const patrols = def.patrols.map((type, i) => ({ type, mooring: null, turn: i % 2 === 0 ? 1 : -1, enemy: null, wait: 0 }));
     this.posts = [...moored, ...patrols];
   }
 
@@ -51,14 +52,14 @@ export class NavyGarrison {
    */
   update(dt: number, leader: Ship, reinforce: boolean, alarm: boolean) {
     const d = Math.hypot(leader.position.x - this.island.cx, leader.position.z - this.island.cz);
-    const near = d < GARRISON.activeRadius;
-    const far = d > GARRISON.releaseRadius;
+    const near = d < this.def.activeRadius;
+    const far = d > this.def.releaseRadius;
     for (const post of this.posts) {
       const enemy = post.enemy;
       if (enemy) {
         if (enemy.ship.sunk) {
           post.enemy = null;
-          post.wait = rand(GARRISON.reinforceDelay);
+          post.wait = rand(this.def.reinforceDelay);
         } else if (far && enemy.ai.state === 'patrol' && enemy.ship.alive) {
           // Au repos et loin de toi : il rentre (il reprendra la mer à ton retour).
           this.spawner.discard(enemy);
@@ -94,7 +95,7 @@ export class NavyGarrison {
       const { x, z } = post.mooring;
       if (Math.hypot(x - lx, z - lz) < GARRISON.spawnClearance) return null;
       // Proue vers le large, dans l'axe de la crique.
-      return this.spawner.spawnGuard(post.type, x, z, this.island.def.bay.angle, { moored: post.mooring, leash: GARRISON.leash }, GARRISON.threat);
+      return this.spawner.spawnGuard(post.type, x, z, this.island.def.bay.angle, { moored: post.mooring, leash: GARRISON.leash }, this.def.threat);
     }
     // Ronde : elle surgit sur son cercle, du côté opposé à toi (un peu décalée selon son sens).
     const { cx, cz } = this.island;
@@ -102,6 +103,6 @@ export class NavyGarrison {
     const p = land.keepOffshore(cx + Math.sin(angle) * this.orbit, cz + Math.cos(angle) * this.orbit, GARRISON.mooringRadius * 2);
     if (Math.hypot(p.x - lx, p.z - lz) < GARRISON.spawnClearance) return null;
     const orbit = { x: cx, z: cz, radius: this.orbit, turn: post.turn };
-    return this.spawner.spawnGuard(post.type, p.x, p.z, angle + post.turn * (Math.PI / 2), { orbit, leash: GARRISON.leash }, GARRISON.threat);
+    return this.spawner.spawnGuard(post.type, p.x, p.z, angle + post.turn * (Math.PI / 2), { orbit, leash: GARRISON.leash }, this.def.threat);
   }
 }

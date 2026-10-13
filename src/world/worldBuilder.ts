@@ -1,10 +1,10 @@
 import type * as THREE from 'three';
-import { CITADEL, FORT, ROYAL_FORT, type IslandId } from '../config';
+import { CITADEL, FORT, NAVY_HOLDS, type IslandId, type NavyHoldDef } from '../config';
 import { Fort } from './fort';
 import { FORT_LAYOUTS } from './fortModel';
-import { ISLAND_LIST, royale, sabre, type Island } from './island';
+import { dauphin, ISLAND_LIST, royale, sabre, type Island } from './island';
 import { buildTerrain, buildVegetation } from './islandTerrain';
-import { CITADEL_SPOT, FORT_SPOT, ROYAL_FORT_SPOT } from './landmarks';
+import { CITADEL_SPOT, DAUPHIN_FORT_SPOT, FORT_SPOT, ROYAL_FORT_SPOT } from './landmarks';
 import { Lighthouse } from './lighthouse';
 import { buildPort } from './port';
 import type { LanternSpot } from '../ship/parts/nightGlow';
@@ -25,6 +25,9 @@ function bayMouthBearing(island: Island, fort: { x: number; z: number }, offing:
   return Math.atan2(mouth.x - fort.x, mouth.z - fort.z);
 }
 
+/** Fort d'une île de la Marine (NAVY_HOLDS). */
+const hold = (id: IslandId): NavyHoldDef['fort'] => NAVY_HOLDS[id]!.fort;
+
 /** Ajoute à la scène toutes les îles (relief, végétation, port), leurs forts et le phare de la Tortue. */
 export function buildIslands(scene: THREE.Scene): IslandWorks {
   const decor: THREE.Object3D[] = [];
@@ -38,11 +41,12 @@ export function buildIslands(scene: THREE.Scene): IslandWorks {
     tortuga: new Fort('tortuga', FORT_SPOT, FORT_LAYOUTS.fort, FORT.health),
     // La citadelle regarde l'entrée de sa crique : ses canons couvrent le port et ses approches.
     sabre: new Fort('sabre', CITADEL_SPOT, FORT_LAYOUTS.citadel, CITADEL.health, bayMouthBearing(sabre, CITADEL_SPOT, CITADEL.facingOffing)),
-    // Fort-Royal aussi ; il est à la Marine tant que tu n'as pas pris l'île (la campagne règle son camp).
-    royale: new Fort('royale', ROYAL_FORT_SPOT, FORT_LAYOUTS.royal, ROYAL_FORT.health, bayMouthBearing(royale, ROYAL_FORT_SPOT, ROYAL_FORT.facingOffing)),
+    // Les forts des îles de la Marine aussi ; ils sont à elle tant que tu n'as pas pris l'île (la campagne règle leur camp).
+    royale: new Fort('royale', ROYAL_FORT_SPOT, FORT_LAYOUTS.royal, hold('royale').health, bayMouthBearing(royale, ROYAL_FORT_SPOT, hold('royale').facingOffing)),
+    dauphin: new Fort('dauphin', DAUPHIN_FORT_SPOT, FORT_LAYOUTS.fort, hold('dauphin').health, bayMouthBearing(dauphin, DAUPHIN_FORT_SPOT, hold('dauphin').facingOffing)),
   };
   const lighthouse = new Lighthouse();
-  decor.push(forts.tortuga.group, forts.sabre.group, forts.royale.group);
+  decor.push(...Object.values(forts).map((f) => f.group));
   scene.add(...decor, lighthouse.group);
   return { forts, lighthouse, decor, lanterns };
 }
