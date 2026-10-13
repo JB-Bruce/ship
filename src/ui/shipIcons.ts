@@ -16,12 +16,16 @@ export const LONG_BRIGANTINE_ICON = `<svg viewBox="0 0 48 48"><path d="M0 30h48l
 /** Goélette à hunier : une voile carrée en tête du mât de misaine. */
 export const TOPSAIL_SCHOONER_ICON = `<svg viewBox="0 0 48 48"><path d="M1 32h40l-5 7H7z"/><path d="M40 31l7-6M16 32L14 4M28 32L26.5 9M3 29h13M5 11l9-5M18 29h10M19 13l7-3"/><path d="M15 29H3l2-18 9-5zM27 29H18l1-16 7-3zM28 9l15 18H30z"/><path d="M21 2h10v5H21z"/></svg>`;
 
+/** Grand chébec : coque plus longue, quatre sabords, mâts plus espacés. */
+export const GRAND_XEBEC_ICON = `<svg viewBox="0 0 48 48"><path d="M1 30h40l7-2-6 4-4 7H9l-6-4z"/><path d="M0 30v-3h9v3M12 33.5h24M15 33.5v2M21 33.5v2M27 33.5v2M33 33.5v2"/><path d="M38 30l3-22M24 30l2-27M11 27l2-17M46 24L33 4M46 24L33 5l3 22zM18 8h13M17 16h16M18 17h15l-1 10H19zM19 8h11v7H19zM21 22L5 6M21 22L6 7l2 18z"/></svg>`;
+
 /** Silhouettes après chaque allongement, par type. */
 const EXTENDED_ICONS: Partial<Record<ShipType, readonly string[]>> = {
   frigate: [LONG_FRIGATE_ICON, GRAND_FRIGATE_ICON],
   corvette: [LONG_CORVETTE_ICON],
   brigantine: [LONG_BRIGANTINE_ICON],
   schooner: [TOPSAIL_SCHOONER_ICON],
+  xebec: [GRAND_XEBEC_ICON],
 };
 
 /** Silhouette d'un type après son `index`-ième allongement (0 = le premier). */
@@ -41,6 +45,7 @@ export const SHIP_ICONS: Record<ShipType, string> = {
   brigantine: `<svg viewBox="0 0 48 48"><path d="M2 30h44l-5 9H8z"/><path d="M4 30v-6h8v6M38 30v-4h6"/><path d="M16 30V4M30 30V5M10 9h12M10 19h12M24 10h12M24 20h12M44 26l-14-20"/></svg>`,
   caravel: `<svg viewBox="0 0 48 48"><path d="M3 30h40l-5 9H9z"/><path d="M3 30v-8h10v8M35 30v-4h8v4M42 26l6-6M43 21h3v4h-3"/><path d="M27 30V4M19 8h16M20 8c-1 6-1 12 0 16h14c1-4 1-10 0-16M10 22V9M19 19L5 4M19 19l-10 2"/></svg>`,
   schooner: `<svg viewBox="0 0 48 48"><path d="M1 32h40l-5 7H7z"/><path d="M40 31l7-6M16 32L14 4M28 32L26.5 9M3 29h13M5 11l9-5M18 29h10M19 13l7-3"/><path d="M15 29H3l2-18 9-5zM27 29H18l1-16 7-3zM28 9l15 18H30z"/></svg>`,
+  xebec: `<svg viewBox="0 0 48 48"><path d="M3 30h37l7-2-6 4-4 6H11l-6-4z"/><path d="M2 30v-3h9v3M14 33.5h20M17 33.5v2M25 33.5v2M33 33.5v2"/><path d="M36 30l3-22M24 30l2-27M12 27l2-17M45 24L32 4M45 24L33 5l2 22zM18 8h13M17 16h16M18 17h15l-1 10H19zM19 8h11v7H19zM21 22L6 6M21 22L7 7l2 18z"/></svg>`,
   sloop: `<svg viewBox="0 0 48 48"><path d="M3 33h40l-6 8H9z"/><path d="M20 33V4M20 7l16 4-1 19H20M20 7L6 31h14M43 33l-6-4"/></svg>`,
   frigate: `<svg viewBox="0 0 48 48"><path d="M1 30h46l-5 11H5z"/><path d="M4 34h40M7 38h35M2 30v-5h8v5"/><path d="M13 30V8M25 30V2M36 30V7M8 11h10M7 18h12M19 6h12M18 14h14M18 21h14M31 10h10M30 17h12M47 30L36 9M36 22l-6 7"/></svg>`,
   corvette: `<svg viewBox="0 0 48 48"><path d="M1 30h46l-5 10H7z"/><path d="M6 35h36M10 35v2M18 35v2M26 35v2M34 35v2"/><path d="M12 30V10M24 30V3M35 30V6M19 8h10M18 16h12M30 11h10M29 19h12M12 12l-8 16h8M47 30l-12-22"/></svg>`,

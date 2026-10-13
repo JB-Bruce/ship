@@ -54,11 +54,19 @@ export function holdCapacity(type: ShipType, levels: UpgradeLevels): number {
   return levels.hold > 0 ? def.upgrades.hold.capacity[levels.hold - 1] : def.hold;
 }
 
-/** Canons de chasse montés (caravelle : dès le niveau `chaseFrom` de l'amélioration des canons). */
+/**
+ * Canons de chasse montés : caravelle, dès le niveau `chaseFrom` de l'amélioration des canons ; chébec, ceux de la base
+ * puis de la table `chaseGuns`.
+ */
 export function chaseGunsFor(type: ShipType, levels: UpgradeLevels): number {
-  const from = SHIP_TYPES[type].upgrades.cannons.chaseFrom;
-  return from !== undefined && levels.cannons >= from ? 1 : 0;
+  const { upgrades, stats } = SHIP_TYPES[type];
+  const { chaseFrom, chaseGuns } = upgrades.cannons;
+  if (chaseGuns) return levels.cannons > 0 ? chaseGuns[levels.cannons - 1] : (stats.chaseGuns ?? 0);
+  return chaseFrom !== undefined && levels.cannons >= chaseFrom ? 1 : 0;
 }
+
+/** Le type a-t-il des canons de chasse (montés d'emblée ou à acheter) ? */
+const hasChaseGuns = (type: ShipType) => SHIP_TYPES[type].upgrades.cannons.chaseFrom !== undefined || SHIP_TYPES[type].upgrades.cannons.chaseGuns !== undefined;
 
 /** Nombre total de canons d'un navire : ses deux flancs et ses canons de chasse. */
 export const cannonCount = (stats: ShipStats) => stats.cannonsPerSide * 2 + (stats.chaseGuns ?? 0);
@@ -72,7 +80,7 @@ export function shipMass(type: ShipType, levels: UpgradeLevels): number {
   const sails = levels.sails > 0 ? mass.sails[levels.sails - 1] : 0;
   const hold = levels.hold > 0 ? (mass.hold[levels.hold - 1] ?? 0) : 0;
   const extension = appliedExtensions(type, levels).reduce((sum, e) => sum + e.mass, 0);
-  const chase = chaseGunsFor(type, levels) * (mass.chaseGun ?? 0);
+  const chase = (chaseGunsFor(type, levels) - (stats.chaseGuns ?? 0)) * (mass.chaseGun ?? 0);
   return mass.base + extraCannons * mass.perExtraCannon + chase + hull + sails + hold + extension;
 }
 
@@ -104,7 +112,7 @@ export function deriveStats(type: ShipType, base: ShipStats, levels: UpgradeLeve
     }
   }
   if (levels.cannons > 0) stats.cannonsPerSide = table.cannons.cannonsPerSide[levels.cannons - 1];
-  if (table.cannons.chaseFrom !== undefined) stats.chaseGuns = chaseGunsFor(type, levels);
+  if (hasChaseGuns(type)) stats.chaseGuns = chaseGunsFor(type, levels);
   if (levels.hull > 0) stats.maxHealth += table.hull.healthBonus[levels.hull - 1];
   // Allongements : coque plus longue (plus de vie, file un peu mieux, vire moins vite) ; leurs effets se cumulent.
   let hullSpeed = 1;
@@ -135,7 +143,7 @@ export function describeLevel(type: ShipType, id: UpgradeId, level: number): str
     case 'range':
       return `Portée +${Math.round((t.range.rangeFactor[i] - 1) * 100)} %`;
     case 'cannons':
-      return level === t.cannons.chaseFrom ? 'Gros canon de chasse à la proue' : `${t.cannons.cannonsPerSide[i]} canons par flanc`;
+      return describeCannons(type, level);
     case 'hull':
       return `Vie max +${t.hull.healthBonus[i]}`;
     case 'sails':
@@ -143,6 +151,21 @@ export function describeLevel(type: ShipType, id: UpgradeId, level: number): str
     case 'hold':
       return `Cale : ${t.hold.capacity[i]} places`;
   }
+}
+
+/** Effet d'un niveau de l'amélioration des canons : ce qu'il ajoute (canons par flanc, canons de chasse). */
+function describeCannons(type: ShipType, level: number): string {
+  const t = SHIP_TYPES[type].upgrades.cannons;
+  if (level === t.chaseFrom) return 'Gros canon de chasse à la proue';
+  const perSide = t.cannonsPerSide[level - 1];
+  if (!t.chaseGuns) return `${perSide} canons par flanc`;
+  const before = noUpgrades();
+  before.cannons = level - 1;
+  const chase = t.chaseGuns[level - 1];
+  const parts: string[] = [];
+  if (perSide !== (level > 1 ? t.cannonsPerSide[level - 2] : SHIP_TYPES[type].stats.cannonsPerSide)) parts.push(`${perSide} canons par flanc`);
+  if (chase !== chaseGunsFor(type, before)) parts.push(`${chase} canons de chasse à la proue`);
+  return parts.join(', ');
 }
 
 /**

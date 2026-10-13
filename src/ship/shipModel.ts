@@ -11,6 +11,7 @@ import { FrigateModel } from './frigate/frigateModel';
 import { LongboatModel } from './longboat/longboatModel';
 import { RowboatModel } from './rowboat/rowboatModel';
 import { SloopModel } from './sloop/sloopModel';
+import { XebecModel } from './xebec/xebecModel';
 
 export interface CannonMount {
   object: THREE.Object3D;
@@ -70,8 +71,10 @@ export interface ShipModel {
   setRudder(rudder: number): void;
   /** Vent relatif au bateau (rad, 0 = vers la proue) et sa force 0..1. */
   setWind(relativeDirection: number, strength: number): void;
-  /** (Re)crée `perSide` canons sur chaque flanc, et `chase` canons de chasse à la proue (caravelle). */
+  /** (Re)crée `perSide` canons sur chaque flanc, et `chase` canons de chasse à la proue (caravelle, chébec). */
   setCannons(perSide: number, chase?: number): void;
+  /** Avirons (chébec) : 0 = rentrés, 1 = sortis ; sortis, ils nagent en cadence. */
+  setOars?(out: number): void;
   /** Niveau de renfort de coque (bandes de fer). */
   setArmorLevel(level: number): void;
   /** Allongement (0 ou 1), pour les types qui en ont un : le modèle se reconstruit. Renvoie true s'il a changé. */
@@ -90,6 +93,7 @@ export function createShipModel(type: ShipType, stats: ShipStats, livery: Livery
   if (type === 'caravel') return new CaravelModel(stats, livery);
   if (type === 'schooner') return new SchoonerModel(stats, livery);
   if (type === 'brigantine') return new BrigantineModel(stats, livery);
+  if (type === 'xebec') return new XebecModel(stats, livery);
   if (type === 'corvette') return new CorvetteModel(stats, livery);
   if (type === 'frigate') return new FrigateModel(stats, livery);
   return new LongboatModel(stats, livery);

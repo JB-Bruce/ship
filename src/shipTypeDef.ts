@@ -9,9 +9,10 @@ export interface UpgradeTable {
   range: { costs: Cost[]; rangeFactor: number[] };
   /**
    * Nombre de canons par flanc. `chaseFrom` : niveau (1 = premier) à partir duquel le canon de chasse est monté
-   * (caravelle) ; ce niveau-là garde le nombre de canons par flanc du précédent.
+   * (caravelle) ; ce niveau-là garde le nombre de canons par flanc du précédent. `chaseGuns` : canons de chasse à
+   * chaque niveau, pour un navire qui en a dès la base (chébec : `ShipStats.chaseGuns`).
    */
-  cannons: { costs: Cost[]; cannonsPerSide: number[]; chaseFrom?: number };
+  cannons: { costs: Cost[]; cannonsPerSide: number[]; chaseFrom?: number; chaseGuns?: number[] };
   /** Vie max ajoutée. */
   hull: { costs: Cost[]; healthBonus: number[] };
   /** Multiplicateur de vitesse et d'accélération. */
@@ -91,6 +92,11 @@ export interface ShipTypeDef {
   upwindLoss?: number;
   /** Discrétion : les ennemis en patrouille le repèrent à cette part de leur portée habituelle (1 par défaut). */
   detectability?: number;
+  /**
+   * Avirons (chébec) : par vent de face, les rameurs les sortent d'eux-mêmes et la vitesse gagne cette part (réglages
+   * communs OARS).
+   */
+  oars?: number;
   /** Négoce : ses ventes sur une route commerciale rapportent cette part en plus (0 par défaut). */
   tradeBonus?: number;
   /** Noms des deux calibres au chantier (par défaut « Batterie » et « Canons des gaillards »). */

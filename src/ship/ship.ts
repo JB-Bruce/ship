@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COMBAT, CRIT, DAMAGE, LIVERIES, RECOIL, REPAIR, type Faction, type Livery, type ShipStats } from '../config';
+import { COMBAT, CRIT, DAMAGE, LIVERIES, OARS, RECOIL, REPAIR, type Faction, type Livery, type ShipStats } from '../config';
 import type { CannonTarget } from '../combat/cannons';
 import type { Waves } from '../ocean/waves';
 import { applyModifiers, factor, noModifiers, standardGuns, type Guns, type StatModifiers } from '../progression/modifiers';
@@ -86,6 +86,9 @@ export class Ship {
   private yawRate = 0;
   private readonly buoyancy: Buoyancy;
   private sailAmount = 0;
+  /** Avirons (chébec) : les rameurs nagent (vent de face), et part des rames sorties (0 = rentrées, 1 = sorties). */
+  private rowing = false;
+  private oarsOut = 0;
   /** Voiles en lambeaux même intactes (livrée du Spectre). */
   private readonly tattered: number;
 
@@ -236,6 +239,8 @@ export class Ship {
     this.rudder = from.rudder;
     this.yawRate = from.yawRate;
     this.sailAmount = from.sailAmount;
+    this.rowing = from.rowing;
+    this.oarsOut = from.oarsOut;
     this.controls.sail = from.controls.sail;
     this.controls.rudder = from.controls.rudder;
     this.buoyancy.copyFrom(from.buoyancy);
@@ -246,7 +251,8 @@ export class Ship {
   respawn(x: number, z: number) {
     this.position.set(x, 0, z);
     this.heading = Math.random() * Math.PI * 2;
-    this.speed = this.yawRate = 0;
+    this.speed = this.yawRate = this.oarsOut = 0;
+    this.rowing = false;
     this.buoyancy.reset(0);
     this.health = this.stats.maxHealth;
     this.sinkTime = null;
@@ -291,7 +297,8 @@ export class Ship {
     const w = wind.speedFactor(this.heading) - 1;
     const upwind = SHIP_TYPES[this.type].upwindLoss ?? 1;
     const windEffect = 1 + w * (w > 0 ? factor(this.modifiers, 'wind') : upwind / factor(this.modifiers, 'wind'));
-    const targetSpeed = s.maxSpeed * torn * this.crits.speedFactor * controls.sail * windEffect;
+    const rowing = this.updateOars(dt, controls, wind);
+    const targetSpeed = s.maxSpeed * torn * this.crits.speedFactor * controls.sail * (windEffect + rowing);
     const accel = targetSpeed > this.speed ? s.acceleration : s.deceleration;
     this.speed = moveTowards(this.speed, targetSpeed, accel * dt);
 
@@ -307,6 +314,22 @@ export class Ship {
     this.position.z += this.velocityZ * dt;
   }
 
+  /**
+   * Avirons (chébec, ShipTypeDef.oars) : par vent de face, les rameurs sortent les rames d'eux-mêmes, et les rentrent
+   * quand le vent tourne ou que le navire s'arrête. Renvoie la vitesse gagnée (part de la vitesse max).
+   */
+  private updateOars(dt: number, controls: ShipControls, wind: Wind): number {
+    const bonus = SHIP_TYPES[this.type].oars;
+    if (!bonus) return 0;
+    // 1 = vent pile de face, -1 = vent arrière.
+    const headwind = -Math.cos(this.heading - wind.direction);
+    const under = controls.sail > OARS.minSail;
+    if (!this.rowing && under && headwind > OARS.outAt) this.rowing = true;
+    else if (this.rowing && (!under || headwind < OARS.inAt)) this.rowing = false;
+    this.oarsOut = moveTowards(this.oarsOut, this.rowing ? 1 : 0, dt / OARS.deployTime);
+    return bonus * this.oarsOut;
+  }
+
   /** La coque suit la surface de l'eau (voir Buoyancy), et s'enfonce quand le bateau coule. */
   private updateBuoyancy(dt: number, waves: Waves) {
     const sinking = this.sinkTime === null ? 0 : Math.min(1, this.sinkTime / COMBAT.sinkDuration);
@@ -320,6 +343,7 @@ export class Ship {
     this.sailAmount = damp(this.sailAmount, controls.sail, 1.5, dt);
     this.model.setSailAmount(this.sailAmount);
     this.model.setRudder(this.rudder);
+    this.model.setOars?.(this.oarsOut);
     this.model.setDamage(Math.max(this.damageLevel, this.tattered));
     this.model.setWind(wind.direction - this.heading, wind.strength);
     this.model.animate(dt);

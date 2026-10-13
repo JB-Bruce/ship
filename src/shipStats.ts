@@ -95,6 +95,27 @@ export const SCHOONER_STATS: ShipStats = {
 };
 
 /**
+ * Chébec : long, bas et étroit, voiles latines et carrées, éperon. Rapide et vif, peu de canons de flanc ; second
+ * calibre : les canons de chasse à la proue, qui tirent droit devant (de 1 à 3).
+ */
+export const XEBEC_STATS: ShipStats = {
+  length: 21,
+  width: 4.6,
+  maxSpeed: 13.5,
+  acceleration: 3,
+  deceleration: 3.8,
+  turnRate: 0.52,
+  rudderSpeed: 2.8,
+  turnHeel: 0.007,
+  maxHealth: 175,
+  cannonsPerSide: 2,
+  chaseGuns: 1,
+  cannon: { range: 130, reloadTime: 3, arcHalfAngle: 35 * DEG, spread: 2.5 * DEG, rangeError: 0.07, damage: 14, ballSpeed: 58 },
+  deckCannon: { range: 155, reloadTime: 4.5, arcHalfAngle: 15 * DEG, spread: 2 * DEG, rangeError: 0.06, damage: 18, ballSpeed: 62 },
+  buoyancy: { stiffness: 32, damping: 9, tiltResponse: 5 },
+};
+
+/**
  * Corvette : deux calibres. Batterie couverte = canons lourds, lents à recharger, coincés dans leurs sabords
  * (angle de tir étroit) ; pont supérieur = canons légers et rapides, angle de tir normal.
  */

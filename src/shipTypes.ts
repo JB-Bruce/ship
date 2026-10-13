@@ -2,11 +2,11 @@
 // Un tableau d'amélioration = une valeur par niveau (le niveau 1 est la première case).
 
 import { UPGRADE_INFO, type ShipTypeDef } from './shipTypeDef';
-import { BRIGANTINE_STATS, CARAVEL_STATS, CORVETTE_STATS, FRIGATE_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, weaker } from './shipStats';
+import { BRIGANTINE_STATS, CARAVEL_STATS, CORVETTE_STATS, FRIGATE_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, weaker, XEBEC_STATS } from './shipStats';
 
-export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'caravel' | 'schooner' | 'brigantine' | 'corvette' | 'frigate';
+export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'corvette' | 'frigate';
 /** Du plus petit au plus gros (par rang de taille ; à rang égal, dans l'ordre d'affichage). */
-export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'corvette', 'frigate'];
+export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'corvette', 'frigate'];
 /** Nom du type d'un navire selon ses allongements (« Frégate allongée », « Grande frégate »). */
 export function typeName(type: ShipType, extension = 0): string {
   return extension > 0 ? (SHIP_TYPES[type].extensions?.[extension - 1]?.name ?? SHIP_TYPES[type].name) : SHIP_TYPES[type].name;
@@ -30,7 +30,7 @@ export { UPGRADE_INFO };
 export type { ExtensionDef, MassTable, ShipTypeDef, UpgradeTable } from './shipTypeDef';
 
 /** Types que le joueur peut acheter (la barque est réservée aux ennemis). */
-export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'corvette', 'frigate'];
+export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'corvette', 'frigate'];
 
 export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
   rowboat: {
@@ -223,6 +223,59 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
         turnFactor: 0.9,
         mass: 70,
         extraLevels: { cannons: 2, hull: 1, sails: 2, hold: 1 },
+      },
+    ],
+  },
+  xebec: {
+    name: 'Chébec',
+    description: 'Long, bas et étroit, mâts inclinés vers l’avant : voiles latines à l’avant et à l’arrière, voiles carrées au grand mât, éperon et dunette basse. Rapide et vif, canons de chasse à la proue ; par vent de face, ses rameurs sortent les avirons. Peu de canons de flanc, coque légère.',
+    armament: 'broadside',
+    rank: 4,
+    threat: 4,
+    lootFactor: 3.3,
+    price: { gold: 1700, wood: 420 },
+    respawnTime: 68,
+    hold: 55,
+    oars: 0.18,
+    stats: XEBEC_STATS,
+    enemyStats: weaker(XEBEC_STATS, 140, 12),
+    gunLabels: { main: 'Canons de flanc', deck: 'Canons de chasse' },
+    upgrades: {
+      accuracy: {
+        costs: [{ gold: 50, wood: 0 }, { gold: 80, wood: 0 }, { gold: 120, wood: 0 }, { gold: 170, wood: 0 }],
+        spreadFactor: [0.78, 0.6, 0.44, 0.3],
+      },
+      range: { costs: [{ gold: 80, wood: 20 }], rangeFactor: [1.15] },
+      // Un canon de chasse de plus, puis un canon par flanc, puis le troisième canon de chasse ; chébec allongé : un
+      // canon de plus par flanc.
+      cannons: {
+        costs: [{ gold: 110, wood: 60 }, { gold: 150, wood: 85 }, { gold: 190, wood: 105 }, { gold: 240, wood: 135 }],
+        cannonsPerSide: [2, 3, 3, 4],
+        chaseGuns: [2, 2, 3, 3],
+      },
+      hull: {
+        costs: [{ gold: 40, wood: 40 }, { gold: 65, wood: 65 }, { gold: 95, wood: 95 }, { gold: 135, wood: 135 }],
+        healthBonus: [40, 85, 135, 190],
+      },
+      // Chébec allongé : un niveau de toile en plus.
+      sails: {
+        costs: [{ gold: 55, wood: 14 }, { gold: 85, wood: 22 }, { gold: 120, wood: 32 }, { gold: 170, wood: 45 }],
+        speedFactor: [1.06, 1.12, 1.18, 1.25],
+      },
+      hold: { costs: [{ gold: 55, wood: 35 }, { gold: 90, wood: 55 }, { gold: 130, wood: 80 }], capacity: [70, 90, 115] },
+    },
+    mass: { base: 290, perExtraCannon: 8, chaseGun: 10, hull: [12, 26, 42, 60], sails: [4, 8, 12, 16], hold: [7, 12, 19], speedLossPerUnit: 0.0005 },
+    extensions: [
+      {
+        name: 'Grand chébec',
+        description: 'Le chantier rallonge la coque de trois mètres au milieu : un sabord de plus par bord, deux avirons de plus, des voiles plus grandes pour un niveau de voilure en plus.',
+        cost: { gold: 1300, wood: 600 },
+        length: 3,
+        healthFactor: 1.15,
+        speedFactor: 1.04,
+        turnFactor: 0.92,
+        mass: 55,
+        extraLevels: { cannons: 1, sails: 1 },
       },
     ],
   },
