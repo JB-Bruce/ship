@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COMBAT, FORT, LIVERIES, type Faction, type IslandId } from '../config';
+import { COMBAT, FORT, FORT_FX, LIVERIES, type Faction, type IslandId } from '../config';
 import type { Projectiles } from '../combat/projectiles';
 import type { Effects } from '../fx/effects';
 import { flagMaterialFor, paletteFor, std, WavingFlag } from '../ship/parts/common';
@@ -17,6 +17,7 @@ const AIM_TOLERANCE = 0.04;
 const FLAG_POLE = 5;
 const muzzle = new THREE.Vector3();
 const velocity = new THREE.Vector3();
+const spot = new THREE.Vector3();
 const centered = () => Math.random() + Math.random() - 1;
 
 interface FortGun {
@@ -32,10 +33,16 @@ interface FortGun {
  * les bastions et les courtines côté mer, pivotent chacun dans son secteur vers l'ennemi le plus proche à portée,
  * anticipent sa trajectoire et tirent par-dessus le parapet. Les améliorations de l'île mettent en service plus de
  * canons et augmentent la portée et les dégâts (`setArmament`). Pendant un siège (mission de défense), l'enceinte
- * peut être touchée : sans vie, ses canons se taisent.
+ * peut être touchée : sans vie, ses canons se taisent. Un fort de la Marine (Fort-Royal) est du camp ennemi jusqu'à
+ * ce que tu prennes l'île (`setFaction`) : il tire sur ta flotte, tes boulets le touchent, et il se répare si on le
+ * laisse en paix (`regen`). Abîmé, il fume ; tombé, il brûle.
  */
 export class Fort {
-  readonly faction: Faction = 'player';
+  faction: Faction = 'player';
+  /** Réparation d'un fort de la Marine : délai sans être touché (s), puis part de sa vie rendue par seconde ; null = aucune. */
+  regen: { delay: number; rate: number } | null = null;
+  /** Temps depuis le dernier coup reçu (s). */
+  sinceHit = Infinity;
   readonly group: THREE.Group;
   /** Volume de l'enceinte, pour les boulets d'un siège. */
   readonly bounds: FortModel['bounds'];
@@ -47,6 +54,11 @@ export class Fort {
   private readonly flag: WavingFlag;
   private range = FORT.range;
   private damage = FORT.damage;
+  /** Foyers de fumée et d'incendie (haut de la tour, deux barbettes), et accumulateurs d'émission. */
+  private readonly fireSpots: THREE.Vector3[];
+  private readonly emit = { smoke: 0, flame: 0, ember: 0 };
+  /** Debout à l'image précédente (pour l'explosion de sa chute). */
+  private standing = true;
 
   /** `facing` : cap du bastion principal (par défaut, vers le large le plus proche). */
   constructor(
@@ -78,6 +90,14 @@ export class Fort {
       this.guns.push({ slot, object, yaw: slot.restYaw, cooldown: Math.random() * FORT.reloadTime });
     }
     this.setArmament(FORT.guns, FORT.range, FORT.damage);
+    const slots = model.slots;
+    this.fireSpots = [model.flagBase.clone(), slots[1 % slots.length].position.clone(), slots[slots.length - 1].position.clone()];
+  }
+
+  /** Change de camp (île prise ou reprise) : le pavillon suit. */
+  setFaction(faction: Faction) {
+    this.faction = faction;
+    this.flag.mesh.material = flagMaterialFor(LIVERIES[faction]);
   }
 
   /** Nombre de canons en service (dans l'ordre des emplacements), portée (m) et dégâts d'un boulet. */
@@ -101,20 +121,31 @@ export class Fort {
   /** Inflige des dégâts à l'enceinte. Renvoie true si ce coup la fait tomber. */
   takeDamage(amount: number): boolean {
     if (!this.alive) return false;
+    this.sinceHit = 0;
     this.health = Math.max(0, this.health - amount);
     return this.health === 0;
   }
 
   /** Remise en état complète (fin d'un siège). */
   restore() {
-    this.health = this.maxHealth;
+    this.setHealthShare(1);
+  }
+
+  /** Vie rétablie à cette part du maximum (chargement d'une partie), sans explosion s'il est à terre. */
+  setHealthShare(share: number) {
+    this.health = this.maxHealth * share;
+    this.standing = this.alive;
   }
 
   update(dt: number, ships: readonly Ship[], projectiles: Projectiles, effects: Effects, wind: Wind) {
     this.flag.setWind(wind.direction, wind.strength);
     this.flag.update(dt);
+    this.sinceHit += dt;
+    this.updateDamage(dt, effects);
     // Une enceinte tombée ne tire plus.
     if (!this.alive) return;
+    const r = this.regen;
+    if (r && this.sinceHit > r.delay) this.health = Math.min(this.maxHealth, this.health + r.rate * this.maxHealth * dt);
     for (const gun of this.guns) {
       if (!gun.object.visible) continue;
       gun.cooldown = Math.max(0, gun.cooldown - dt);
@@ -141,6 +172,24 @@ export class Fort {
         gun.cooldown = FORT.reloadTime * (0.9 + Math.random() * 0.2);
       }
     }
+  }
+
+  /** Fumée sous FORT_FX.smokeBelow de sa vie ; quand il tombe, une explosion, puis l'incendie tant qu'il est à terre. */
+  private updateDamage(dt: number, effects: Effects) {
+    const fx = FORT_FX;
+    if (this.standing && !this.alive) {
+      this.standing = false;
+      effects.explosion(this.fireSpots[0], fx.fallScale);
+    }
+    const share = this.health / this.maxHealth;
+    if (share >= fx.smokeBelow) return;
+    const spots = this.fireSpots;
+    for (this.emit.smoke += dt * fx.smokeRate * (this.alive ? 1 : spots.length); this.emit.smoke >= 1; this.emit.smoke--) {
+      effects.plume(spot.copy(spots[Math.floor(Math.random() * spots.length)]), 1.6);
+    }
+    if (this.alive) return;
+    for (this.emit.flame += dt * fx.flameRate; this.emit.flame >= 1; this.emit.flame--) effects.flame(spot.copy(spots[Math.floor(Math.random() * spots.length)]));
+    for (this.emit.ember += dt * fx.emberRate; this.emit.ember >= 1; this.emit.ember--) effects.ember(spot.copy(spots[Math.floor(Math.random() * spots.length)]));
   }
 
   /** L'ennemi à flot le plus proche de ce canon, à portée et dans son secteur de tir (vers le large). */

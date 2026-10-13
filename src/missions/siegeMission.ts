@@ -1,6 +1,5 @@
 import * as THREE from 'three';
-import { CONTRACTS, ISLAND_INFO, LAND } from '../config';
-import type { Contract } from '../progression/contracts';
+import { CONTRACTS, ISLAND_INFO, LAND, type IslandId } from '../config';
 import type { ShipType } from '../shipTypes';
 import type { Enemy } from '../world/enemySpawner';
 import type { Fort } from '../world/fort';
@@ -10,35 +9,50 @@ import { squadronTypes, type MapZone, type Mission, type MissionOutcome, type Mi
 /** Les assiégeants arrivent de la mer, dans un cône de ±… (rad) autour de l'axe du bastion principal du fort. */
 const APPROACH_SPREAD = 0.6;
 
+/** Un siège : le fort de quelle île, la force de l'escadre (étoiles, ou escadre imposée), et le délai avant l'attaque (s). */
+export interface SiegeOrder {
+  readonly island: IslandId;
+  readonly stars: number;
+  /** Escadre imposée par une mission spéciale (le chef d'abord), sinon tirée selon les étoiles. */
+  readonly squadron?: readonly ShipType[];
+  readonly delay: number;
+}
+
 /**
  * Défense d'un port : après un délai, une escadre de la Marine surgit au large et bombarde le fort de l'île (la
- * citadelle de Port-Sabre, le fort de la Tortue). Réussite quand toute l'escadre a coulé ; échec si le fort tombe
- * (ses canons se taisent, l'escadre repart). À la fin du siège, le fort est remis en état.
+ * citadelle de Port-Sabre, le fort de la Tortue, Fort-Royal). Réussite quand toute l'escadre a coulé ; échec si le fort
+ * tombe (ses canons se taisent, l'escadre repart). À la fin du siège, le fort est remis en état. Sert aux contrats de
+ * défense et aux contre-attaques de la Marine sur une île prise.
  */
 export class SiegeMission implements Mission {
   readonly failure: string;
   private readonly fort: Fort;
   /** Nom commun du fort, pour le suivi (« Citadelle 80 % »). */
   private readonly noun: string;
-  private timer = CONTRACTS.defend.delay;
+  private timer: number;
   private attackers: Enemy[] = [];
   private readonly stars: number;
-  /** Escadre imposée par une mission spéciale (le chef d'abord), sinon tirée selon les étoiles. */
   private readonly squadron: readonly ShipType[] | undefined;
 
   constructor(
     private readonly world: MissionWorld,
-    contract: Contract,
+    order: SiegeOrder,
     private readonly onAttack: () => void,
   ) {
-    const island = contract.from;
-    this.stars = contract.tier ?? contract.stars;
-    this.squadron = contract.squadron;
+    const { island } = order;
+    this.timer = order.delay;
+    this.stars = order.stars;
+    this.squadron = order.squadron;
     this.fort = world.forts[island];
     const { fort, shortName } = ISLAND_INFO[island];
     const e = fort.feminine ? 'e' : '';
     this.failure = `${fort.feminine ? 'La' : 'Le'} ${fort.noun} de ${shortName} est tombé${e}…`;
     this.noun = fort.noun.charAt(0).toUpperCase() + fort.noun.slice(1);
+  }
+
+  /** Navires de l'escadre (0 avant l'attaque). */
+  get size(): number {
+    return this.attackers.length;
   }
 
   /** Le fort, tant qu'il est assiégé (les boulets ennemis peuvent le toucher). */

@@ -176,7 +176,14 @@ export class EnemySpawner {
     return squadron;
   }
 
-  /** Retire un ennemi encore à flot (le boss qui disparaît dans la brume). */
+  /** Navire d'une garnison (Île Royale), au mouillage ou en ronde selon `ai` : il ne disparaît pas quand tu t'éloignes. */
+  spawnGuard(type: ShipType, x: number, z: number, heading: number, ai: EnemyAIOptions): Enemy {
+    const enemy = this.add(type, x, z, heading, false, null, null, ai);
+    enemy.persistent = true;
+    return enemy;
+  }
+
+  /** Retire un ennemi encore à flot (le boss qui disparaît dans la brume, la garnison qui rentre). */
   discard(enemy: Enemy) {
     const i = this.enemies.indexOf(enemy);
     if (i >= 0) this.remove(i);

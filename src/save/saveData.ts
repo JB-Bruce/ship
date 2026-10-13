@@ -8,8 +8,12 @@ import type { UpgradeLevels } from '../progression/upgrades';
 import type { ShipType } from '../shipTypes';
 import type { WeatherKind } from '../world/weather';
 
-/** Version du format : à augmenter (avec une conversion des anciennes) si une sauvegarde change de forme. */
-export const SAVE_VERSION = 1;
+/**
+ * Version du format : à augmenter (avec une conversion des anciennes) si une sauvegarde change de forme.
+ * v2 : Île Royale (son état, `CampaignSnapshot.navyForts`). Une v1 se charge telle quelle : l'île y manque, elle reste
+ * à la Marine avec son fort intact.
+ */
+export const SAVE_VERSION = 2;
 /** Marque des fichiers de sauvegarde du jeu (pour refuser un fichier qui n'en est pas une). */
 export const SAVE_GAME_ID = 'bateau';
 

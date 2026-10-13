@@ -18,13 +18,20 @@ export function contractProgress(c: Contract, contracts: Contracts, fleet: Fleet
  * Onglet Taverne : contrats en cours (de toutes les tavernes) et primes à toucher, offres du jour de cette île (avec le
  * temps avant les suivantes), puis ses missions spéciales.
  */
+/** Présentation de la taverne de chaque île. */
+const TAVERNS: Record<IslandId, string> = {
+  tortuga: 'À la taverne du Perroquet Borgne, armateurs et marchands offrent des primes aux capitaines audacieux.',
+  sabre: 'À la taverne du Sabre Rouillé, les Frères du Sabre cherchent des capitaines pour leurs coups durs.',
+  royale: 'À l’Ancre Royale, ancienne cantine des officiers du roi, tes nouveaux voisins cherchent des capitaines pour tenir l’île.',
+};
+
 export function tavernTab(ctx: PortContext): string {
   const { contracts, island } = ctx;
   const full = contracts.active.length >= CONTRACTS.maxActive;
   const active = contracts.active.length
     ? contracts.active.map((c) => activeCard(ctx, c)).join('')
     : '<p class="effect">Aucun contrat en cours.</p>';
-  const tavern = island.id === 'sabre' ? 'À la taverne du Sabre Rouillé, les Frères du Sabre cherchent des capitaines pour leurs coups durs.' : 'À la taverne du Perroquet Borgne, armateurs et marchands offrent des primes aux capitaines audacieux.';
+  const tavern = TAVERNS[island.id];
   return `
     <p class="subtitle">${tavern}</p>
     ${resourcesHtml(ctx)}

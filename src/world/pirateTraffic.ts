@@ -6,7 +6,7 @@ import { createShip, type Ship } from '../ship/ship';
 import { maxRank, sizeRank, typeOfRank, type ShipType } from '../shipTypes';
 import type { FleetPower } from './enemySpawner';
 import type { FishSchool } from './fishSchools';
-import { ISLAND_LIST } from './island';
+import { harbors } from './harbors';
 import type { Crate } from './loot';
 
 interface Pirate {
@@ -69,9 +69,9 @@ export class PirateTraffic {
 
   /** Un pirate prend la mer au mouillage d'un port loin du joueur. Renvoie false s'il n'y en a pas. */
   private spawn(leader: Ship): boolean {
-    const harbors = ISLAND_LIST.filter((i) => Math.hypot(i.port.x - leader.position.x, i.port.z - leader.position.z) > PIRATES.spawnClearance);
-    if (!harbors.length) return false;
-    const island = harbors[Math.floor(Math.random() * harbors.length)];
+    const ports = harbors.open().filter((i) => Math.hypot(i.port.x - leader.position.x, i.port.z - leader.position.z) > PIRATES.spawnClearance);
+    if (!ports.length) return false;
+    const island = ports[Math.floor(Math.random() * ports.length)];
     const type = this.pickType();
     const ship = createShip(type, 'ally', randomLevels(type, PIRATES.upgrades, ENEMIES.extensionChance), LIVERIES.ally);
     const m = mooringSpot(island, this.ships, ship);

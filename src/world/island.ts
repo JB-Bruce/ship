@@ -114,8 +114,9 @@ export class Island {
 
 export const tortuga = new Island('tortuga', ISLANDS.tortuga);
 export const sabre = new Island('sabre', ISLANDS.sabre);
+export const royale = new Island('royale', ISLANDS.royale);
 /** Toutes les îles, dans l'ordre des tableaux du shader. */
-export const ISLAND_LIST: readonly Island[] = [tortuga, sabre];
+export const ISLAND_LIST: readonly Island[] = [tortuga, sabre, royale];
 export const islandById = (id: IslandId): Island => ISLAND_LIST.find((island) => island.id === id)!;
 
 /**

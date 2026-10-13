@@ -3,6 +3,7 @@ import { SHIP_TYPES, sizeRank, type ShipType } from '../shipTypes';
 import type { Contract, ContractKind, ContractOptions } from './contracts';
 import { GOODS, goodText, type Good } from './goods';
 import { averageThreat, rangeThreat, shipThreat, squadronThreat, starsForThreat, targetThreat } from './missionThreat';
+import { harbors } from '../world/harbors';
 
 /** Une offre de taverne, avant qu'on lui donne un numéro. */
 export type Offer = Omit<Contract, 'id' | 'progress'>;
@@ -93,7 +94,7 @@ export function createOffer(island: IslandId, options: ContractOptions, stars: n
     }
     case 'escort': {
       const e = CONTRACTS.escort;
-      const to = pick(ISLAND_IDS.filter((id) => id !== island));
+      const to = pick(ISLAND_IDS.filter((id) => id !== island && harbors.isOpen(id)));
       const i = stars - 1;
       const ambushes = e.ambushes[i];
       const s = starsForThreat(ambushes ? ambushes * drawnSquadronThreat(e.ambushLeader[i], e.ambushSize[i] - 1, e.ambushMin[i]) : 0);
@@ -160,7 +161,8 @@ function convoyRoutes(island: IslandId): { good: Good; to: IslandId }[] {
     let best: IslandId | null = null;
     for (const id of ISLAND_IDS) {
       const sell = ISLAND_INFO[id].market[good].sell;
-      if (id !== island && sell !== null && sell > buy && (!best || sell > (ISLAND_INFO[best].market[good].sell ?? 0))) best = id;
+      if (id === island || !harbors.isOpen(id)) continue;
+      if (sell !== null && sell > buy && (!best || sell > (ISLAND_INFO[best].market[good].sell ?? 0))) best = id;
     }
     if (best) routes.push({ good, to: best });
   }

@@ -1,4 +1,4 @@
-import { ISLAND_INFO } from '../config';
+import { CONTRACTS, ISLAND_INFO } from '../config';
 import type { Contract } from '../progression/contracts';
 import type { Ship } from '../ship/ship';
 import type { Fort } from '../world/fort';
@@ -34,7 +34,8 @@ export class MissionDirector {
         break;
       case 'defend': {
         const place = ISLAND_INFO[contract.from].shortName;
-        this.running.set(contract, new SiegeMission(this.world, contract, () => this.events.say(`⚔ Une escadre de la Marine attaque ${place} !`, true)));
+        const order = { island: contract.from, stars: contract.tier ?? contract.stars, squadron: contract.squadron, delay: CONTRACTS.defend.delay };
+        this.running.set(contract, new SiegeMission(this.world, order, () => this.events.say(`⚔ Une escadre de la Marine attaque ${place} !`, true)));
         this.events.say(`Les vigies de ${place} guettent l’escadre…`);
         break;
       }

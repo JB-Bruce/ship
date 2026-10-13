@@ -11,6 +11,7 @@ const ICONS: Record<IslandUpgradeId, string> = {
   lighthouse: `<svg viewBox="0 0 48 48"><path d="M18 44l3-28h6l3 28zM17 16h14M20 16l1-6h6l1 6M24 10V6"/><path d="M8 10l8 3M40 10l-8 3M6 18h8M42 18h-8"/></svg>`,
   citadel: `<svg viewBox="0 0 48 48"><path d="M4 44V22l6-4 6 4V14h6V8h4v6h6v8l6-4 6 4v22z"/><path d="M20 44v-8a4 4 0 0 1 8 0v8M9 30h4M35 30h4M22 22h4"/></svg>`,
   counter: `<svg viewBox="0 0 48 48"><path d="M24 6v32M12 42h24M6 12h36"/><path d="M6 12L2 24h8zM42 12l-4 12h8z"/><path d="M2 24a4 3 0 0 0 8 0M38 24a4 3 0 0 0 8 0"/><circle cx="24" cy="6" r="2"/></svg>`,
+  royalFort: `<svg viewBox="0 0 48 48"><path d="M24 4l6 10h12l-6 10 6 10H30l-6 10-6-10H6l6-10-6-10h12z"/><path d="M18 26l2-6 4 3 4-3 2 6zM18 29h12"/></svg>`,
   smuggling: `<svg viewBox="0 0 48 48"><path d="M8 20h32v22H8z"/><path d="M8 28h32M24 20v22M14 20l4-10h12l4 10"/><circle class="solid" cx="36" cy="10" r="3"/></svg>`,
 };
 
@@ -19,12 +20,12 @@ export function islandTab(ctx: PortContext): string {
   const { island } = ctx;
   const info = island.info;
   const fort = island.fortArmament;
-  const fortName = info.upgrades.includes('citadel') ? 'Citadelle' : 'Fort';
+  const fortName = info.fort.noun.charAt(0).toUpperCase() + info.fort.noun.slice(1);
   return `
     <p class="subtitle">${info.description}</p>
     ${resourcesHtml(ctx)}
     <div class="island-facts">
-      <div><span>Allégeance</span><b>${ALLEGIANCE_NAMES[info.allegiance]}</b></div>
+      <div><span>Allégeance</span><b>${ALLEGIANCE_NAMES[island.owned ? 'pirate' : info.allegiance]}</b></div>
       <div><span>Propriétaire</span><b>${island.owned ? 'Toi' : info.holders}</b></div>
       <div><span>Ressources</span><b>${info.resources.join(', ')}</b></div>
       <div><span>Réparation à quai</span><b>${Math.round(island.repairRate * 100)} % de la vie par seconde</b></div>

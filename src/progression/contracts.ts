@@ -1,5 +1,6 @@
 import { CONTRACTS, ISLAND_INFO, SPECIAL_CONTRACTS, type BossId, type Cost, type IslandId } from '../config';
 import type { ShipType } from '../shipTypes';
+import { harbors } from '../world/harbors';
 import { createOffer, offerKey, specialOffer } from './contractOffers';
 import type { Good } from './goods';
 import { shipThreat } from './missionThreat';
@@ -139,9 +140,9 @@ export class Contracts {
     return true;
   }
 
-  /** Complète les offres du jour de la taverne d'une île (seules les îles pirates en proposent). */
+  /** Complète les offres du jour de la taverne d'une île (pas celle d'un port tenu par la Marine). */
   refresh(island: IslandId, options: ContractOptions) {
-    if (ISLAND_INFO[island].allegiance !== 'pirate') return;
+    if (!harbors.isOpen(island)) return;
     const offers = this.offers[island];
     while (offers.length < CONTRACTS.offers) {
       // Pas deux offres du même genre ici, ni d'un genre déjà accepté.
@@ -153,7 +154,7 @@ export class Contracts {
 
   /** Missions spéciales proposées par une île : les premières de sa liste pas encore réussies, hors celles en cours. */
   specials(island: IslandId): Contract[] {
-    if (ISLAND_INFO[island].allegiance !== 'pirate') return [];
+    if (!harbors.isOpen(island)) return [];
     const open = SPECIAL_CONTRACTS[island].filter((d) => !this.specialsDone.has(d.id)).slice(0, CONTRACTS.specialsShown);
     return open.map((def) => {
       let contract = this.specialContracts.get(def.id);

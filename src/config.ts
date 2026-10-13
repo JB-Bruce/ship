@@ -995,6 +995,7 @@ export const SPECIAL_CONTRACTS: Record<IslandId, readonly SpecialContractDef[]> 
     },
     { id: 'spectreBounty', kind: 'sinkBoss', stars: 5, boss: 'spectre', title: 'Prime sur Le Spectre', description: 'Coule Le Spectre, le brigantin fantôme qui hante le brouillard.' },
   ],
+  royale: [],
 };
 
 /**
@@ -1577,7 +1578,7 @@ export interface IslandShapeDef {
 /** Nombre d'ondulations de chaque côte (taille des tableaux du shader de l'eau). */
 export const ISLAND_LOBES = 4;
 
-export type IslandId = 'tortuga' | 'sabre';
+export type IslandId = 'tortuga' | 'sabre' | 'royale';
 
 export const ISLANDS: Record<IslandId, IslandShapeDef> = {
   /** Île de la Tortue : ton repaire, verte et vallonnée. */
@@ -1620,6 +1621,29 @@ export const ISLANDS: Record<IslandId, IslandShapeDef> = {
     grass: 0x8f9a4f,
     darkGrass: 0x6b7a3c,
   },
+  /**
+   * Île Royale : 2 km au nord, la plus grande (1,5 × la Tortue), tenue par la Marine. Falaises et collines boisées,
+   * herbe plus sombre ; sa crique, profonde, regarde vers la Tortue.
+   */
+  royale: {
+    center: [200, 2000],
+    radius: 255,
+    lobes: [
+      [2, 22, 1.2],
+      [3, 16, 3.4],
+      [5, 10, 0.9],
+      [7, 5, 2.6],
+    ],
+    bay: { angle: Math.PI + 0.1, width: 0.45, depth: 130 },
+    relief: 'cliffs',
+    peak: 62,
+    cliff: 12,
+    calmDistance: 180,
+    lagoonWidth: 40,
+    surfWidth: 6,
+    grass: 0x5d8f45,
+    darkGrass: 0x3d6b33,
+  },
 };
 
 /** Navigation près des terres. */
@@ -1658,7 +1682,7 @@ export interface Price {
 export type TradeGood = 'wood' | 'fish' | 'rum' | 'spices';
 
 /** Améliorations d'île possibles (chaque île n'en propose que certaines, voir IslandInfoDef.upgrades). */
-export type IslandUpgradeId = 'fort' | 'citadel' | 'dock' | 'shipyard' | 'workshop' | 'counter' | 'lighthouse' | 'smuggling';
+export type IslandUpgradeId = 'fort' | 'citadel' | 'royalFort' | 'dock' | 'shipyard' | 'workshop' | 'counter' | 'lighthouse' | 'smuggling';
 
 /** Ce que le joueur sait d'une île : son port, qui la tient, son marché, ce qu'on peut y construire. */
 export interface IslandInfoDef {
@@ -1679,6 +1703,8 @@ export interface IslandInfoDef {
   market: Record<TradeGood, Price>;
   /** Améliorations possibles une fois l'île à toi, dans l'ordre du menu. */
   upgrades: readonly IslandUpgradeId[];
+  /** Ce qui est déjà bâti quand tu prends l'île (arsenal de la Marine) : niveau minimal de ces améliorations. */
+  captureLevels?: Partial<Record<IslandUpgradeId, number>>;
 }
 
 export const ISLAND_INFO: Record<IslandId, IslandInfoDef> = {
@@ -1719,6 +1745,27 @@ export const ISLAND_INFO: Record<IslandId, IslandInfoDef> = {
       spices: { buy: 9, sell: 7 },
     },
     upgrades: ['citadel', 'shipyard', 'smuggling'],
+  },
+  royale: {
+    name: 'Île Royale',
+    portName: 'Port-Royal',
+    shortName: 'Port-Royal',
+    fort: { name: 'Fort-Royal', noun: 'fort', feminine: false },
+    allegiance: 'navy',
+    holders: 'La Marine royale',
+    owned: false,
+    // Pas à vendre : il faut abattre Fort-Royal, puis accoster.
+    price: null,
+    description: 'Grande île boisée au nord, arsenal de la Marine royale. Fort-Royal garde sa crique, des vaisseaux du roi y mouillent et patrouillent au large. Ses garnisons paient cher le rhum et les épices ; ses forêts donnent un bois de mâture réputé.',
+    resources: ['Bois de mâture', 'Arsenal de la Marine'],
+    market: {
+      wood: { buy: 1, sell: 1 },
+      fish: { buy: null, sell: 5 },
+      rum: { buy: null, sell: 11 },
+      spices: { buy: null, sell: 16 },
+    },
+    upgrades: ['royalFort', 'dock', 'shipyard', 'workshop', 'counter'],
+    captureLevels: { shipyard: 2 },
   },
 };
 
@@ -1764,6 +1811,13 @@ export const ISLAND_UPGRADES = {
     guns: [6, 7, 8],
     range: [260, 290, 320],
     damage: [14, 17, 20],
+  },
+  /** Fort-Royal, une fois l'île prise : tes canonniers remettent en batterie les pièces de la Marine. */
+  royalFort: {
+    costs: [{ gold: 300, wood: 150 }, { gold: 550, wood: 260 }, { gold: 850, wood: 400 }],
+    guns: [7, 9, 11],
+    range: [280, 300, 320],
+    damage: [15, 17, 19],
   },
   /** Comptoir de contrebande de Port-Sabre : on t'y achète plus cher, on t'y vend moins cher. */
   smuggling: {
@@ -1842,6 +1896,85 @@ export const CITADEL = {
   health: 900,
   /** Elle est orientée vers ce point, au large de l'entrée de sa crique (m). */
   facingOffing: 120,
+};
+
+/**
+ * Fort-Royal (Île Royale). Tant que la Marine tient l'île, il tire sur ta flotte et tes alliés ; tes boulets peuvent
+ * le toucher, et il se répare si on le laisse en paix. Abattu, il se tait jusqu'à ce que tu prennes l'île (accoster).
+ */
+export const ROYAL_FORT = {
+  /** Armement de la Marine (les autres réglages de tir sont ceux de FORT). */
+  navy: { guns: 11, range: 270, damage: 15 },
+  /** Vie de l'enceinte : contre ta flotte sous la Marine, contre ses escadres une fois à toi. */
+  health: 3000,
+  /** Réparation : après `regenDelay` s sans être touché, il regagne `regenRate` de sa vie par seconde. */
+  regenDelay: 40,
+  regenRate: 0.005,
+  /** Armement une fois l'île à toi, avant amélioration (voir ISLAND_UPGRADES.royalFort). */
+  guns: 5,
+  range: 260,
+  damage: 13,
+  /** Il est orienté vers ce point, au large de l'entrée de sa crique (m). */
+  facingOffing: 140,
+  /** Sa barre de vie s'affiche à moins de cette distance de ton navire (m). */
+  barRange: 700,
+};
+
+/** Fumée et flammes d'un fort touché : fumée sous `smokeBelow` de sa vie, incendie une fois tombé (émissions par seconde). */
+export const FORT_FX = {
+  smokeBelow: 0.5,
+  smokeRate: 2.5,
+  flameRate: 16,
+  emberRate: 5,
+  /** Taille de l'explosion quand il tombe. */
+  fallScale: 2.5,
+};
+
+/**
+ * Garnison de la Marine à l'Île Royale, tant qu'elle la tient : des navires amarrés dans la crique, qui appareillent
+ * quand on approche du port ou que le fort est touché, et des patrouilles qui tournent autour de l'île. Un navire coulé
+ * est remplacé après un délai, tant que le fort tient. Ils ne sont en mer que quand tu es dans les parages.
+ */
+export const GARRISON = {
+  /** Navires amarrés : type, place (écart d'angle depuis l'axe de la crique (rad), distance au large de la côte (m)). */
+  moored: [
+    { type: 'frigate', angle: 0, offing: 95 },
+    { type: 'corvette', angle: 0.16, offing: 55 },
+    { type: 'brigantine', angle: -0.16, offing: 55 },
+  ] as const,
+  /** Patrouilles, chacune dans un sens, à `patrolOffing` m au-delà du rayon extérieur de l'île. */
+  patrols: ['brigantine', 'caravel'] as const,
+  patrolOffing: 170,
+  /** La garnison prend la mer quand ton navire est à moins de `activeRadius` m du centre de l'île ; au-delà de `releaseRadius`, ses navires au repos rentrent. */
+  activeRadius: 1400,
+  releaseRadius: 1800,
+  /** Pas d'apparition à moins de cette distance de ton navire (m) : toujours hors de vue. */
+  spawnClearance: 550,
+  /** Les navires amarrés appareillent quand un navire hostile approche à moins de ce rayon du port (m), ou `hitAlarm` s après un coup sur le fort. */
+  alertRadius: 500,
+  hitAlarm: 5,
+  /** Un navire coulé est remplacé après ce délai (s), tant que le fort tient. */
+  reinforceDelay: [90, 150] as const,
+  /** Au-delà de cette distance de son poste (m), un navire de la garnison lâche sa proie et rentre. */
+  leash: 900,
+  /** Un navire amarré qui a appareillé rejette l'ancre à moins de cette distance de sa place (m). */
+  mooringRadius: 25,
+};
+
+/**
+ * Contre-attaques de la Marine sur une île que tu lui as prise : une escadre (tables de CONTRACTS.defend, selon le
+ * niveau de ta flotte) assiège son fort après un préavis. Repoussée : son butin va dans la réserve de l'île. Si le fort
+ * tombe, la Marine reprend l'île.
+ */
+export const COUNTER_ATTACK = {
+  /** Temps entre deux contre-attaques (s) : environ deux journées. */
+  interval: [1100, 1300] as const,
+  /** Préavis entre l'alerte et l'arrivée de l'escadre (s). */
+  warning: 120,
+  /** Étoiles de l'escadre = niveau de ta flotte + ce bonus (1 à 5). */
+  starBonus: 1,
+  /** Butin d'un navire de l'escadre coulé, déposé dans la réserve de l'île quand elle est repoussée. */
+  spoilsPerShip: { gold: 140, wood: 50 },
 };
 
 /** Fort du port (canons d'appoint qui tirent sur les ennemis). */

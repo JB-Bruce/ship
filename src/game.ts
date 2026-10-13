@@ -246,7 +246,7 @@ export class Game {
     this.campaign.update(dt, this.fleet.leader);
     for (const fort of Object.values(this.forts)) fort.update(dt, this.ships, this.projectiles, this.effects, this.wind);
     updateCannons(dt, this.ships, this.projectiles, this.effects);
-    const besieged = this.campaign.missions.besieged();
+    const besieged = this.campaign.besieged();
     this.projectiles.update(dt, this.ships, this.waves, this.effects, (ship, ball) => this.onBallHit(ship, ball), besieged, (fort, ball) => fort.takeDamage(ball.damage));
     for (const ship of this.ships) this.effects.shipAmbient(dt, ship, this.waves);
     this.effects.update(dt, this.waves, this.ships);
@@ -272,7 +272,7 @@ export class Game {
     setNightGlow(dark);
     this.halos.update(this.camera, this.ships, dark, this.dayCycle.night, (this.scene.fog as THREE.Fog).far);
     this.hud.update(dt, leader, this.state, this.inCombat(), this.fleet);
-    this.hud.quests.update(dt, this.campaign.contracts, this.fleet, (c) => this.campaign.missions.status(c));
+    this.hud.quests.update(dt, this.campaign.contracts, this.fleet, (c) => this.campaign.missions.status(c), () => this.campaign.navy.objectives());
     this.radar.range = this.campaign.islands.tortuga.radarRange(tortuga.sdf(leader.position.x, leader.position.z)) * this.fleet.radarFactor();
     this.encounters.update(this.spawner.enemies, leader);
     this.radar.update(dt, leader, this.spawner.enemies, this.wind, this.ships, this.schools.list, this.campaign.escorts());
@@ -281,7 +281,7 @@ export class Game {
     this.healthBars.mark(this.betrayal.marked, this.betrayal.hovered);
     const boss = this.bosses.inSight(leader);
     this.bossBar.update(boss?.boss ? `☠ ${BOSSES[boss.boss].name}` : null, boss ? boss.ship.health / boss.ship.stats.maxHealth : 0);
-    const fort = besieged[0];
+    const fort = this.campaign.objectiveFort(leader);
     this.siegeBar.update(fort ? ISLAND_INFO[fort.island].fort.name : null, fort ? fort.health / fort.maxHealth : 0);
     this.updatePrompts();
     this.fpsCounter.update();
@@ -300,7 +300,7 @@ export class Game {
     const school = fishing ? null : this.fishing.schoolInRange(this.schools);
     const fish = fishing ? 'Arrêter la pêche' : school ? 'Pêcher' : null;
     const port = this.campaign.portInRange(this.fleet.leader);
-    const status = this.betrayal.status ?? this.fishing.status() ?? this.repairStatus;
+    const status = this.betrayal.status ?? this.fishing.status() ?? this.repairStatus ?? this.campaign.navy.status(this.fleet.leader);
     this.prompts.update(port ? this.campaign.islands[port.id].info.portName : null, fish, this.betrayal.prompt, status);
   }
 

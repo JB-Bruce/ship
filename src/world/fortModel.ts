@@ -52,6 +52,21 @@ export const FORT_LAYOUTS = {
     tower: { size: 5.5, height: 7 },
     barracks: 7,
   },
+  /** Fort-Royal (Marine) : 8 bastions, le plus grand et le plus haut, jusqu'à 11 canons (par paires autour de l'axe). */
+  royal: {
+    bastions: 8,
+    tip: 21,
+    shoulder: { angle: 7 * DEG, radius: 16.5 },
+    curtain: { angle: 14 * DEG, radius: 14 },
+    landward: [4],
+    wallHeight: 7,
+    gunSlots: [
+      [0, 16.2], [45 * DEG, 16.2], [-45 * DEG, 16.2], [22.5 * DEG, 11.6], [-22.5 * DEG, 11.6], [90 * DEG, 16.2],
+      [-90 * DEG, 16.2], [67.5 * DEG, 11.6], [-67.5 * DEG, 11.6], [135 * DEG, 16.2], [-135 * DEG, 16.2],
+    ],
+    tower: { size: 7, height: 9 },
+    barracks: 9.5,
+  },
 } satisfies Record<string, FortLayout>;
 
 /** Pied des murs, sous le point le plus bas du terrain (ou de la mer) sous le fort (m). */
@@ -83,7 +98,7 @@ export interface FortModel {
 /**
  * Fort bastionné à la façon des Caraïbes : enceinte en pierre à bastions en pointe, la pointe principale tournée
  * vers le large, parapet, guérites côté terre, tour de guet et caserne au centre, porte côté terre. Les canons
- * tirent en barbette par-dessus le parapet. Le même plan, agrandi, donne la citadelle de Port-Sabre.
+ * tirent en barbette par-dessus le parapet. Le même plan, agrandi, donne la citadelle de Port-Sabre et Fort-Royal.
  */
 /** `facing` : cap du bastion principal (par défaut, vers le large le plus proche). */
 export function buildFort(cx: number, cz: number, layout: FortLayout, facing?: number): FortModel {

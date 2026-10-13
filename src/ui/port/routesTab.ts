@@ -4,7 +4,7 @@ import { freeSpace } from '../../fleet/holds';
 import type { Good } from '../../progression/goods';
 import { isExtended } from '../../progression/upgrades';
 import { typeName } from '../../shipTypes';
-import { ISLAND_LIST } from '../../world/island';
+import { harbors } from '../../world/harbors';
 import { shipIcon } from '../shipIcons';
 import { resourcesHtml, type PortContext } from './portContext';
 
@@ -66,7 +66,7 @@ function form(ctx: PortContext): string {
   const here = ctx.island.id;
   const ships = ctx.fleet.hand.filter((m) => m !== ctx.fleet.controlled && m.inWorld && m.ship.alive);
   if (!ships.length) return '<p class="effect">Il te faut un autre navire à flot que celui que tu pilotes.</p>';
-  const ports = ISLAND_LIST.map((i) => i.id).filter((id) => id !== here);
+  const ports = harbors.open().map((i) => i.id).filter((id) => id !== here);
   if (!ports.length) return '';
   // Valeurs par défaut : premier navire, premier port, marchandises les plus rentables.
   const ship = ships.find((m) => m.id === draft.ship) ?? ships[0];

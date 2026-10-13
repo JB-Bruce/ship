@@ -19,6 +19,12 @@ const NOTES: Record<IslandId, Record<TradeGood, string>> = {
     rum: 'Les Frères du Sabre en raffolent. Achète-le à la Tortue.',
     spices: 'Écoulées par les contrebandiers. La Tortue les rachète plus cher.',
   },
+  royale: {
+    wood: 'Les forêts de l’île en regorgent : le bois le moins cher de l’archipel.',
+    fish: 'La garnison et l’arsenal en consomment beaucoup.',
+    rum: 'Les marins du roi le paient cher. Achète-le à la Tortue.',
+    spices: 'Les officiers de la Marine en raffolent : le meilleur prix de l’archipel.',
+  },
 };
 
 /** Onglet Commerce : le bois (réserve commune) et les marchandises des cales, aux prix de l'île. */

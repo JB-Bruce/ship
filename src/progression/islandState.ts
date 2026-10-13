@@ -7,6 +7,7 @@ import {
   ISLAND_UPGRADES,
   PORT,
   RADAR,
+  ROYAL_FORT,
   type Cost,
   type IslandId,
   type IslandInfoDef,
@@ -20,6 +21,7 @@ export type { IslandUpgradeId };
 export const ISLAND_UPGRADE_INFO: Record<IslandUpgradeId, { name: string; description: string }> = {
   fort: { name: 'Fort', description: 'Plus de canons sur les remparts, une meilleure poudre et des boulets plus lourds.' },
   citadel: { name: 'Citadelle', description: 'Les Frères du Sabre arment de nouveaux bastions : jusqu’à 8 canons, qui portent loin.' },
+  royalFort: { name: 'Fort-Royal', description: 'Tes canonniers remettent en batterie les pièces de la Marine : jusqu’à 11 canons, les plus lourds de l’archipel.' },
   shipyard: { name: 'Chantier naval', description: 'Des cales de construction et des maîtres charpentiers : le port peut bâtir des navires plus grands (brigantin et corvette, puis frégate).' },
   dock: { name: 'Quai', description: 'Des charpentiers en nombre : réparations plus rapides, navires remis à flot plus vite et moins chers.' },
   workshop: { name: 'Scierie', description: 'Les bûcherons de l’île débitent du bois de charpente, même quand tu es au large. Il attend dans la réserve de l’île.' },
@@ -43,7 +45,7 @@ export interface IslandSnapshot {
 export class IslandState {
   readonly info: IslandInfoDef;
   owned: boolean;
-  readonly levels: Record<IslandUpgradeId, number> = { fort: 0, citadel: 0, dock: 0, shipyard: 0, workshop: 0, counter: 0, lighthouse: 0, smuggling: 0 };
+  readonly levels: Record<IslandUpgradeId, number> = { fort: 0, citadel: 0, royalFort: 0, dock: 0, shipyard: 0, workshop: 0, counter: 0, lighthouse: 0, smuggling: 0 };
   /** Réserve en attente (fractions comprises). */
   private readonly stock = { gold: 0, wood: 0 };
 
@@ -61,6 +63,29 @@ export class IslandState {
     this.owned = s.owned;
     Object.assign(this.levels, s.levels);
     Object.assign(this.stock, s.stock);
+  }
+
+  /** Tenue par la Marine : port fermé, fort ennemi. */
+  get navyHeld(): boolean {
+    return !this.owned && this.info.allegiance === 'navy';
+  }
+
+  /** L'île est prise à la Marine : elle t'appartient, avec ce qui est déjà bâti (arsenal). */
+  capture() {
+    this.owned = true;
+    for (const [id, level] of Object.entries(this.info.captureLevels ?? {}) as [IslandUpgradeId, number][]) this.levels[id] = Math.max(this.levels[id], level);
+  }
+
+  /** La Marine reprend l'île : la réserve est perdue, les améliorations restent pour le jour où tu la reprendras. */
+  lose() {
+    this.owned = false;
+    this.stock.gold = this.stock.wood = 0;
+  }
+
+  /** Butin d'une escadre repoussée, déposé dans la réserve (au-delà de sa limite). */
+  addSpoils(spoils: Cost) {
+    this.stock.gold += spoils.gold;
+    this.stock.wood += spoils.wood;
   }
 
   /** Production de la scierie, dans la limite de la réserve. */
@@ -107,6 +132,7 @@ export class IslandState {
     switch (id) {
       case 'fort':
       case 'citadel':
+      case 'royalFort':
         return `${u[id].guns[i]} canons · portée ${u[id].range[i]} m · ${u[id].damage[i]} dégâts`;
       case 'dock':
         return `Réparation ×${(u.dock.repairRate[i] / PORT.repairRate).toFixed(1)} · retour des navires −${Math.round((1 - u.dock.respawnFactor[i]) * 100)} % · navires −${Math.round(u.dock.shipDiscount[i] * 100)} %`;
@@ -154,8 +180,13 @@ export class IslandState {
     return this.levels[id] > 0 ? values[this.levels[id] - 1] : base;
   }
 
-  /** Armement du fort de l'île (fort de la Tortue ou citadelle de Port-Sabre). */
+  /** Armement du fort de l'île (fort de la Tortue, citadelle de Port-Sabre, Fort-Royal sous la Marine ou à toi). */
   get fortArmament(): { guns: number; range: number; damage: number } {
+    if (this.navyHeld) return ROYAL_FORT.navy;
+    if (this.info.upgrades.includes('royalFort')) {
+      const r = ISLAND_UPGRADES.royalFort;
+      return { guns: this.at(r.guns, 'royalFort', ROYAL_FORT.guns), range: this.at(r.range, 'royalFort', ROYAL_FORT.range), damage: this.at(r.damage, 'royalFort', ROYAL_FORT.damage) };
+    }
     if (this.info.upgrades.includes('citadel')) {
       const c = ISLAND_UPGRADES.citadel;
       return { guns: this.at(c.guns, 'citadel', CITADEL.guns), range: this.at(c.range, 'citadel', CITADEL.range), damage: this.at(c.damage, 'citadel', CITADEL.damage) };

@@ -1,5 +1,5 @@
 import { ISLANDS } from '../config';
-import { sabre, tortuga } from './island';
+import { royale, sabre, tortuga } from './island';
 
 export type LandmarkKind = 'port' | 'fort' | 'lighthouse';
 
@@ -17,6 +17,8 @@ export const FORT_SPOT = tortuga.pointAt(ISLANDS.tortuga.bay.angle + 0.62, 15);
 export const LIGHTHOUSE_SPOT = tortuga.pointAt(ISLANDS.tortuga.bay.angle - 0.62, 9);
 /** Citadelle de Port-Sabre : sur la hauteur qui domine la crique et le port. */
 export const CITADEL_SPOT = sabre.pointAt(ISLANDS.sabre.bay.angle - 0.62, 30);
+/** Fort-Royal : sur les hauteurs à l'est de la crique de l'Île Royale, ses bastions au-dessus de l'entrée. */
+export const ROYAL_FORT_SPOT = royale.pointAt(ISLANDS.royale.bay.angle + 0.5, 40);
 
 /** Tous les lieux à montrer sur la carte. Un nouveau lieu (île, épave, trésor…) s'ajoute ici. */
 export const LANDMARKS: readonly Landmark[] = [
@@ -25,4 +27,6 @@ export const LANDMARKS: readonly Landmark[] = [
   { kind: 'lighthouse', name: 'Phare', ...LIGHTHOUSE_SPOT },
   { kind: 'port', name: 'Port-Sabre', ...sabre.port },
   { kind: 'fort', name: 'Citadelle', ...CITADEL_SPOT },
+  { kind: 'port', name: 'Port-Royal', ...royale.port },
+  { kind: 'fort', name: 'Fort-Royal', ...ROYAL_FORT_SPOT },
 ];

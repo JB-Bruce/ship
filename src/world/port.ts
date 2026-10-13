@@ -40,7 +40,10 @@ interface House {
   rot: number;
 }
 
-/** Village de chaque île. La Tortue : cabanes de bois et de chaux. Port-Sabre : maisons de pierre aux toits sombres. */
+/**
+ * Village de chaque île. La Tortue : cabanes de bois et de chaux. Port-Sabre : maisons de pierre aux toits sombres.
+ * Port-Royal : bâtiments blanchis de l'arsenal, toits d'ardoise.
+ */
 const HOUSES: Record<IslandId, House[]> = {
   tortuga: [
   { u: 0, v: -22, w: 10, d: 7, h: 4.2, wall: 0xd8cfb8, roof: 0x8a3b2a, rot: 0 }, // taverne
@@ -58,12 +61,24 @@ const HOUSES: Record<IslandId, House[]> = {
     { u: -10, v: -33, w: 6, d: 5, h: 3.4, wall: 0x8a847a, roof: 0x3e3e46, rot: 0.2 },
     { u: 14, v: -34, w: 5.5, d: 5, h: 3.2, wall: 0x9a948a, roof: 0x6a4a2a, rot: -0.3 },
   ],
+  royale: [
+    { u: 0, v: -22, w: 12, d: 7, h: 4.6, wall: 0xe0dccf, roof: 0x3e4a5e, rot: 0 }, // taverne de l'Ancre Royale
+    { u: -24, v: -15, w: 14, d: 7, h: 5, wall: 0xb8b0a0, roof: 0x3e4a5e, rot: 0.05 }, // magasin de l'arsenal
+    { u: 22, v: -15, w: 12, d: 6, h: 4.4, wall: 0xb8b0a0, roof: 0x5a2a22, rot: -0.05 }, // corderie
+    { u: -12, v: -36, w: 7, d: 5.5, h: 3.6, wall: 0xe0dccf, roof: 0x3e4a5e, rot: 0.15 },
+    { u: 12, v: -36, w: 7, d: 5.5, h: 3.6, wall: 0xe0dccf, roof: 0x5a2a22, rot: -0.15 },
+    { u: 30, v: -32, w: 6, d: 5, h: 3.4, wall: 0xb8b0a0, roof: 0x3e4a5e, rot: -0.3 },
+  ],
 };
 /** Palmiers plantés à la main dans chaque village : [u, v]. */
 const VILLAGE_PALMS: Record<IslandId, [number, number][]> = {
   tortuga: [[-6, -10], [12, -26], [-24, -24], [26, -10]],
   sabre: [[-4, -12], [26, -26]],
+  royale: [[-6, -10], [8, -10]],
 };
+
+/** Graine du tirage des palmiers de chaque village. */
+const VILLAGE_SEED: Record<IslandId, number> = { tortuga: 7, sabre: 11, royale: 23 };
 
 /** Le port d'une île : quais et pontons sur pilotis, village pirate ; ses lanternes (repère du monde) pour les halos de nuit. */
 export function buildPort(of: Island): { group: THREE.Group; lanterns: LanternSpot[] } {
@@ -107,7 +122,7 @@ export function buildPort(of: Island): { group: THREE.Group; lanterns: LanternSp
 
   // Village : cabanes, taverne, entrepôt (les murs descendent sous terre pour ne jamais flotter sur une pente).
   for (const house of HOUSES[of.id]) addHouse(batch, house);
-  const rand = seeded(of.id === 'sabre' ? 11 : 7);
+  const rand = seeded(VILLAGE_SEED[of.id]);
   const palm = { trunk: std(0x8a6a45), leaf: std(0x3f9a3a), nut: std(0x5a3d20) };
   for (const [u, v] of VILLAGE_PALMS[of.id]) {
     const q = at(u, v);
