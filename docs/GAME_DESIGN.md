@@ -209,7 +209,7 @@ Décisions prises avec l'auteur (depuis le 2026-10-06). Les valeurs chiffrées s
 - **Menu T** : chaque navire affiche le nombre d'ennemis qu'il a coulés (celui qui porte le coup fatal, au canon ou à l'éperon).
 - Barres de vie au-dessus des ennemis.
 - Radar : rouge = ennemi qui chasse, orange = en patrouille, violet = en fuite, gros point rouge cerclé = boss ; vert = ta flotte, bleu = autres alliés (pirates, marchands), bleu ciel cerclé = navire à protéger ; petit poisson bleu = banc. Le butin n'y est plus affiché (trop nombreux, il encombrait le radar) ; il reste sur la carte (M). Le phare agrandit sa portée près de l'île.
-- **Carte (M)** : parchemin, jeu en pause. Nord en haut. L'île de la Tortue et ses lieux (port, fort, phare), ta position et ta flotte, les ennemis à portée du radar seulement, le butin, la rose des vents avec le vent actuel, une échelle. Le cadrage englobe toujours l'île et ta zone radar. Un nouveau lieu s'ajoute dans `world/landmarks.ts`.
+- **Carte (M)** : parchemin, jeu en pause. Nord en haut. Les îles et leurs lieux (pictogrammes de port, fort, phare), ta position et ta flotte, les ennemis à portée du radar seulement, le butin, la rose des vents avec le vent actuel, une échelle. **Une seule écriture par île** (2026-10-13) : le nom de son port, ou, sans port, le nom de l'île ; les forts et le phare n'ont plus que leur pictogramme. Un port tenu par la Marine s'écrit à l'encre rouge, en gras, avec ses pictogrammes rouges et une couronne au-dessus de l'ancre (« ♛ Port de la Marine » dans la légende) ; il repasse à l'encre brune quand l'île est à toi. Le cadrage englobe toujours les îles et ta zone radar. Un nouveau lieu s'ajoute dans `world/landmarks.ts`.
 - Son : plus tard.
 
 ## Paramètres et qualité graphique (fait)

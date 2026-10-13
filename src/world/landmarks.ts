@@ -1,12 +1,14 @@
-import { ISLANDS } from '../config';
+import { ISLAND_INFO, ISLANDS, type IslandId } from '../config';
 import { royale, sabre, tortuga } from './island';
 
 export type LandmarkKind = 'port' | 'fort' | 'lighthouse';
 
-/** Un lieu remarquable, affiché sur la carte (M). */
+/** Un lieu remarquable, affiché sur la carte (M) : son pictogramme ; seul un port y porte son nom. */
 export interface Landmark {
   readonly kind: LandmarkKind;
   readonly name: string;
+  /** L'île où il se trouve (un port de la Marine se dessine en rouge). */
+  readonly island: IslandId;
   readonly x: number;
   readonly z: number;
 }
@@ -22,11 +24,11 @@ export const ROYAL_FORT_SPOT = royale.pointAt(ISLANDS.royale.bay.angle + 0.5, 48
 
 /** Tous les lieux à montrer sur la carte. Un nouveau lieu (île, épave, trésor…) s'ajoute ici. */
 export const LANDMARKS: readonly Landmark[] = [
-  { kind: 'port', name: 'Port de la Tortue', ...tortuga.port },
-  { kind: 'fort', name: 'Fort', ...FORT_SPOT },
-  { kind: 'lighthouse', name: 'Phare', ...LIGHTHOUSE_SPOT },
-  { kind: 'port', name: 'Port-Sabre', ...sabre.port },
-  { kind: 'fort', name: 'Citadelle', ...CITADEL_SPOT },
-  { kind: 'port', name: 'Port-Royal', ...royale.port },
-  { kind: 'fort', name: 'Fort-Royal', ...ROYAL_FORT_SPOT },
+  { kind: 'port', name: ISLAND_INFO.tortuga.portName, island: 'tortuga', ...tortuga.port },
+  { kind: 'fort', name: ISLAND_INFO.tortuga.fort.name, island: 'tortuga', ...FORT_SPOT },
+  { kind: 'lighthouse', name: 'Phare', island: 'tortuga', ...LIGHTHOUSE_SPOT },
+  { kind: 'port', name: ISLAND_INFO.sabre.portName, island: 'sabre', ...sabre.port },
+  { kind: 'fort', name: ISLAND_INFO.sabre.fort.name, island: 'sabre', ...CITADEL_SPOT },
+  { kind: 'port', name: ISLAND_INFO.royale.portName, island: 'royale', ...royale.port },
+  { kind: 'fort', name: ISLAND_INFO.royale.fort.name, island: 'royale', ...ROYAL_FORT_SPOT },
 ];

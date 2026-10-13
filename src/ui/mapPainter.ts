@@ -2,6 +2,7 @@ import type { MapZone } from '../missions/mission';
 import type { Ship } from '../ship/ship';
 import type { FishSchool } from '../world/fishSchools';
 import { ISLAND_INFO } from '../config';
+import { harbors } from '../world/harbors';
 import { ISLAND_LIST, type Island } from '../world/island';
 import { LANDMARKS } from '../world/landmarks';
 import type { Crate, LootKind } from '../world/loot';
@@ -104,7 +105,8 @@ export function paintMap(ctx: CanvasRenderingContext2D, width: number, height: n
   ctx.stroke();
 
   for (const island of ISLAND_LIST) paintIsland(ctx, island, toX, toY, scale);
-  for (const l of LANDMARKS) paintLandmark(ctx, l.kind, l.name, toX(l.x), toY(l.z));
+  // Une seule écriture par île : le nom de son port (sinon celui de l'île, voir paintIsland). Port de la Marine en rouge.
+  for (const l of LANDMARKS) paintLandmark(ctx, l.kind, l.kind === 'port' ? l.name : null, toX(l.x), toY(l.z), !harbors.isOpen(l.island));
 
   // Zone couverte par le radar : ce que tu « vois » autour de toi.
   ctx.strokeStyle = COLORS.radar;
@@ -185,7 +187,8 @@ function paintIsland(ctx: CanvasRenderingContext2D, island: Island, toX: (x: num
     ctx.stroke();
   }
 
-  // Le nom s'écrit du côté opposé à la crique (le port y a déjà le sien).
+  // Une île sans port porte son propre nom, du côté opposé à la crique (sinon, c'est le nom du port qui la désigne).
+  if (LANDMARKS.some((l) => l.kind === 'port' && l.island === island.id)) return;
   const away = island.def.bay.angle + Math.PI;
   const nameX = toX(island.cx + Math.sin(away) * island.def.radius * 0.45);
   const name = toY(island.cz + Math.cos(away) * island.def.radius * 0.45);

@@ -60,7 +60,8 @@ export class MapMenu extends ParchmentMenu {
       <span><b class="zone">◌</b> Portée du radar</span>
       <span><b class="pirate">▲</b> Alliés</span>
       <span><b class="escort">▲</b> À protéger</span>
-      <span><b class="hunt">◌</b> Zone de chasse</span>`;
+      <span><b class="hunt">◌</b> Zone de chasse</span>
+      <span><b class="navy">♛</b> Port de la Marine</span>`;
     this.body.append(this.canvas, legend);
   }
 
