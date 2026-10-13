@@ -29,6 +29,8 @@ export class Island {
   readonly portSpawn: { x: number; z: number; heading: number };
   /** Rayon au-delà duquel on est sûrement en mer (pour les calculs rapides). */
   readonly outerRadius: number;
+  /** Centre du replat de la ville derrière le port (IslandShapeDef.town), ou null. */
+  readonly town: { x: number; z: number } | null;
 
   constructor(
     readonly id: IslandId,
@@ -39,6 +41,7 @@ export class Island {
     this.port = this.pointAt(def.bay.angle, 0);
     const spawn = this.pointAt(def.bay.angle, -PORT.spawnOffset);
     this.portSpawn = { ...spawn, heading: def.bay.angle };
+    this.town = def.town ? this.pointAt(def.bay.angle, def.town.inland) : null;
   }
 
   /** Rayon de la côte dans la direction `theta` (cap depuis le centre). */
@@ -92,8 +95,10 @@ export class Island {
     average = average / RELIEF_SMOOTHING.length - r;
     const inland = exact + (average - exact) * smoothstep(10, 60, exact);
     const noise = 0.5 + 0.25 * Math.sin(x * 0.031 + 1.3) * Math.sin(z * 0.027 + 0.4) + 0.25 * Math.sin(x * 0.013 - z * 0.017);
-    // Le village s'étale sur un replat autour du port ; ailleurs le terrain monte vite.
-    const nearPort = smoothstep(25, 110, Math.hypot(x - this.port.x, z - this.port.z));
+    // Le village s'étale sur un replat autour du port (et la ville sur le sien) ; ailleurs le terrain monte vite.
+    let nearPort = smoothstep(25, 110, Math.hypot(x - this.port.x, z - this.port.z));
+    const town = this.def.town;
+    if (town && this.town) nearPort = Math.min(nearPort, smoothstep(town.radius[0], town.radius[1], Math.hypot(x - this.town.x, z - this.town.z)));
     const { peak, cliff, relief } = this.def;
     if (relief === 'cliffs') {
       // Plage étroite au pied d'une falaise, puis des hauteurs rocheuses.

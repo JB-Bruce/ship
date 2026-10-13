@@ -1573,6 +1573,11 @@ export interface IslandShapeDef {
   /** Herbe (claire, sombre) : les îles rocheuses sont plus sèches. */
   grass: number;
   darkGrass: number;
+  /**
+   * Replat d'une ville derrière le port (en plus de celui du village) : centré à `inland` m à l'intérieur des terres
+   * depuis le quai, plat sur `radius[0]` m, puis rejoint le relief à `radius[1]` m.
+   */
+  town?: { inland: number; radius: readonly [number, number] };
 }
 
 /** Nombre d'ondulations de chaque côte (taille des tableaux du shader de l'eau). */
@@ -1643,6 +1648,8 @@ export const ISLANDS: Record<IslandId, IslandShapeDef> = {
     surfWidth: 6,
     grass: 0x5d8f45,
     darkGrass: 0x3d6b33,
+    // La ville de l'arsenal, derrière Port-Royal.
+    town: { inland: 50, radius: [55, 120] },
   },
 };
 

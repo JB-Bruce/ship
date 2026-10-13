@@ -8,19 +8,24 @@ import { CITADEL_SPOT, FORT_SPOT, LIGHTHOUSE_SPOT, ROYAL_FORT_SPOT } from './lan
 /** Marge de la grille du terrain au-delà du rayon de l'île (m), et taille d'une case (m). */
 const EXTENT_MARGIN = 80;
 const CELL = 3.3;
+/** Une ville garde sa plage sur cette largeur au bord de l'eau (m). */
+const TOWN_SHORE = 12;
 
 /**
  * Décor de chaque île : palmiers, pins (sur les hauteurs, au-dessus de `pineFrom` m), rochers, graine du tirage,
- * altitude max des palmiers et des pins (m).
+ * altitude max des palmiers et des pins (m), et rayon autour du port où rien ne pousse (village ou ville ; les
+ * rochers et les pins s'en tiennent 10 m plus loin).
  */
-const DECOR: Record<IslandId, { palms: number; pines: number; rocks: number; seed: number; palmHeight: number; pineFrom: number; pineHeight: number }> = {
-  tortuga: { palms: 34, pines: 0, rocks: 26, seed: 42, palmHeight: 9, pineFrom: 0, pineHeight: 0 },
-  sabre: { palms: 12, pines: 0, rocks: 48, seed: 97, palmHeight: 22, pineFrom: 0, pineHeight: 0 },
-  royale: { palms: 10, pines: 90, rocks: 40, seed: 131, palmHeight: 6, pineFrom: 6, pineHeight: 55 },
+const DECOR: Record<IslandId, { palms: number; pines: number; rocks: number; seed: number; palmHeight: number; pineFrom: number; pineHeight: number; clear: number }> = {
+  tortuga: { palms: 34, pines: 0, rocks: 26, seed: 42, palmHeight: 9, pineFrom: 0, pineHeight: 0, clear: 50 },
+  sabre: { palms: 12, pines: 0, rocks: 48, seed: 97, palmHeight: 22, pineFrom: 0, pineHeight: 0, clear: 50 },
+  royale: { palms: 10, pines: 90, rocks: 40, seed: 131, palmHeight: 6, pineFrom: 6, pineHeight: 55, clear: 105 },
 };
 
 const COLORS = {
   seabed: new THREE.Color(0xd8c89a),
+  /** Terre battue des rues d'une ville (IslandShapeDef.town). */
+  street: new THREE.Color(0xa39577),
   sand: new THREE.Color(0xe6d29c),
   rock: new THREE.Color(0x8d857a),
   highRock: new THREE.Color(0xa49d90),
@@ -63,6 +68,7 @@ export function buildTerrain(island: Island): THREE.Mesh {
     const cz = (p.getZ(f) + p.getZ(f + 1) + p.getZ(f + 2)) / 3;
     const flat = n.getY(f);
     if (h < -0.3) color.copy(COLORS.seabed);
+    else if (inTown(island, cx, cz)) color.copy(COLORS.street);
     else if (h < 1.7) color.copy(COLORS.sand);
     else if (flat < 0.72) color.copy(COLORS.rock);
     else if (h > 30) color.copy(COLORS.highRock);
@@ -74,6 +80,13 @@ export function buildTerrain(island: Island): THREE.Mesh {
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   const material = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.95 });
   return new THREE.Mesh(geometry, material);
+}
+
+/** Dans le replat d'une ville, à plus de TOWN_SHORE m du rivage (le bord de mer garde sa plage). */
+function inTown(island: Island, x: number, z: number): boolean {
+  const town = island.def.town;
+  if (!town || !island.town) return false;
+  return Math.hypot(x - island.town.x, z - island.town.z) < town.radius[0] && island.sdf(x, z) < -TOWN_SHORE;
 }
 
 /** Palmier courbé, origine au pied du tronc ; `lean` = direction (rad) vers laquelle il penche. */
@@ -141,7 +154,7 @@ export function buildVegetation(island: Island): THREE.Group {
     const z = island.cz + (rand() * 2 - 1) * reach * 1.2;
     const h = island.heightAt(x, z);
     // Pas sur le quai ni au milieu du village (on en plante quelques-uns à la main là-bas).
-    if (h < 1.2 || h > decor.palmHeight || Math.hypot(x - port.x, z - port.z) < 50 || builtUp(x, z)) continue;
+    if (h < 1.2 || h > decor.palmHeight || Math.hypot(x - port.x, z - port.z) < decor.clear || builtUp(x, z)) continue;
     addPalm(batch, m, x, h - 0.2, z, rand() * Math.PI * 2, rand);
     palms++;
   }
@@ -152,7 +165,7 @@ export function buildVegetation(island: Island): THREE.Group {
     const x = island.cx + (rand() * 2 - 1) * reach * 1.2;
     const z = island.cz + (rand() * 2 - 1) * reach * 1.2;
     const h = island.heightAt(x, z);
-    if (h < decor.pineFrom || h > decor.pineHeight || Math.hypot(x - port.x, z - port.z) < 60 || builtUp(x, z)) continue;
+    if (h < decor.pineFrom || h > decor.pineHeight || Math.hypot(x - port.x, z - port.z) < decor.clear + 10 || builtUp(x, z)) continue;
     addPine(batch, pine, x, h - 0.3, z, rand);
     pines++;
   }
@@ -161,7 +174,7 @@ export function buildVegetation(island: Island): THREE.Group {
     const x = island.cx + (rand() * 2 - 1) * reach * 1.3;
     const z = island.cz + (rand() * 2 - 1) * reach * 1.3;
     const s = island.sdf(x, z);
-    if (s < -6 || s > 4 || Math.hypot(x - port.x, z - port.z) < 60 || builtUp(x, z)) continue;
+    if (s < -6 || s > 4 || Math.hypot(x - port.x, z - port.z) < decor.clear + 10 || builtUp(x, z)) continue;
     const size = 0.8 + rand() * 2.2;
     batch.add(rock, new THREE.DodecahedronGeometry(size, 0), tf(x, island.heightAt(x, z) + size * 0.2, z, rand() * 3, rand() * 3, 0, [1, 0.7, 1.1]));
     rocks++;
