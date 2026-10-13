@@ -1,12 +1,12 @@
 import { CONTRACTS } from '../config';
-import { sizeRank, type ShipType } from '../shipTypes';
+import { SHIP_TYPES, type ShipType } from '../shipTypes';
 
 /**
- * Menace d'une mission, en points : chaque navire compte sa taille (barque 1 … frégate 6), un navire d'élite
+ * Menace d'une mission, en points : chaque navire compte sa taille (`ShipTypeDef.threat` : barque 1 … frégate 6), un navire d'élite
  * × CONTRACTS.eliteThreat. Les étoiles d'un contrat de combat viennent de cette menace (CONTRACTS.threatStars) :
  * couler 3 chaloupes (6 points) vaut une étoile.
  */
-export const shipThreat = (type: ShipType) => sizeRank(type) + 1;
+export const shipThreat = (type: ShipType) => SHIP_TYPES[type].threat;
 
 /** Menace moyenne d'un navire tiré au hasard entre les tailles de `min` et de `max` (comme `squadronTypes`). */
 export function rangeThreat(min: ShipType, max: ShipType): number {

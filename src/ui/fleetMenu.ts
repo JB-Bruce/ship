@@ -2,7 +2,7 @@ import { FORMATION_NAMES } from '../config';
 import type { Fleet, FleetMember, Formation } from '../fleet/fleet';
 import { capacityOf } from '../fleet/holds';
 import { cargoTotal, GOODS, goodText } from '../progression/goods';
-import { isExtended, maxLevel, totalLevels, UPGRADE_IDS } from '../progression/upgrades';
+import { cannonCount, isExtended, maxLevel, totalLevels, UPGRADE_IDS } from '../progression/upgrades';
 import { SHIP_TYPES, typeName } from '../shipTypes';
 import { ParchmentMenu } from './parchmentMenu';
 import { shipIcon } from './shipIcons';
@@ -59,7 +59,7 @@ export class FleetMenu extends ParchmentMenu {
         <div class="body">
           <h2>${m.name} <span class="tag${isExtended(m.levels) ? ' extended' : ''}">${typeName(m.type, m.levels.extension)}</span>${atHelm ? '<span class="tag helm">À la barre</span>' : ''}${m.trade ? '<span class="tag trade">⚖ En commerce</span>' : ''}<span class="tag kills" title="Navires ennemis coulés">☠ ${m.kills} coulé${m.kills > 1 ? 's' : ''}</span>${rankTag(m)}</h2>
           ${status}
-          <p>Vie ${Math.ceil(ship.health)} / ${ship.stats.maxHealth} · ${ship.stats.cannonsPerSide * 2} canons · ${Math.round(ship.stats.maxSpeed * MS_TO_KNOTS)} nœuds · améliorations ${totalLevels(m.levels)} / ${maxUpgrades}</p>
+          <p>Vie ${Math.ceil(ship.health)} / ${ship.stats.maxHealth} · ${cannonCount(ship.stats)} canons · ${Math.round(ship.stats.maxSpeed * MS_TO_KNOTS)} nœuds · améliorations ${totalLevels(m.levels)} / ${maxUpgrades}</p>
           <p class="effect">${hold}</p>
         </div>
         <div class="buy">

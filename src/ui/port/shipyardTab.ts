@@ -1,7 +1,7 @@
 import { GUNS, type GunType } from '../../config';
 import { capacityOf } from '../../fleet/holds';
 import { gunCost } from '../../progression/modifiers';
-import { describeLevel, extensionLevels, massSpeedLoss, maxLevel, nextCost, shipMass, UPGRADE_IDS, type UpgradeId } from '../../progression/upgrades';
+import { cannonCount, describeLevel, extensionLevels, massSpeedLoss, maxLevel, nextCost, shipMass, UPGRADE_IDS, type UpgradeId } from '../../progression/upgrades';
 import { SHIP_TYPES, typeName, UPGRADE_INFO } from '../../shipTypes';
 import { costHtml } from '../parchmentMenu';
 import { extensionIcon } from '../shipIcons';
@@ -31,19 +31,20 @@ export function shipyardTab(ctx: PortContext): string {
   const { type, levels } = member;
   const stats = member.ship.stats;
   const penalty = Math.round(massSpeedLoss(type, levels) * 100);
+  const labels = SHIP_TYPES[type].gunLabels;
   return `
     <p class="subtitle">Améliorations de <b>${member.name}</b> (${typeName(type, levels.extension)}). Prends la barre d'un autre navire (T) pour l'améliorer.</p>
     ${resourcesHtml(ctx)}
     <div class="list">${UPGRADE_IDS.filter((id) => maxLevel(type, id, levels) > 0).map((id) => card(ctx, id)).join('')}</div>
     ${extensionCard(ctx)}
     <h3 class="section">Type de canons</h3>
-    ${gunRow(ctx, 'main', stats.deckCannon ? 'Batterie' : '')}${stats.deckCannon ? gunRow(ctx, 'deck', 'Canons des gaillards') : ''}
+    ${gunRow(ctx, 'main', stats.deckCannon ? (labels?.main ?? 'Batterie') : '')}${stats.deckCannon ? gunRow(ctx, 'deck', labels?.deck ?? 'Canons des gaillards') : ''}
     <div class="footer">
       <span>Longueur <b>${stats.length} m</b></span>
       <span>Masse <b>${shipMass(type, levels)}</b>${penalty > 0 ? ` (−${penalty} % de vitesse)` : ''}</span>
       <span>Vitesse max <b>${Math.round(stats.maxSpeed * MS_TO_KNOTS)} nœuds</b></span>
       <span>Vie max <b>${stats.maxHealth}</b></span>
-      <span>Canons <b>${stats.cannonsPerSide * 2}</b> · portée <b>${Math.round(stats.cannon.range)} m</b></span>
+      <span>Canons <b>${cannonCount(stats)}</b> · portée <b>${Math.round(stats.cannon.range)} m</b></span>
       <span>Cale <b>${capacityOf(member)} places</b></span>
     </div>`;
 }

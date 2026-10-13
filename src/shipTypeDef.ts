@@ -1,0 +1,99 @@
+// Forme d'un type de bateau (shipTypes.ts) : tables d'amélioration, allongements, masse, et noms des améliorations.
+
+import type { Cost, ShipStats } from './config';
+
+export interface UpgradeTable {
+  /** Multiplicateur de l'imprécision (écart d'angle et de distance). */
+  accuracy: { costs: Cost[]; spreadFactor: number[] };
+  /** Multiplicateur de portée des canons (tableau vide = amélioration indisponible pour ce navire). */
+  range: { costs: Cost[]; rangeFactor: number[] };
+  /**
+   * Nombre de canons par flanc. `chaseFrom` : niveau (1 = premier) à partir duquel le canon de chasse est monté
+   * (caravelle) ; ce niveau-là garde le nombre de canons par flanc du précédent.
+   */
+  cannons: { costs: Cost[]; cannonsPerSide: number[]; chaseFrom?: number };
+  /** Vie max ajoutée. */
+  hull: { costs: Cost[]; healthBonus: number[] };
+  /** Multiplicateur de vitesse et d'accélération. */
+  sails: { costs: Cost[]; speedFactor: number[] };
+  /** Places dans la cale (poisson, rhum, épices), remplaçant la capacité de base. */
+  hold: { costs: Cost[]; capacity: number[] };
+}
+
+/**
+ * Un allongement d'un type (la frégate en a deux) : la coque est sciée et rallongée. Une amélioration à part (niveau
+ * `extension` : nombre d'allongements faits), achetée au chantier : plus de vie, un peu plus de vitesse, un virage plus
+ * lent, plus de masse (les effets de chaque allongement se cumulent), et les derniers niveaux de certaines améliorations
+ * (extraLevels, au bout de leurs tables, dans l'ordre des allongements) ne s'ouvrent qu'avec lui.
+ */
+export interface ExtensionDef {
+  /** Nom du navire une fois allongé (« Frégate allongée »). */
+  name: string;
+  description: string;
+  cost: Cost;
+  /** Longueur ajoutée à la coque (m). */
+  length: number;
+  healthFactor: number;
+  speedFactor: number;
+  turnFactor: number;
+  mass: number;
+  /** Nombre de niveaux, à la fin de chaque table, réservés au navire allongé. */
+  extraLevels: Partial<Record<keyof UpgradeTable, number>>;
+}
+
+/** Masse : chaque équipement alourdit le bateau et le ralentit un peu. */
+export interface MassTable {
+  base: number;
+  perExtraCannon: number;
+  /** Canon de chasse, une fois monté. */
+  chaseGun?: number;
+  hull: number[];
+  sails: number[];
+  /** Cale agrandie : la marchandise et l'arrimage pèsent (par niveau). */
+  hold: number[];
+  /** Vitesse perdue par unité de masse au-dessus de la base (fraction). */
+  speedLossPerUnit: number;
+}
+
+export interface ShipTypeDef {
+  name: string;
+  /** Nom féminin (« une barque ») : accorde les textes affichés (« Barque ennemie coulée »). */
+  feminine?: boolean;
+  description: string;
+  /** Disposition des canons : sur les flancs (bordée) ou à l'avant (l'IA attaque alors en passes). */
+  armament: 'broadside' | 'bow';
+  /**
+   * Menace en points (barque 1 … frégate 6) : la taille du navire pour les contrats (étoiles) et le niveau de la
+   * flotte. Elle ne suit pas l'ordre de SHIP_SIZE_ORDER (la caravelle, entre le sloop et le brigantin, vaut 3,5).
+   */
+  threat: number;
+  /** Butin laissé par l'épave, relatif à une chaloupe. */
+  lootFactor: number;
+  price: Cost;
+  /** Délai avant qu'un bateau de la flotte coulé réapparaisse (s). */
+  respawnTime: number;
+  /** Places dans la cale sans amélioration (poisson, rhum, épices). */
+  hold: number;
+  /** Peut pêcher (chaloupe, sloop). */
+  canFish?: boolean;
+  /** Caractéristiques de base d'un bateau du joueur. */
+  stats: ShipStats;
+  /** Caractéristiques de base du même bateau chez l'ennemi (un peu plus faible). */
+  enemyStats: ShipStats;
+  upgrades: UpgradeTable;
+  mass: MassTable;
+  /** Noms des deux calibres au chantier (par défaut « Batterie » et « Canons des gaillards »). */
+  gunLabels?: { main: string; deck: string };
+  /** Allongements possibles, dans l'ordre (frégate). */
+  extensions?: readonly ExtensionDef[];
+}
+
+/** Nom et description des améliorations, communs à tous les types. */
+export const UPGRADE_INFO = {
+  accuracy: { name: 'Précision des canons', description: 'Des canonniers mieux entraînés : les boulets s’écartent moins de leur cible.' },
+  range: { name: 'Portée des canons', description: 'Fûts plus longs et meilleure poudre : les boulets portent plus loin.' },
+  cannons: { name: 'Canons supplémentaires', description: 'Un canon de plus sur chaque flanc : plus de boulets par bordée.' },
+  hull: { name: 'Défense de la coque', description: 'Bordages doublés et cerclés de fer : le bateau encaisse davantage.' },
+  sails: { name: 'Voilure', description: 'Des voiles plus larges et mieux taillées : plus de vitesse et d’accélération.' },
+  hold: { name: 'Cale', description: 'Une cale agrandie et mieux arrimée : plus de place pour le poisson, le rhum et les épices.' },
+};

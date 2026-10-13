@@ -1,7 +1,8 @@
 import { CONTRACTS, ISLAND_INFO, SPECIAL_CONTRACTS, type BossId, type Cost, type IslandId } from '../config';
-import { sizeRank, type ShipType } from '../shipTypes';
+import type { ShipType } from '../shipTypes';
 import { createOffer, offerKey, specialOffer } from './contractOffers';
 import type { Good } from './goods';
+import { shipThreat } from './missionThreat';
 
 export type ContractKind = 'sink' | 'sinkType' | 'sinkElite' | 'deliver' | 'sinkBoss' | 'hunt' | 'defend' | 'escort';
 
@@ -229,6 +230,6 @@ function drawStars(level: number): number {
 
 /** Niveau d'une flotte (1 à 5) d'après la taille de ses navires : une chaloupe seule = 1, six corvettes = 5. */
 export function fleetLevel(types: readonly ShipType[]): number {
-  const size = types.reduce((sum, t) => sum + sizeRank(t) + 1, 0);
+  const size = types.reduce((sum, t) => sum + shipThreat(t), 0);
   return Math.min(CONTRACTS.stars, Math.max(1, Math.round(size / CONTRACTS.fleetLevelDivisor)));
 }

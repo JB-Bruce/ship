@@ -1,12 +1,12 @@
 // Les types de bateaux : caractéristiques, prix, améliorations et masse.
 // Un tableau d'amélioration = une valeur par niveau (le niveau 1 est la première case).
 
-import type { Cost, ShipStats } from './config';
-import { BRIGANTINE_STATS, CORVETTE_STATS, FRIGATE_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SLOOP_STATS, weaker } from './shipStats';
+import { UPGRADE_INFO, type ShipTypeDef } from './shipTypeDef';
+import { BRIGANTINE_STATS, CARAVEL_STATS, CORVETTE_STATS, FRIGATE_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SLOOP_STATS, weaker } from './shipStats';
 
-export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'brigantine' | 'corvette' | 'frigate';
+export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'caravel' | 'brigantine' | 'corvette' | 'frigate';
 /** Du plus petit au plus gros. */
-export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'brigantine', 'corvette', 'frigate'];
+export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', 'brigantine', 'corvette', 'frigate'];
 /** Nom du type d'un navire selon ses allongements (« Frégate allongée », « Grande frégate »). */
 export function typeName(type: ShipType, extension = 0): string {
   return extension > 0 ? (SHIP_TYPES[type].extensions?.[extension - 1]?.name ?? SHIP_TYPES[type].name) : SHIP_TYPES[type].name;
@@ -15,92 +15,11 @@ export function typeName(type: ShipType, extension = 0): string {
 /** Rang de taille d'un type (0 = barque). */
 export const sizeRank = (type: ShipType) => SHIP_SIZE_ORDER.indexOf(type);
 
+export { UPGRADE_INFO };
+export type { ExtensionDef, MassTable, ShipTypeDef, UpgradeTable } from './shipTypeDef';
+
 /** Types que le joueur peut acheter (la barque est réservée aux ennemis). */
-export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'brigantine', 'corvette', 'frigate'];
-
-export interface UpgradeTable {
-  /** Multiplicateur de l'imprécision (écart d'angle et de distance). */
-  accuracy: { costs: Cost[]; spreadFactor: number[] };
-  /** Multiplicateur de portée des canons (tableau vide = amélioration indisponible pour ce navire). */
-  range: { costs: Cost[]; rangeFactor: number[] };
-  /** Nombre de canons par flanc. */
-  cannons: { costs: Cost[]; cannonsPerSide: number[] };
-  /** Vie max ajoutée. */
-  hull: { costs: Cost[]; healthBonus: number[] };
-  /** Multiplicateur de vitesse et d'accélération. */
-  sails: { costs: Cost[]; speedFactor: number[] };
-  /** Places dans la cale (poisson, rhum, épices), remplaçant la capacité de base. */
-  hold: { costs: Cost[]; capacity: number[] };
-}
-
-/**
- * Un allongement d'un type (la frégate en a deux) : la coque est sciée et rallongée. Une amélioration à part (niveau
- * `extension` : nombre d'allongements faits), achetée au chantier : plus de vie, un peu plus de vitesse, un virage plus
- * lent, plus de masse (les effets de chaque allongement se cumulent), et les derniers niveaux de certaines améliorations
- * (extraLevels, au bout de leurs tables, dans l'ordre des allongements) ne s'ouvrent qu'avec lui.
- */
-export interface ExtensionDef {
-  /** Nom du navire une fois allongé (« Frégate allongée »). */
-  name: string;
-  description: string;
-  cost: Cost;
-  /** Longueur ajoutée à la coque (m). */
-  length: number;
-  healthFactor: number;
-  speedFactor: number;
-  turnFactor: number;
-  mass: number;
-  /** Nombre de niveaux, à la fin de chaque table, réservés au navire allongé. */
-  extraLevels: Partial<Record<keyof UpgradeTable, number>>;
-}
-
-/** Masse : chaque équipement alourdit le bateau et le ralentit un peu. */
-export interface MassTable {
-  base: number;
-  perExtraCannon: number;
-  hull: number[];
-  sails: number[];
-  /** Cale agrandie : la marchandise et l'arrimage pèsent (par niveau). */
-  hold: number[];
-  /** Vitesse perdue par unité de masse au-dessus de la base (fraction). */
-  speedLossPerUnit: number;
-}
-
-export interface ShipTypeDef {
-  name: string;
-  /** Nom féminin (« une barque ») : accorde les textes affichés (« Barque ennemie coulée »). */
-  feminine?: boolean;
-  description: string;
-  /** Disposition des canons : sur les flancs (bordée) ou à l'avant (l'IA attaque alors en passes). */
-  armament: 'broadside' | 'bow';
-  /** Butin laissé par l'épave, relatif à une chaloupe. */
-  lootFactor: number;
-  price: Cost;
-  /** Délai avant qu'un bateau de la flotte coulé réapparaisse (s). */
-  respawnTime: number;
-  /** Places dans la cale sans amélioration (poisson, rhum, épices). */
-  hold: number;
-  /** Peut pêcher (chaloupe, sloop). */
-  canFish?: boolean;
-  /** Caractéristiques de base d'un bateau du joueur. */
-  stats: ShipStats;
-  /** Caractéristiques de base du même bateau chez l'ennemi (un peu plus faible). */
-  enemyStats: ShipStats;
-  upgrades: UpgradeTable;
-  mass: MassTable;
-  /** Allongements possibles, dans l'ordre (frégate). */
-  extensions?: readonly ExtensionDef[];
-}
-
-/** Nom et description des améliorations, communs à tous les types. */
-export const UPGRADE_INFO = {
-  accuracy: { name: 'Précision des canons', description: 'Des canonniers mieux entraînés : les boulets s’écartent moins de leur cible.' },
-  range: { name: 'Portée des canons', description: 'Fûts plus longs et meilleure poudre : les boulets portent plus loin.' },
-  cannons: { name: 'Canons supplémentaires', description: 'Un canon de plus sur chaque flanc : plus de boulets par bordée.' },
-  hull: { name: 'Défense de la coque', description: 'Bordages doublés et cerclés de fer : le bateau encaisse davantage.' },
-  sails: { name: 'Voilure', description: 'Des voiles plus larges et mieux taillées : plus de vitesse et d’accélération.' },
-  hold: { name: 'Cale', description: 'Une cale agrandie et mieux arrimée : plus de place pour le poisson, le rhum et les épices.' },
-};
+export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'caravel', 'brigantine', 'corvette', 'frigate'];
 
 export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
   rowboat: {
@@ -108,6 +27,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     feminine: true,
     description: 'Barque à rames de la marine, un pierrier à l’avant.',
     armament: 'bow',
+    threat: 1,
     lootFactor: 0.5,
     price: { gold: 0, wood: 0 },
     respawnTime: 0,
@@ -130,6 +50,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     feminine: true,
     description: 'Petite et nerveuse : une voile carrée, un pierrier par flanc.',
     armament: 'broadside',
+    threat: 2,
     lootFactor: 1,
     price: { gold: 150, wood: 0 },
     respawnTime: 45,
@@ -151,6 +72,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     name: 'Sloop',
     description: 'Polyvalent : grand-voile et foc, pont fermé, canons sur affût. Solide et presque aussi rapide.',
     armament: 'broadside',
+    threat: 3,
     lootFactor: 2,
     price: { gold: 600, wood: 125 },
     respawnTime: 55,
@@ -168,10 +90,41 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     },
     mass: { base: 220, perExtraCannon: 8, hull: [15, 32, 50], sails: [4, 8, 12], hold: [6, 10, 16], speedLossPerUnit: 0.0006 },
   },
+  caravel: {
+    name: 'Caravelle',
+    feminine: true,
+    description: 'Courte et haute : château arrière, gaillard d’avant, grand mât à voiles carrées et artimon latin. Lente mais très maniable, robuste, avec un gros canon de chasse à la proue.',
+    armament: 'broadside',
+    threat: 3.5,
+    lootFactor: 2.7,
+    price: { gold: 1000, wood: 250 },
+    respawnTime: 62,
+    hold: 50,
+    stats: CARAVEL_STATS,
+    enemyStats: weaker(CARAVEL_STATS, 145, 12),
+    gunLabels: { main: 'Canons de flanc', deck: 'Canon de chasse' },
+    upgrades: {
+      accuracy: {
+        costs: [{ gold: 45, wood: 0 }, { gold: 75, wood: 0 }, { gold: 115, wood: 0 }, { gold: 160, wood: 0 }],
+        spreadFactor: [0.75, 0.56, 0.4, 0.27],
+      },
+      range: { costs: [{ gold: 70, wood: 20 }], rangeFactor: [1.15] },
+      // D'abord le gros canon de chasse sous le gaillard d'avant, puis un canon de plus par flanc à chaque niveau.
+      cannons: { costs: [{ gold: 140, wood: 70 }, { gold: 110, wood: 70 }, { gold: 160, wood: 95 }], cannonsPerSide: [2, 3, 4], chaseFrom: 1 },
+      hull: {
+        costs: [{ gold: 35, wood: 35 }, { gold: 60, wood: 60 }, { gold: 90, wood: 90 }, { gold: 125, wood: 125 }],
+        healthBonus: [45, 95, 150, 210],
+      },
+      sails: { costs: [{ gold: 50, wood: 12 }, { gold: 75, wood: 20 }, { gold: 110, wood: 30 }], speedFactor: [1.06, 1.12, 1.18] },
+      hold: { costs: [{ gold: 50, wood: 30 }, { gold: 85, wood: 50 }, { gold: 120, wood: 75 }], capacity: [65, 85, 110] },
+    },
+    mass: { base: 270, perExtraCannon: 8, chaseGun: 14, hull: [14, 30, 48, 68], sails: [4, 9, 14], hold: [7, 12, 19], speedLossPerUnit: 0.00055 },
+  },
   brigantine: {
     name: 'Brigantin',
     description: 'Tireur d’élite : château arrière abritant deux canons, gaillard d’avant, deux mâts à voiles carrées. Très précis, longue portée, lent à virer.',
     armament: 'broadside',
+    threat: 4,
     lootFactor: 3.5,
     price: { gold: 1800, wood: 480 },
     respawnTime: 70,
@@ -218,6 +171,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     feminine: true,
     description: 'Navire de guerre à trois mâts : une batterie couverte de canons lourds (angle de tir étroit) et, en achetant le pont, des canons légers et rapides au-dessus.',
     armament: 'broadside',
+    threat: 5,
     lootFactor: 4.5,
     price: { gold: 3500, wood: 1050 },
     respawnTime: 80,
@@ -260,6 +214,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     feminine: true,
     description: 'Trois-mâts carré de guerre, château arrière à galeries : batterie couverte de canons lourds (angle de tir étroit) et canons légers sur les gaillards. Très solide, longue portée, lente à virer.',
     armament: 'broadside',
+    threat: 6,
     lootFactor: 6,
     price: { gold: 7200, wood: 2400 },
     respawnTime: 95,

@@ -100,3 +100,28 @@ export function buildGaffSail({ tack, clew, peak, throat, bulge }: GaffSailShape
   geometry.computeVertexNormals();
   return geometry;
 }
+
+/**
+ * Voile latine : un triangle envergué sur une longue vergue inclinée qui croise le mât. Points dans le repère de son
+ * gréement (plan x = 0, origine sur le mât, là où la vergue le croise) : `tack` = bout bas de la vergue, vers l'avant ;
+ * `peak` = bout haut, vers l'arrière ; `clew` = point d'écoute, en bas à l'arrière.
+ */
+export interface LateenSailShape {
+  tack: THREE.Vector3;
+  peak: THREE.Vector3;
+  clew: THREE.Vector3;
+  bulge: number;
+}
+
+/**
+ * Voile latine dans le repère de sa vergue : origine au bout bas (`tack`), vergue le long de +Z, toile d'un côté de
+ * la vergue dans le plan YZ, creux sur +X. Pour la carguer contre sa vergue, on l'écrase en Y. `pitch` : rotation
+ * autour de X qui couche ce repère sur la vergue, dans le repère du gréement (à poser au point `tack`).
+ */
+export function buildLateenSail({ tack, peak, clew, bulge }: LateenSailShape): { sail: THREE.BufferGeometry; pitch: number; yardLength: number } {
+  const along = peak.clone().sub(tack);
+  const pitch = Math.atan2(-along.y, along.z);
+  const toYard = (v: THREE.Vector3) => v.clone().sub(tack).applyAxisAngle(new THREE.Vector3(1, 0, 0), -pitch);
+  const yardLength = along.length();
+  return { sail: buildTriangleSail(toYard(peak), toYard(clew), bulge), pitch, yardLength };
+}

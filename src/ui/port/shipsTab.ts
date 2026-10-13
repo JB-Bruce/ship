@@ -1,7 +1,7 @@
 import { BOSSES, FLEET, OFFICERS, RANKS } from '../../config';
 import { rankName, rankOf } from '../../fleet/officers';
 import type { FleetMember } from '../../fleet/fleet';
-import { isExtended } from '../../progression/upgrades';
+import { cannonCount, isExtended } from '../../progression/upgrades';
 import { PLAYER_SHIP_TYPES, SHIP_TYPES, typeName, type ShipType } from '../../shipTypes';
 import { costHtml } from '../parchmentMenu';
 import { SHIP_ICONS, shipIcon } from '../shipIcons';
@@ -88,7 +88,7 @@ function shopCard(ctx: PortContext, type: ShipType): string {
       <div class="body">
         <h2>${def.name}</h2>
         <p>${def.description}</p>${locked ? `<p class="effect">Il faut le chantier naval de niveau ${yard} dans ce port (onglet Île).</p>` : ''}
-        <p class="effect">Vie ${s.maxHealth} · ${s.cannonsPerSide * 2} canons · ${Math.round(s.maxSpeed * MS_TO_KNOTS)} nœuds · cale ${def.hold}${def.canFish ? ' · pêche' : ''}</p>
+        <p class="effect">Vie ${s.maxHealth} · ${cannonCount(s)} canons · ${Math.round(s.maxSpeed * MS_TO_KNOTS)} nœuds · cale ${def.hold}${def.canFish ? ' · pêche' : ''}</p>
       </div>
       <div class="buy">
         <div class="cost">${costHtml(price.gold, price.wood, ctx.state.gold, ctx.state.wood)}</div>

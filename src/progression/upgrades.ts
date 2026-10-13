@@ -54,6 +54,15 @@ export function holdCapacity(type: ShipType, levels: UpgradeLevels): number {
   return levels.hold > 0 ? def.upgrades.hold.capacity[levels.hold - 1] : def.hold;
 }
 
+/** Canons de chasse montés (caravelle : dès le niveau `chaseFrom` de l'amélioration des canons). */
+export function chaseGunsFor(type: ShipType, levels: UpgradeLevels): number {
+  const from = SHIP_TYPES[type].upgrades.cannons.chaseFrom;
+  return from !== undefined && levels.cannons >= from ? 1 : 0;
+}
+
+/** Nombre total de canons d'un navire : ses deux flancs et ses canons de chasse. */
+export const cannonCount = (stats: ShipStats) => stats.cannonsPerSide * 2 + (stats.chaseGuns ?? 0);
+
 /** Masse totale du bateau selon ses améliorations. */
 export function shipMass(type: ShipType, levels: UpgradeLevels): number {
   const { mass, upgrades, stats } = SHIP_TYPES[type];
@@ -63,7 +72,8 @@ export function shipMass(type: ShipType, levels: UpgradeLevels): number {
   const sails = levels.sails > 0 ? mass.sails[levels.sails - 1] : 0;
   const hold = levels.hold > 0 ? (mass.hold[levels.hold - 1] ?? 0) : 0;
   const extension = appliedExtensions(type, levels).reduce((sum, e) => sum + e.mass, 0);
-  return mass.base + extraCannons * mass.perExtraCannon + hull + sails + hold + extension;
+  const chase = chaseGunsFor(type, levels) * (mass.chaseGun ?? 0);
+  return mass.base + extraCannons * mass.perExtraCannon + chase + hull + sails + hold + extension;
 }
 
 /** Vitesse perdue à cause de la masse (fraction, 0 = aucune perte). */
@@ -94,6 +104,7 @@ export function deriveStats(type: ShipType, base: ShipStats, levels: UpgradeLeve
     }
   }
   if (levels.cannons > 0) stats.cannonsPerSide = table.cannons.cannonsPerSide[levels.cannons - 1];
+  if (table.cannons.chaseFrom !== undefined) stats.chaseGuns = chaseGunsFor(type, levels);
   if (levels.hull > 0) stats.maxHealth += table.hull.healthBonus[levels.hull - 1];
   // Allongements : coque plus longue (plus de vie, file un peu mieux, vire moins vite) ; leurs effets se cumulent.
   let hullSpeed = 1;
@@ -124,7 +135,7 @@ export function describeLevel(type: ShipType, id: UpgradeId, level: number): str
     case 'range':
       return `Portée +${Math.round((t.range.rangeFactor[i] - 1) * 100)} %`;
     case 'cannons':
-      return `${t.cannons.cannonsPerSide[i]} canons par flanc`;
+      return level === t.cannons.chaseFrom ? 'Gros canon de chasse à la proue' : `${t.cannons.cannonsPerSide[i]} canons par flanc`;
     case 'hull':
       return `Vie max +${t.hull.healthBonus[i]}`;
     case 'sails':

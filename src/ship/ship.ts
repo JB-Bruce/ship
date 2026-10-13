@@ -131,7 +131,7 @@ export class Ship {
    */
   applyStats(next: ShipStats) {
     const healthGain = next.maxHealth - this.stats.maxHealth;
-    const cannonsChanged = next.cannonsPerSide !== this.stats.cannonsPerSide;
+    const cannonsChanged = next.cannonsPerSide !== this.stats.cannonsPerSide || (next.chaseGuns ?? 0) !== (this.stats.chaseGuns ?? 0);
     Object.assign(this.stats, next, {
       cannon: { ...next.cannon },
       deckCannon: next.deckCannon && { ...next.deckCannon },
@@ -139,7 +139,7 @@ export class Ship {
     });
     if (this.alive) this.health = Math.min(this.stats.maxHealth, this.health + Math.max(0, healthGain));
     if (cannonsChanged) {
-      this.model.setCannons(this.stats.cannonsPerSide);
+      this.model.setCannons(this.stats.cannonsPerSide, this.stats.chaseGuns ?? 0);
       this.cannonCooldowns = this.randomCooldowns();
     }
     this.dressing.applyGunLook(this.guns);

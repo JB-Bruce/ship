@@ -55,6 +55,27 @@ export const BRIGANTINE_STATS: ShipStats = {
 };
 
 /**
+ * Caravelle : courte et haute (château arrière, gaillard d'avant), grand mât à voiles carrées et artimon latin. Pas
+ * très rapide mais très maniable, assez robuste. Second calibre : le gros canon de chasse sous le gaillard d'avant,
+ * qui tire droit devant (lent à recharger, longue portée).
+ */
+export const CARAVEL_STATS: ShipStats = {
+  length: 13,
+  width: 4.4,
+  maxSpeed: 12,
+  acceleration: 2.8,
+  deceleration: 3.8,
+  turnRate: 0.65,
+  rudderSpeed: 3.2,
+  turnHeel: 0.007,
+  maxHealth: 180,
+  cannonsPerSide: 2,
+  cannon: { range: 130, reloadTime: 3.2, arcHalfAngle: 35 * DEG, spread: 2.5 * DEG, rangeError: 0.07, damage: 14, ballSpeed: 58 },
+  deckCannon: { range: 160, reloadTime: 6, arcHalfAngle: 15 * DEG, spread: 1.8 * DEG, rangeError: 0.05, damage: 28, ballSpeed: 64 },
+  buoyancy: { stiffness: 36, damping: 9.5, tiltResponse: 5.5 },
+};
+
+/**
  * Corvette : deux calibres. Batterie couverte = canons lourds, lents à recharger, coincés dans leurs sabords
  * (angle de tir étroit) ; pont supérieur = canons légers et rapides, angle de tir normal.
  */

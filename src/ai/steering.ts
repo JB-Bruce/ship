@@ -8,6 +8,8 @@ import { conditions } from '../world/weather';
 
 /** Avantage (rad) qu'il faut pour changer de flanc pendant un engagement : évite d'hésiter. */
 const SIDE_SWITCH_MARGIN = 0.5;
+/** Un canon dont la direction de tir s'écarte de l'axe de plus de 45° (sinus) est un canon de flanc. */
+const FLANK_SINE = Math.SQRT1_2;
 
 /**
  * Met la barre pour rejoindre un cap, avec la jauge de voile donnée (0..1).
@@ -67,11 +69,20 @@ export function nearest(ship: Ship, candidates: readonly Ship[], maxDistance: nu
   return best;
 }
 
-/** Portée de tir d'un navire (m) : son canon qui porte le plus loin, améliorations et météo comprises. */
+/**
+ * Portée de tir d'un navire (m) : son canon de flanc qui porte le plus loin, améliorations et météo comprises. Un canon
+ * de chasse (tourné vers la proue) ne compte pas : réglé sur lui, le navire tiendrait sa cible hors de portée de ses
+ * bordées. Un navire armé seulement à l'avant (barque) compte ses canons de proue.
+ */
 export function firingRange(ship: Ship): number {
-  let range = 0;
-  for (const mount of ship.model.cannons) range = Math.max(range, cannonStatsOf(ship, mount).range);
-  return range * conditions.rangeFactor;
+  let flank = 0;
+  let any = 0;
+  for (const mount of ship.model.cannons) {
+    const range = cannonStatsOf(ship, mount).range;
+    any = Math.max(any, range);
+    if (Math.abs(Math.sin(mount.angle)) > FLANK_SINE) flank = Math.max(flank, range);
+  }
+  return (flank || any) * conditions.rangeFactor;
 }
 
 /**

@@ -35,6 +35,7 @@ export const SHIP_ICONS: Record<ShipType, string> = {
   rowboat: `<svg viewBox="0 0 48 48"><path d="M6 30h36l-5 7H11z"/><path d="M12 30l-6 8M36 30l6 8"/></svg>`,
   longboat: `<svg viewBox="0 0 48 48"><path d="M5 34h38l-5 7H10z"/><path d="M24 34V6M14 10h20M15 12c-2 7-2 14 0 20h18c2-6 2-13 0-20"/></svg>`,
   brigantine: `<svg viewBox="0 0 48 48"><path d="M2 30h44l-5 9H8z"/><path d="M4 30v-6h8v6M38 30v-4h6"/><path d="M16 30V4M30 30V5M10 9h12M10 19h12M24 10h12M24 20h12M44 26l-14-20"/></svg>`,
+  caravel: `<svg viewBox="0 0 48 48"><path d="M3 30h40l-5 9H9z"/><path d="M3 30v-8h10v8M35 30v-4h8v4M42 26l6-6M43 21h3v4h-3"/><path d="M27 30V4M19 8h16M20 8c-1 6-1 12 0 16h14c1-4 1-10 0-16M10 22V9M19 19L5 4M19 19l-10 2"/></svg>`,
   sloop: `<svg viewBox="0 0 48 48"><path d="M3 33h40l-6 8H9z"/><path d="M20 33V4M20 7l16 4-1 19H20M20 7L6 31h14M43 33l-6-4"/></svg>`,
   frigate: `<svg viewBox="0 0 48 48"><path d="M1 30h46l-5 11H5z"/><path d="M4 34h40M7 38h35M2 30v-5h8v5"/><path d="M13 30V8M25 30V2M36 30V7M8 11h10M7 18h12M19 6h12M18 14h14M18 21h14M31 10h10M30 17h12M47 30L36 9M36 22l-6 7"/></svg>`,
   corvette: `<svg viewBox="0 0 48 48"><path d="M1 30h46l-5 10H7z"/><path d="M6 35h36M10 35v2M18 35v2M26 35v2M34 35v2"/><path d="M12 30V10M24 30V3M35 30V6M19 8h10M18 16h12M30 11h10M29 19h12M12 12l-8 16h8M47 30l-12-22"/></svg>`,

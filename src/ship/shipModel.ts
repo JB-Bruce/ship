@@ -2,6 +2,7 @@ import type * as THREE from 'three';
 import type { Livery, ShipStats } from '../config';
 import type { ShipType } from '../shipTypes';
 import { BrigantineModel } from './brigantine/brigantineModel';
+import { CaravelModel } from './caravel/caravelModel';
 import { CorvetteModel } from './corvette/corvetteModel';
 import type { DeckPlan } from './deckPlan';
 import type { LanternSpot } from './parts/nightGlow';
@@ -68,8 +69,8 @@ export interface ShipModel {
   setRudder(rudder: number): void;
   /** Vent relatif au bateau (rad, 0 = vers la proue) et sa force 0..1. */
   setWind(relativeDirection: number, strength: number): void;
-  /** (Re)crée `perSide` canons sur chaque flanc. */
-  setCannons(perSide: number): void;
+  /** (Re)crée `perSide` canons sur chaque flanc, et `chase` canons de chasse à la proue (caravelle). */
+  setCannons(perSide: number, chase?: number): void;
   /** Niveau de renfort de coque (bandes de fer). */
   setArmorLevel(level: number): void;
   /** Allongement (0 ou 1), pour les types qui en ont un : le modèle se reconstruit. Renvoie true s'il a changé. */
@@ -85,6 +86,7 @@ export interface ShipModel {
 export function createShipModel(type: ShipType, stats: ShipStats, livery: Livery): ShipModel {
   if (type === 'sloop') return new SloopModel(stats, livery);
   if (type === 'rowboat') return new RowboatModel(stats, livery);
+  if (type === 'caravel') return new CaravelModel(stats, livery);
   if (type === 'brigantine') return new BrigantineModel(stats, livery);
   if (type === 'corvette') return new CorvetteModel(stats, livery);
   if (type === 'frigate') return new FrigateModel(stats, livery);
