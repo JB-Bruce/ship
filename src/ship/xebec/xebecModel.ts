@@ -7,18 +7,15 @@ import { armorFor, cannonMount, fireSpots, mastheadStaff, riggingMaterial, water
 import { addStatics, type LanternSpot } from '../parts/nightGlow';
 import { TornSail } from '../parts/tornSail';
 import type { CannonMount, EnsignStaff, FlagMount, ShipModel } from '../shipModel';
-import { alongMast, chaseSlots, CHASE_Y, DECK_Y, POOP, RAKE, xebecLayout, type XebecLateen, type XebecLayout } from './xebecLayout';
+import { alongMast, BOW_PLATFORM, DECK_Y, POOP, RAKE, xebecLayout, type XebecLateen, type XebecLayout } from './xebecLayout';
 import { XebecOars } from './xebecOars';
-import { CHASE_GUN_SCALE, FLAG, xebecTemplateFor, type XebecTemplate } from './xebecTemplate';
+import { FLAG, xebecTemplateFor, type XebecTemplate } from './xebecTemplate';
 
 const RUDDER_MAX_ANGLE = 0.55;
 /** Élargissement des voiles carrées et allongement des vergues latines par niveau de voilure. */
 const SAIL_GROWTH = 0.06;
 const GUN_INSET = 0.62;
 const MUZZLE = new THREE.Vector3(1, 0.38, 0);
-/** Bouche d'un fût de chasse (fût de batterie : 0,8 m devant son pivot), à son échelle ; pivot juste en retrait du bordé. */
-const CHASE_MUZZLE = new THREE.Vector3(0.8 * CHASE_GUN_SCALE, 0, 0);
-const CHASE_PIVOT_INSET = 0.08;
 /** Écart des voiles latines par rapport à leur mât (m) : elles pendent du côté sous le vent. */
 const LATEEN_OFFSET = 0.24;
 /** Ouverture des vergues latines : au près, et en plus au vent arrière (rad) ; l'amure reste près de l'étrave. */
@@ -34,7 +31,7 @@ interface LateenRig {
 /**
  * Chébec : coque longue, basse et étroite, dunette basse à balustrade et galerie de poupe en surplomb, éperon ; trois
  * mâts inclinés vers l'avant : latines de misaine et d'artimon qui pivotent selon le vent, basse voile et hunier carrés
- * au grand mât. Canons sur affût le long des flancs, canons de chasse (1 à 3) qui sortent de l'étrave. Avirons sous le
+ * au grand mât. Canons sur affût le long des flancs, canons de chasse (1 à 3) sur la plateforme de proue. Avirons sous le
  * pont, sortis par vent de face (setOars) et qui nagent en cadence. Grand chébec (setExtension) : reconstruit sur le plan
  * rallongé ; canons, renfort, voilure, dégâts et pavillon sont remis en place.
  */
@@ -134,11 +131,11 @@ export class XebecModel implements ShipModel {
     if (armor) this.body.add((this.armor = new THREE.Mesh(armor.geometry, armor.material)));
   }
 
-  /** Canons sur affût répartis le long des flancs, puis les canons de chasse (second calibre) qui sortent de l'étrave. */
+  /** Canons sur affût répartis le long des flancs, puis les canons de chasse (second calibre) sur la plateforme de proue. */
   setCannons(perSide: number, chase = 0) {
     this.perSide = perSide;
     this.chase = chase;
-    const { hull, gunZone, chasePorts } = this.layout;
+    const { hull, gunZone, chaseGuns } = this.layout;
     const t = this.template;
     for (const { object } of this.cannons) this.body.remove(object);
     for (const port of this.gunports) this.body.remove(port);
@@ -157,12 +154,11 @@ export class XebecModel implements ShipModel {
         this.cannons.push(cannonMount(cannon, (side * Math.PI) / 2, MUZZLE));
       }
     }
-    for (const slot of chaseSlots(chase)) {
-      const port = chasePorts[slot];
-      const gun = new THREE.Mesh(t.chaseGun, t.palette.metal);
-      gun.position.set(port.x, CHASE_Y, port.z - CHASE_PIVOT_INSET);
+    for (const { x, z } of chaseGuns[Math.min(chase, chaseGuns.length - 1)]) {
+      const gun = new THREE.Mesh(t.cannon, t.palette.metal);
+      gun.position.set(x, BOW_PLATFORM.y, z);
       this.body.add(gun);
-      this.cannons.push(cannonMount(gun, 0, CHASE_MUZZLE, 'deck'));
+      this.cannons.push(cannonMount(gun, 0, MUZZLE, 'deck'));
     }
   }
 

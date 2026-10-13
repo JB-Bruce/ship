@@ -14,7 +14,8 @@ const WAIST = { from: -0.42, to: 0.38 };
 
 /**
  * Gabarit de la coque (u de base) : longue, basse et étroite. Dunette basse à l'arrière (deux sections très proches
- * font la marche), poupe en surplomb (quille qui remonte), tonture qui se relève vers l'étrave fine.
+ * font la marche), poupe en surplomb (quille qui remonte), tonture qui se relève un peu vers l'étrave fine (les canons
+ * de chasse tirent par-dessus).
  */
 const HULL_ROWS: [number, number, number, number][] = [
   [-1, 0.62, 2.4, -0.1],
@@ -23,10 +24,10 @@ const HULL_ROWS: [number, number, number, number][] = [
   [-0.69, 0.94, 1.55, -1],
   [-0.35, 1, 1.5, -1.2],
   [0.15, 0.98, 1.5, -1.2],
-  [0.5, 0.82, 1.62, -1.05],
-  [0.75, 0.55, 1.85, -0.75],
-  [0.92, 0.22, 2.1, -0.3],
-  [1, 0.03, 2.25, 0.1],
+  [0.5, 0.82, 1.6, -1.05],
+  [0.75, 0.55, 1.7, -0.75],
+  [0.92, 0.22, 1.78, -0.3],
+  [1, 0.03, 1.82, 0.1],
 ];
 
 // Hauteurs (identiques pour les deux longueurs ; repère : proue +Z, bâbord +X, flottaison y = 0).
@@ -35,9 +36,14 @@ export const DECK_Y = 0.95;
 export const POOP = { y: 1.95, from: -0.99, to: -0.69, railHeight: 0.5 };
 /** Inclinaison des mâts vers l'avant (rad). */
 export const RAKE = 0.1;
-/** Hauteur des sabords de chasse (bouche des fûts), et leur écart de l'axe selon le nombre de canons de chasse. */
-export const CHASE_Y = DECK_Y + 0.42;
-const CHASE_SLOTS: readonly (readonly number[])[] = [[], [0], [-0.45, 0.45], [-0.45, 0, 0.45]];
+/**
+ * Plateforme de proue (étendue en u de base) : un pont à peine surélevé où les canons de chasse, sur affût, tirent
+ * par-dessus le pavois de l'étrave.
+ */
+export const BOW_PLATFORM = { y: DECK_Y + 0.67, from: 0.66, to: 0.98 };
+/** Canons de chasse : écart de l'axe selon leur nombre, et place gardée entre l'affût et le bordé (m). */
+const CHASE_XS: readonly (readonly number[])[] = [[], [0], [-0.4, 0.4], [-0.6, 0, 0.6]];
+const CHASE_CLEARANCE = 0.45;
 /** Rames : hauteur des sabords d'aviron (sous le pont), longueur hors bord ; une paire de plus par allongement. */
 export const OAR = { y: 0.62, outboard: 4.4, inboard: 0.6, from: -0.6, to: 0.52, count: 9, perExtension: 2 };
 
@@ -94,18 +100,12 @@ export interface XebecLayout {
   readonly spur: { base: THREE.Vector3; tip: THREE.Vector3 };
   /** Canons de flanc, répartis régulièrement entre ces z. */
   readonly gunZone: { aft: number; fore: number };
-  /** Sabords de chasse : écart de l'axe et z de la face du bordé (au centre : z de la face avant du coffre d'étrave). */
-  readonly chasePorts: readonly { x: number; z: number }[];
+  /** Affûts des canons de chasse sur la plateforme de proue, selon leur nombre (index = nombre de canons). */
+  readonly chaseGuns: readonly (readonly { x: number; z: number }[])[];
   /** z des sabords d'aviron (de l'arrière vers l'avant). */
   readonly oarZs: readonly number[];
   /** Pont de l'équipage animé ; canons servis à découvert = ceux des flancs (les canons de chasse sont à l'étrave). */
   readonly deck: DeckPlan;
-}
-
-/** Canons de chasse : sabords à utiliser (index dans `chasePorts`) selon leur nombre. */
-export function chaseSlots(count: number): readonly number[] {
-  const xs = CHASE_SLOTS[Math.min(count, CHASE_SLOTS.length - 1)];
-  return xs.map((x) => CHASE_SLOTS[CHASE_SLOTS.length - 1].indexOf(x));
 }
 
 function createLayout(level: number): XebecLayout {
@@ -123,20 +123,21 @@ function createLayout(level: number): XebecLayout {
   const mainMast = { z: at(0).z, length: 15 };
   const mizzenMast = { z: at(-0.6).z, length: 10.5 };
   const stem = at(1);
-  // Sabords de chasse : le fût sort du bordé de l'étrave là où il est juste assez large ; au centre, par un coffre sur l'étrave.
-  const chasePorts = CHASE_SLOTS[CHASE_SLOTS.length - 1].map((x) => {
-    if (x === 0) return { x, z: stem.z + 0.1 };
-    let u = 1;
-    while (u > 0.5 && hull.halfWidthAt(hull.stationAt(u), CHASE_Y) < Math.abs(x) + 0.14) u -= 0.004;
-    return { x, z: hull.stationAt(u).z };
-  });
+  // Canons de chasse : chaque affût aussi loin vers l'avant que la plateforme le laisse, la bouche au-dessus de l'étrave.
+  const chaseGuns = CHASE_XS.map((xs) =>
+    xs.map((x) => {
+      let u = 1;
+      while (u > 0.5 && hull.halfWidthAt(hull.stationAt(u), BOW_PLATFORM.y) < Math.abs(x) + CHASE_CLEARANCE) u -= 0.004;
+      return { x, z: hull.stationAt(u).z };
+    }),
+  );
   const oars = OAR.count + OAR.perExtension * level;
   const [oarAft, oarFore] = [at(OAR.from).z, at(OAR.to).z];
   const poopFront = at(POOP.to).z;
   const deck: DeckPlan = {
     hands: DECK_CREW.hands.xebec + DECK_CREW.handsPerExtension.xebec * level,
     helm: { x: 0, y: POOP.y, z: at(-0.88).z, facing: 0 },
-    lookout: { x: 0, y: DECK_Y, z: at(0.72).z, facing: 0 },
+    lookout: { x: 0, y: BOW_PLATFORM.y, z: at(0.71).z, facing: 0 },
     walks: [...deckWalks(DECK_Y, [0.6, -0.6], poopFront + 1.2, at(0.55).z), ...deckWalks(POOP.y, [0.7], at(-0.92).z, poopFront - 0.4)],
     ropes: ropeSpots(DECK_Y, [foreMast.z, mainMast.z, mizzenMast.z], (z) => hull.stationAt(z / half).halfWidth),
     isOpenGun: (mount) => mount.calibre === 'main',
@@ -164,7 +165,7 @@ function createLayout(level: number): XebecLayout {
     topPlatform: 9.2,
     spur: { base: new THREE.Vector3(0, 1.05, stem.z - 0.3), tip: new THREE.Vector3(0, 1.85, 13.3 + bowShift) },
     gunZone: { aft: at(-0.48).z, fore: at(0.4).z },
-    chasePorts,
+    chaseGuns,
     oarZs: Array.from({ length: oars }, (_, i) => oarAft + ((oarFore - oarAft) * i) / (oars - 1)),
     deck,
   };

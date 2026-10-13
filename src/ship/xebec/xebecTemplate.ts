@@ -1,17 +1,12 @@
 import * as THREE from 'three';
 import { WATER_MASK, type Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
-import { buildBatteryGun } from '../corvette/corvetteTemplate';
 import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } from '../parts/common';
 import { addStairs } from '../parts/deckFittings';
 import { addBarrel, addCrate, addLantern, addRopeCoil, buildCarriageGunGeometry, type Palette } from '../parts/props';
 import { buildLateenSail, buildSquareSail, cylinderBetween } from '../parts/sails';
-import { alongMast, CHASE_Y, DECK_Y, OAR, POOP, RAKE, type XebecLateen, type XebecLayout } from './xebecLayout';
+import { alongMast, BOW_PLATFORM, DECK_Y, OAR, POOP, RAKE, type XebecLateen, type XebecLayout } from './xebecLayout';
 
-/** Canons de chasse : fûts seuls (pointe vers +X, pivot au sabord), à cette échelle d'un fût de batterie. */
-export const CHASE_GUN_SCALE = 1.1;
-/** Sabord de chasse : ouverture (largeur, hauteur), cadre, et coffre posé sur l'étrave pour celui du centre (m). */
-const CHASE_PORT = { width: 0.42, height: 0.38, frame: 0.08 };
 /** Préceintes (lisses du bordé) : hauteurs (m). */
 const WALES = [1.18, 0.42] as const;
 /** Galerie de poupe en surplomb, sous la balustrade de la dunette : hauteur du bas, hauteur, saillie (m). */
@@ -34,7 +29,6 @@ export interface XebecTemplate {
   sailMaterial: THREE.Material;
   rudder: THREE.BufferGeometry;
   cannon: THREE.BufferGeometry;
-  chaseGun: THREE.BufferGeometry;
   gunport: THREE.BufferGeometry;
   /** Un aviron : le long de +X à partir de son sabord (manche en dedans, pale au bout). */
   oar: THREE.BufferGeometry;
@@ -114,8 +108,6 @@ function buildTemplate(L: XebecLayout, livery: Livery): XebecTemplate {
   addRopeCoil(batch, p, tf(0.45, DECK_Y, L.foreMast.z - 0.7));
   addRopeCoil(batch, p, tf(-0.4, POOP.y, L.at(-0.8).z));
 
-  const chaseGun = buildBatteryGun();
-  chaseGun.scale(CHASE_GUN_SCALE, CHASE_GUN_SCALE, CHASE_GUN_SCALE);
   const yard = (length: number, radius: number) => {
     const g = new THREE.CylinderGeometry(radius, radius, length, 6);
     g.rotateZ(Math.PI / 2);
@@ -132,7 +124,6 @@ function buildTemplate(L: XebecLayout, livery: Livery): XebecTemplate {
     sailMaterial: std(livery.sail, { side: THREE.DoubleSide }),
     rudder: buildRudderGeometry(1.6),
     cannon: buildCarriageGunGeometry(),
-    chaseGun,
     gunport: box(0.05, 0.38, 0.46),
     oar: buildOar(),
     flagMaterial: flagMaterialFor(livery),
@@ -198,40 +189,29 @@ function addPoop(batch: GeometryBatch, p: Palette, L: XebecLayout) {
 }
 
 /**
- * Avant : étrave, éperon (long bec qui prolonge l'étrave), sabords de chasse (coffre sur l'étrave au centre, ouvertures
- * dans le bordé de l'étrave sur les côtés).
+ * Avant : étrave, éperon (long bec qui prolonge l'étrave), plateforme de proue à peine surélevée (plancher, cloison
+ * arrière, escaliers) où se posent les canons de chasse.
  */
 function addBow(batch: GeometryBatch, p: Palette, L: XebecLayout) {
   const { hull } = L;
   const stem = hull.stationAt(1);
-  batch.add(p.trim, new THREE.BoxGeometry(0.14, stem.gunwale - stem.keel + 0.3, 0.18), tf(0, (stem.gunwale + stem.keel) / 2, stem.z - 0.05, -0.15));
+  // L'étrave s'arrête au plat-bord : le canon de chasse du centre tire par-dessus.
+  batch.add(p.trim, new THREE.BoxGeometry(0.14, stem.gunwale - stem.keel, 0.18), tf(0, (stem.gunwale + stem.keel) / 2, stem.z - 0.05, -0.15));
   // Éperon et sa console (une jambe de force sous lui, contre l'étrave).
   batch.add(p.trim, cylinderBetween(L.spur.base, L.spur.tip, 0.2, 0.06), new THREE.Matrix4());
   const knee = L.spur.base.clone().lerp(L.spur.tip, 0.45);
   batch.add(p.trim, cylinderBetween(new THREE.Vector3(0, 0.35, stem.z - 0.1), knee, 0.09, 0.06), new THREE.Matrix4());
 
-  const { width, height, frame } = CHASE_PORT;
-  for (const port of L.chasePorts) {
-    if (port.x === 0) {
-      // Coffre sur l'étrave, de l'endroit où le bordé est assez large jusqu'à sa face avant.
-      const half = width / 2 + frame;
-      let u = 1;
-      while (u > 0.8 && hull.halfWidthAt(hull.stationAt(u), CHASE_Y) < half) u -= 0.004;
-      const back = hull.stationAt(u).z;
-      batch.add(p.hull, new THREE.BoxGeometry(2 * half, height + 2 * frame, port.z - back), tf(0, CHASE_Y, (port.z + back) / 2));
-      batch.add(p.dark, new THREE.BoxGeometry(width, height, 0.03), tf(0, CHASE_Y, port.z + 0.005));
-      continue;
-    }
-    // Ouverture dans le bordé, tournée comme lui.
-    const s = hull.stationAt(port.z / hull.halfLength);
-    const ahead = hull.stationAt(Math.min(1, port.z / hull.halfLength + 0.02));
-    const slope = Math.atan2(hull.halfWidthAt(s, CHASE_Y) - hull.halfWidthAt(ahead, CHASE_Y), ahead.z - s.z);
-    const side = Math.sign(port.x);
-    const x = side * (hull.halfWidthAt(s, CHASE_Y) + 0.01);
-    batch.add(p.dark, new THREE.BoxGeometry(0.04, height, width), tf(x, CHASE_Y, s.z, 0, -side * slope));
-    batch.add(p.trim, new THREE.BoxGeometry(0.05, frame, width + 2 * frame), tf(x, CHASE_Y + (height + frame) / 2, s.z, 0, -side * slope));
-    batch.add(p.trim, new THREE.BoxGeometry(0.05, frame, width + 2 * frame), tf(x, CHASE_Y - (height + frame) / 2, s.z, 0, -side * slope));
-  }
+  const { y, from, to } = BOW_PLATFORM;
+  const [uFrom, uTo] = [L.base(from), L.base(to)];
+  batch.add(p.floor, hull.buildFloor(y, uFrom, uTo, 0.96), new THREE.Matrix4());
+  addDeckSeams(batch, p.dark, hull, y, uFrom, uTo);
+  const back = hull.stationAt(uFrom);
+  const rise = y - DECK_Y;
+  const width = 2 * hull.halfWidthAt(back, y) * 0.96;
+  batch.add(p.wood, new THREE.BoxGeometry(width, rise, 0.12), tf(0, DECK_Y + rise / 2, back.z));
+  batch.add(p.trim, new THREE.BoxGeometry(width + 0.06, 0.07, 0.18), tf(0, y, back.z));
+  for (const side of [1, -1]) addStairs(batch, p, tf(side * 0.75, DECK_Y, back.z, 0, Math.PI), rise, 2, 0.5);
 }
 
 /** Aviron le long de +X : manche depuis `-OAR.inboard` (dedans) jusqu'à la pale, au bout de `OAR.outboard`. */
