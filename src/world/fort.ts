@@ -79,10 +79,11 @@ export class Fort {
     this.facing = model.facing;
     this.maxHealth = this.health = maxHealth;
     const p = paletteFor(LIVERIES.player);
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, FLAG_POLE, 5), p.dark);
-    pole.position.copy(model.flagBase).setY(model.flagBase.y + FLAG_POLE / 2);
-    this.flag = new WavingFlag(flagMaterialFor(LIVERIES.player), 1.8, 1.1);
-    this.flag.mesh.position.copy(model.flagBase).setY(model.flagBase.y + FLAG_POLE - 0.6);
+    const k = model.flagScale;
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08 * k, 0.1 * k, FLAG_POLE * k, 5), p.dark);
+    pole.position.copy(model.flagBase).setY(model.flagBase.y + (FLAG_POLE * k) / 2);
+    this.flag = new WavingFlag(flagMaterialFor(LIVERIES.player), 1.8 * k, 1.1 * k);
+    this.flag.mesh.position.copy(model.flagBase).setY(model.flagBase.y + (FLAG_POLE - 0.6) * k);
     this.group.add(pole, this.flag.mesh);
 
     const gunGeometry = buildCarriageGunGeometry();

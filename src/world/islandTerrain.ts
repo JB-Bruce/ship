@@ -121,7 +121,7 @@ const BUILT_UP = [
   [FORT_SPOT, 17],
   [LIGHTHOUSE_SPOT, 8],
   [CITADEL_SPOT, 22],
-  [ROYAL_FORT_SPOT, 28],
+  [ROYAL_FORT_SPOT, 36],
 ] as const;
 
 /** Palmiers sur les plages et les basses terres, rochers au bord de l'eau, pour une île. */

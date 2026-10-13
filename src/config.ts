@@ -1904,12 +1904,15 @@ export const CITADEL = {
  */
 export const ROYAL_FORT = {
   /** Armement de la Marine (les autres réglages de tir sont ceux de FORT). */
-  navy: { guns: 11, range: 270, damage: 11 },
-  /** Vie de l'enceinte : contre ta flotte sous la Marine, contre ses escadres une fois à toi. */
-  health: 2400,
+  navy: { guns: 11, range: 270, damage: 9 },
+  /**
+   * Vie de l'enceinte : contre ta flotte sous la Marine, contre ses escadres une fois à toi. Premier fort de la Marine :
+   * une frégate bien améliorée doit pouvoir l'abattre seule.
+   */
+  health: 1400,
   /** Réparation : après `regenDelay` s sans être touché, il regagne `regenRate` de sa vie par seconde. */
-  regenDelay: 40,
-  regenRate: 0.005,
+  regenDelay: 60,
+  regenRate: 0.003,
   /** Armement une fois l'île à toi, avant amélioration (voir ISLAND_UPGRADES.royalFort). */
   guns: 5,
   range: 260,
@@ -1938,12 +1941,13 @@ export const FORT_FX = {
 export const GARRISON = {
   /** Navires amarrés : type, place (écart d'angle depuis l'axe de la crique (rad), distance au large de la côte (m)). */
   moored: [
-    { type: 'frigate', angle: 0, offing: 95 },
-    { type: 'corvette', angle: 0.16, offing: 55 },
-    { type: 'brigantine', angle: -0.16, offing: 55 },
+    { type: 'corvette', angle: 0, offing: 90 },
+    { type: 'brigantine', angle: 0.16, offing: 55 },
   ] as const,
   /** Patrouilles, chacune dans un sens, à `patrolOffing` m au-delà du rayon extérieur de l'île. */
-  patrols: ['brigantine', 'caravel'] as const,
+  patrols: ['caravel'] as const,
+  /** Améliorations des navires de la garnison (0 à 1, comme la menace des ennemis), fixes : ils ne suivent pas tes victoires. */
+  threat: 0.25,
   patrolOffing: 170,
   /** La garnison prend la mer quand ton navire est à moins de `activeRadius` m du centre de l'île ; au-delà de `releaseRadius`, ses navires au repos rentrent. */
   activeRadius: 1400,
@@ -1954,7 +1958,7 @@ export const GARRISON = {
   alertRadius: 500,
   hitAlarm: 5,
   /** Un navire coulé est remplacé après ce délai (s), tant que le fort tient. */
-  reinforceDelay: [90, 150] as const,
+  reinforceDelay: [180, 300] as const,
   /** Au-delà de cette distance de son poste (m), un navire de la garnison lâche sa proie et rentre. */
   leash: 900,
   /** Un navire amarré qui a appareillé rejette l'ancre à moins de cette distance de sa place (m). */

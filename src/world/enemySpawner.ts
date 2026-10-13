@@ -176,9 +176,12 @@ export class EnemySpawner {
     return squadron;
   }
 
-  /** Navire d'une garnison (Île Royale), au mouillage ou en ronde selon `ai` : il ne disparaît pas quand tu t'éloignes. */
-  spawnGuard(type: ShipType, x: number, z: number, heading: number, ai: EnemyAIOptions): Enemy {
-    const enemy = this.add(type, x, z, heading, false, null, null, ai);
+  /**
+   * Navire d'une garnison (Île Royale), au mouillage ou en ronde selon `ai` : il ne disparaît pas quand tu t'éloignes.
+   * `threat` : ses améliorations (0 à 1), fixes et non selon tes victoires ; jamais allongé.
+   */
+  spawnGuard(type: ShipType, x: number, z: number, heading: number, ai: EnemyAIOptions, threat: number): Enemy {
+    const enemy = this.add(type, x, z, heading, false, null, null, ai, threat, 0);
     enemy.persistent = true;
     return enemy;
   }
@@ -257,10 +260,9 @@ export class EnemySpawner {
     return enemy;
   }
 
-  private add(type: ShipType, x: number, z: number, heading: number, elite: boolean, group: EnemyGroup | null, slot: FlotillaSlot | null, ai: EnemyAIOptions = {}): Enemy {
-    // Menace : de 0 (début de partie) à 1 (après ENEMIES.killsForFullThreat victoires).
-    const threat = Math.min(1, this.kills / ENEMIES.killsForFullThreat);
-    const levels = randomLevels(type, threat, ENEMIES.extensionChance);
+  /** `threat` : améliorations (0 à 1) ; celle des ennemis ordinaires, sauf menace imposée (garnison). */
+  private add(type: ShipType, x: number, z: number, heading: number, elite: boolean, group: EnemyGroup | null, slot: FlotillaSlot | null, ai: EnemyAIOptions = {}, threat = this.threat, extensionChance = ENEMIES.extensionChance): Enemy {
+    const levels = randomLevels(type, threat, extensionChance);
     const ship = createShip(type, 'enemy', levels, elite ? ELITE_LIVERY : undefined);
     if (elite) strengthen(ship, ENEMIES.elite);
     ship.position.set(x, 0, z);
@@ -275,6 +277,11 @@ export class EnemySpawner {
     this.enemies.push(enemy);
     this.ships.push(enemy.ship);
     this.scene.add(enemy.ship.model.root);
+  }
+
+  /** Menace des ennemis ordinaires : de 0 (début de partie) à 1 (après ENEMIES.killsForFullThreat victoires). */
+  private get threat(): number {
+    return Math.min(1, this.kills / ENEMIES.killsForFullThreat);
   }
 
   /** Chance qu'un nouvel ennemi soit d'élite : nulle au début, puis de plus en plus fréquente. */

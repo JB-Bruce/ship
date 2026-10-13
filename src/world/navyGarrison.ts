@@ -94,7 +94,7 @@ export class NavyGarrison {
       const { x, z } = post.mooring;
       if (Math.hypot(x - lx, z - lz) < GARRISON.spawnClearance) return null;
       // Proue vers le large, dans l'axe de la crique.
-      return this.spawner.spawnGuard(post.type, x, z, this.island.def.bay.angle, { moored: post.mooring, leash: GARRISON.leash });
+      return this.spawner.spawnGuard(post.type, x, z, this.island.def.bay.angle, { moored: post.mooring, leash: GARRISON.leash }, GARRISON.threat);
     }
     // Ronde : elle surgit sur son cercle, du côté opposé à toi (un peu décalée selon son sens).
     const { cx, cz } = this.island;
@@ -102,6 +102,6 @@ export class NavyGarrison {
     const p = land.keepOffshore(cx + Math.sin(angle) * this.orbit, cz + Math.cos(angle) * this.orbit, GARRISON.mooringRadius * 2);
     if (Math.hypot(p.x - lx, p.z - lz) < GARRISON.spawnClearance) return null;
     const orbit = { x: cx, z: cz, radius: this.orbit, turn: post.turn };
-    return this.spawner.spawnGuard(post.type, p.x, p.z, angle + post.turn * (Math.PI / 2), { orbit, leash: GARRISON.leash });
+    return this.spawner.spawnGuard(post.type, p.x, p.z, angle + post.turn * (Math.PI / 2), { orbit, leash: GARRISON.leash }, GARRISON.threat);
   }
 }
