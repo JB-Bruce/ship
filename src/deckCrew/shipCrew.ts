@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { DECK_CREW } from '../config';
 import type { DeckPlan, DeckSpot } from '../ship/deckPlan';
+import { GunPosts } from './gunPosts';
 import type { Ship } from '../ship/ship';
 import { advance, newSailor, poseSailor, type Duty, type Sailor, type ShipMotion } from './sailorMotion';
 import { drawSailor } from './sailorPose';
@@ -23,11 +24,7 @@ export class ShipCrew {
   /** Image où le navire a été vu pour la dernière fois (le système oublie les équipages des navires disparus). */
   lastSeen = 0;
   private plan: DeckPlan;
-  private guns: { cannon: number; spot: DeckSpot }[] = [];
-  private gunsOf: unknown = null;
-  private readonly cooldowns: number[] = [];
-  /** Tableau des rechargements du navire suivi : un nouveau tableau (canons refaits) n'est pas un tir. */
-  private cooldownsOf: readonly number[] | null = null;
+  private readonly guns = new GunPosts();
   private lastHealth: number;
   private lastSail: number;
   private ropeTimer = 0;
@@ -45,13 +42,23 @@ export class ShipCrew {
     this.lastHealth = ship.health;
     this.lastSail = ship.controls.sail;
     this.motion = { time: 0, pitch: 0, roll: 0, rudder: 0, reloading: (cannon) => (ship.cannonCooldowns[cannon] ?? 0) > 0.5 };
-    const shirts = DECK_CREW.shirts[ship.faction];
-    const sailor = (role: Sailor['role'], hat?: Sailor['hat']) =>
-      newSailor(role, new THREE.Color(pick(shirts)), hat ?? (Math.random() < DECK_CREW.tricorn[ship.faction] ? 'tricorn' : 'bandana'));
-    this.sailors.push(sailor('helm', 'tricorn'));
-    if (this.plan.lookout) this.sailors.push(sailor('lookout'));
-    for (let i = 0; i < this.plan.hands; i++) this.sailors.push(sailor('hand'));
+    this.sailors.push(this.hire('helm', 'tricorn'));
+    if (this.plan.lookout) this.sailors.push(this.hire('lookout'));
+    this.staff();
     this.layout();
+  }
+
+  /** Un marin aux couleurs de son camp (chemise, coiffe). */
+  private hire(role: Sailor['role'], hat?: Sailor['hat']): Sailor {
+    const faction = this.ship.faction;
+    return newSailor(role, new THREE.Color(pick(DECK_CREW.shirts[faction])), hat ?? (Math.random() < DECK_CREW.tricorn[faction] ? 'tricorn' : 'bandana'));
+  }
+
+  /** Autant de matelots que le pont en prévoit : un navire allongé en embarque de nouveaux. */
+  private staff() {
+    let hands = 0;
+    for (const s of this.sailors) if (s.role === 'hand') hands++;
+    for (; hands < this.plan.hands; hands++) this.sailors.push(this.hire('hand'));
   }
 
   /** `enemyNear` : un ennemi est à portée de vue (le système le vérifie de temps en temps). */
@@ -61,13 +68,15 @@ export class ShipCrew {
     this.motion.pitch = ship.pitch;
     this.motion.roll = ship.roll;
     this.motion.rudder = ship.controls.rudder;
-    // Le navire a été reconstruit (allongement) : chacun retrouve sa place sur le nouveau pont.
+    // Le navire a été reconstruit (allongement) : de nouveaux matelots embarquent, chacun retrouve sa place.
     if (ship.model.deckPlan && ship.model.deckPlan !== this.plan) {
       this.plan = ship.model.deckPlan;
+      this.staff();
       this.layout();
     }
-    this.syncGuns();
-    this.detectShots();
+    // Canons refaits : les canonniers reprennent leur poste au prochain combat.
+    if (this.guns.sync(ship.model, this.plan)) for (const s of this.sailors) if (s.duty === 'gun') s.duty = 'idle';
+    this.guns.detectShots(ship.cannonCooldowns, this.onShot);
     const hit = ship.health < this.lastHealth - 0.01;
     this.lastHealth = ship.health;
     this.engaged = hit ? DECK_CREW.combatCalm : Math.max(0, this.engaged - dt);
@@ -120,36 +129,11 @@ export class ShipCrew {
     }
   }
 
-  /** Une pièce vient de tirer (son rechargement repart d'une pièce chargée) : son canonnier recule. */
-  private detectShots() {
-    const cooldowns = this.ship.cannonCooldowns;
-    const same = cooldowns === this.cooldownsOf;
-    this.cooldownsOf = cooldowns;
-    for (let i = 0; i < cooldowns.length; i++) {
-      if (same && cooldowns[i] > this.cooldowns[i] + 0.05) {
-        this.engaged = DECK_CREW.combatCalm;
-        for (const s of this.sailors) if (s.duty === 'gun' && s.post === i && s.mode === 'act') s.recoil = 1;
-      }
-      this.cooldowns[i] = cooldowns[i];
-    }
-    this.cooldowns.length = cooldowns.length;
-  }
-
-  /** Postes des canonniers : derrière la culasse de chaque canon servi à découvert (recalculés quand les canons changent). */
-  private syncGuns() {
-    const cannons = this.ship.model.cannons;
-    const key = cannons[0]?.object ?? null;
-    if (key === this.gunsOf) return;
-    this.gunsOf = key;
-    this.guns = [];
-    cannons.forEach((mount, cannon) => {
-      if (!this.plan.isOpenGun(mount)) return;
-      const p = mount.object.position;
-      const side = Math.sign(p.x) || 1;
-      this.guns.push({ cannon, spot: { x: p.x - side * DECK_CREW.gunnerOffset, y: p.y, z: p.z, facing: (side * Math.PI) / 2 } });
-    });
-    for (const s of this.sailors) if (s.duty === 'gun') s.duty = 'idle';
-  }
+  /** Une pièce vient de tirer : le navire est en combat, et son canonnier recule. */
+  private readonly onShot = (cannon: number) => {
+    this.engaged = DECK_CREW.combatCalm;
+    for (const s of this.sailors) if (s.duty === 'gun' && s.post === cannon && s.mode === 'act') s.recoil = 1;
+  };
 
   /** Matelots sur le pont selon la vie du navire : les coups en jettent à l'eau, la réparation les fait remonter. */
   private manageCount(dt: number, hit: boolean) {
@@ -186,7 +170,7 @@ export class ShipCrew {
       if (over) this.toIdle(s);
     }
     if (combat) {
-      for (const g of this.guns) if (!this.manned('gun', g.cannon)) this.send(g.spot, 'gun', g.cannon, true);
+      for (const g of this.guns.posts) if (!this.manned('gun', g.cannon)) this.send(g.spot, 'gun', g.cannon, true);
       // Les autres se mettent à couvert là où ils sont, tournés vers le large.
       for (const s of this.sailors) {
         if (s.role !== 'hand' || (s.duty !== 'idle' && s.duty !== 'look') || s.mode !== 'act') continue;
