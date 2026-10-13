@@ -155,9 +155,9 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     upgrades: {
       accuracy: { costs: [{ gold: 45, wood: 0 }, { gold: 75, wood: 0 }, { gold: 110, wood: 0 }], spreadFactor: [0.75, 0.55, 0.38] },
       range: { costs: [], rangeFactor: [] },
-      cannons: { costs: [{ gold: 70, wood: 45 }, { gold: 110, wood: 65 }], cannonsPerSide: [3, 4] },
+      // Goélette à hunier : un canon de plus par flanc, un niveau de voilure et un de cale en plus.
+      cannons: { costs: [{ gold: 70, wood: 45 }, { gold: 110, wood: 65 }, { gold: 150, wood: 90 }], cannonsPerSide: [3, 4, 5] },
       hull: { costs: [{ gold: 35, wood: 35 }, { gold: 60, wood: 60 }, { gold: 95, wood: 95 }], healthBonus: [35, 70, 110] },
-      // Goélette à hunier : un niveau de voilure et un de cale en plus.
       sails: {
         costs: [{ gold: 45, wood: 12 }, { gold: 70, wood: 18 }, { gold: 100, wood: 28 }, { gold: 140, wood: 40 }],
         speedFactor: [1.05, 1.1, 1.15, 1.21],
@@ -168,14 +168,14 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     extensions: [
       {
         name: 'Goélette à hunier',
-        description: 'Le chantier lui grée un hunier, une voile carrée en tête du mât de misaine : plus de vitesse vent arrière, un pont renforcé, de la place pour une voilure et une cargaison plus grandes.',
+        description: 'Le chantier rallonge la coque de deux mètres et lui grée un hunier, une voile carrée en tête du mât de misaine : plus de vitesse, un canon de plus par flanc, une voilure et une cale plus grandes.',
         cost: { gold: 900, wood: 350 },
-        length: 0,
-        healthFactor: 1.08,
+        length: 2,
+        healthFactor: 1.1,
         speedFactor: 1.06,
-        turnFactor: 1,
-        mass: 25,
-        extraLevels: { sails: 1, hold: 1 },
+        turnFactor: 0.95,
+        mass: 40,
+        extraLevels: { cannons: 1, sails: 1, hold: 1 },
       },
     ],
   },
