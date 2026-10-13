@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SAIL_BILLOW, type Livery } from '../../config';
+import { SAIL_BILLOW, WATER_MASK, type Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } from '../parts/common';
 import { HullShape } from '../parts/hullShape';
@@ -150,7 +150,7 @@ function buildTemplate(livery: Livery): SloopTemplate {
     flagMaterial: flagMaterialFor(livery),
     rigging: buildRigging(),
     rigLines: new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, MAST_TOP - 0.6 - BOOM_Y, 0), new THREE.Vector3(0, 0, MAIN.clew.z)]),
-    waterMask: hullShape.buildWaterMask(),
+    waterMask: hullShape.buildWaterMask(DECK_Y + WATER_MASK.aboveDeck),
   };
 }
 

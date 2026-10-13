@@ -1115,6 +1115,9 @@ export const OCEAN = {
  *   et s'efface peu à peu), ainsi que les boulets tombés à l'eau, les naufrages et le butin qui flotte ;
  * - un liseré d'écume collé à la coque des bateaux proches, calculé directement à partir de leur position.
  */
+/** Masque d'eau des navires pontés : hauteur au-dessus du pont principal (m), au lieu du plat-bord. */
+export const WATER_MASK = { aboveDeck: 0.35 };
+
 export const WAKE = {
   /** Côté de la zone couverte par la texture (m) et sa résolution (pixels). */
   areaSize: 320,
@@ -1632,7 +1635,7 @@ export interface Price {
 export type TradeGood = 'wood' | 'fish' | 'rum' | 'spices';
 
 /** Améliorations d'île possibles (chaque île n'en propose que certaines, voir IslandInfoDef.upgrades). */
-export type IslandUpgradeId = 'fort' | 'citadel' | 'dock' | 'workshop' | 'counter' | 'lighthouse' | 'smuggling';
+export type IslandUpgradeId = 'fort' | 'citadel' | 'dock' | 'shipyard' | 'workshop' | 'counter' | 'lighthouse' | 'smuggling';
 
 /** Ce que le joueur sait d'une île : son port, qui la tient, son marché, ce qu'on peut y construire. */
 export interface IslandInfoDef {
@@ -1673,7 +1676,7 @@ export const ISLAND_INFO: Record<IslandId, IslandInfoDef> = {
       rum: { buy: 8, sell: 6 },
       spices: { buy: null, sell: 14 },
     },
-    upgrades: ['fort', 'dock', 'workshop', 'counter', 'lighthouse'],
+    upgrades: ['fort', 'dock', 'shipyard', 'workshop', 'counter', 'lighthouse'],
   },
   sabre: {
     name: 'Île du Sabre',
@@ -1692,7 +1695,7 @@ export const ISLAND_INFO: Record<IslandId, IslandInfoDef> = {
       rum: { buy: null, sell: 13 },
       spices: { buy: 9, sell: 7 },
     },
-    upgrades: ['citadel', 'smuggling'],
+    upgrades: ['citadel', 'shipyard', 'smuggling'],
   },
 };
 
@@ -1712,6 +1715,14 @@ export const ISLAND_UPGRADES = {
     respawnFactor: [0.85, 0.7, 0.55],
     /** Remise sur l'achat de navires. */
     shipDiscount: [0.05, 0.1, 0.15],
+  },
+  /**
+   * Chantier naval : sans lui, le port ne construit que les petits navires ; niveau 1 : brigantin et corvette ;
+   * niveau 2 : frégate (`required` : niveau qu'il faut pour construire chaque type, 0 si absent).
+   */
+  shipyard: {
+    costs: [{ gold: 400, wood: 250 }, { gold: 1000, wood: 600 }],
+    required: { brigantine: 1, corvette: 1, frigate: 2 } as Partial<Record<ShipType, number>>,
   },
   workshop: {
     costs: [{ gold: 100, wood: 60 }, { gold: 220, wood: 120 }, { gold: 400, wood: 220 }],

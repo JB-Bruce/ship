@@ -78,18 +78,21 @@ function shopCard(ctx: PortContext, type: ShipType): string {
   const s = def.stats;
   const price = ctx.island.shipPrice(def.price);
   const full = ctx.fleet.members.length >= ctx.state.slots;
-  const disabled = full || !ctx.state.canAfford(price) ? ' disabled' : '';
+  const yard = ctx.island.shipyardFor(type);
+  const locked = !ctx.island.canBuild(type);
+  const disabled = full || locked || !ctx.state.canAfford(price) ? ' disabled' : '';
+  const label = locked ? `Chantier naval niv. ${yard}` : full ? 'Flotte pleine' : 'Acheter';
   return `
     <div class="upgrade-card">
       <div class="icon">${SHIP_ICONS[type]}</div>
       <div class="body">
         <h2>${def.name}</h2>
-        <p>${def.description}</p>
+        <p>${def.description}</p>${locked ? `<p class="effect">Il faut le chantier naval de niveau ${yard} dans ce port (onglet Île).</p>` : ''}
         <p class="effect">Vie ${s.maxHealth} · ${s.cannonsPerSide * 2} canons · ${Math.round(s.maxSpeed * MS_TO_KNOTS)} nœuds · cale ${def.hold}${def.canFish ? ' · pêche' : ''}</p>
       </div>
       <div class="buy">
         <div class="cost">${costHtml(price.gold, price.wood, ctx.state.gold, ctx.state.wood)}</div>
-        <button data-action="buy" data-arg="${type}"${disabled}>${full ? 'Flotte pleine' : 'Acheter'}</button>
+        <button data-action="buy" data-arg="${type}"${disabled}>${label}</button>
       </div>
     </div>`;
 }

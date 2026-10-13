@@ -144,11 +144,14 @@ export class HullShape {
    * Couvercle invisible tendu sur l'ouverture de la coque, à hauteur du plat-bord.
    * Dessiné dans le tampon de profondeur avant l'océan, il empêche l'eau d'apparaître dans la coque.
    */
-  buildWaterMask(): THREE.BufferGeometry {
+  buildWaterMask(maxHeight = Infinity): THREE.BufferGeometry {
+    // Navire ponté : le masque ne monte pas au-dessus du pont principal (+ une marge). Plus haut, il cacherait l'eau
+    // vue par-dessus un pavois bas (le milieu, entre un gaillard et un château) ; sous lui, le pont cache l'eau.
     const rims = this.rows.map(([u]) => {
       const s = this.stationAt(u);
-      const y = s.gunwale - 0.02;
-      const w = this.halfWidthAt(s, s.gunwale);
+      const top = Math.min(s.gunwale, maxHeight);
+      const y = top - 0.02;
+      const w = this.halfWidthAt(s, top);
       return [new THREE.Vector3(w, y, s.z), new THREE.Vector3(-w, y, s.z)];
     });
     const points: THREE.Vector3[] = [];

@@ -154,17 +154,20 @@ export class Campaign {
 
   /**
    * À quai, les navires de la flotte se réparent vite, mais seulement hors combat : aucun ennemi à moins de
-   * PORT.combatRadius du port. Renvoie l'état à afficher pour le bateau piloté abîmé au port, sinon null.
+   * PORT.combatRadius du port, et personne en chasse (un ennemi en chasse ou au combat, en rouge sur le radar, où
+   * qu'il soit). Renvoie l'état à afficher pour le bateau piloté abîmé au port, sinon null.
    */
   repairAtPort(dt: number, ships: readonly Ship[], leader: Ship): string | null {
     let status: string | null = null;
+    // Pris en chasse (ennemi en rouge sur le radar, où qu'il soit) : pas de réparation au quai.
+    const hunted = this.spawner.enemies.some((e) => e.ship.alive && (e.ai.state === 'chase' || e.ai.state === 'engage'));
     for (const island of ISLAND_LIST) {
       const port = island.port;
       const inPort = (ship: Ship) => Math.hypot(ship.position.x - port.x, ship.position.z - port.z) < PORT.repairRadius;
       const threatened = ships.some(
         (s) => s.alive && isHostile(leader, s) && Math.hypot(s.position.x - port.x, s.position.z - port.z) < PORT.combatRadius,
       );
-      if (!threatened) {
+      if (!threatened && !hunted) {
         const rate = this.islands[island.id].repairRate;
         for (const ship of ships) {
           if (ship.faction !== 'player' || !ship.alive || !inPort(ship)) continue;
@@ -172,7 +175,7 @@ export class Campaign {
         }
       }
       if (leader.alive && inPort(leader) && leader.health < leader.stats.maxHealth) {
-        status = threatened ? 'Réparation suspendue : ennemis près du port' : 'Réparation au quai…';
+        status = threatened ? 'Réparation suspendue : ennemis près du port' : hunted ? 'Réparation suspendue : tu es pris en chasse' : 'Réparation au quai…';
       }
     }
     return status;

@@ -108,7 +108,7 @@ export class Harbor {
 
   buyShip(type: ShipType) {
     const price = this.island.shipPrice(SHIP_TYPES[type].price);
-    if (this.fleet.members.length >= this.state.slots || !this.state.spend(price)) return;
+    if (!this.island.canBuild(type) || this.fleet.members.length >= this.state.slots || !this.state.spend(price)) return;
     const member = this.fleet.add(type, price);
     this.events.say(`${member.name} (${SHIP_TYPES[type].name}) rejoint ta flotte !`);
   }

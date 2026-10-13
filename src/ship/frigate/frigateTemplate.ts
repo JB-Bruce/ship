@@ -1,3 +1,4 @@
+import { WATER_MASK } from '../../config';
 import * as THREE from 'three';
 import type { Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
@@ -163,7 +164,7 @@ function buildTemplate(L: FrigateLayout, livery: Livery): FrigateTemplate {
     deckGun: buildCarriageGunGeometry(),
     flagMaterial: flagMaterialFor(livery),
     rigging: buildRigging(L),
-    waterMask: hull.buildWaterMask(),
+    waterMask: hull.buildWaterMask(DECK_Y + WATER_MASK.aboveDeck),
   };
 }
 

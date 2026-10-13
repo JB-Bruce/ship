@@ -1,3 +1,4 @@
+import { SHIP_TYPES, type ShipType } from '../shipTypes';
 import {
   CITADEL,
   FORT,
@@ -19,7 +20,8 @@ export type { IslandUpgradeId };
 export const ISLAND_UPGRADE_INFO: Record<IslandUpgradeId, { name: string; description: string }> = {
   fort: { name: 'Fort', description: 'Plus de canons sur les remparts, une meilleure poudre et des boulets plus lourds.' },
   citadel: { name: 'Citadelle', description: 'Les Frères du Sabre arment de nouveaux bastions : jusqu’à 8 canons, qui portent loin.' },
-  dock: { name: 'Quai et chantier', description: 'Des charpentiers en nombre : réparations plus rapides, navires remis à flot plus vite et moins chers.' },
+  shipyard: { name: 'Chantier naval', description: 'Des cales de construction et des maîtres charpentiers : le port peut bâtir des navires plus grands (brigantin et corvette, puis frégate).' },
+  dock: { name: 'Quai', description: 'Des charpentiers en nombre : réparations plus rapides, navires remis à flot plus vite et moins chers.' },
   workshop: { name: 'Scierie', description: 'Les bûcherons de l’île débitent du bois de charpente, même quand tu es au large. Il attend dans la réserve de l’île.' },
   counter: { name: 'Comptoir', description: 'Des négociants s’installent au port : les marchands alliés viennent plus souvent et laissent plus d’or dans la réserve de l’île.' },
   lighthouse: { name: 'Phare', description: 'Une lanterne plus haute et des vigies : le radar porte plus loin près de l’île, et la carte montre les ennemis qui l’approchent.' },
@@ -41,7 +43,7 @@ export interface IslandSnapshot {
 export class IslandState {
   readonly info: IslandInfoDef;
   owned: boolean;
-  readonly levels: Record<IslandUpgradeId, number> = { fort: 0, citadel: 0, dock: 0, workshop: 0, counter: 0, lighthouse: 0, smuggling: 0 };
+  readonly levels: Record<IslandUpgradeId, number> = { fort: 0, citadel: 0, dock: 0, shipyard: 0, workshop: 0, counter: 0, lighthouse: 0, smuggling: 0 };
   /** Réserve en attente (fractions comprises). */
   private readonly stock = { gold: 0, wood: 0 };
 
@@ -108,6 +110,10 @@ export class IslandState {
         return `${u[id].guns[i]} canons · portée ${u[id].range[i]} m · ${u[id].damage[i]} dégâts`;
       case 'dock':
         return `Réparation ×${(u.dock.repairRate[i] / PORT.repairRate).toFixed(1)} · retour des navires −${Math.round((1 - u.dock.respawnFactor[i]) * 100)} % · navires −${Math.round(u.dock.shipDiscount[i] * 100)} %`;
+      case 'shipyard': {
+        const types = (Object.keys(u.shipyard.required) as ShipType[]).filter((t) => u.shipyard.required[t] === level);
+        return `Construction : ${types.map((t) => SHIP_TYPES[t].name.toLowerCase()).join(', ')}`;
+      }
       case 'workshop':
         return `${u.workshop.woodPerMinute[i]} bois par minute`;
       case 'counter':
@@ -167,6 +173,16 @@ export class IslandState {
   }
 
   /** Prix d'un navire après la remise du chantier. */
+  /** Niveau de chantier naval qu'il faut pour construire `type` ici (0 : aucun). */
+  shipyardFor(type: ShipType): number {
+    return ISLAND_UPGRADES.shipyard.required[type] ?? 0;
+  }
+
+  /** Ce port peut-il construire `type` (chantier naval assez amélioré) ? */
+  canBuild(type: ShipType): boolean {
+    return this.levels.shipyard >= this.shipyardFor(type);
+  }
+
   shipPrice(price: Cost): Cost {
     const f = 1 - this.at(ISLAND_UPGRADES.dock.shipDiscount, 'dock', 0);
     return { gold: Math.round(price.gold * f), wood: Math.round(price.wood * f) };
