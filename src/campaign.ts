@@ -189,8 +189,8 @@ export class Campaign {
   }
 
   /** Fort dont la barre de vie s'affiche : assiégé par une mission, sinon celui d'une île de la Marine. */
-  objectiveFort(leader: Ship): Fort | null {
-    return this.missions.besieged()[0] ?? this.navy.barFort(leader);
+  objectiveFort(eye: { x: number; z: number }, fog: { near: number; far: number }): Fort | null {
+    return this.missions.besieged()[0] ?? this.navy.barFort(eye, fog);
   }
 
   /** Réparation rapide à quai (voir portRepair.ts). Renvoie l'état à afficher pour le bateau piloté, sinon null. */

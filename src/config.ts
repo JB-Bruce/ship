@@ -397,6 +397,11 @@ export const ALLY = {
   engageRadius: 160,
   /** …tant qu'ils restent à moins de cette distance du bateau piloté (m). */
   leash: 260,
+  /**
+   * Plus de navire ennemi à attaquer, et le bateau piloté à moins de cette distance d'un fort de la Marine qu'il
+   * bombarde : ils viennent le canonner eux aussi, par le travers (m).
+   */
+  siegeRadius: 450,
   /** Marge latérale à garder en croisant un navire ami, en plus de la demi-longueur moyenne (m). */
   clearance: 3,
   /** Ils évitent un ami s'ils vont le percuter dans moins de ce délai (s). */
@@ -2046,8 +2051,13 @@ export const GARRISON = {
   leash: 900,
   /** Un navire amarré qui a appareillé rejette l'ancre à moins de cette distance de sa place (m). */
   mooringRadius: 25,
-  /** La barre de vie d'un fort de la Marine s'affiche à moins de cette distance de ton navire (m). */
-  fortBarRange: 700,
+  /** Tes navires à moins de cette distance d'un fort de la Marine le prennent pour cible (m). */
+  fortAimRange: 700,
+  /**
+   * La barre de vie d'un fort de la Marine s'affiche quand il sort de la brume : la caméra en est à moins de cette part
+   * du chemin entre le début et la fin de la brume (0 = début, 1 = fin, où il disparaît).
+   */
+  fortBarFog: 0.5,
 };
 
 /** Fort du port (canons d'appoint qui tirent sur les ennemis). */

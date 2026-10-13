@@ -101,12 +101,16 @@ export class NavyIsland {
     return this.state.navyHeld && this.fort.alive ? this.fort : null;
   }
 
-  /** Fort dont la barre de vie s'affiche : assiégé par la Marine, ou le sien quand ton navire en approche. */
-  barFort(leader: Ship): Fort | null {
+  /**
+   * Fort dont la barre de vie s'affiche : le tien assiégé par la Marine, ou le sien dès qu'il sort de la brume pour la
+   * caméra (`eye`), jamais avant (GARRISON.fortBarFog).
+   */
+  barFort(eye: { x: number; z: number }, fog: { near: number; far: number }): Fort | null {
     if (this.counter) return this.counter.besieged;
     const b = this.fort.bounds;
-    const near = Math.hypot(leader.position.x - b.x, leader.position.z - b.z) < GARRISON.fortBarRange;
-    return this.state.navyHeld && this.fort.alive && near ? this.fort : null;
+    const sight = fog.near + (fog.far - fog.near) * GARRISON.fortBarFog;
+    const inSight = Math.hypot(eye.x - b.x, eye.z - b.z) < sight;
+    return this.state.navyHeld && this.fort.alive && inSight ? this.fort : null;
   }
 
   /** Contre-attaque en cours, pour le suivi des contrats. */
@@ -139,7 +143,7 @@ export class NavyIsland {
   }
 
   /**
-   * Tes navires (et tes alliés) dans les parages du fort de la Marine (GARRISON.fortBarRange) le bombardent quand il
+   * Tes navires (et tes alliés) dans les parages du fort de la Marine (GARRISON.fortAimRange) le bombardent quand il
    * est à portée et qu'aucun navire ne l'est ; plus loin, ils n'ont plus de cible (une autre île de la Marine peut les
    * prendre).
    */
@@ -147,7 +151,7 @@ export class NavyIsland {
     const b = this.fort.bounds;
     for (const ship of this.world.ships) {
       if (ship.faction === 'enemy') continue;
-      const near = on && Math.hypot(ship.position.x - b.x, ship.position.z - b.z) < GARRISON.fortBarRange;
+      const near = on && Math.hypot(ship.position.x - b.x, ship.position.z - b.z) < GARRISON.fortAimRange;
       if (near && ship.siegeTarget === null) ship.siegeTarget = this.target;
       else if (!near && ship.siegeTarget === this.target) ship.siegeTarget = null;
     }

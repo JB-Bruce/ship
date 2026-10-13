@@ -24,6 +24,10 @@ import {
 export const CHASE_GUN_SCALE = 1.35;
 /** Fanal de poupe : échelle de la lanterne posée sur le plat-bord du tableau arrière. */
 const STERN_LANTERN_SCALE = 0.8;
+/** Préceintes (lisses du bordé) : hauteurs (m). */
+const WALES = [1.3, 0.5] as const;
+/** Couronnement : lisse qui ferme le haut du tableau arrière, où est posée la lanterne de poupe (m). */
+const TAFFRAIL = { height: 0.16, depth: 0.24 };
 /** Fenêtres de la chambre, sous le château arrière (entre le pont principal et le pont du château). */
 const CABIN_WINDOW_Y = (DECK_Y + QUARTERDECK.y) / 2 + 0.05;
 
@@ -78,9 +82,13 @@ function buildTemplate(livery: Livery): CaravelTemplate {
   addDeckSeams(batch, p.dark, hull, FORECASTLE.y, FORECASTLE.from, FORECASTLE.to);
   for (const side of [1, -1] as const) {
     batch.add(p.trim, hull.buildRail(side, 1, 0, 0.08), identity);
-    batch.add(p.trim, hull.buildRail(side, 1.3, 0.03, 0.06, true), identity);
-    batch.add(p.trim, hull.buildRail(side, 0.5, 0.02, 0.05, true), identity);
+    batch.add(p.trim, hull.buildRail(side, WALES[0], 0.03, 0.06, true), identity);
+    batch.add(p.trim, hull.buildRail(side, WALES[1], 0.02, 0.05, true), identity);
   }
+  // Couronnement : la lisse du plat-bord ferme le haut du tableau arrière ; les préceintes en font le tour.
+  const stern = at(-1);
+  batch.add(p.trim, box(2 * stern.halfWidth + 0.16, TAFFRAIL.height, TAFFRAIL.depth), tf(0, stern.gunwale, stern.z + TAFFRAIL.depth / 2 - 0.08));
+  for (const y of WALES) batch.add(p.trim, box(2 * hull.halfWidthAt(stern, y) + 0.08, 0.11, 0.08), tf(0, y, stern.z - 0.04));
 
   // Cloisons du château arrière (porte, fenêtres) et du gaillard d'avant (porte basse vers le canon de chasse).
   const castle = at(QUARTERDECK.to);
@@ -99,7 +107,6 @@ function buildTemplate(livery: Livery): CaravelTemplate {
   }
 
   // Fenêtres de la chambre, sous le pont du château : tableau arrière (entre deux moulures) et flancs du château.
-  const stern = at(-1);
   for (const x of [-0.9, -0.3, 0.3, 0.9]) batch.add(p.window, box(0.36, 0.42, 0.05), tf(x, CABIN_WINDOW_Y, stern.z - 0.03));
   for (const y of [CABIN_WINDOW_Y - 0.36, CABIN_WINDOW_Y + 0.36]) batch.add(p.trim, box(2 * hull.halfWidthAt(stern, y) - 0.2, 0.08, 0.06), tf(0, y, stern.z - 0.04));
   for (const side of [1, -1]) {
@@ -129,7 +136,8 @@ function buildTemplate(livery: Livery): CaravelTemplate {
   addCrate(batch, p, tf(0.5, QUARTERDECK.y, at(-0.6).z, 0, 0.3));
   addRopeCoil(batch, p, tf(-0.45, DECK_Y, MAIN_MAST.z - 0.8));
   addRopeCoil(batch, p, tf(0.5, QUARTERDECK.y, MIZZEN_MAST.z + 0.7));
-  addLantern(batch, p, tf(0, stern.gunwale, stern.z + 0.2, 0, 0, 0, STERN_LANTERN_SCALE));
+  // Lanterne de poupe, debout sur le couronnement.
+  addLantern(batch, p, tf(0, stern.gunwale + TAFFRAIL.height / 2, stern.z + TAFFRAIL.depth / 2 - 0.08, 0, 0, 0, STERN_LANTERN_SCALE));
 
   const lateen = buildLateenSail(MIZZEN_SAIL);
   const chaseGun = buildBatteryGun();

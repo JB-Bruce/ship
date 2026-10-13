@@ -50,10 +50,10 @@ export class NavyIslands {
     return forts;
   }
 
-  /** Fort dont la barre de vie s'affiche (contre-attaque, ou fort de la Marine que tu approches), ou null. */
-  barFort(leader: Ship): Fort | null {
+  /** Fort dont la barre de vie s'affiche (contre-attaque, ou fort de la Marine en vue de la caméra `eye`), ou null. */
+  barFort(eye: { x: number; z: number }, fog: { near: number; far: number }): Fort | null {
     for (const n of this.list) {
-      const fort = n.barFort(leader);
+      const fort = n.barFort(eye, fog);
       if (fort) return fort;
     }
     return null;

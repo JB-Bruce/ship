@@ -1,13 +1,15 @@
-import { ALLY, SAIL } from '../config';
+import { ALLY, BROADSIDE, SAIL } from '../config';
+import type { CannonTarget } from '../combat/cannons';
 import { isHostile, type Ship } from '../ship/ship';
-import { bearingTo, broadside, nearest, steerTo } from './steering';
+import { bearingTo, broadside, firingRange, nearest, steerTo } from './steering';
 
 /** Au-delà de cette distance (en plus des demi-longueurs), un ami n'est même pas examiné (m). */
 const AVOID_RANGE = 45;
 
 /**
  * Pilote d'un bateau de la flotte que le joueur ne commande pas : il tient sa place dans la formation,
- * la quitte pour attaquer les ennemis proches, puis revient (sans trop s'éloigner du bateau piloté).
+ * la quitte pour attaquer les ennemis proches, puis revient (sans trop s'éloigner du bateau piloté). Plus d'ennemi à
+ * portée et le bateau piloté devant un fort de la Marine : il vient le bombarder avec lui.
  */
 export class AllyAI {
   state: 'follow' | 'engage' = 'follow';
@@ -26,6 +28,14 @@ export class AllyAI {
     this.state = target ? 'engage' : 'follow';
     if (target) {
       this.side = broadside(ship, target, this.side, SAIL.half);
+      this.avoidFriends(ships);
+      return;
+    }
+    const fort = this.fortUnderFire(leader);
+    if (fort) {
+      // Par le travers, à la distance tenue au combat, comptée depuis les murs.
+      this.state = 'engage';
+      this.side = broadside(ship, fort, this.side, SAIL.half, firingRange(ship) * BROADSIDE.holdFraction + (fort.radius ?? 0));
       this.avoidFriends(ships);
       return;
     }
@@ -62,6 +72,13 @@ export class AllyAI {
     }
     steerTo(ship, heading, Math.min(SAIL.full, Math.max(0, sail)));
     this.avoidFriends(ships);
+  }
+
+  /** Le fort de la Marine que le bateau piloté bombarde, s'il en est assez près (ALLY.siegeRadius), sinon null. */
+  private fortUnderFire(leader: Ship): CannonTarget | null {
+    const fort = this.ship.siegeTarget;
+    if (!fort || fort !== leader.siegeTarget) return null;
+    return Math.hypot(leader.position.x - fort.position.x, leader.position.z - fort.position.z) < ALLY.siegeRadius ? fort : null;
   }
 
   /**

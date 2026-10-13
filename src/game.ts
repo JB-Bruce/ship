@@ -281,7 +281,7 @@ export class Game {
     this.healthBars.mark(this.betrayal.marked, this.betrayal.hovered);
     const boss = this.bosses.inSight(leader);
     this.bossBar.update(boss?.boss ? `☠ ${BOSSES[boss.boss].name}` : null, boss ? boss.ship.health / boss.ship.stats.maxHealth : 0);
-    const fort = this.campaign.objectiveFort(leader);
+    const fort = this.campaign.objectiveFort(this.camera.position, this.scene.fog as THREE.Fog);
     this.siegeBar.update(fort ? ISLAND_INFO[fort.island].fort.name : null, fort ? fort.health / fort.maxHealth : 0);
     this.updatePrompts();
     this.fpsCounter.update();
