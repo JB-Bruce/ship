@@ -1,4 +1,3 @@
-import * as THREE from 'three';
 import { CONTRACTS, ISLAND_INFO, LAND, type IslandId } from '../config';
 import type { ShipType } from '../shipTypes';
 import type { Enemy } from '../world/enemySpawner';
@@ -96,8 +95,8 @@ export class SiegeMission implements Mission {
     const b = this.fort.bounds;
     const angle = this.fort.facing + (Math.random() * 2 - 1) * APPROACH_SPREAD;
     const p = land.keepOffshore(b.x + Math.sin(angle) * d.distance, b.z + Math.cos(angle) * d.distance, LAND.spawnClearance);
-    // Point visé : le milieu des remparts (les boulets touchent l'enceinte en chemin).
-    const aim = new THREE.Vector3(b.x, (b.bottom + b.top) / 2, b.z);
+    // Point visé : le centre de l'enceinte sous le parapet (les boulets touchent ses murs en chemin).
+    const aim = this.fort.aim;
     const heading = Math.atan2(b.x - p.x, b.z - p.z);
     // Les étoiles règlent la taille de l'escadre et ses navires.
     const s = this.stars - 1;

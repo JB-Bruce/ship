@@ -1904,9 +1904,9 @@ export const CITADEL = {
  */
 export const ROYAL_FORT = {
   /** Armement de la Marine (les autres réglages de tir sont ceux de FORT). */
-  navy: { guns: 11, range: 270, damage: 15 },
+  navy: { guns: 11, range: 270, damage: 11 },
   /** Vie de l'enceinte : contre ta flotte sous la Marine, contre ses escadres une fois à toi. */
-  health: 3000,
+  health: 2400,
   /** Réparation : après `regenDelay` s sans être touché, il regagne `regenRate` de sa vie par seconde. */
   regenDelay: 40,
   regenRate: 0.005,

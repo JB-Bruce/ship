@@ -15,6 +15,8 @@ const MUZZLE = new THREE.Vector3(1, 0.38, 0);
 const AIM_TOLERANCE = 0.04;
 /** Hauteur du mât du pavillon sur la tour de guet (m). */
 const FLAG_POLE = 5;
+/** Les assiégeants visent l'enceinte à cette hauteur sous son terre-plein (m) : plus bas, un fort perché sur une falaise ne prendrait que des coups dans la roche. */
+const AIM_BELOW_RAMPART = 1;
 const muzzle = new THREE.Vector3();
 const velocity = new THREE.Vector3();
 const spot = new THREE.Vector3();
@@ -46,6 +48,8 @@ export class Fort {
   readonly group: THREE.Group;
   /** Volume de l'enceinte, pour les boulets d'un siège. */
   readonly bounds: FortModel['bounds'];
+  /** Point que visent les assiégeants : le centre de l'enceinte, juste sous le parapet. */
+  readonly aim: THREE.Vector3;
   /** Cap du bastion principal (vers le large) : c'est par là qu'arrivent les assiégeants. */
   readonly facing: number;
   readonly maxHealth: number;
@@ -71,6 +75,7 @@ export class Fort {
     const model = buildFort(spot.x, spot.z, layout, facing);
     this.group = model.group;
     this.bounds = model.bounds;
+    this.aim = new THREE.Vector3(model.bounds.x, model.bounds.rampart - AIM_BELOW_RAMPART, model.bounds.z);
     this.facing = model.facing;
     this.maxHealth = this.health = maxHealth;
     const p = paletteFor(LIVERIES.player);

@@ -89,8 +89,8 @@ export interface FortModel {
   readonly slots: readonly GunSlot[];
   /** Pied du mât du pavillon, en haut de la tour de guet. */
   readonly flagBase: THREE.Vector3;
-  /** Volume approximatif de l'enceinte (pour les boulets d'un siège) : centre, rayon, bas et haut (m). */
-  readonly bounds: { x: number; z: number; radius: number; bottom: number; top: number };
+  /** Volume approximatif de l'enceinte (pour les boulets d'un siège) : centre, rayon, bas et haut (m), hauteur du terre-plein. */
+  readonly bounds: { x: number; z: number; radius: number; bottom: number; top: number; rampart: number };
   /** Cap du bastion principal (vers le large). */
   readonly facing: number;
 }
@@ -197,7 +197,7 @@ export function buildFort(cx: number, cz: number, layout: FortLayout, facing?: n
     group.add(barbette);
     return { position: new THREE.Vector3(p.x, top + BARBETTE.height, p.z), restYaw, barbette };
   });
-  const bounds = { x: cx, z: cz, radius: (tip + curtain.radius) / 2, bottom: Math.min(ground, 0) - 1, top: towerTop };
+  const bounds = { x: cx, z: cz, radius: (tip + curtain.radius) / 2, bottom: Math.min(ground, 0) - 1, top: towerTop, rampart: top };
   return { group, slots, flagBase: new THREE.Vector3(cx, towerTop, cz), bounds, facing: sea };
 }
 

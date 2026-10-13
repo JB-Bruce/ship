@@ -1,4 +1,3 @@
-import * as THREE from 'three';
 import { COUNTER_ATTACK, GARRISON, PORT, ROYAL_FORT, type Cost } from '../config';
 import type { CannonTarget } from '../combat/cannons';
 import type { MissionWorld } from '../missions/mission';
@@ -38,7 +37,7 @@ const rand = ([min, max]: readonly [number, number]) => min + Math.random() * (m
  */
 export class NavyIsland {
   private readonly garrison: NavyGarrison;
-  /** Ce que visent tes canons quand le fort est à portée : le milieu de ses remparts. */
+  /** Ce que visent tes canons quand le fort est à portée : le centre de l'enceinte, sous le parapet. */
   private readonly target: CannonTarget;
   private counter: SiegeMission | null = null;
   private attackIn = rand(COUNTER_ATTACK.interval);
@@ -57,8 +56,7 @@ export class NavyIsland {
     private readonly events: NavyIslandEvents,
   ) {
     this.garrison = new NavyGarrison(island, world.spawner);
-    const b = fort.bounds;
-    this.target = { position: new THREE.Vector3(b.x, (b.bottom + b.top) / 2, b.z), velocityX: 0, velocityZ: 0, radius: b.radius };
+    this.target = { position: fort.aim, velocityX: 0, velocityZ: 0, radius: fort.bounds.radius };
     this.orders = [`Port de la Marine : abats ${state.info.fort.name} pour prendre l'île`, 'Coule les navires de la Marine près du port, puis accoste pour prendre l’île'];
     this.sync();
   }
