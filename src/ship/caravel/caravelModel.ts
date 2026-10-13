@@ -10,7 +10,7 @@ import {
   CARAVEL_DECK,
   CARAVEL_HULL as hull,
   CARAVEL_LENGTH,
-  CHASE_GUN,
+  CHASE_PORT,
   DECK_Y,
   FLAG,
   FORECASTLE,
@@ -31,7 +31,10 @@ const SAIL_GROWTH = 0.08;
 /** Retrait des affûts par rapport au bordé : la bouche des fûts sort par les sabords. */
 const GUN_INSET = 0.62;
 const MUZZLE = new THREE.Vector3(1, 0.38, 0);
-const CHASE_MUZZLE = MUZZLE.clone().multiplyScalar(CHASE_GUN_SCALE);
+/** Bouche du fût de chasse (fût de batterie : 0,8 m devant son pivot), à son échelle. */
+const CHASE_MUZZLE = new THREE.Vector3(0.8 * CHASE_GUN_SCALE, 0, 0);
+/** Pivot du fût de chasse, juste en retrait de la face avant du sabord. */
+const CHASE_PIVOT_INSET = 0.06;
 /** Écart de la voile latine par rapport au mât (m) : elle pend du côté sous le vent. */
 const LATEEN_OFFSET = 0.22;
 const { damp } = THREE.MathUtils;
@@ -175,7 +178,7 @@ export class CaravelModel implements ShipModel {
     }
     if (chase > 0) {
       const gun = new THREE.Mesh(t.chaseGun, t.palette.metal);
-      gun.position.set(0, CHASE_GUN.y, hull.stationAt(CHASE_GUN.u).z);
+      gun.position.set(0, CHASE_PORT.y, CHASE_PORT.front - CHASE_PIVOT_INSET);
       this.root.add(gun);
       this.cannons.push(cannonMount(gun, 0, CHASE_MUZZLE, 'deck'));
     }

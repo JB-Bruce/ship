@@ -63,8 +63,11 @@ export const FLAG = { length: 1.5, height: 0.95, y: MAIN_MAST.top + 0.1 };
 
 /** Canons de flanc : répartis régulièrement sur le pont principal découvert, entre ces u (de l'arrière vers l'avant). */
 export const GUN_ZONE = { aft: -0.33, fore: 0.28 };
-/** Canon de chasse : à l'abri sous le gaillard d'avant, dans l'axe ; son fût sort par un sabord de l'étrave. */
-export const CHASE_GUN = { u: 0.84, y: DECK_Y, port: 0.95, portY: 1.52 };
+/**
+ * Sabord de chasse, sous le gaillard d'avant, dans l'axe : un coffre posé sur l'étrave, ouverture `width` × `height`
+ * dans un cadre de `frame`, face avant en `front` (z). Le fût du canon de chasse y pivote et en sort.
+ */
+export const CHASE_PORT = { y: 1.52, width: 0.5, height: 0.44, frame: 0.1, front: at(1).z + 0.1 };
 
 /**
  * Pont de l'équipage animé : barreur et promenade sur le château arrière, vigie sur le gaillard d'avant, matelots sur

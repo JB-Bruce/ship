@@ -3,12 +3,13 @@ import { WATER_MASK, type Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } from '../parts/common';
 import { addStairs } from '../parts/deckFittings';
+import { buildBatteryGun } from '../corvette/corvetteTemplate';
 import { addBarrel, addCrate, addLantern, addRopeCoil, buildCarriageGunGeometry, type Palette } from '../parts/props';
 import { buildLateenSail, buildSquareSail, cylinderBetween } from '../parts/sails';
 import {
   BOWSPRIT,
   CARAVEL_HULL as hull,
-  CHASE_GUN,
+  CHASE_PORT,
   DECK_Y,
   FORECASTLE,
   MAIN_COURSE,
@@ -19,8 +20,12 @@ import {
   SPRITSAIL,
 } from './caravelLayout';
 
-/** Le canon de chasse : un gros canon sur affût (pointe vers +X), à cette échelle d'un canon de pont. */
+/** Le canon de chasse : un gros fût seul (pointe vers +X, pivot au sabord), à cette échelle d'un fût de batterie. */
 export const CHASE_GUN_SCALE = 1.35;
+/** Fanal de poupe : échelle de la lanterne posée sur le plat-bord du tableau arrière. */
+const STERN_LANTERN_SCALE = 0.8;
+/** Fenêtres de la chambre, sous le château arrière (entre le pont principal et le pont du château). */
+const CABIN_WINDOW_Y = (DECK_Y + QUARTERDECK.y) / 2 + 0.05;
 
 export interface CaravelTemplate {
   palette: Palette;
@@ -93,19 +98,17 @@ function buildTemplate(livery: Livery): CaravelTemplate {
     addStairs(batch, p, tf(side * 1.05, DECK_Y, fore.z, 0, Math.PI), foreHeight, 3);
   }
 
-  // Tableau arrière : fenêtres et moulures ; fenêtres sur les flancs du château.
+  // Fenêtres de la chambre, sous le pont du château : tableau arrière (entre deux moulures) et flancs du château.
   const stern = at(-1);
-  for (const x of [-0.9, -0.3, 0.3, 0.9]) batch.add(p.window, box(0.36, 0.42, 0.05), tf(x, 2.7, stern.z - 0.02));
-  for (const y of [2.35, 3.05]) batch.add(p.trim, box(2 * stern.halfWidth - 0.2, 0.08, 0.06), tf(0, y, stern.z - 0.03));
+  for (const x of [-0.9, -0.3, 0.3, 0.9]) batch.add(p.window, box(0.36, 0.42, 0.05), tf(x, CABIN_WINDOW_Y, stern.z - 0.03));
+  for (const y of [CABIN_WINDOW_Y - 0.36, CABIN_WINDOW_Y + 0.36]) batch.add(p.trim, box(2 * hull.halfWidthAt(stern, y) - 0.2, 0.08, 0.06), tf(0, y, stern.z - 0.04));
   for (const side of [1, -1]) {
     for (const u of [-0.88, -0.72, -0.58]) {
       const s = at(u);
-      batch.add(p.window, box(0.05, 0.34, 0.38), tf(side * (hull.halfWidthAt(s, 2.85) + 0.02), 2.85, s.z));
+      batch.add(p.window, box(0.05, 0.34, 0.38), tf(side * (hull.halfWidthAt(s, CABIN_WINDOW_Y) + 0.03), CABIN_WINDOW_Y, s.z));
     }
   }
-  // Sabord de chasse dans l'étrave, et la grosse pièce qu'on y voit dépasser.
-  const port = at(CHASE_GUN.port);
-  batch.add(p.dark, box(2 * hull.halfWidthAt(port, CHASE_GUN.portY) + 0.08, 0.5, 0.42), tf(0, CHASE_GUN.portY, port.z));
+  addChasePort(batch, p);
 
   // Mâts : grand mât (hune, chouque, hampe du pavillon) et artimon sur le château ; beaupré.
   batch.add(p.wood, new THREE.CylinderGeometry(0.16, 0.24, MAIN_MAST.top - DECK_Y, 8), tf(0, (MAIN_MAST.top + DECK_Y) / 2, MAIN_MAST.z));
@@ -126,10 +129,10 @@ function buildTemplate(livery: Livery): CaravelTemplate {
   addCrate(batch, p, tf(0.5, QUARTERDECK.y, at(-0.6).z, 0, 0.3));
   addRopeCoil(batch, p, tf(-0.45, DECK_Y, MAIN_MAST.z - 0.8));
   addRopeCoil(batch, p, tf(0.5, QUARTERDECK.y, MIZZEN_MAST.z + 0.7));
-  addLantern(batch, p, tf(0, stern.gunwale, stern.z + 0.2, 0, 0, 0, 1.3));
+  addLantern(batch, p, tf(0, stern.gunwale, stern.z + 0.2, 0, 0, 0, STERN_LANTERN_SCALE));
 
   const lateen = buildLateenSail(MIZZEN_SAIL);
-  const chaseGun = buildCarriageGunGeometry();
+  const chaseGun = buildBatteryGun();
   chaseGun.scale(CHASE_GUN_SCALE, CHASE_GUN_SCALE, CHASE_GUN_SCALE);
   return {
     palette: p,
@@ -150,6 +153,26 @@ function buildTemplate(livery: Livery): CaravelTemplate {
     rigging: buildRigging(),
     waterMask: hull.buildWaterMask(DECK_Y + WATER_MASK.aboveDeck),
   };
+}
+
+/**
+ * Sabord de chasse : un coffre aux couleurs de la coque posé sur l'étrave (il remonte vers l'arrière jusqu'à ce que le
+ * bordé ait sa largeur), une ouverture sombre et son cadre sur la face avant, bien en avant de l'étrave.
+ */
+function addChasePort(batch: GeometryBatch, p: Palette) {
+  const { y, width, height, frame, front } = CHASE_PORT;
+  const half = width / 2 + frame;
+  const fullHeight = height + 2 * frame;
+  // De l'étrave vers l'arrière, jusqu'à ce que le bordé, à la hauteur du sabord, soit aussi large que le coffre.
+  let u = 1;
+  while (u > 0.8 && hull.halfWidthAt(hull.stationAt(u), y) < half) u -= 0.005;
+  const back = hull.stationAt(u).z;
+  batch.add(p.hull, new THREE.BoxGeometry(2 * half, fullHeight, front - back), tf(0, y, (front + back) / 2));
+  batch.add(p.dark, new THREE.BoxGeometry(width, height, 0.03), tf(0, y, front + 0.005));
+  for (const s of [1, -1]) {
+    batch.add(p.trim, new THREE.BoxGeometry(2 * half, frame, 0.05), tf(0, y + s * (height + frame) / 2, front + 0.01));
+    batch.add(p.trim, new THREE.BoxGeometry(frame, height, 0.05), tf(s * (width + frame) / 2, y, front + 0.01));
+  }
 }
 
 /** Vergue horizontale (le long de X). */
