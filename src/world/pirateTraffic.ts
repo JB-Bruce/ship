@@ -40,6 +40,17 @@ export class PirateTraffic {
     return this.pirates.some((p) => p.ship === ship);
   }
 
+  /**
+   * Retire un pirate encore à flot sans naufrage ni épave (il passe à l'ennemi : trahison). Un autre prendra la mer plus
+   * tard, comme après un naufrage. Renvoie false si ce n'est pas un pirate allié à flot.
+   */
+  release(ship: Ship): boolean {
+    const index = this.pirates.findIndex((p) => p.ship === ship);
+    if (index < 0 || !ship.alive) return false;
+    this.remove(index);
+    return true;
+  }
+
   update(dt: number, crates: readonly Crate[], schools: readonly FishSchool[], leader: Ship) {
     for (let i = this.pirates.length - 1; i >= 0; i--) {
       const { ship, ai } = this.pirates[i];

@@ -50,7 +50,7 @@ export class ShipCrew {
 
   /** Un marin aux couleurs de son camp (chemise, coiffe). */
   private hire(role: Sailor['role'], hat?: Sailor['hat']): Sailor {
-    const faction = this.ship.faction;
+    const faction = this.ship.crewColors;
     return newSailor(role, new THREE.Color(pick(DECK_CREW.shirts[faction])), hat ?? (Math.random() < DECK_CREW.tricorn[faction] ? 'tricorn' : 'bandana'));
   }
 

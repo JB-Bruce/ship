@@ -52,6 +52,18 @@ export class MerchantTraffic {
     private readonly events: MerchantEvents,
   ) {}
 
+  /**
+   * Retire un marchand encore à flot sans naufrage ni épave (il passe à l'ennemi : trahison) ; sa place au mouillage
+   * est libérée. S'il n'avait pas encore fait escale, son or n'arrive jamais. Renvoie false si ce n'est pas un marchand
+   * des îles à flot (le navire escorté d'une mission n'en est pas un).
+   */
+  release(ship: Ship): boolean {
+    const index = this.merchants.findIndex((m) => m.ship === ship);
+    if (index < 0 || !ship.alive || this.merchants[index].lost) return false;
+    this.remove(index);
+    return true;
+  }
+
   update(dt: number, leader: Ship) {
     for (let i = this.merchants.length - 1; i >= 0; i--) {
       const m = this.merchants[i];

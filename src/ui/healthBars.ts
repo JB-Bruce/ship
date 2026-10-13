@@ -22,7 +22,11 @@ interface Bar {
   crits: HTMLElement;
   critIcons: string;
   seen: number;
+  /** Surlignage de la visée « Trahir » : 0 aucun, 1 allié qu'on peut trahir, 2 allié sous le curseur. */
+  mark: number;
 }
+
+const MARK_CLASSES = ['', 'betrayable', 'aimed'] as const;
 
 /**
  * Barres de vie flottant au-dessus des autres bateaux (éléments HTML positionnés chaque image) :
@@ -65,6 +69,23 @@ export class HealthBars {
       bar.tag?.remove();
       bar.crits.remove();
       this.bars.delete(ship);
+    }
+  }
+
+  /**
+   * Visée « Trahir » : surligne la barre et l'étiquette des alliés qu'on peut trahir (`eligible`), davantage celui sous
+   * le curseur (`aimed`). Les classes ne changent que quand le surlignage change.
+   */
+  mark(eligible: readonly Ship[], aimed: Ship | null) {
+    for (const [ship, bar] of this.bars) {
+      const mark = ship === aimed ? 2 : eligible.includes(ship) ? 1 : 0;
+      if (mark === bar.mark) continue;
+      for (const el of [bar.root, bar.tag]) {
+        if (!el) continue;
+        if (bar.mark) el.classList.remove(MARK_CLASSES[bar.mark]);
+        if (mark) el.classList.add(MARK_CLASSES[mark]);
+      }
+      bar.mark = mark;
     }
   }
 
@@ -121,7 +142,7 @@ export class HealthBars {
     const tag = ship.faction === 'enemy' ? this.tagElement('ship-tag') : null;
     const crits = this.parent.appendChild(document.createElement('div'));
     crits.className = 'ship-crits';
-    const bar: Bar = { root, fill, tag, threat: null, label: '', crits, critIcons: '', seen: this.frame };
+    const bar: Bar = { root, fill, tag, threat: null, label: '', crits, critIcons: '', seen: this.frame, mark: 0 };
     this.bars.set(ship, bar);
     return bar;
   }

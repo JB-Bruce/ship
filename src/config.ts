@@ -997,6 +997,19 @@ export const SPECIAL_CONTRACTS: Record<IslandId, readonly SpecialContractDef[]> 
 };
 
 /**
+ * Trahison (bouton « Trahir », touche R) : un clic sur un pirate allié ou un marchand des îles le fait passer à
+ * l'ennemi, tel quel (copie exacte, seul le camp change). Il faut qu'il soit à portée de vue.
+ */
+export const BETRAYAL = {
+  /** Distance maximale du navire piloté (m), et jamais au-delà de la brume. */
+  range: 300,
+  /** Marge autour de la silhouette d'un navire à l'écran pour le cliquer (px). */
+  pickMargin: 14,
+  /** Durée du message de trahison (s). */
+  toastSeconds: 3.5,
+};
+
+/**
  * Pirates alliés indépendants (points bleus) : ils naviguent d'un port à l'autre, y font escale, attaquent la Marine
  * près de leur route et ramassent le butin de leurs victimes. Leurs victoires ne comptent pas pour toi.
  */
@@ -1468,6 +1481,9 @@ export const CAMERA = {
   /** Décalage max de la secousse (m) et vitesse à laquelle elle s'éteint (/s). */
   shakeOffset: 0.9,
   shakeDecay: 1.6,
+  /** Un appui relâché sans avoir bougé de plus de `clickSlop` px (cumulés) en moins de `clickTime` ms est un clic, pas un glisser. */
+  clickSlop: 6,
+  clickTime: 400,
 };
 
 export const WORLD = {

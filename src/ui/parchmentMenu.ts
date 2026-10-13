@@ -8,6 +8,8 @@ export abstract class ParchmentMenu {
   /** Menu ouvert par Échap quand aucun autre ne l'est. */
   private static escapeMenu: ParchmentMenu | null = null;
   private static escapeListening = false;
+  /** Consulté par Échap quand aucun menu n'est ouvert, avant d'ouvrir le menu Échap : true = Échap consommé (visée annulée…). */
+  static escapeHandler: (() => boolean) | null = null;
   isOpen = false;
   protected readonly body: HTMLElement;
   private readonly root: HTMLElement;
@@ -63,7 +65,7 @@ export abstract class ParchmentMenu {
       e.preventDefault();
       const open = ParchmentMenu.all.find((m) => m.isOpen);
       if (open) open.setOpen(false);
-      else ParchmentMenu.escapeMenu?.setOpen(true);
+      else if (!ParchmentMenu.escapeHandler?.()) ParchmentMenu.escapeMenu?.setOpen(true);
     });
   }
 

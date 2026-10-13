@@ -29,6 +29,12 @@ class Follower {
     this.lastTarget = NaN;
   }
 
+  copy(other: Follower) {
+    this.value = other.value;
+    this.speed = other.speed;
+    this.lastTarget = other.lastTarget;
+  }
+
   update(target: number, stiffness: number, damping: number, maxOffset: number, dt: number, o: FollowOptions = DEFAULT_FOLLOW) {
     if (dt <= 0) return;
     // Premier calcul (apparition) : on part posé sur l'eau.
@@ -110,6 +116,14 @@ export class Buoyancy {
   kick(roll: number, pitch: number) {
     this.recoil.rollSpeed += roll;
     this.recoil.pitchSpeed += pitch;
+  }
+
+  /** Reprend l'assiette d'une autre coque du même type (même masse) : hauteur, tangage, roulis et leurs élans. */
+  copyFrom(other: Buoyancy) {
+    this.height.copy(other.height);
+    this.pitchFollower.copy(other.pitchFollower);
+    this.rollFollower.copy(other.rollFollower);
+    Object.assign(this.recoil, other.recoil);
   }
 
   reset(y: number) {

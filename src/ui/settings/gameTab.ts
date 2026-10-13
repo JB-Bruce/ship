@@ -12,6 +12,7 @@ const CONTROLS: readonly [string, string][] = [
   ['T', 'Flotte'],
   ['M', 'Carte'],
   ['F (près d’un banc)', 'Pêcher'],
+  ['R puis clic (allié proche)', 'Trahir un pirate ou un marchand allié'],
   ['Échap', 'Paramètres (pause)'],
 ];
 

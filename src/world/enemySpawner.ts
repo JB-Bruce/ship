@@ -3,7 +3,7 @@ import { EnemyAI, type EnemyAIOptions, type EnemyGroup, type FlotillaSlot } from
 import { BOSSES, DAY_NIGHT, ELITE_LIVERY, ENEMIES, LAND, type BossId, type EncounterStage } from '../config';
 import type { ContractOptions } from '../progression/contracts';
 import { deriveStats, maxLevels, randomLevels, totalLevels } from '../progression/upgrades';
-import { createShip, type Ship } from '../ship/ship';
+import { createShip, Ship } from '../ship/ship';
 import { SHIP_SIZE_ORDER, SHIP_TYPES, sizeRank, type ShipType } from '../shipTypes';
 import { wrapAngle } from '../utils/math';
 import { ISLAND_LIST, land } from './island';
@@ -231,6 +231,25 @@ export class EnemySpawner {
   }
 
   /** Crée un ennemi (d'élite ou non) et l'ajoute au monde. */
+  /**
+   * Un allié passe à l'ennemi (trahison) : copie exacte (type, caractéristiques, améliorations, livrée, équipage), à
+   * sa place et dans son mouvement ; seul le camp change. C'est un ennemi ordinaire : il patrouille, n'attaque que s'il
+   * te repère, compte dans les rencontres, et coulé, c'est une victoire comme une autre. L'original reste à retirer.
+   */
+  adopt(source: Ship): Enemy {
+    const ship = new Ship(source.type, structuredClone(source.stats), 'enemy', source.livery);
+    ship.modifiers = structuredClone(source.modifiers);
+    ship.guns = { ...source.guns };
+    ship.crewColors = source.crewColors;
+    ship.applyLooks(source.levels);
+    ship.dressing.applyGunLook(ship.guns);
+    ship.copyMotion(source);
+    const lootFactor = SHIP_TYPES[source.type].lootFactor * (1 + totalLevels(source.levels) * ENEMIES.lootPerUpgradeLevel);
+    const enemy: Enemy = { ship, ai: new EnemyAI(ship, null, null), lootFactor, elite: false, boss: null, persistent: false, name: null };
+    this.track(enemy);
+    return enemy;
+  }
+
   private add(type: ShipType, x: number, z: number, heading: number, elite: boolean, group: EnemyGroup | null, slot: FlotillaSlot | null, ai: EnemyAIOptions = {}): Enemy {
     // Menace : de 0 (début de partie) à 1 (après ENEMIES.killsForFullThreat victoires).
     const threat = Math.min(1, this.kills / ENEMIES.killsForFullThreat);

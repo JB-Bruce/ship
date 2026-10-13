@@ -3,7 +3,7 @@ import { COMBAT, CRIT, DAMAGE, LIVERIES, RECOIL, REPAIR, type Faction, type Live
 import type { CannonTarget } from '../combat/cannons';
 import type { Waves } from '../ocean/waves';
 import { applyModifiers, factor, noModifiers, standardGuns, type Guns, type StatModifiers } from '../progression/modifiers';
-import { deriveStats, shipMass, type UpgradeLevels } from '../progression/upgrades';
+import { deriveStats, noUpgrades, shipMass, type UpgradeLevels } from '../progression/upgrades';
 import { SHIP_TYPES, type ShipType } from '../shipTypes';
 import { moveTowards, wrapAngle } from '../utils/math';
 import type { Wind } from '../world/wind';
@@ -64,6 +64,10 @@ export class Ship {
   mass: number;
   /** Nombre d'allongements faits (nom du type : typeName). */
   extension = 0;
+  /** Niveaux d'amélioration appliqués (applyLooks) : de quoi refaire le même navire (trahison). */
+  levels: UpgradeLevels = noUpgrades();
+  /** Camp dont l'équipage animé porte les couleurs : le sien, sauf pour un allié passé à l'ennemi (trahison). */
+  crewColors: Faction;
   /** Effets des officiers et du rang (fleet/refit.ts), et types de canons de chaque calibre. */
   modifiers: StatModifiers = noModifiers();
   guns: Guns = standardGuns();
@@ -89,8 +93,9 @@ export class Ship {
     readonly type: ShipType,
     readonly stats: ShipStats,
     readonly faction: Faction,
-    livery: Livery = LIVERIES[faction],
+    readonly livery: Livery = LIVERIES[faction],
   ) {
+    this.crewColors = faction;
     this.model = createShipModel(type, stats, livery);
     this.dressing = new ShipDressing(this.model);
     this.buoyancy = new Buoyancy(SHIP_TYPES[type].mass.base);
@@ -109,6 +114,7 @@ export class Ship {
 
   /** Ce qui se voit et pèse des améliorations : renfort de coque, voiles élargies, masse (les canons suivent les stats). */
   applyLooks(levels: UpgradeLevels) {
+    this.levels = { ...levels };
     this.mass = shipMass(this.type, levels);
     this.extension = levels.extension;
     // Navire allongé : le modèle est reconstruit (nouveaux canons, nouvelles positions du pavillon et de la hampe).
@@ -215,6 +221,25 @@ export class Ship {
     const side = dx * c - dz * s;
     const up = y - this.position.y;
     return Math.abs(forward) < this.stats.length / 2 && Math.abs(side) < this.stats.width / 2 + 0.15 && up > -1.2 && up < 2.2;
+  }
+
+  /**
+   * Reprend l'état en mer d'un bateau du même type qu'il remplace (trahison) : position, cap, vitesse, vie, barre,
+   * voilure, assiette et rechargements. Les avaries des coups critiques repartent de zéro.
+   */
+  copyMotion(from: Ship) {
+    this.position.copy(from.position);
+    this.heading = from.heading;
+    this.speed = from.speed;
+    this.health = from.health;
+    this.calmTime = from.calmTime;
+    this.rudder = from.rudder;
+    this.yawRate = from.yawRate;
+    this.sailAmount = from.sailAmount;
+    this.controls.sail = from.controls.sail;
+    this.controls.rudder = from.controls.rudder;
+    this.buoyancy.copyFrom(from.buoyancy);
+    if (from.cannonCooldowns.length === this.cannonCooldowns.length) this.cannonCooldowns = from.cannonCooldowns.slice();
   }
 
   /** Remet le bateau à flot, intact, à la position donnée. */

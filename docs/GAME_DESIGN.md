@@ -147,6 +147,13 @@ Décisions prises avec l'auteur (depuis le 2026-10-06). Les valeurs chiffrées s
 - Un allié hors de ta flotte qui coule (pirate allié ou marchand des îles, en bleu) laisse le même butin qu'un ennemi de son type, une fois l'épave disparue (pas le marchand escorté, dont la perte fait échouer la mission).
 - Ils apparaissent à un mouillage loin de toi (450 m au moins) ; un pirate coulé est remplacé 45 à 90 s plus tard.
 
+## Trahison (fait, 2026-10-13)
+- « R · Trahir » apparaît en bas de l'écran quand un pirate allié ou un marchand de tes îles est à moins de 300 m (et visible, pas dans la brume). Le bouton ou la touche R arme la visée : curseur en viseur, consigne à l'écran, alliés trahissables surlignés (⚔ et contour orange ; celui sous le curseur en rouge).
+- Un clic sur l'un d'eux le fait passer à l'ennemi, tel quel : même navire, mêmes améliorations, même livrée et même équipage, à la même place, dans le même mouvement, avec la même vie. Seul son camp change (barre rouge, point rouge sur le radar et la carte). Pas de conséquence pour l'instant (ni réputation, ni représailles).
+- Il se conduit comme un ennemi ordinaire : il patrouille et n'attaque que s'il te repère (à moins de 300 m, il te repère aussitôt) ; il compte dans les rencontres et disparaît si tu t'éloignes à plus de 900 m. Coulé, c'est une victoire comme une autre : butin d'ennemi de son type, victoire au compte du navire qui l'achève (rang), registre, contrats de chasse.
+- Un clic dans le vide, Échap, R ou le bouton « Annuler » désarme la visée ; ouvrir un menu aussi. Impossible avec un menu ouvert.
+- Jamais un navire de ta flotte ni le marchand escorté d'une mission. Un pirate trahi est remplacé plus tard comme un pirate coulé ; un marchand trahi avant son escale ne verse pas son or à la réserve.
+
 ## Boss : La Veuve Noire (fait)
 - Corvette pirate : coque et voiles noires, liseré rouge sang, pavillon noir à tête de mort rouge.
 - Elle apparaît une fois par grosse tempête, 30 à 60 s après que la tempête s'est installée, à 210 m (juste au-delà de la brume), jamais près du port. Bandeau rouge « ☠ La Veuve Noire approche ! » et grande barre de vie en haut de l'écran (à moins de 280 m).

@@ -24,6 +24,7 @@ import { Settings } from './settings/settings';
 import type { Combatant, Ship } from './ship/ship';
 import { SHIP_TYPES } from './shipTypes';
 import { ActionPrompts } from './ui/actionPrompts';
+import { BetrayalPicker } from './ui/betrayalPicker';
 import { ObjectiveBar } from './ui/bossBar';
 import { FpsCounter } from './ui/fpsCounter';
 import { HealthBars } from './ui/healthBars';
@@ -40,6 +41,7 @@ import { DayClock } from './ui/dayClock';
 import { LanternHalos } from './fx/lanternHalos';
 import { setNightGlow } from './ship/parts/nightGlow';
 import { resolveCollisions } from './world/collisions';
+import { Betrayal } from './world/betrayal';
 import { EnemySpawner } from './world/enemySpawner';
 import { FishSchools } from './world/fishSchools';
 import { FogCulling } from './world/fogCulling';
@@ -116,6 +118,8 @@ export class Game {
   private readonly bossBar: ObjectiveBar;
   private readonly siegeBar: ObjectiveBar;
   private readonly prompts: ActionPrompts;
+  /** Visée « Trahir » : un clic fait passer un pirate ou un marchand allié à l'ennemi. */
+  private readonly betrayal: BetrayalPicker;
   private readonly portMenu: PortMenu;
   private readonly fpsCounter: FpsCounter;
   /** Décor et navires noyés dans la brume : pas dessinés. */
@@ -140,7 +144,7 @@ export class Game {
     // La flotte de la sauvegarde à charger, ou la chaloupe de départ.
     this.saves.start(this.fleet);
     this.controller = new KeyboardController(this.fleet.leader.controls);
-    this.chaseCamera = new ChaseCamera(this.camera, this.display.viewport);
+    this.chaseCamera = new ChaseCamera(this.camera, this.display.viewport, (x, y) => this.betrayal.click(x, y, this.camera));
     this.bossSinking = new BossSinking(this.effects, this.chaseCamera);
     this.hud = new Hud(container);
     const hazards = weatherHazards(this.chaseCamera, this.effects, this.fleet, this.hud, (ship, damage) => this.applyDamage(ship, damage));
@@ -179,7 +183,8 @@ export class Game {
     this.weatherButtons = new WeatherButtons(container, this.weather);
     this.dayClock = new DayClock(container, this.dayCycle);
     this.fpsCounter = new FpsCounter(container, this.settings, this.display);
-    this.prompts = new ActionPrompts(container, () => this.portMenu.openOn(), () => this.toggleFishing());
+    this.betrayal = new BetrayalPicker(this.display.viewport, new Betrayal(pirates, campaign.merchants, spawner), hud, radar);
+    this.prompts = new ActionPrompts(container, () => this.portMenu.openOn(), () => this.toggleFishing(), () => this.betrayal.toggle());
     if (new URLSearchParams(location.search).has('debug')) {
       this.debugUpdate = setupDebug(this.waves, this.fleet.leader);
       // Accès console pour inspecter / faire avancer la simulation pendant les tests.
@@ -194,6 +199,8 @@ export class Game {
         this.hud.toast('+1000 or et +1000 bois', 1.5, 'good');
       } else if (e.code === 'KeyF') {
         this.toggleFishing();
+      } else if (e.code === 'KeyR') {
+        this.betrayal.toggle();
       }
     });
     addEventListener('resize', () => this.resize());
@@ -269,7 +276,9 @@ export class Game {
     this.radar.range = this.campaign.islands.tortuga.radarRange(tortuga.sdf(leader.position.x, leader.position.z)) * this.fleet.radarFactor();
     this.encounters.update(this.spawner.enemies, leader);
     this.radar.update(dt, leader, this.spawner.enemies, this.wind, this.ships, this.schools.list, this.campaign.escorts());
+    this.betrayal.update(this.camera, leader, (this.scene.fog as THREE.Fog).far);
     this.healthBars.update(this.camera, this.ships, leader, (this.scene.fog as THREE.Fog).far, this.spawner.enemies, this.fleet.members);
+    this.healthBars.mark(this.betrayal.marked, this.betrayal.hovered);
     const boss = this.bosses.inSight(leader);
     this.bossBar.update(boss?.boss ? `☠ ${BOSSES[boss.boss].name}` : null, boss ? boss.ship.health / boss.ship.stats.maxHealth : 0);
     const fort = besieged[0];
@@ -285,13 +294,14 @@ export class Game {
     return { ships: this.fleet.hand.length, best: this.fleet.strongest };
   }
 
-  /** Commandes proposées à l'écran : escale près du quai, pêche près d'un banc. */
+  /** Commandes proposées à l'écran : escale près du quai, pêche près d'un banc, trahison d'un allié à portée. */
   private updatePrompts() {
     const fishing = this.fishing.school !== null;
     const school = fishing ? null : this.fishing.schoolInRange(this.schools);
     const fish = fishing ? 'Arrêter la pêche' : school ? 'Pêcher' : null;
     const port = this.campaign.portInRange(this.fleet.leader);
-    this.prompts.update(port ? this.campaign.islands[port.id].info.portName : null, fish, this.fishing.status() ?? this.repairStatus);
+    const status = this.betrayal.status ?? this.fishing.status() ?? this.repairStatus;
+    this.prompts.update(port ? this.campaign.islands[port.id].info.portName : null, fish, this.betrayal.prompt, status);
   }
 
   private toggleFishing() {

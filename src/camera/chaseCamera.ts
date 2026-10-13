@@ -22,21 +22,30 @@ export class ChaseCamera {
   private trauma = 0;
   /** Zoom passager en cours (punch), ou null. */
   private zoom: { amount: number; duration: number; time: number } | null = null;
+  /** Appui en cours : déplacement cumulé (px) et heure de l'appui (ms), pour distinguer un clic d'un glisser. */
+  private pressMoved = 0;
+  private pressTime = 0;
 
   constructor(
     readonly camera: THREE.PerspectiveCamera,
     dom: HTMLElement,
+    /** Clic gauche dans la vue (appui court, sans glisser), en coordonnées de la fenêtre. */
+    onClick: (x: number, y: number) => void = () => {},
   ) {
     dom.addEventListener('pointerdown', (e) => {
       this.dragging = true;
+      this.pressMoved = 0;
+      this.pressTime = performance.now();
       dom.setPointerCapture(e.pointerId);
     });
     dom.addEventListener('pointerup', (e) => {
       this.dragging = false;
       dom.releasePointerCapture(e.pointerId);
+      if (e.button === 0 && this.pressMoved <= CAMERA.clickSlop && performance.now() - this.pressTime <= CAMERA.clickTime) onClick(e.clientX, e.clientY);
     });
     dom.addEventListener('pointermove', (e) => {
       if (!this.dragging) return;
+      this.pressMoved += Math.abs(e.movementX) + Math.abs(e.movementY);
       this.yawOffset -= e.movementX * CAMERA.sensitivity;
       this.pitch = clamp(this.pitch + e.movementY * CAMERA.sensitivity, CAMERA.minPitch, CAMERA.maxPitch);
       this.idleTime = 0;
