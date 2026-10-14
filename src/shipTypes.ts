@@ -246,12 +246,12 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
         spreadFactor: [0.78, 0.6, 0.44, 0.3],
       },
       range: { costs: [{ gold: 80, wood: 20 }], rangeFactor: [1.15] },
-      // Un canon de chasse de plus, puis un canon par flanc, puis le troisième canon de chasse ; chébec allongé : un
-      // canon de plus par flanc.
+      // Un canon de chasse de plus, puis un canon par flanc, puis le troisième canon de chasse ; grand chébec : un
+      // canon de plus par flanc à chacun des deux niveaux suivants.
       cannons: {
-        costs: [{ gold: 110, wood: 60 }, { gold: 150, wood: 85 }, { gold: 190, wood: 105 }, { gold: 240, wood: 135 }],
-        cannonsPerSide: [2, 3, 3, 4],
-        chaseGuns: [2, 2, 3, 3],
+        costs: [{ gold: 110, wood: 60 }, { gold: 150, wood: 85 }, { gold: 190, wood: 105 }, { gold: 240, wood: 135 }, { gold: 300, wood: 170 }],
+        cannonsPerSide: [2, 3, 3, 4, 5],
+        chaseGuns: [2, 2, 3, 3, 3],
       },
       hull: {
         costs: [{ gold: 40, wood: 40 }, { gold: 65, wood: 65 }, { gold: 95, wood: 95 }, { gold: 135, wood: 135 }],
@@ -268,14 +268,14 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     extensions: [
       {
         name: 'Grand chébec',
-        description: 'Le chantier rallonge la coque de trois mètres au milieu : un sabord de plus par bord, deux avirons de plus, des voiles plus grandes pour un niveau de voilure en plus.',
+        description: 'Le chantier rallonge la coque de trois mètres au milieu : deux sabords de plus par bord (deux niveaux de canons en plus), deux avirons de plus, des voiles plus grandes pour un niveau de voilure en plus.',
         cost: { gold: 1300, wood: 600 },
         length: 3,
         healthFactor: 1.15,
         speedFactor: 1.04,
         turnFactor: 0.92,
         mass: 55,
-        extraLevels: { cannons: 1, sails: 1 },
+        extraLevels: { cannons: 2, sails: 1 },
       },
     ],
   },
