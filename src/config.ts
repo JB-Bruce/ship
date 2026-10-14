@@ -240,8 +240,8 @@ export const DECK_CREW = {
   /** Marins au plus dans le monde (taille des lots de dessin). */
   maxSailors: 400,
   /** Matelots à bord (en plus du barreur et de la vigie), et en plus à chaque allongement du navire. */
-  hands: { sloop: 3, caravel: 4, schooner: 4, brigantine: 5, xebec: 5, corvette: 7, frigate: 10 },
-  handsPerExtension: { schooner: 1, brigantine: 2, xebec: 1, corvette: 3, frigate: 3 },
+  hands: { sloop: 3, caravel: 4, schooner: 4, brigantine: 5, xebec: 5, brig: 6, corvette: 7, frigate: 10 },
+  handsPerExtension: { schooner: 1, brigantine: 2, xebec: 1, brig: 2, corvette: 3, frigate: 3 },
   walkSpeed: 1.1,
   runSpeed: 3,
   /** Pause d'un matelot entre deux promenades (s). */
@@ -282,7 +282,7 @@ export type OfficerTrait = 'lynx' | 'oldSalt' | 'ironArm' | 'resourceful' | 'luc
 /** Officiers de bord : recrutés à la taverne, affectés à un navire (places selon son type), ils progressent en combattant. */
 export const OFFICERS = {
   /** Places d'officiers par type de navire. */
-  slots: { rowboat: 0, longboat: 1, sloop: 1, caravel: 1, schooner: 1, brigantine: 2, xebec: 2, corvette: 2, frigate: 3 } as Record<ShipType, number>,
+  slots: { rowboat: 0, longboat: 1, sloop: 1, caravel: 1, schooner: 1, brigantine: 2, xebec: 2, brig: 2, corvette: 2, frigate: 3 } as Record<ShipType, number>,
   /** Fonctions : nom, symbole, et effet par étoile de talent. */
   roles: {
     gunner: { name: 'Canonnier', icon: '💥', perStar: { reload: -0.04, spread: -0.05 } },
@@ -346,6 +346,7 @@ export const GUNS = {
     schooner: { gold: 150, wood: 75 },
     brigantine: { gold: 200, wood: 100 },
     xebec: { gold: 190, wood: 95 },
+    brig: { gold: 260, wood: 130 },
     corvette: { gold: 300, wood: 150 },
     frigate: { gold: 400, wood: 200 },
   } as Record<ShipType, Cost>,
@@ -685,8 +686,8 @@ export const ENEMIES = {
     { minKills: 5, weights: { rowboat: 0.5, longboat: 0.5, sloop: 0 } },
     { minKills: 12, weights: { rowboat: 0.25, longboat: 0.5, sloop: 0.25 } },
     { minKills: 20, weights: { rowboat: 0.15, longboat: 0.3, sloop: 0.25, caravel: 0.1, schooner: 0.05, brigantine: 0.12, xebec: 0.06 } },
-    { minKills: 35, weights: { rowboat: 0.1, longboat: 0.2, sloop: 0.25, caravel: 0.1, schooner: 0.05, brigantine: 0.15, xebec: 0.08, corvette: 0.1 } },
-    { minKills: 50, weights: { rowboat: 0.05, longboat: 0.1, sloop: 0.25, caravel: 0.1, schooner: 0.05, brigantine: 0.15, xebec: 0.08, corvette: 0.15, frigate: 0.1 } },
+    { minKills: 35, weights: { rowboat: 0.1, longboat: 0.2, sloop: 0.25, caravel: 0.1, schooner: 0.05, brigantine: 0.15, xebec: 0.08, brig: 0.06, corvette: 0.1 } },
+    { minKills: 50, weights: { rowboat: 0.05, longboat: 0.1, sloop: 0.25, caravel: 0.1, schooner: 0.05, brigantine: 0.15, xebec: 0.08, brig: 0.08, corvette: 0.15, frigate: 0.1 } },
   ],
   /** Passes d'attaque (barques) : distance où l'on dégage (m), angle (rad) et durée (s) du dégagement. */
   veerDistance: 28,
@@ -1865,7 +1866,7 @@ export const ISLAND_UPGRADES = {
    */
   shipyard: {
     costs: [{ gold: 400, wood: 250 }, { gold: 1000, wood: 600 }],
-    required: { brigantine: 1, xebec: 1, corvette: 1, frigate: 2 } as Partial<Record<ShipType, number>>,
+    required: { brigantine: 1, xebec: 1, brig: 1, corvette: 1, frigate: 2 } as Partial<Record<ShipType, number>>,
   },
   workshop: {
     costs: [{ gold: 100, wood: 60 }, { gold: 220, wood: 120 }, { gold: 400, wood: 220 }],

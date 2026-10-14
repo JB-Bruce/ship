@@ -116,6 +116,25 @@ export const XEBEC_STATS: ShipStats = {
 };
 
 /**
+ * Brick : deux mâts carrés, pont ras, tous ses canons (légers, rapides à recharger) sur le pont. Plus rapide et plus
+ * maniable que la corvette, moins solide : le chasseur de la Marine.
+ */
+export const BRIG_STATS: ShipStats = {
+  length: 20,
+  width: 5.4,
+  maxSpeed: 13.5,
+  acceleration: 2.7,
+  deceleration: 3.4,
+  turnRate: 0.47,
+  rudderSpeed: 2.5,
+  turnHeel: 0.006,
+  maxHealth: 260,
+  cannonsPerSide: 6,
+  cannon: { range: 125, reloadTime: 2.4, arcHalfAngle: 35 * DEG, spread: 2.6 * DEG, rangeError: 0.07, damage: 10, ballSpeed: 58 },
+  buoyancy: { stiffness: 30, damping: 8.8, tiltResponse: 4.7 },
+};
+
+/**
  * Corvette : deux calibres. Batterie couverte = canons lourds, lents à recharger, coincés dans leurs sabords
  * (angle de tir étroit) ; pont supérieur = canons légers et rapides, angle de tir normal.
  */

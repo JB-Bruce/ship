@@ -2,11 +2,11 @@
 // Un tableau d'amélioration = une valeur par niveau (le niveau 1 est la première case).
 
 import { UPGRADE_INFO, type ShipTypeDef } from './shipTypeDef';
-import { BRIGANTINE_STATS, CARAVEL_STATS, CORVETTE_STATS, FRIGATE_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, weaker, XEBEC_STATS } from './shipStats';
+import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CORVETTE_STATS, FRIGATE_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, weaker, XEBEC_STATS } from './shipStats';
 
-export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'corvette' | 'frigate';
+export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'brig' | 'corvette' | 'frigate';
 /** Du plus petit au plus gros (par rang de taille ; à rang égal, dans l'ordre d'affichage). */
-export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'corvette', 'frigate'];
+export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'brig', 'corvette', 'frigate'];
 /** Nom du type d'un navire selon ses allongements (« Frégate allongée », « Grande frégate »). */
 export function typeName(type: ShipType, extension = 0): string {
   return extension > 0 ? (SHIP_TYPES[type].extensions?.[extension - 1]?.name ?? SHIP_TYPES[type].name) : SHIP_TYPES[type].name;
@@ -30,7 +30,7 @@ export { UPGRADE_INFO };
 export type { ExtensionDef, MassTable, ShipTypeDef, UpgradeTable } from './shipTypeDef';
 
 /** Types que le joueur peut acheter (la barque est réservée aux ennemis). */
-export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'corvette', 'frigate'];
+export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'brig', 'corvette', 'frigate'];
 
 export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
   rowboat: {
@@ -283,6 +283,52 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
         turnFactor: 0.92,
         mass: 55,
         extraLevels: { cannons: 2, sails: 1 },
+      },
+    ],
+  },
+  brig: {
+    name: 'Brick',
+    description: 'Chasseur de la Marine : pont ras, deux mâts carrés très hauts, grande brigantine et trois focs. Tous ses canons, légers et vite rechargés, sont sur le pont. Plus rapide et plus maniable que la corvette, moins solide.',
+    armament: 'broadside',
+    rank: 5,
+    threat: 5,
+    lootFactor: 4.2,
+    price: { gold: 3200, wood: 900 },
+    respawnTime: 76,
+    hold: 70,
+    stats: BRIG_STATS,
+    enemyStats: weaker(BRIG_STATS, 210, 9),
+    upgrades: {
+      accuracy: {
+        costs: [{ gold: 60, wood: 0 }, { gold: 100, wood: 0 }, { gold: 150, wood: 0 }, { gold: 210, wood: 0 }],
+        spreadFactor: [0.8, 0.62, 0.46, 0.32],
+      },
+      range: { costs: [{ gold: 100, wood: 30 }, { gold: 160, wood: 50 }], rangeFactor: [1.15, 1.3] },
+      // Un canon de plus par flanc à chaque niveau (6 → 9) ; brick allongé : deux niveaux de plus (10, 11).
+      cannons: {
+        costs: [{ gold: 140, wood: 80 }, { gold: 190, wood: 110 }, { gold: 240, wood: 140 }, { gold: 300, wood: 170 }, { gold: 360, wood: 200 }],
+        cannonsPerSide: [7, 8, 9, 10, 11],
+      },
+      hull: {
+        costs: [{ gold: 50, wood: 50 }, { gold: 90, wood: 90 }, { gold: 130, wood: 130 }, { gold: 180, wood: 180 }],
+        healthBonus: [50, 105, 165, 230],
+      },
+      sails: { costs: [{ gold: 70, wood: 20 }, { gold: 110, wood: 30 }, { gold: 160, wood: 45 }, { gold: 220, wood: 60 }], speedFactor: [1.06, 1.12, 1.18, 1.24] },
+      hold: { costs: [{ gold: 70, wood: 45 }, { gold: 110, wood: 70 }, { gold: 160, wood: 100 }], capacity: [90, 115, 145] },
+      nets: { costs: [], catchFactor: [] },
+    },
+    mass: { base: 380, perExtraCannon: 6, hull: [12, 26, 42, 60], sails: [5, 10, 15, 20], hold: [8, 14, 22], speedLossPerUnit: 0.00045 },
+    extensions: [
+      {
+        name: 'Brick allongé',
+        description: 'Le chantier rallonge le pont de trois mètres au milieu : deux sabords de plus par bord (deux niveaux de canons en plus), des membrures plus longues.',
+        cost: { gold: 2200, wood: 1000 },
+        length: 3,
+        healthFactor: 1.15,
+        speedFactor: 1.04,
+        turnFactor: 0.92,
+        mass: 70,
+        extraLevels: { cannons: 2 },
       },
     ],
   },
