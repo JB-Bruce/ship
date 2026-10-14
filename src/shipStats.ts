@@ -213,7 +213,7 @@ export const CARRACK_STATS: ShipStats = {
   turnRate: 0.28,
   rudderSpeed: 1.8,
   turnHeel: 0.004,
-  maxHealth: 800,
+  maxHealth: 900,
   cannonsPerSide: 7,
   chaseGuns: 3,
   cannon: { range: 150, reloadTime: 4.6, arcHalfAngle: 20 * DEG, spread: 2.2 * DEG, rangeError: 0.06, damage: 22, ballSpeed: 62 },

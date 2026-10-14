@@ -437,7 +437,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     hold: 140,
     upwindLoss: 1.3,
     stats: CARRACK_STATS,
-    enemyStats: weaker(CARRACK_STATS, 660, 18),
+    enemyStats: weaker(CARRACK_STATS, 740, 18),
     gunLabels: { main: 'Batterie basse', deck: 'Pièces des châteaux' },
     upgrades: {
       accuracy: {
@@ -446,24 +446,25 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       },
       range: { costs: [{ gold: 130, wood: 40 }, { gold: 200, wood: 60 }], rangeFactor: [1.15, 1.3] },
       // 1 : un canon de batterie de plus par bord, 2 : une pièce sur le château avant, 3 : un canon de batterie ;
-      // grande caraque : un canon de batterie et une pièce sur le château avant (voir carrackArmament).
+      // grande caraque : un canon de batterie et une pièce sur le château avant ; caraque royale : un canon de batterie et
+      // une pièce sur le demi-pont (voir carrackArmament).
       cannons: {
-        costs: [{ gold: 170, wood: 100 }, { gold: 230, wood: 130 }, { gold: 290, wood: 170 }, { gold: 400, wood: 230 }],
-        cannonsPerSide: [8, 9, 10, 12],
+        costs: [{ gold: 170, wood: 100 }, { gold: 230, wood: 130 }, { gold: 290, wood: 170 }, { gold: 400, wood: 230 }, { gold: 520, wood: 300 }],
+        cannonsPerSide: [8, 9, 10, 12, 14],
       },
       hull: {
         costs: [{ gold: 60, wood: 60 }, { gold: 110, wood: 110 }, { gold: 160, wood: 160 }, { gold: 220, wood: 220 }],
         healthFactor: [1.1, 1.2, 1.3, 1.4],
       },
       sails: { costs: [{ gold: 90, wood: 25 }, { gold: 140, wood: 40 }, { gold: 200, wood: 55 }], speedFactor: [1.06, 1.12, 1.18] },
-      // Grande caraque : un niveau de cale en plus.
+      // Grande caraque, puis caraque royale : un niveau de cale en plus chacune.
       hold: {
-        costs: [{ gold: 100, wood: 60 }, { gold: 150, wood: 100 }, { gold: 210, wood: 140 }, { gold: 280, wood: 180 }, { gold: 360, wood: 230 }],
-        capacity: [180, 240, 310, 400, 480],
+        costs: [{ gold: 100, wood: 60 }, { gold: 150, wood: 100 }, { gold: 210, wood: 140 }, { gold: 280, wood: 180 }, { gold: 360, wood: 230 }, { gold: 450, wood: 290 }],
+        capacity: [180, 240, 310, 400, 480, 560],
       },
       nets: { costs: [], catchFactor: [] },
     },
-    mass: { base: 600, perExtraCannon: 9, hull: [20, 42, 66, 92], sails: [8, 16, 24], hold: [14, 28, 42, 58, 74], speedLossPerUnit: 0.0003 },
+    mass: { base: 600, perExtraCannon: 9, hull: [20, 42, 66, 92], sails: [8, 16, 24], hold: [14, 28, 42, 58, 74, 90], speedLossPerUnit: 0.0003 },
     extensions: [
       {
         name: 'Grande caraque',
@@ -474,6 +475,17 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
         speedFactor: 1.03,
         turnFactor: 0.92,
         mass: 100,
+        extraLevels: { cannons: 1, hold: 1 },
+      },
+      {
+        name: 'Caraque royale',
+        description: 'Le chantier rallonge encore la coque de quatre mètres au milieu : un sabord de plus par bord dans la batterie basse et une pièce de plus sur le demi-pont (un niveau de canons en plus), des membrures doublées, et la plus grande cale de toutes.',
+        cost: { gold: 5500, wood: 2800 },
+        length: 4,
+        healthFactor: 1.15,
+        speedFactor: 1.03,
+        turnFactor: 0.92,
+        mass: 110,
         extraLevels: { cannons: 1, hold: 1 },
       },
     ],

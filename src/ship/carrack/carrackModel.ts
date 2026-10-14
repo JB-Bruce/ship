@@ -30,8 +30,9 @@ const LATEEN_OFFSET = 0.24;
  * Caraque : coque large et haute, château arrière à trois étages (demi-pont, gaillard, dunette), château avant qui
  * déborde de l'étrave ; quatre mâts (misaine et grand mât carrés à hunes rondes, artimon et contre-artimon à voiles
  * latines qui pivotent selon le vent), civadière ; pavois peints aux couleurs du camp. Batterie basse dans le bordé
- * (4 par bord, jusqu'à 6, 7 allongée), pièces des châteaux sur affût (3, puis 4, 5 allongée : deux sur le demi-pont,
- * les autres sur le château avant) et trois gros canons de chasse dans la face avant du château avant. Allongée
+ * (4 par bord, jusqu'à 6 ; 7 grande caraque, 8 caraque royale), pièces des châteaux sur affût (3, puis 4 ; 5 grande
+ * caraque, 6 caraque royale : sur le demi-pont et le château avant) et trois gros canons de chasse dans la face avant du
+ * château avant. Allongée
  * (setExtension), elle est reconstruite sur le plan long : canons, renfort, voilure, dégâts et pavillon sont remis en place.
  */
 export class CarrackModel implements ShipModel {
@@ -81,7 +82,7 @@ export class CarrackModel implements ShipModel {
     this.build(carrackLayout(0));
   }
 
-  /** Allongement (0 ou 1) : reconstruit le navire sur le plan correspondant. Renvoie true s'il a changé. */
+  /** Allongements (0 à 2) : reconstruit le navire sur le plan correspondant. Renvoie true s'il a changé. */
   setExtension(level: number): boolean {
     const layout = carrackLayout(level);
     if (layout === this.layout) return false;

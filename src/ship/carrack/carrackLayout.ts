@@ -60,19 +60,20 @@ export const WALES = [
   { y: BATTERY_Y - 0.58, sheer: 2, height: 0.18 },
   { y: 0.6, sheer: 1.5, height: 0.16 },
 ] as const;
-/** Batterie basse (u de base) : 6 sabords réguliers par bord, 1 de plus sur la grande caraque ; les 4 du milieu d'abord. */
+/** Batterie basse (u de base) : 6 sabords réguliers par bord, 1 de plus par allongement ; les 4 du milieu d'abord. */
 const BATTERY_SPAN = { from: -0.5, to: 0.51, slots: 6, perExtension: 1, first: 4 };
 /**
  * Pièces des châteaux (u de base), sur affût derrière les sabords du pavois, dans l'ordre d'achat : les deux du
  * demi-pont et celle du milieu du château avant, puis celle de l'arrière du château avant (amélioration), puis celle
- * de son avant (grande caraque). `deck` : le pont qui la porte.
+ * de son avant (grande caraque), puis une troisième sur le demi-pont (caraque royale). `deck` : le pont qui la porte.
  */
 const CASTLE_SLOTS = [
-  { u: -0.3, deck: 'halfDeck' },
-  { u: -0.42, deck: 'halfDeck' },
+  { u: -0.26, deck: 'halfDeck' },
+  { u: -0.36, deck: 'halfDeck' },
   { u: 0.78, deck: 'forecastle' },
   { u: 0.7, deck: 'forecastle' },
   { u: 0.86, deck: 'forecastle' },
+  { u: -0.46, deck: 'halfDeck' },
 ] as const;
 /** Fenêtres des flancs (u de base, hauteur) : étage bas du château avant, chambre sous le gaillard d'arrière, chambre de la dunette. */
 const WINDOWS: readonly (readonly [number, number])[] = [
@@ -265,16 +266,17 @@ function createLayout(level: number): CarrackLayout {
   };
 }
 
-/** Un plan par nombre d'allongements (0, 1). */
-const LAYOUTS = [0, 1].map(createLayout);
+/** Un plan par nombre d'allongements (0, 1, 2). */
+const LAYOUTS = [0, 1, 2].map(createLayout);
 
 export const carrackLayout = (level: number): CarrackLayout => LAYOUTS[Math.min(level, LAYOUTS.length - 1)];
 
 /**
  * Répartition des canons d'un bord (stats.cannonsPerSide) entre la batterie basse et les pièces des châteaux, selon
- * l'ordre d'achat : 7 = 4 + 3 au départ, 8 = 5 + 3, 9 = 5 + 4, 10 = 6 + 4, 12 = 7 + 5 (grande caraque).
+ * l'ordre d'achat : 7 = 4 + 3 au départ, 8 = 5 + 3, 9 = 5 + 4, 10 = 6 + 4, 12 = 7 + 5 (grande caraque), 14 = 8 + 6
+ * (caraque royale).
  */
-const SPLITS: Readonly<Record<number, readonly [number, number]>> = { 7: [4, 3], 8: [5, 3], 9: [5, 4], 10: [6, 4], 12: [7, 5] };
+const SPLITS: Readonly<Record<number, readonly [number, number]>> = { 7: [4, 3], 8: [5, 3], 9: [5, 4], 10: [6, 4], 12: [7, 5], 14: [8, 6] };
 
 export function carrackArmament(perSide: number, layout: CarrackLayout): { battery: number; castle: number } {
   const [battery, castle] = SPLITS[perSide] ?? [perSide - 3, 3];

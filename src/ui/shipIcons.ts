@@ -28,6 +28,9 @@ export const LONG_FLUYT_ICON = `<svg viewBox="0 0 48 48"><path d="M1 20l9 1 2 2v
 /** Grande caraque : milieu plus long, cinq sabords de batterie. */
 export const GRAND_CARRACK_ICON = `<svg viewBox="0 0 48 48"><path d="M1 16h6v3h4v3h4v5h18v-5h12l-3 6-1 3-3 9H10q-8-2-9-9z"/><path d="M16 32.5v2M21 32.5v2M26 32.5v2M31 32.5v2M36 32.5v2M9 24v1.5M13 26v1.5M39 25v1.5"/><path d="M38 22V7M25 27V3M12 19V8M4 16V9M33 10h10M32 15h12M19 7h12M18 13h14M17 20h16M17 17L7 6M7 13L0 7M44 23l4-7"/></svg>`;
 
+/** Caraque royale : coque encore plus longue, six sabords de batterie, mâts plus espacés. */
+export const ROYAL_CARRACK_ICON = `<svg viewBox="0 0 48 48"><path d="M0 16h6v3h4v3h3v5h22v-5h11l-2 6-1 3-3 9H8q-8-2-8-9z"/><path d="M14 32.5v2M18.5 32.5v2M23 32.5v2M27.5 32.5v2M32 32.5v2M36.5 32.5v2M8 24v1.5M11 26v1.5M40 25v1.5"/><path d="M40 22V7M25 27V3M11 19V8M3 16V9M35 10h10M34 15h12M19 7h12M18 13h14M17 20h16M16 17L6 6M6 13L0 7M46 23l2-5"/></svg>`;
+
 /** Silhouettes après chaque allongement, par type. */
 const EXTENDED_ICONS: Partial<Record<ShipType, readonly string[]>> = {
   frigate: [LONG_FRIGATE_ICON, GRAND_FRIGATE_ICON],
@@ -36,7 +39,7 @@ const EXTENDED_ICONS: Partial<Record<ShipType, readonly string[]>> = {
   schooner: [TOPSAIL_SCHOONER_ICON],
   xebec: [GRAND_XEBEC_ICON],
   fluyt: [LONG_FLUYT_ICON],
-  carrack: [GRAND_CARRACK_ICON],
+  carrack: [GRAND_CARRACK_ICON, ROYAL_CARRACK_ICON],
   brig: [LONG_BRIG_ICON],
 };
 
