@@ -6,12 +6,10 @@ import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } f
 import { addHatch } from '../parts/deckFittings';
 import { addBarrel, addCrate, addLantern, addRopeCoil, buildCarriageGunGeometry, type Palette } from '../parts/props';
 import { buildGaffSail, buildSquareSail, buildTriangleSail, cylinderBetween } from '../parts/sails';
-import { alongMast, BAND, DECK_Y, NETTING, PORT_Y, RAKE, type BrigLayout } from './brigLayout';
+import { alongMast, BAND, DECK_Y, PORT_Y, RAKE, type BrigLayout } from './brigLayout';
 
 /** Bande des sabords et figure de proue : un ocre doré, le même pour tous les camps (le reste suit la livrée). */
 const bandMaterial = std(0xd8a23a);
-/** Hamacs roulés dans les filets de bastingage. */
-const hammockMaterial = std(0xd9cfb4);
 /** Préceintes : hauteurs (m), aux bords de la bande et plus bas. */
 const WALES = [BAND.from - 0.02, BAND.to + 0.02, 0.85] as const;
 /** Fenêtres du tableau arrière : hauteur de leur centre (m). */
@@ -72,7 +70,6 @@ function buildTemplate(L: BrigLayout, livery: Livery): BrigTemplate {
       batch.add(p.dark, box(0.05, 0.42, 0.48), tf(side * (hull.halfWidthAt(s, PORT_Y) + 0.02), PORT_Y, z));
     }
   }
-  addNetting(batch, p, L);
   addStern(batch, p, L);
   addBow(batch, p, L);
 
@@ -129,26 +126,6 @@ function buildTemplate(L: BrigLayout, livery: Livery): BrigTemplate {
   };
 }
 
-/** Filets de bastingage : hamacs roulés sur le plat-bord de chaque bord, entre des chandeliers, sous une lisse fine. */
-function addNetting(batch: GeometryBatch, p: Palette, L: BrigLayout) {
-  const { hull } = L;
-  const [from, to] = [L.base(NETTING.from), L.base(NETTING.to)];
-  const steps = 16;
-  for (const side of [1, -1]) {
-    const roll: THREE.Vector3[] = [];
-    const rail: THREE.Vector3[] = [];
-    for (let i = 0; i <= steps; i++) {
-      const s = hull.stationAt(from + ((to - from) * i) / steps);
-      const x = side * (hull.halfWidthAt(s, s.gunwale) - 0.06);
-      roll.push(new THREE.Vector3(x, s.gunwale + NETTING.height / 2, s.z));
-      rail.push(new THREE.Vector3(x, s.gunwale + NETTING.height + 0.04, s.z));
-      if (i % 2 === 0) batch.add(p.dark, new THREE.BoxGeometry(0.05, NETTING.height + 0.06, 0.05), tf(x, s.gunwale + (NETTING.height + 0.06) / 2, s.z));
-    }
-    batch.add(hammockMaterial, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(roll), 32, NETTING.height / 2, 6, false), new THREE.Matrix4());
-    batch.add(p.dark, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(rail), 32, 0.025, 4, false), new THREE.Matrix4());
-  }
-}
-
 /** Poupe basse : tableau plat à petites fenêtres entre deux moulures, couronnement, fanal sur la hanche bâbord. */
 function addStern(batch: GeometryBatch, p: Palette, L: BrigLayout) {
   const { hull } = L;
@@ -195,7 +172,7 @@ function buildRigging(L: BrigLayout): THREE.BufferGeometry {
       const top = alongMast(mast.z, mast.top);
       for (const dz of [-0.5, -1.2, -1.9, -2.6]) {
         const s = hull.stationAt((mast.z + dz) / hull.halfLength);
-        const foot = new THREE.Vector3(side * hull.halfWidthAt(s, s.gunwale) * 0.98, s.gunwale + NETTING.height, s.z);
+        const foot = new THREE.Vector3(side * hull.halfWidthAt(s, s.gunwale) * 0.98, s.gunwale, s.z);
         points.push(top, foot);
         if (dz > -1.5) points.push(head, new THREE.Vector3(side * 0.8, top.y, top.z));
       }

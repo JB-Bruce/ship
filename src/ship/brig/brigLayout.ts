@@ -36,8 +36,6 @@ export const BAND = { from: DECK_Y + 0.1, to: DECK_Y + 0.78 };
 /** Sabords : hauteur de leur centre, régulièrement répartis sur le pont (u de base), 2 de plus par allongement. */
 export const PORT_Y = DECK_Y + 0.42;
 const GUN_SPAN = { from: -0.66, to: 0.6, slots: 9, perExtension: 2, first: 6 };
-/** Filets de bastingage (hamacs roulés sur le plat-bord), de l'arrière à l'avant (u de base). */
-export const NETTING = { from: -0.82, to: 0.78, height: 0.32 };
 
 /** Un mât incliné vers l'arrière : pied, longueur, hune (le long du mât), et ses quatre voiles carrées. */
 export interface BrigMast {
