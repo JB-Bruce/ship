@@ -8,7 +8,7 @@ export type UpgradeLevels = Record<UpgradeId, number> & { extension: number };
 export const UPGRADE_IDS = Object.keys(UPGRADE_INFO) as UpgradeId[];
 
 export function noUpgrades(): UpgradeLevels {
-  return { accuracy: 0, range: 0, cannons: 0, hull: 0, sails: 0, hold: 0, extension: 0 };
+  return { accuracy: 0, range: 0, cannons: 0, hull: 0, sails: 0, hold: 0, nets: 0, extension: 0 };
 }
 
 /** Le navire est-il allongé ? */
@@ -29,11 +29,14 @@ export function maxLevel(type: ShipType, id: UpgradeId, levels?: UpgradeLevels):
   return SHIP_TYPES[type].upgrades[id].costs.length - extensionLevels(type, id, levels?.extension ?? 0);
 }
 
-/** Tous les allongements et toutes les améliorations au maximum (sauf la cale, inutile en combat). */
+/** Améliorations inutiles en combat : jamais tirées pour un ennemi, ni montées sur un boss. */
+const PEACEFUL: readonly UpgradeId[] = ['hold', 'nets'];
+
+/** Tous les allongements et toutes les améliorations au maximum (sauf la cale et les filets, inutiles en combat). */
 export function maxLevels(type: ShipType): UpgradeLevels {
   const levels = noUpgrades();
   levels.extension = SHIP_TYPES[type].extensions?.length ?? 0;
-  for (const id of UPGRADE_IDS) if (id !== 'hold') levels[id] = maxLevel(type, id, levels);
+  for (const id of UPGRADE_IDS) if (!PEACEFUL.includes(id)) levels[id] = maxLevel(type, id, levels);
   return levels;
 }
 
@@ -52,6 +55,11 @@ export function totalLevels(levels: UpgradeLevels): number {
 export function holdCapacity(type: ShipType, levels: UpgradeLevels): number {
   const def = SHIP_TYPES[type];
   return levels.hold > 0 ? def.upgrades.hold.capacity[levels.hold - 1] : def.hold;
+}
+
+/** Temps entre deux poissons pêchés, multiplié par les filets (1 sans filets). */
+export function catchFactor(type: ShipType, levels: UpgradeLevels): number {
+  return levels.nets > 0 ? SHIP_TYPES[type].upgrades.nets.catchFactor[levels.nets - 1] : 1;
 }
 
 /**
@@ -150,6 +158,8 @@ export function describeLevel(type: ShipType, id: UpgradeId, level: number): str
       return `Vitesse +${Math.round((t.sails.speedFactor[i] - 1) * 100)} %`;
     case 'hold':
       return `Cale : ${t.hold.capacity[i]} places`;
+    case 'nets':
+      return `Pêche ${Math.round((1 / t.nets.catchFactor[i] - 1) * 100)} % plus rapide`;
   }
 }
 
@@ -177,9 +187,9 @@ export function randomLevels(type: ShipType, threat: number, extensionChance = 0
   // D'abord les allongements (dans l'ordre) : ils ouvrent des niveaux d'amélioration en plus.
   const extensions = SHIP_TYPES[type].extensions?.length ?? 0;
   while (levels.extension < extensions && Math.random() < threat * extensionChance) levels.extension++;
-  // La cale ne sert à rien chez l'ennemi (et ne doit pas gonfler son butin).
+  // La cale et les filets ne servent à rien chez l'ennemi (et la cale ne doit pas gonfler son butin).
   for (const id of UPGRADE_IDS) {
-    if (id === 'hold') continue;
+    if (PEACEFUL.includes(id)) continue;
     const max = maxLevel(type, id, levels);
     while (levels[id] < max && Math.random() < threat * 0.75) levels[id]++;
   }

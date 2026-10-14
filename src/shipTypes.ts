@@ -54,6 +54,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       hull: { costs: [{ gold: 0, wood: 0 }], healthBonus: [12] },
       sails: { costs: [{ gold: 0, wood: 0 }], speedFactor: [1.12] },
       hold: { costs: [], capacity: [] },
+      nets: { costs: [], catchFactor: [] },
     },
     mass: { base: 50, perExtraCannon: 0, hull: [6], sails: [0], hold: [], speedLossPerUnit: 0.002 },
   },
@@ -78,6 +79,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       hull: { costs: [{ gold: 15, wood: 20 }, { gold: 30, wood: 35 }], healthBonus: [25, 55] },
       sails: { costs: [{ gold: 25, wood: 5 }, { gold: 40, wood: 10 }], speedFactor: [1.08, 1.16] },
       hold: { costs: [{ gold: 25, wood: 15 }, { gold: 45, wood: 25 }], capacity: [30, 40] },
+      nets: { costs: [{ gold: 30, wood: 15 }, { gold: 60, wood: 25 }], catchFactor: [0.75, 0.55] },
     },
     mass: { base: 100, perExtraCannon: 5, hull: [10, 22], sails: [2, 4], hold: [4, 8], speedLossPerUnit: 0.0015 },
   },
@@ -101,6 +103,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       hull: { costs: [{ gold: 30, wood: 30 }, { gold: 50, wood: 50 }, { gold: 80, wood: 80 }], healthBonus: [40, 80, 130] },
       sails: { costs: [{ gold: 40, wood: 10 }, { gold: 60, wood: 15 }, { gold: 90, wood: 25 }], speedFactor: [1.06, 1.12, 1.18] },
       hold: { costs: [{ gold: 40, wood: 25 }, { gold: 70, wood: 40 }, { gold: 100, wood: 60 }], capacity: [55, 70, 90] },
+      nets: { costs: [{ gold: 45, wood: 20 }, { gold: 80, wood: 35 }, { gold: 120, wood: 50 }], catchFactor: [0.75, 0.55, 0.4] },
     },
     mass: { base: 220, perExtraCannon: 8, hull: [15, 32, 50], sails: [4, 8, 12], hold: [6, 10, 16], speedLossPerUnit: 0.0006 },
   },
@@ -132,6 +135,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       },
       sails: { costs: [{ gold: 50, wood: 12 }, { gold: 75, wood: 20 }, { gold: 110, wood: 30 }], speedFactor: [1.06, 1.12, 1.18] },
       hold: { costs: [{ gold: 50, wood: 30 }, { gold: 85, wood: 50 }, { gold: 120, wood: 75 }], capacity: [65, 85, 110] },
+      nets: { costs: [], catchFactor: [] },
     },
     mass: { base: 270, perExtraCannon: 8, chaseGun: 14, hull: [14, 30, 48, 68], sails: [4, 9, 14], hold: [7, 12, 19], speedLossPerUnit: 0.00055 },
   },
@@ -163,6 +167,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
         speedFactor: [1.05, 1.1, 1.15, 1.21],
       },
       hold: { costs: [{ gold: 50, wood: 30 }, { gold: 85, wood: 50 }, { gold: 120, wood: 75 }, { gold: 160, wood: 100 }], capacity: [75, 95, 120, 145] },
+      nets: { costs: [{ gold: 50, wood: 25 }, { gold: 90, wood: 40 }, { gold: 130, wood: 55 }], catchFactor: [0.75, 0.55, 0.4] },
     },
     mass: { base: 240, perExtraCannon: 7, hull: [12, 26, 42], sails: [3, 6, 9, 12], hold: [8, 14, 22, 30], speedLossPerUnit: 0.0006 },
     extensions: [
@@ -210,6 +215,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
         speedFactor: [1.06, 1.12, 1.18, 1.26, 1.35],
       },
       hold: { costs: [{ gold: 60, wood: 40 }, { gold: 100, wood: 60 }, { gold: 140, wood: 90 }, { gold: 190, wood: 120 }], capacity: [80, 105, 130, 165] },
+      nets: { costs: [], catchFactor: [] },
     },
     mass: { base: 320, perExtraCannon: 9, hull: [12, 25, 40, 58, 78], sails: [5, 10, 15, 20, 25], hold: [8, 14, 22, 30], speedLossPerUnit: 0.0005 },
     extensions: [
@@ -263,6 +269,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
         speedFactor: [1.06, 1.12, 1.18, 1.25],
       },
       hold: { costs: [{ gold: 55, wood: 35 }, { gold: 90, wood: 55 }, { gold: 130, wood: 80 }], capacity: [70, 90, 115] },
+      nets: { costs: [], catchFactor: [] },
     },
     mass: { base: 290, perExtraCannon: 8, chaseGun: 10, hull: [12, 26, 42, 60], sails: [4, 8, 12, 16], hold: [7, 12, 19], speedLossPerUnit: 0.0005 },
     extensions: [
@@ -307,6 +314,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       },
       sails: { costs: [{ gold: 70, wood: 20 }, { gold: 110, wood: 30 }, { gold: 160, wood: 45 }, { gold: 220, wood: 60 }], speedFactor: [1.06, 1.12, 1.18, 1.24] },
       hold: { costs: [{ gold: 80, wood: 50 }, { gold: 120, wood: 80 }, { gold: 170, wood: 110 }, { gold: 230, wood: 150 }], capacity: [110, 140, 180, 230] },
+      nets: { costs: [], catchFactor: [] },
     },
     mass: { base: 420, perExtraCannon: 8, hull: [15, 32, 50, 70, 92], sails: [6, 12, 18, 24], hold: [10, 18, 28, 38], speedLossPerUnit: 0.0004 },
     extensions: [
@@ -355,6 +363,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       },
       sails: { costs: [{ gold: 90, wood: 25 }, { gold: 140, wood: 40 }, { gold: 200, wood: 55 }, { gold: 270, wood: 75 }, { gold: 350, wood: 100 }], speedFactor: [1.06, 1.12, 1.18, 1.24, 1.3] },
       hold: { costs: [{ gold: 100, wood: 60 }, { gold: 150, wood: 100 }, { gold: 210, wood: 140 }, { gold: 280, wood: 180 }, { gold: 360, wood: 230 }], capacity: [130, 170, 220, 280, 350] },
+      nets: { costs: [], catchFactor: [] },
     },
     mass: { base: 560, perExtraCannon: 8, hull: [20, 42, 66, 92, 120], sails: [8, 16, 24, 32, 40], hold: [12, 22, 34, 46, 58], speedLossPerUnit: 0.0003 },
     extensions: [

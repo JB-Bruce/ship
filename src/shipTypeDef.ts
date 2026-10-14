@@ -19,6 +19,8 @@ export interface UpgradeTable {
   sails: { costs: Cost[]; speedFactor: number[] };
   /** Places dans la cale (poisson, rhum, épices), remplaçant la capacité de base. */
   hold: { costs: Cost[]; capacity: number[] };
+  /** Filets de pêche (navires pêcheurs) : multiplicateur du temps entre deux poissons. */
+  nets: { costs: Cost[]; catchFactor: number[] };
 }
 
 /**
@@ -113,4 +115,5 @@ export const UPGRADE_INFO = {
   hull: { name: 'Défense de la coque', description: 'Bordages doublés et cerclés de fer : le bateau encaisse davantage.' },
   sails: { name: 'Voilure', description: 'Des voiles plus larges et mieux taillées : plus de vitesse et d’accélération.' },
   hold: { name: 'Cale', description: 'Une cale agrandie et mieux arrimée : plus de place pour le poisson, le rhum et les épices.' },
+  nets: { name: 'Filets de pêche', description: 'Des filets plus grands et un treuil pour les haler : la pêche remonte le poisson bien plus vite.' },
 };

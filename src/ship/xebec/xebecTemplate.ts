@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { WATER_MASK, type Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } from '../parts/common';
+import { buildWheel } from '../corvette/corvetteTemplate';
 import { addStairs } from '../parts/deckFittings';
 import { addBarrel, addCrate, addLantern, addRopeCoil, buildCarriageGunGeometry, type Palette } from '../parts/props';
 import { buildLateenSail, buildSquareSail, cylinderBetween } from '../parts/sails';
@@ -28,6 +29,8 @@ export interface XebecTemplate {
   topsailYard: THREE.BufferGeometry;
   sailMaterial: THREE.Material;
   rudder: THREE.BufferGeometry;
+  /** Roue de gouvernail (elle tourne autour de Z). */
+  wheel: THREE.BufferGeometry;
   cannon: THREE.BufferGeometry;
   gunport: THREE.BufferGeometry;
   /** Un aviron : le long de +X à partir de son sabord (manche en dedans, pale au bout). */
@@ -123,6 +126,7 @@ function buildTemplate(L: XebecLayout, livery: Livery): XebecTemplate {
     topsailYard: yard(L.topsail.width + 0.4, 0.07),
     sailMaterial: std(livery.sail, { side: THREE.DoubleSide }),
     rudder: buildRudderGeometry(1.6),
+    wheel: buildWheel(),
     cannon: buildCarriageGunGeometry(),
     gunport: box(0.05, 0.38, 0.46),
     oar: buildOar(),
@@ -152,6 +156,8 @@ function addPoop(batch: GeometryBatch, p: Palette, L: XebecLayout) {
   batch.add(p.dark, box(0.7, 0.85, 0.04), tf(0, DECK_Y + 0.43, front.z + 0.07));
   for (const x of [-1, 1]) batch.add(p.window, box(0.34, 0.26, 0.04), tf(x, DECK_Y + 0.6, front.z + 0.07));
   for (const side of [1, -1]) addStairs(batch, p, tf(side * 1.25, DECK_Y, front.z), height, 4);
+  // Colonne de la roue de gouvernail.
+  batch.add(p.wood, box(0.14, L.wheel.y - POOP.y, 0.14), tf(0, (L.wheel.y + POOP.y) / 2, L.wheel.z - 0.12));
 
   // Balustrade : balustres sur le plat-bord de la dunette et lisse d'appui, sur les deux bords et en travers de la poupe.
   const top = (s: { gunwale: number }) => s.gunwale + POOP.railHeight;

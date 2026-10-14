@@ -3,7 +3,7 @@ import { WATER_MASK, type Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } from '../parts/common';
 import { addStairs } from '../parts/deckFittings';
-import { buildBatteryGun } from '../corvette/corvetteTemplate';
+import { buildBatteryGun, buildWheel } from '../corvette/corvetteTemplate';
 import { addBarrel, addCrate, addLantern, addRopeCoil, buildCarriageGunGeometry, type Palette } from '../parts/props';
 import { buildLateenSail, buildSquareSail, cylinderBetween } from '../parts/sails';
 import {
@@ -18,6 +18,7 @@ import {
   MIZZEN_SAIL,
   QUARTERDECK,
   SPRITSAIL,
+  WHEEL,
 } from './caravelLayout';
 
 /** Le canon de chasse : un gros fût seul (pointe vers +X, pivot au sabord), à cette échelle d'un fût de batterie. */
@@ -44,6 +45,8 @@ export interface CaravelTemplate {
   lateenPitch: number;
   sailMaterial: THREE.Material;
   rudder: THREE.BufferGeometry;
+  /** Roue de gouvernail (elle tourne autour de Z). */
+  wheel: THREE.BufferGeometry;
   cannon: THREE.BufferGeometry;
   chaseGun: THREE.BufferGeometry;
   gunport: THREE.BufferGeometry;
@@ -116,6 +119,8 @@ function buildTemplate(livery: Livery): CaravelTemplate {
     }
   }
   addChasePort(batch, p);
+  // Colonne de la roue de gouvernail.
+  batch.add(p.wood, box(0.14, WHEEL.y - QUARTERDECK.y, 0.14), tf(0, (WHEEL.y + QUARTERDECK.y) / 2, WHEEL.z - 0.12));
 
   // Mâts : grand mât (hune, chouque, hampe du pavillon) et artimon sur le château ; beaupré.
   batch.add(p.wood, new THREE.CylinderGeometry(0.16, 0.24, MAIN_MAST.top - DECK_Y, 8), tf(0, (MAIN_MAST.top + DECK_Y) / 2, MAIN_MAST.z));
@@ -154,6 +159,7 @@ function buildTemplate(livery: Livery): CaravelTemplate {
     lateenPitch: lateen.pitch,
     sailMaterial: std(livery.sail, { side: THREE.DoubleSide }),
     rudder: buildRudderGeometry(1.7),
+    wheel: buildWheel(),
     cannon: buildCarriageGunGeometry(),
     chaseGun,
     gunport: new THREE.BoxGeometry(0.05, 0.42, 0.5),

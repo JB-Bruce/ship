@@ -55,6 +55,9 @@ export const MIZZEN_SAIL: LateenSailShape = {
   bulge: 0.55,
 };
 
+/** Roue de gouvernail sur le château arrière (centre de la roue) ; le barreur se tient derrière. */
+export const WHEEL = { y: QUARTERDECK.y + 0.85, z: at(-0.88).z + 0.55 };
+
 /** Beaupré, et la civadière (petite voile carrée) pendue sous lui. */
 export const BOWSPRIT = { base: new THREE.Vector3(0, 2.6, at(0.86).z), tip: new THREE.Vector3(0, 4.9, 10.2) };
 export const SPRITSAIL = { yard: new THREE.Vector3(0, 4.3, 8.9), width: 3.6, height: 1.9 };
@@ -75,7 +78,7 @@ export const CHASE_PORT = { y: 1.52, width: 0.5, height: 0.44, frame: 0.1, front
  */
 export const CARAVEL_DECK: DeckPlan = {
   hands: DECK_CREW.hands.caravel,
-  helm: { x: 0, y: QUARTERDECK.y, z: at(-0.88).z, facing: 0 },
+  helm: { x: 0, y: QUARTERDECK.y, z: WHEEL.z - 0.55, facing: 0 },
   lookout: { x: 0, y: FORECASTLE.y, z: at(0.62).z, facing: 0 },
   walks: [...deckWalks(DECK_Y, [0.6, -0.6], at(QUARTERDECK.to).z + 1.6, at(FORECASTLE.from).z - 0.5), ...deckWalks(QUARTERDECK.y, [0.7], at(-0.9).z, at(QUARTERDECK.to).z - 0.4)],
   ropes: ropeSpots(DECK_Y, [MAIN_MAST.z], (z) => CARAVEL_HULL.stationAt(z / HALF).halfWidth),

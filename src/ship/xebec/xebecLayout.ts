@@ -98,6 +98,8 @@ export interface XebecLayout {
   readonly topPlatform: number;
   /** Éperon : du pied de l'étrave à sa pointe. */
   readonly spur: { base: THREE.Vector3; tip: THREE.Vector3 };
+  /** Roue de gouvernail sur la dunette (centre de la roue) ; le barreur se tient derrière. */
+  readonly wheel: { y: number; z: number };
   /** Canons de flanc, répartis régulièrement entre ces z. */
   readonly gunZone: { aft: number; fore: number };
   /** Affûts des canons de chasse sur la plateforme de proue, selon leur nombre (index = nombre de canons). */
@@ -134,9 +136,10 @@ function createLayout(level: number): XebecLayout {
   const oars = OAR.count + OAR.perExtension * level;
   const [oarAft, oarFore] = [at(OAR.from).z, at(OAR.to).z];
   const poopFront = at(POOP.to).z;
+  const wheel = { y: POOP.y + 0.85, z: at(-0.93).z + 0.55 };
   const deck: DeckPlan = {
     hands: DECK_CREW.hands.xebec + DECK_CREW.handsPerExtension.xebec * level,
-    helm: { x: 0, y: POOP.y, z: at(-0.88).z, facing: 0 },
+    helm: { x: 0, y: POOP.y, z: wheel.z - 0.55, facing: 0 },
     lookout: { x: 0, y: BOW_PLATFORM.y, z: at(0.71).z, facing: 0 },
     walks: [...deckWalks(DECK_Y, [0.6, -0.6], poopFront + 1.2, at(0.55).z), ...deckWalks(POOP.y, [0.7], at(-0.92).z, poopFront - 0.4)],
     ropes: ropeSpots(DECK_Y, [foreMast.z, mainMast.z, mizzenMast.z], (z) => hull.stationAt(z / half).halfWidth),
@@ -164,6 +167,7 @@ function createLayout(level: number): XebecLayout {
     topsail: { along: 13, width: 6, height: 3.9 },
     topPlatform: 9.2,
     spur: { base: new THREE.Vector3(0, 1.05, stem.z - 0.3), tip: new THREE.Vector3(0, 1.85, 13.3 + bowShift) },
+    wheel,
     gunZone: { aft: at(-0.48).z, fore: at(0.4).z },
     chaseGuns,
     oarZs: Array.from({ length: oars }, (_, i) => oarAft + ((oarFore - oarAft) * i) / (oars - 1)),

@@ -12,6 +12,8 @@ import { XebecOars } from './xebecOars';
 import { FLAG, xebecTemplateFor, type XebecTemplate } from './xebecTemplate';
 
 const RUDDER_MAX_ANGLE = 0.55;
+/** Tours de la roue de gouvernail barre à fond (rad). */
+const WHEEL_TURNS = 2.6;
 /** Élargissement des voiles carrées et allongement des vergues latines par niveau de voilure. */
 const SAIL_GROWTH = 0.06;
 const GUN_INSET = 0.62;
@@ -54,6 +56,7 @@ export class XebecModel implements ShipModel {
   private squareSails: THREE.Mesh[] = [];
   private yards: THREE.Mesh[] = [];
   private rudder!: THREE.Mesh;
+  private wheel!: THREE.Mesh;
   private flag!: WavingFlag;
   private oars!: XebecOars;
   private gunports: THREE.Mesh[] = [];
@@ -104,6 +107,7 @@ export class XebecModel implements ShipModel {
 
   setRudder(rudder: number) {
     this.rudder.rotation.y = -rudder * RUDDER_MAX_ANGLE;
+    this.wheel.rotation.z = rudder * WHEEL_TURNS;
   }
 
   setOars(out: number) {
@@ -223,6 +227,8 @@ export class XebecModel implements ShipModel {
     this.lateens = [L.fore, L.mizzen].map((def, i) => this.lateenRig(def, t.lateens[i]));
 
     this.rudder = new THREE.Mesh(t.rudder, t.palette.trim);
+    this.wheel = new THREE.Mesh(t.wheel, t.palette.wood);
+    this.wheel.position.set(0, L.wheel.y, L.wheel.z);
     this.rudder.position.set(0, 0.8, L.hull.stationAt(-1).z - 0.04);
     this.flag = new WavingFlag(t.flagMaterial, FLAG.length, FLAG.height);
     this.flag.mesh.position.set(0, this.flagMount.position.y + this.flagLift, this.flagMount.position.z);
@@ -232,7 +238,7 @@ export class XebecModel implements ShipModel {
 
     const waterMask = new THREE.Mesh(t.waterMask, waterMaskMaterial);
     waterMask.renderOrder = RENDER_ORDER.waterMask;
-    this.body.add(this.rudder, this.flag.mesh, this.oars.mesh, new THREE.LineSegments(t.rigging, riggingMaterial), waterMask);
+    this.body.add(this.rudder, this.wheel, this.flag.mesh, this.oars.mesh, new THREE.LineSegments(t.rigging, riggingMaterial), waterMask);
     this.armor = null;
     this.setCannons(this.perSide, this.chase);
     this.setArmorLevel(this.armorLevel);

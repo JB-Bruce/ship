@@ -22,10 +22,13 @@ import {
   MIZZEN_YARD_Y,
   QUARTERDECK,
   SPRITSAIL,
+  WHEEL,
 } from './caravelLayout';
 import { CHASE_GUN_SCALE, caravelTemplateFor, type CaravelTemplate } from './caravelTemplate';
 
 const RUDDER_MAX_ANGLE = 0.55;
+/** Tours de la roue de gouvernail barre à fond (rad). */
+const WHEEL_TURNS = 2.6;
 /** Élargissement des voiles carrées par niveau de voilure (en largeur seulement). */
 const SAIL_GROWTH = 0.08;
 /** Retrait des affûts par rapport au bordé : la bouche des fûts sort par les sabords. */
@@ -73,6 +76,7 @@ export class CaravelModel implements ShipModel {
   /** La voile latine, dans le repère de sa vergue : on l'écrase en Y pour la carguer contre la vergue. */
   private readonly lateen: THREE.Mesh;
   private readonly rudder: THREE.Mesh;
+  private readonly wheel: THREE.Mesh;
   private readonly flag: WavingFlag;
   private readonly gunports: THREE.Mesh[] = [];
   private armor: THREE.Mesh | null = null;
@@ -109,13 +113,15 @@ export class CaravelModel implements ShipModel {
     this.lateenRig.position.set(0, MIZZEN_YARD_Y, MIZZEN_MAST.z);
 
     this.rudder = new THREE.Mesh(t.rudder, t.palette.trim);
+    this.wheel = new THREE.Mesh(t.wheel, t.palette.wood);
+    this.wheel.position.set(0, WHEEL.y, WHEEL.z);
     this.rudder.position.set(0, 0.9, hull.stationAt(-1).z - 0.04);
     this.flag = new WavingFlag(t.flagMaterial, FLAG.length, FLAG.height);
     this.flag.mesh.position.set(0, FLAG.y, MAIN_MAST.z);
 
     const waterMask = new THREE.Mesh(t.waterMask, waterMaskMaterial);
     waterMask.renderOrder = RENDER_ORDER.waterMask;
-    this.root.add(this.mainCourse, this.mainYard, this.spritsail, spritYard, this.lateenRig, this.rudder, this.flag.mesh);
+    this.root.add(this.mainCourse, this.mainYard, this.spritsail, spritYard, this.lateenRig, this.rudder, this.wheel, this.flag.mesh);
     this.root.add(new THREE.LineSegments(t.rigging, riggingMaterial), waterMask);
     this.setCannons(stats.cannonsPerSide, stats.chaseGuns ?? 0);
     this.applySails();
@@ -135,6 +141,7 @@ export class CaravelModel implements ShipModel {
 
   setRudder(rudder: number) {
     this.rudder.rotation.y = -rudder * RUDDER_MAX_ANGLE;
+    this.wheel.rotation.z = rudder * WHEEL_TURNS;
   }
 
   /** La vergue latine pivote du côté où va le vent : presque dans l'axe au près, très ouverte au vent arrière. */
