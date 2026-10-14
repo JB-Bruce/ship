@@ -8,7 +8,7 @@ import { addStatics, type LanternSpot } from '../parts/nightGlow';
 import { TornSail } from '../parts/tornSail';
 import type { CannonMount, EnsignStaff, FlagMount, ShipModel } from '../shipModel';
 import { BATTERY_Y, carrackArmament, carrackLayout, DECK_Y, type CarrackLayout } from './carrackLayout';
-import { CASTLE_GUN_SCALE, carrackTemplateFor, type CarrackTemplate } from './carrackTemplate';
+import { carrackTemplateFor, type CarrackTemplate } from './carrackTemplate';
 
 const { damp } = THREE.MathUtils;
 const RUDDER_MAX_ANGLE = 0.45;
@@ -18,14 +18,11 @@ const WHEEL_TURNS = 2.6;
 const SAIL_GROWTH = 0.07;
 /** Grand-voile basse (index dans squareSails) : la plus grande voile, qui porte l'emblème de la livrée. */
 const MAIN_COURSE = 2;
-/** Bouches : fût dans un sabord (pivot au sabord), le même plus petit (château), pièce sur affût d'un château. */
+/** Bouches : fût dans un sabord (pivot au sabord), pièce sur affût d'un château. */
 const PORT_MUZZLE = new THREE.Vector3(0.8, 0, 0);
-const CASTLE_MUZZLE = PORT_MUZZLE.clone().multiplyScalar(CASTLE_GUN_SCALE);
 const DECK_MUZZLE = new THREE.Vector3(1, 0.38, 0);
 /** Retrait des affûts des châteaux par rapport au bordé : la bouche sort par les sabords du pavois. */
 const DECK_GUN_INSET = 0.62;
-/** Les sabords des châteaux sont à cette hauteur au-dessus de leur pont (m). */
-const CASTLE_PORT = 0.4;
 /** Écart des voiles latines par rapport à leur mât (m) : elles pendent du côté sous le vent. */
 const LATEEN_OFFSET = 0.24;
 
@@ -33,8 +30,8 @@ const LATEEN_OFFSET = 0.24;
  * Caraque : coque large et haute, château arrière à trois étages (demi-pont, gaillard, dunette), château avant qui
  * déborde de l'étrave ; quatre mâts (misaine et grand mât carrés à hunes rondes, artimon et contre-artimon à voiles
  * latines qui pivotent selon le vent), civadière ; pavois peints aux couleurs du camp. Batterie basse dans le bordé
- * (4 par bord, jusqu'à 6, 7 allongée), pièces des châteaux (3, puis 4, 5 allongée ; sur affût là où le pont est à
- * découvert, sinon dans un sabord) et deux gros canons de chasse dans la face avant du château avant. Allongée
+ * (4 par bord, jusqu'à 6, 7 allongée), pièces des châteaux sur affût (3, puis 4, 5 allongée : deux sur le demi-pont,
+ * les autres sur le château avant) et trois gros canons de chasse dans la face avant du château avant. Allongée
  * (setExtension), elle est reconstruite sur le plan long : canons, renfort, voilure, dégâts et pavillon sont remis en place.
  */
 export class CarrackModel implements ShipModel {
@@ -131,8 +128,8 @@ export class CarrackModel implements ShipModel {
   }
 
   /**
-   * Batterie basse (fûts dans les sabords du bordé), pièces des châteaux (sur affût à découvert, sinon fûts plus petits
-   * dans les sabords des châteaux), puis les canons de chasse au calibre de la batterie, dans la face du château avant.
+   * Batterie basse (fûts dans les sabords du bordé), pièces des châteaux (sur affût derrière les sabords du pavois du
+   * demi-pont et du château avant), puis les canons de chasse au calibre de la batterie, dans la face du château avant.
    */
   setCannons(perSide: number, chase = 0) {
     this.perSide = perSide;
@@ -143,26 +140,20 @@ export class CarrackModel implements ShipModel {
     const { hull } = L;
     const t = this.template;
     const { battery, castle } = carrackArmament(perSide, L);
-    const pair = (u: number, y: number, kind: 'battery' | 'castle' | 'open') => {
+    const pair = (u: number, y: number, onDeck: boolean) => {
       const s = L.station(u);
-      const open = kind === 'open';
       for (const side of [1, -1] as const) {
-        const gun = new THREE.Mesh(open ? t.deckGun : kind === 'castle' ? t.castleGun : t.batteryGun, t.palette.metal);
-        gun.position.set(side * (open ? hull.halfWidthAt(s, y) - DECK_GUN_INSET : hull.halfWidthAt(s, y) * 0.99), y, s.z);
-        gun.userData.openGun = open;
+        const gun = new THREE.Mesh(onDeck ? t.deckGun : t.batteryGun, t.palette.metal);
+        gun.position.set(side * (onDeck ? hull.halfWidthAt(s, y) - DECK_GUN_INSET : hull.halfWidthAt(s, y) * 0.99), y, s.z);
         this.body.add(gun);
-        const muzzle = open ? DECK_MUZZLE : kind === 'castle' ? CASTLE_MUZZLE : PORT_MUZZLE;
-        this.cannons.push(cannonMount(gun, (side * Math.PI) / 2, muzzle, kind === 'battery' ? 'main' : 'deck'));
+        this.cannons.push(cannonMount(gun, (side * Math.PI) / 2, onDeck ? DECK_MUZZLE : PORT_MUZZLE, onDeck ? 'deck' : 'main'));
       }
     };
-    for (let k = 0; k < battery; k++) pair(L.batterySlots[k], BATTERY_Y + L.sheer(L.batterySlots[k]), 'battery');
-    for (const slot of L.castleSlots.slice(0, castle)) {
-      if (slot.open) pair(slot.u, slot.y, 'open');
-      else pair(slot.u, slot.y + CASTLE_PORT, 'castle');
-    }
-    for (let k = 0; k < chase; k++) {
+    for (let k = 0; k < battery; k++) pair(L.batterySlots[k], BATTERY_Y + L.sheer(L.batterySlots[k]), false);
+    for (const slot of L.castleSlots.slice(0, castle)) pair(slot.u, slot.y, true);
+    for (const { x, y } of L.chase.guns.slice(0, chase)) {
       const gun = new THREE.Mesh(t.batteryGun, t.palette.metal);
-      gun.position.set((k % 2 ? -1 : 1) * L.chase.x, L.chase.y, L.chase.z - 0.05);
+      gun.position.set(x, y, L.chase.z - 0.05);
       this.body.add(gun);
       this.cannons.push(cannonMount(gun, 0, PORT_MUZZLE, 'main'));
     }

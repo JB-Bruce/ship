@@ -12,11 +12,12 @@ import { BATTERY_Y, DECK_Y, WALES, type CarrackLayout, type Mast } from './carra
 
 /** Porte-haubans : planches qui débordent du bordé sous le plat-bord (dessous du plat-bord, largeur, m). */
 const CHANNEL = { below: 0.45, width: 0.5 };
-/** Pieds des haubans : à ces distances (m) du pied de chaque mât, vers l'arrière. */
-const SHROUD_FEET = [-0.5, -1.15, -1.8, -2.45];
+/**
+ * Pieds des haubans : à ces distances (m) derrière chaque mât ; ils restent sur le plat-bord du pont qui le porte
+ * (`clearance` m des marches et de la poupe), quitte à se resserrer.
+ */
+const SHROUD_FEET = { first: 0.4, spacing: 0.65, count: 4, clearance: 0.45 };
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
-/** Taille des pièces couvertes des châteaux, par rapport à un fût de batterie. */
-export const CASTLE_GUN_SCALE = 0.8;
 
 export interface CarrackTemplate {
   palette: Palette;
@@ -30,10 +31,9 @@ export interface CarrackTemplate {
   sailMaterial: THREE.Material;
   rudder: THREE.BufferGeometry;
   wheel: THREE.BufferGeometry;
-  /** Fût seul, qui dépasse d'un sabord (pointe vers +X) : batterie et chasse, et plus petit pour les pièces couvertes des châteaux. */
+  /** Fût seul, qui dépasse d'un sabord (pointe vers +X) : batterie basse et canons de chasse. */
   batteryGun: THREE.BufferGeometry;
-  castleGun: THREE.BufferGeometry;
-  /** Pièce sur affût, à découvert sur un château. */
+  /** Pièce sur affût, derrière le pavois d'un château. */
   deckGun: THREE.BufferGeometry;
   flagMaterial: THREE.Material;
   rigging: THREE.BufferGeometry;
@@ -80,10 +80,15 @@ function buildTemplate(L: CarrackLayout, livery: Livery): CarrackTemplate {
   addRiders(batch, L);
   addPavises(batch, p, L);
 
-  // Sabords : batterie basse dans le bordé (ils suivent la tonture), pièces des châteaux dans leurs flancs.
+  // Sabords : batterie basse dans le bordé (ils suivent la tonture), pièces des châteaux dans leur pavois ; fenêtres
+  // des châteaux, dans un cadre.
   for (const side of [1, -1] as const) {
     for (const u of L.batteryPorts) batch.add(p.dark, box(0.07, 0.56, 0.6), sideTf(hull, L.station(u), BATTERY_Y + L.sheer(u), side, 0.035));
     for (const { u, y } of L.castleSlots) batch.add(p.dark, box(0.05, 0.42, 0.48), sideTf(hull, L.station(u), y + 0.4, side, 0.03));
+    for (const { u, y } of L.windows) {
+      batch.add(p.trim, box(0.04, 0.54, 0.46), sideTf(hull, L.station(u), y, side, 0.015));
+      batch.add(p.window, box(0.05, 0.42, 0.34), sideTf(hull, L.station(u), y, side, 0.03));
+    }
   }
   addCastles(batch, p, L);
   addStern(batch, p, L);
@@ -127,7 +132,6 @@ function buildTemplate(L: CarrackLayout, livery: Livery): CarrackTemplate {
     rudder: buildRudderGeometry(2.6),
     wheel: buildWheel(),
     batteryGun: buildBatteryGun(),
-    castleGun: buildBatteryGun().scale(CASTLE_GUN_SCALE, CASTLE_GUN_SCALE, CASTLE_GUN_SCALE),
     deckGun: buildCarriageGunGeometry(),
     flagMaterial: flagMaterialFor(livery),
     rigging: buildRigging(L),
@@ -146,12 +150,13 @@ function addMasts(batch: GeometryBatch, p: Palette, L: CarrackLayout) {
   ];
   for (const [mast, radius, platform] of masts) {
     batch.add(p.wood, new THREE.CylinderGeometry(radius * 0.6, radius, mast.top - mast.base, 8), tf(0, (mast.top + mast.base) / 2, mast.z));
-    // Hune ronde, en forme de panier.
-    batch.add(p.wood, new THREE.CylinderGeometry(platform, platform * 0.7, 0.55, 12, 1, true), tf(0, mast.topPlatform + 0.27, mast.z));
-    batch.add(p.dark, new THREE.CylinderGeometry(platform * 0.7, platform * 0.7, 0.06, 12), tf(0, mast.topPlatform, mast.z));
+    // Hune ronde, en forme de panier (pleine : on la voit sous tous les angles), cerclée de sombre.
+    batch.add(p.wood, new THREE.CylinderGeometry(platform, platform * 0.7, 0.55, 12), tf(0, mast.topPlatform + 0.27, mast.z));
+    batch.add(p.dark, new THREE.CylinderGeometry(platform + 0.03, platform + 0.03, 0.08, 12), tf(0, mast.topPlatform + 0.52, mast.z));
     batch.add(p.dark, new THREE.CylinderGeometry(radius * 0.75, radius * 0.75, 0.1, 8), tf(0, mast.top + 0.05, mast.z));
-    const mid = hull.stationAt((mast.z + (SHROUD_FEET[0] + SHROUD_FEET[SHROUD_FEET.length - 1]) / 2) / hull.halfLength);
-    const length = SHROUD_FEET[0] - SHROUD_FEET[SHROUD_FEET.length - 1] + 0.6;
+    const feet = shroudFeet(L, mast);
+    const mid = hull.stationAt((feet[0] + feet[feet.length - 1]) / 2 / hull.halfLength);
+    const length = feet[0] - feet[feet.length - 1] + 0.6;
     const y = mid.gunwale - CHANNEL.below;
     for (const side of [1, -1]) batch.add(p.wood, box(CHANNEL.width, 0.09, length), tf(side * (hull.halfWidthAt(mid, y) + CHANNEL.width / 2), y, mid.z));
   }
@@ -173,8 +178,8 @@ function buildRigging(L: CarrackLayout): THREE.BufferGeometry {
   for (const side of [1, -1]) {
     for (const mast of [L.foreMast, L.mainMast, L.mizzenMast, L.bonaventureMast]) {
       const top = new THREE.Vector3(side * 0.6, mast.topPlatform, mast.z);
-      for (const dz of SHROUD_FEET) {
-        const s = hull.stationAt((mast.z + dz) / hull.halfLength);
+      for (const z of shroudFeet(L, mast)) {
+        const s = hull.stationAt(z / hull.halfLength);
         const y = s.gunwale - CHANNEL.below;
         points.push(top, new THREE.Vector3(side * (hull.halfWidthAt(s, y) + CHANNEL.width * 0.9), y, s.z));
       }
@@ -182,4 +187,24 @@ function buildRigging(L: CarrackLayout): THREE.BufferGeometry {
     }
   }
   return new THREE.BufferGeometry().setFromPoints(points);
+}
+
+/**
+ * z des pieds des haubans d'un mât, de l'avant vers l'arrière : derrière le mât, sur le plat-bord du pont qui le porte
+ * (entre ses marches, ou la poupe) ; resserrés si ce pont est trop court.
+ */
+function shroudFeet(L: CarrackLayout, mast: Mast): number[] {
+  const z = (u: number) => L.station(u).z;
+  const sections: [number, number][] = [
+    [z(L.forecastle.from), z(1)],
+    [z(L.halfDeck.to), z(L.forecastle.from)],
+    [z(L.poop.to), z(L.quarterdeck.to)],
+    [z(-1), z(L.poop.to)],
+  ];
+  const [aft, fore] = sections.find(([a, f]) => mast.z > a && mast.z < f) ?? [z(-1), z(1)];
+  const { first, spacing, count, clearance } = SHROUD_FEET;
+  const start = Math.min(mast.z - first, fore - clearance);
+  const room = start - (aft + clearance);
+  const step = Math.min(spacing, room / (count - 1));
+  return Array.from({ length: count }, (_, i) => start - step * i);
 }

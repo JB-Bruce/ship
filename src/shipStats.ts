@@ -201,8 +201,8 @@ export const FRIGATE_STATS: ShipStats = {
 /**
  * Caraque : grand navire du XVIe siècle, large et haut, châteaux à étages à l'avant et à l'arrière, quatre mâts.
  * Forteresse lente : la plus solide, lourde à virer, perd beaucoup au près. Deux calibres : batterie basse de gros
- * canons dans le bordé (angle de tir étroit) et pièces légères des châteaux (angle large, courte portée) ; deux gros
- * canons de chasse (au calibre de la batterie) sous le château avant.
+ * canons dans le bordé (angle de tir étroit) et pièces légères des châteaux (angle large, courte portée) ; trois gros
+ * canons de chasse, deux côte à côte et le troisième au-dessus (au calibre de la batterie), dans la face du château avant.
  */
 export const CARRACK_STATS: ShipStats = {
   length: 29,
@@ -215,7 +215,7 @@ export const CARRACK_STATS: ShipStats = {
   turnHeel: 0.004,
   maxHealth: 800,
   cannonsPerSide: 7,
-  chaseGuns: 2,
+  chaseGuns: 3,
   cannon: { range: 150, reloadTime: 4.6, arcHalfAngle: 20 * DEG, spread: 2.2 * DEG, rangeError: 0.06, damage: 22, ballSpeed: 62 },
   deckCannon: { range: 110, reloadTime: 2.2, arcHalfAngle: 45 * DEG, spread: 2.8 * DEG, rangeError: 0.075, damage: 9, ballSpeed: 56 },
   buoyancy: { stiffness: 22, damping: 7.8, tiltResponse: 3.8 },

@@ -10,7 +10,7 @@ import { DECK_Y, FORE_LOWER_Y, type CarrackLayout, type Deck } from './carrackLa
 export const HULL_OAK = std(0x8a5a32);
 export const DARK_OAK = std(0x5a381c);
 /** Pavois peints (aux couleurs du camp) le long des plats-bords : écartement, taille (m). */
-const PAVISE = { spacing: 0.78, width: 0.5, height: 0.5, below: 0.36 };
+const PAVISE = { spacing: 0.78, width: 0.5, height: 0.5, below: 0.36, portClearance: 0.55 };
 /** Fenêtres du tableau arrière : chambre sous le gaillard d'arrière, chambre de la dunette (hauteur du centre). */
 const STERN_WINDOWS = [6.7, 8.8];
 /** Étrave : sections (u de base) dont elle suit la quille, sous le château avant qui déborde. */
@@ -37,10 +37,22 @@ function addLadder(batch: GeometryBatch, p: Palette, x: number, z: number, from:
   }
 }
 
-/** Cloison avant d'un étage de château, de `from` à `to` (m), à la station `s` ; `facing` = 1 vers l'avant, -1 vers l'arrière. */
+/** Points de hauteur pris sur le bordé pour dessiner une cloison qui l'épouse. */
+const BULKHEAD_STEPS = 6;
+
+/**
+ * Cloison d'un étage de château, de `from` à `to` (m), à la station `s` : elle épouse le bordé qui rentre (pas de jour
+ * sur les côtés, rien qui dépasse) ; `facing` = 1 si elle regarde vers l'avant, -1 vers l'arrière. Renvoie de quoi
+ * plaquer des portes et des fenêtres sur sa face.
+ */
 function bulkhead(batch: GeometryBatch, p: Palette, hull: HullShape, s: Station, from: number, to: number, facing: 1 | -1) {
-  const height = to - from;
-  batch.add(p.wood, box(2 * hull.halfWidthAt(s, to) * 0.98, height, 0.14), tf(0, from + height / 2, s.z));
+  const ys = Array.from({ length: BULKHEAD_STEPS + 1 }, (_, i) => from + ((to - from) * i) / BULKHEAD_STEPS);
+  const shape = new THREE.Shape();
+  ys.forEach((y, i) => (i === 0 ? shape.moveTo(hull.halfWidthAt(s, y) * 0.995, y) : shape.lineTo(hull.halfWidthAt(s, y) * 0.995, y)));
+  for (const y of [...ys].reverse()) shape.lineTo(-hull.halfWidthAt(s, y) * 0.995, y);
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.14, bevelEnabled: false });
+  geometry.translate(0, 0, s.z - 0.07);
+  batch.add(p.wood, geometry, new THREE.Matrix4());
   return (x: number, y: number, w: number, h: number, m: THREE.Material) => batch.add(m, box(w, h, 0.04), tf(x, y, s.z + facing * 0.08));
 }
 
@@ -76,10 +88,7 @@ export function addCastles(batch: GeometryBatch, p: Palette, L: CarrackLayout) {
   for (const side of [1, -1]) addLadder(batch, p, side * 1.8, fcBack.z, DECK_Y, forecastle.y, -1);
 }
 
-/**
- * Pavois peints le long des plats-bords, du milieu et des châteaux (pas sur les marches), aux couleurs du camp ; un
- * cordon de bois sombre au-dessus.
- */
+/** Pavois peints le long des plats-bords, du milieu et des châteaux (pas sur les marches ni devant les sabords), aux couleurs du camp. */
 export function addPavises(batch: GeometryBatch, p: Palette, L: CarrackLayout) {
   const { hull } = L;
   const runs = [
@@ -90,10 +99,13 @@ export function addPavises(batch: GeometryBatch, p: Palette, L: CarrackLayout) {
     [L.base(0.565), L.base(0.99)],
   ];
   const half = hull.halfLength;
+  // Pas de pavois devant un sabord des pièces des châteaux.
+  const ports = L.castleSlots.map((c) => L.station(c.u).z);
   for (const [from, to] of runs) {
     const n = Math.max(1, Math.floor(((to - from) * half) / PAVISE.spacing));
     for (let i = 0; i < n; i++) {
       const s = hull.stationAt(from + ((to - from) * (i + 0.5)) / n);
+      if (ports.some((z) => Math.abs(z - s.z) < PAVISE.portClearance)) continue;
       const y = s.gunwale - PAVISE.below;
       for (const side of [1, -1] as const) {
         batch.add(p.hull, box(0.05, PAVISE.height * 0.7, PAVISE.width), sideTf(hull, s, y + PAVISE.height * 0.15, side, 0.05));
@@ -119,10 +131,7 @@ export function addRiders(batch: GeometryBatch, L: CarrackLayout) {
   }
 }
 
-/**
- * Poupe haute : tableau à deux rangées de fenêtres entre des moulures, bande peinte aux couleurs du camp sous le
- * couronnement, trois fanaux sur la lisse, boute-hors du contre-artimon.
- */
+/** Poupe haute : tableau à deux rangées de fenêtres entre des moulures, bande peinte aux couleurs du camp sous le couronnement, trois fanaux sur la lisse. */
 export function addStern(batch: GeometryBatch, p: Palette, L: CarrackLayout) {
   const { hull } = L;
   const stern = hull.stationAt(-1);
@@ -137,7 +146,6 @@ export function addStern(batch: GeometryBatch, p: Palette, L: CarrackLayout) {
   batch.add(p.hull, box(2 * hull.halfWidthAt(stern, bandY + 0.25) - 0.1, 0.5, 0.05), tf(0, bandY, z - 0.01));
   batch.add(p.trim, box(2 * hull.halfWidthAt(stern, stern.gunwale) + 0.14, 0.16, 0.24), tf(0, stern.gunwale, stern.z + 0.08));
   for (const x of [-1, 0, 1]) addLantern(batch, p, tf(x * 0.9, stern.gunwale + 0.08, stern.z + 0.25, 0, 0, 0, x === 0 ? 1.2 : 0.9));
-  batch.add(p.wood, cylinderBetween(L.bumkin.base, L.bumkin.tip, 0.11, 0.07), new THREE.Matrix4());
 }
 
 /** Avant : étrave sous le château qui déborde, sabords de chasse dans sa face avant, bossoirs, beaupré et civadière. */
@@ -146,9 +154,9 @@ export function addBow(batch: GeometryBatch, p: Palette, L: CarrackLayout) {
   const stem = hull.stationAt(1);
   const line = STEM_LINE.map((u) => hull.stationAt(L.base(u))).map((s) => new THREE.Vector3(0, s.keel, s.z));
   for (let i = 0; i < line.length - 1; i++) batch.add(p.trim, cylinderBetween(line[i], line[i + 1], 0.13, 0.13, 4), new THREE.Matrix4());
-  for (const x of [-L.chase.x, L.chase.x]) batch.add(p.dark, box(0.5, 0.48, 0.06), tf(x, L.chase.y, stem.z + 0.02));
+  for (const { x, y } of L.chase.guns) batch.add(p.dark, box(0.5, 0.48, 0.06), tf(x, y, stem.z + 0.02));
   batch.add(p.trim, box(2 * hull.halfWidthAt(stem, FORE_LOWER_Y) - 0.1, 0.12, 0.12), tf(0, FORE_LOWER_Y, stem.z + 0.04));
-  const cat = L.at(0.9);
+  const cat = L.at(0.94);
   for (const side of [1, -1]) batch.add(p.wood, box(1, 0.18, 0.18), tf(side * (hull.halfWidthAt(cat, forecastle.y + 0.5) + 0.25), forecastle.y + 0.5, cat.z));
   const { base, tip } = L.bowsprit;
   batch.add(p.wood, cylinderBetween(base.clone().add(new THREE.Vector3(0, -0.4, -1.4)), tip, 0.24, 0.11), new THREE.Matrix4());

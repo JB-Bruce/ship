@@ -427,7 +427,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
   carrack: {
     name: 'Caraque',
     feminine: true,
-    description: 'Grand navire à quatre mâts, château avant en surplomb et château arrière à trois étages : la plus solide, avec une cale énorme. Batterie basse de gros canons, pièces légères des châteaux qui tirent large, et deux gros canons de chasse à l’avant ; courte portée, lente, lourde à virer, et elle perd beaucoup au près.',
+    description: 'Grand navire à quatre mâts, château avant en surplomb et château arrière à trois étages : la plus solide, avec une cale énorme. Batterie basse de gros canons, pièces légères des châteaux qui tirent large, et trois gros canons de chasse à l’avant ; courte portée, lente, lourde à virer, et elle perd beaucoup au près.',
     armament: 'broadside',
     rank: 6,
     threat: 5.5,
@@ -445,7 +445,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
         spreadFactor: [0.8, 0.62, 0.46, 0.32],
       },
       range: { costs: [{ gold: 130, wood: 40 }, { gold: 200, wood: 60 }], rangeFactor: [1.15, 1.3] },
-      // 1 : un canon de batterie de plus par bord, 2 : une pièce sur le gaillard d'arrière, 3 : un canon de batterie ;
+      // 1 : un canon de batterie de plus par bord, 2 : une pièce sur le château avant, 3 : un canon de batterie ;
       // grande caraque : un canon de batterie et une pièce sur le château avant (voir carrackArmament).
       cannons: {
         costs: [{ gold: 170, wood: 100 }, { gold: 230, wood: 130 }, { gold: 290, wood: 170 }, { gold: 400, wood: 230 }],
