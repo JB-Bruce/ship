@@ -148,7 +148,7 @@ export const FLUYT_STATS: ShipStats = {
   turnRate: 0.36,
   rudderSpeed: 2.1,
   turnHeel: 0.005,
-  maxHealth: 400,
+  maxHealth: 430,
   cannonsPerSide: 6,
   cannon: { range: 150, reloadTime: 3.8, arcHalfAngle: 25 * DEG, spread: 2.3 * DEG, rangeError: 0.065, damage: 14, ballSpeed: 60 },
   deckCannon: { range: 130, reloadTime: 2.6, arcHalfAngle: 35 * DEG, spread: 2.6 * DEG, rangeError: 0.07, damage: 10, ballSpeed: 58 },

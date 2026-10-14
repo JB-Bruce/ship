@@ -294,12 +294,12 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     rank: 5,
     threat: 4.5,
     lootFactor: 4.5,
-    price: { gold: 2400, wood: 700 },
+    price: { gold: 2700, wood: 800 },
     respawnTime: 78,
     hold: 160,
     tradeBonus: 0.15,
     stats: FLUYT_STATS,
-    enemyStats: weaker(FLUYT_STATS, 325, 11),
+    enemyStats: weaker(FLUYT_STATS, 350, 11),
     upgrades: {
       accuracy: {
         costs: [{ gold: 60, wood: 0 }, { gold: 100, wood: 0 }, { gold: 150, wood: 0 }, { gold: 210, wood: 0 }],
@@ -313,23 +313,23 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
         costs: [{ gold: 50, wood: 50 }, { gold: 90, wood: 90 }, { gold: 130, wood: 130 }, { gold: 180, wood: 180 }],
         healthFactor: [1.1, 1.2, 1.3, 1.4],
       },
-      sails: { costs: [{ gold: 70, wood: 20 }, { gold: 110, wood: 30 }, { gold: 160, wood: 45 }], speedFactor: [1.06, 1.12, 1.18] },
-      // Flûte allongée : un niveau de cale en plus.
+      // Flûte allongée : un niveau de voilure et un de cale en plus.
+      sails: { costs: [{ gold: 70, wood: 20 }, { gold: 110, wood: 30 }, { gold: 160, wood: 45 }, { gold: 220, wood: 60 }], speedFactor: [1.06, 1.12, 1.18, 1.24] },
       hold: { costs: [{ gold: 80, wood: 50 }, { gold: 120, wood: 80 }, { gold: 170, wood: 110 }, { gold: 230, wood: 150 }], capacity: [200, 250, 300, 360] },
       nets: { costs: [], catchFactor: [] },
     },
-    mass: { base: 470, perExtraCannon: 8, hull: [14, 30, 48, 68], sails: [5, 10, 15], hold: [12, 24, 36, 50], speedLossPerUnit: 0.0004 },
+    mass: { base: 470, perExtraCannon: 8, hull: [14, 30, 48, 68], sails: [5, 10, 15, 20], hold: [12, 24, 36, 50], speedLossPerUnit: 0.0004 },
     extensions: [
       {
         name: 'Flûte allongée',
-        description: 'Le chantier rallonge la coque de quatre mètres au milieu : un sabord de batterie de plus par bord, un canon de plus sur le gaillard d’avant (un niveau de canons en plus), et une cale encore plus grande.',
+        description: 'Le chantier rallonge la coque de quatre mètres au milieu : un sabord de batterie de plus par bord, un canon de plus sur le gaillard d’avant (un niveau de canons en plus), des voiles plus grandes (un niveau de voilure en plus) et une cale encore plus grande.',
         cost: { gold: 1800, wood: 850 },
         length: 4,
         healthFactor: 1.15,
         speedFactor: 1.04,
         turnFactor: 0.92,
         mass: 80,
-        extraLevels: { cannons: 1, hold: 1 },
+        extraLevels: { cannons: 1, sails: 1, hold: 1 },
       },
     ],
   },
