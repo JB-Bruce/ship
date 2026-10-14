@@ -132,7 +132,7 @@ export const BRIG_STATS: ShipStats = {
   maxHealth: 350,
   cannonsPerSide: 6,
   cannon: { range: 125, reloadTime: 2.4, arcHalfAngle: 35 * DEG, spread: 2.6 * DEG, rangeError: 0.07, damage: 10, ballSpeed: 58 },
-  deckCannon: { range: 200, reloadTime: 10, arcHalfAngle: Math.PI, spread: 4 * DEG, rangeError: 0.12, damage: 150, ballSpeed: 45, shell: MORTAR_SHELL },
+  deckCannon: { range: 200, reloadTime: 10, arcHalfAngle: Math.PI, spread: 4 * DEG, rangeError: 0.12, damage: 100, ballSpeed: 45, shell: MORTAR_SHELL },
   buoyancy: { stiffness: 30, damping: 8.8, tiltResponse: 4.7 },
 };
 
