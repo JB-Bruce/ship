@@ -4,6 +4,7 @@ import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } from '../parts/common';
 import { buildWheel } from '../corvette/corvetteTemplate';
 import { addStairs } from '../parts/deckFittings';
+import { buildOarGeometry } from '../parts/oarBank';
 import { addBarrel, addCrate, addLantern, addRopeCoil, buildCarriageGunGeometry, type Palette } from '../parts/props';
 import { buildLateenSail, buildSquareSail, cylinderBetween } from '../parts/sails';
 import { alongMast, BOW_PLATFORM, DECK_Y, OAR, POOP, RAKE, type XebecLateen, type XebecLayout } from './xebecLayout';
@@ -14,8 +15,6 @@ const WALES = [1.18, 0.42] as const;
 const GALLERY = { y: 1.2, height: 0.85, depth: 0.7 };
 /** Balustres de la dunette (par bord, régulièrement de l'arrière à l'avant de la dunette). */
 const BALUSTERS = 9;
-/** Pale d'aviron : longueur, largeur (m). */
-const BLADE = { length: 0.8, width: 0.2 };
 export const FLAG = { length: 1.5, height: 0.95 };
 
 export interface XebecTemplate {
@@ -129,7 +128,7 @@ function buildTemplate(L: XebecLayout, livery: Livery): XebecTemplate {
     wheel: buildWheel(),
     cannon: buildCarriageGunGeometry(),
     gunport: box(0.05, 0.38, 0.46),
-    oar: buildOar(),
+    oar: buildOarGeometry(OAR),
     flagMaterial: flagMaterialFor(livery),
     rigging: buildRigging(L),
     waterMask: hull.buildWaterMask(DECK_Y + WATER_MASK.aboveDeck),
@@ -218,16 +217,6 @@ function addBow(batch: GeometryBatch, p: Palette, L: XebecLayout) {
   batch.add(p.wood, new THREE.BoxGeometry(width, rise, 0.12), tf(0, DECK_Y + rise / 2, back.z));
   batch.add(p.trim, new THREE.BoxGeometry(width + 0.06, 0.07, 0.18), tf(0, y, back.z));
   for (const side of [1, -1]) addStairs(batch, p, tf(side * 0.75, DECK_Y, back.z, 0, Math.PI), rise, 2, 0.5);
-}
-
-/** Aviron le long de +X : manche depuis `-OAR.inboard` (dedans) jusqu'à la pale, au bout de `OAR.outboard`. */
-function buildOar(): THREE.BufferGeometry {
-  const batch = new GeometryBatch();
-  const key = new THREE.MeshBasicMaterial();
-  const shaft = OAR.inboard + OAR.outboard - BLADE.length / 2;
-  batch.add(key, new THREE.CylinderGeometry(0.04, 0.05, shaft, 5), tf(shaft / 2 - OAR.inboard, 0, 0, 0, 0, -Math.PI / 2));
-  batch.add(key, new THREE.BoxGeometry(BLADE.length, BLADE.width, 0.04), tf(OAR.outboard - BLADE.length / 2, 0, 0));
-  return batch.build()[0].geometry;
 }
 
 /** Haubans des trois mâts, étais (artimon → grand mât → misaine → éperon), sous-barbe de l'éperon. */

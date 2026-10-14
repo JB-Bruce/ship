@@ -95,8 +95,8 @@ export interface ShipTypeDef {
   /** Discrétion : les ennemis en patrouille le repèrent à cette part de leur portée habituelle (1 par défaut). */
   detectability?: number;
   /**
-   * Avirons (chébec) : par vent de face, les rameurs les sortent d'eux-mêmes et la vitesse gagne cette part (réglages
-   * communs OARS).
+   * Avirons (chébec, galéasse) : par vent de face, les rameurs les sortent d'eux-mêmes et la vitesse gagne cette part
+   * (réglages communs OARS).
    */
   oars?: number;
   /** Négoce : ses ventes sur une route commerciale rapportent cette part en plus (0 par défaut). */

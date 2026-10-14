@@ -86,7 +86,7 @@ export class Ship {
   private yawRate = 0;
   private readonly buoyancy: Buoyancy;
   private sailAmount = 0;
-  /** Avirons (chébec) : les rameurs nagent (vent de face), et part des rames sorties (0 = rentrées, 1 = sorties). */
+  /** Avirons (chébec, galéasse) : les rameurs nagent (vent de face), et part des rames sorties (0 = rentrées, 1 = sorties). */
   private rowing = false;
   private oarsOut = 0;
   /** Voiles en lambeaux même intactes (livrée du Spectre). */
@@ -157,7 +157,7 @@ export class Ship {
   /** Rechargements décalés : tous les canons ne partent pas à la même image. */
   private randomCooldowns(): number[] {
     const { cannon, deckCannon } = this.stats;
-    return this.model.cannons.map((m) => Math.random() * (m.calibre === 'deck' && deckCannon ? deckCannon : cannon).reloadTime);
+    return this.model.cannons.map((m) => Math.random() * (m.calibre === 'deck' && deckCannon ? deckCannon : cannon).reloadTime * (m.reloadFactor ?? 1));
   }
 
   /** Tangage (rad, positif = proue haute) et roulis (rad, positif = bâbord haut) de la coque. */
@@ -316,7 +316,7 @@ export class Ship {
   }
 
   /**
-   * Avirons (chébec, ShipTypeDef.oars) : par vent de face, les rameurs sortent les rames d'eux-mêmes, et les rentrent
+   * Avirons (chébec, galéasse : ShipTypeDef.oars) : par vent de face, les rameurs sortent les rames d'eux-mêmes, et les rentrent
    * quand le vent tourne ou que le navire s'arrête. Renvoie la vitesse gagnée (part de la vitesse max).
    */
   private updateOars(dt: number, controls: ShipControls, wind: Wind): number {

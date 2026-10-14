@@ -4,6 +4,7 @@ import { SHIP_TYPES } from '../../shipTypes';
 import { deckWalks, ropeSpots, type DeckPlan } from '../deckPlan';
 import { HullShape, type Station } from '../parts/hullShape';
 import { hullStretch } from '../parts/hullStretch';
+import type { OarSpec } from '../parts/oarBank';
 import type { LateenSailShape } from '../parts/sails';
 
 /** Longueur du chébec de base (m) : les positions écrites en « u de base » s'y rapportent. */
@@ -44,8 +45,9 @@ export const BOW_PLATFORM = { y: DECK_Y + 0.67, from: 0.66, to: 0.98 };
 /** Canons de chasse : écart de l'axe selon leur nombre, et place gardée entre l'affût et le bordé (m). */
 const CHASE_XS: readonly (readonly number[])[] = [[], [0], [-0.4, 0.4], [-0.6, 0, 0.6]];
 const CHASE_CLEARANCE = 0.45;
-/** Rames : hauteur des sabords d'aviron (sous le pont), longueur hors bord ; une paire de plus par allongement. */
-export const OAR = { y: 0.62, outboard: 4.4, inboard: 0.6, from: -0.6, to: 0.52, count: 9, perExtension: 2 };
+/** Rames : sabords d'aviron sous le pont, longueur hors bord ; étendue (u de base) et nombre, une paire de plus par allongement. */
+export const OAR: OarSpec = { y: 0.62, outboard: 4.4, inboard: 0.6, blade: { length: 0.8, width: 0.2 } };
+const OAR_ROW = { from: -0.6, to: 0.52, count: 9, perExtension: 2 };
 
 /** Point le long d'un mât incliné vers l'avant dont le pied est en `mastZ`, à `along` m de son pied. */
 export function alongMast(mastZ: number, along: number): THREE.Vector3 {
@@ -133,8 +135,8 @@ function createLayout(level: number): XebecLayout {
       return { x, z: hull.stationAt(u).z };
     }),
   );
-  const oars = OAR.count + OAR.perExtension * level;
-  const [oarAft, oarFore] = [at(OAR.from).z, at(OAR.to).z];
+  const oars = OAR_ROW.count + OAR_ROW.perExtension * level;
+  const [oarAft, oarFore] = [at(OAR_ROW.from).z, at(OAR_ROW.to).z];
   const poopFront = at(POOP.to).z;
   const wheel = { y: POOP.y + 0.85, z: at(-0.93).z + 0.55 };
   const deck: DeckPlan = {

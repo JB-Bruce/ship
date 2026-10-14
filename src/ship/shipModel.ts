@@ -4,6 +4,7 @@ import type { ShipType } from '../shipTypes';
 import { BrigModel } from './brig/brigModel';
 import { CarrackModel } from './carrack/carrackModel';
 import { FluytModel } from './fluyt/fluytModel';
+import { GalleassModel } from './galleass/galleassModel';
 import { BrigantineModel } from './brigantine/brigantineModel';
 import { CaravelModel } from './caravel/caravelModel';
 import { SchoonerModel } from './schooner/schoonerModel';
@@ -35,6 +36,12 @@ export interface CannonMount {
   calibre: 'main' | 'deck';
   /** Mortier (brick) : il garde toujours son allure, quel que soit le type de canons du calibre. */
   mortar?: boolean;
+  /** Canon à plusieurs fûts (triple canon de la galéasse) : leurs bouches (repère du canon) ; une salve tire un boulet par fût. */
+  barrels?: readonly THREE.Vector3[];
+  /** Rechargement : multiple de celui de son calibre (1 par défaut). */
+  reloadFactor?: number;
+  /** Demi-angle de tir propre (rad), à la place de celui de son calibre. */
+  arcHalfAngle?: number;
 }
 
 /** Ce que tout modèle de bateau sait faire, quel que soit son type. */
@@ -76,9 +83,9 @@ export interface ShipModel {
   setRudder(rudder: number): void;
   /** Vent relatif au bateau (rad, 0 = vers la proue) et sa force 0..1. */
   setWind(relativeDirection: number, strength: number): void;
-  /** (Re)crée `perSide` canons sur chaque flanc, et `chase` canons de chasse à la proue (caravelle, chébec). */
+  /** (Re)crée `perSide` canons sur chaque flanc, et `chase` canons de chasse à la proue (caravelle, chébec, caraque, galéasse). */
   setCannons(perSide: number, chase?: number): void;
-  /** Avirons (chébec) : 0 = rentrés, 1 = sortis ; sortis, ils nagent en cadence. */
+  /** Avirons (chébec, galéasse) : 0 = rentrés, 1 = sortis ; sortis, ils nagent en cadence. */
   setOars?(out: number): void;
   /** Niveau de renfort de coque (bandes de fer). */
   setArmorLevel(level: number): void;
@@ -103,6 +110,7 @@ export function createShipModel(type: ShipType, stats: ShipStats, livery: Livery
   if (type === 'brig') return new BrigModel(stats, livery);
   if (type === 'corvette') return new CorvetteModel(stats, livery);
   if (type === 'carrack') return new CarrackModel(stats, livery);
+  if (type === 'galleass') return new GalleassModel(stats, livery);
   if (type === 'frigate') return new FrigateModel(stats, livery);
   return new LongboatModel(stats, livery);
 }

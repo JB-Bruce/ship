@@ -31,6 +31,9 @@ export function cannonStatsOf(ship: Ship, mount: CannonMount): CannonStats {
   return mount.calibre === 'deck' && ship.stats.deckCannon ? ship.stats.deckCannon : ship.stats.cannon;
 }
 
+/** Demi-angle de tir d'un canon : le sien (triples canons et pièces du château avant de la galéasse), sinon celui de son calibre. */
+export const arcOf = (mount: CannonMount, c: CannonStats) => mount.arcHalfAngle ?? c.arcHalfAngle;
+
 /** Temps de vol (s) d'un tir de ce calibre jusqu'à `distance` m : boulet tendu, ou obus de mortier en cloche. */
 export function flightTime(c: CannonStats, distance: number): number {
   return c.shell ? c.shell.flightBase + c.shell.flightPerMeter * distance : distance / c.ballSpeed;
@@ -50,16 +53,19 @@ export function updateCannons(dt: number, ships: readonly Ship[], projectiles: P
     if (!ship.alive) continue;
     const mounts = ship.model.cannons;
     let lastAngle = NaN;
+    let lastArc = NaN;
     let lastCalibre: CannonStats | null = null;
     let target: CannonTarget | null = null;
     for (let i = 0; i < mounts.length; i++) {
       const mount = mounts[i];
       const c = cannonStatsOf(ship, mount);
-      // Les canons d'un même bord et d'un même calibre partagent leur cible : une seule recherche.
-      if (mount.angle !== lastAngle || c !== lastCalibre) {
+      const arc = arcOf(mount, c);
+      // Les canons d'un même bord, d'un même calibre et d'un même angle de tir partagent leur cible : une seule recherche.
+      if (mount.angle !== lastAngle || c !== lastCalibre || arc !== lastArc) {
         lastAngle = mount.angle;
         lastCalibre = c;
-        target = findTarget(ship, mount.angle, ships, c) ?? siegeTargetFor(ship, mount.angle, c);
+        lastArc = arc;
+        target = findTarget(ship, mount.angle, ships, c, arc) ?? siegeTargetFor(ship, mount.angle, c, arc);
       }
       // Nouvelle cible : un court délai propre à chaque canon, pour que la bordée parte en cascade.
       if (lastTargets.get(mount) !== target) {
@@ -82,7 +88,7 @@ export function updateCannons(dt: number, ships: readonly Ship[], projectiles: P
       if (ready) mount.fireDelay = Math.max(0, mount.fireDelay - dt);
       if (ready && target && mount.fireDelay === 0) {
         fire(ship, mount, c, target, projectiles, effects);
-        ship.cannonCooldowns[i] = c.reloadTime * (0.9 + Math.random() * 0.2);
+        ship.cannonCooldowns[i] = c.reloadTime * (mount.reloadFactor ?? 1) * (0.9 + Math.random() * 0.2);
         mount.fireDelay = Math.random() * COMBAT.acquireDelay;
       }
     }
@@ -91,11 +97,12 @@ export function updateCannons(dt: number, ships: readonly Ship[], projectiles: P
 
 /**
  * L'ennemi le plus proche à portée et dans l'arc d'un canon pointant vers `angle`
- * (repère du bateau : 0 = proue, +π/2 = bâbord, -π/2 = tribord), ou null. `cannon` : son calibre.
+ * (repère du bateau : 0 = proue, +π/2 = bâbord, -π/2 = tribord), ou null. `cannon` : son calibre ; `arc` : son
+ * demi-angle de tir, s'il a le sien (arcOf).
  */
-export function findTarget(ship: Ship, angle: number, ships: readonly Ship[], cannon: CannonStats = ship.stats.cannon): Ship | null {
-  const { range, arcHalfAngle } = cannon;
-  const minCos = Math.cos(arcHalfAngle);
+export function findTarget(ship: Ship, angle: number, ships: readonly Ship[], cannon: CannonStats = ship.stats.cannon, arc = cannon.arcHalfAngle): Ship | null {
+  const { range } = cannon;
+  const minCos = Math.cos(arc);
   // Direction de tir en coordonnées monde.
   const sx = Math.sin(ship.heading + angle);
   const sz = Math.cos(ship.heading + angle);
@@ -114,7 +121,7 @@ export function findTarget(ship: Ship, angle: number, ships: readonly Ship[], ca
 }
 
 /** Le point assiégé par ce bateau, s'il est à portée et dans l'arc du canon pointant vers `angle`, sinon null. */
-function siegeTargetFor(ship: Ship, angle: number, cannon: CannonStats): CannonTarget | null {
+function siegeTargetFor(ship: Ship, angle: number, cannon: CannonStats, arc: number): CannonTarget | null {
   const target = ship.siegeTarget;
   if (!target) return null;
   const dx = target.position.x - ship.position.x;
@@ -122,7 +129,7 @@ function siegeTargetFor(ship: Ship, angle: number, cannon: CannonStats): CannonT
   const distance = Math.hypot(dx, dz);
   if (distance - (target.radius ?? 0) > cannon.range * conditions.rangeFactor) return null;
   const facing = (dx * Math.sin(ship.heading + angle) + dz * Math.cos(ship.heading + angle)) / distance;
-  return facing >= Math.cos(cannon.arcHalfAngle) ? target : null;
+  return facing >= Math.cos(arc) ? target : null;
 }
 
 /** Anticipation : où sera la cible quand le boulet arrivera (résultat dans `aim`). */
@@ -140,13 +147,22 @@ function leadTarget(ship: Ship, target: CannonTarget, c: CannonStats) {
 function yawToward(ship: Ship, mount: CannonMount, c: CannonStats, tx: number, tz: number): number {
   // Angle de la cible dans le repère du bateau, comparé à la direction neutre du canon.
   const relative = Math.atan2(tx - ship.position.x, tz - ship.position.z) - ship.heading;
-  const limit = c.arcHalfAngle;
+  const limit = arcOf(mount, c);
   return THREE.MathUtils.clamp(wrapAngle(relative - mount.angle), -limit, limit);
 }
 
+/** Un coup de canon : un boulet par fût (triple canon), sinon un seul. */
 function fire(ship: Ship, mount: CannonMount, c: CannonStats, target: CannonTarget, projectiles: Projectiles, effects: Effects) {
   ship.model.root.updateMatrixWorld();
-  mount.object.localToWorld(muzzle.copy(mount.muzzle));
+  if (mount.barrels) for (const barrel of mount.barrels) shoot(ship, mount, barrel, c, target, projectiles, effects);
+  else shoot(ship, mount, mount.muzzle, c, target, projectiles, effects);
+  ship.markCombat();
+  ship.recoil(mount.angle);
+}
+
+/** Tire un boulet (ou un obus) depuis la bouche `local` (repère du canon) vers le point visé. */
+function shoot(ship: Ship, mount: CannonMount, local: THREE.Vector3, c: CannonStats, target: CannonTarget, projectiles: Projectiles, effects: Effects) {
+  mount.object.localToWorld(muzzle.copy(local));
 
   // Imprécision : un léger écart d'angle et de distance (le spread), qui peut faire rater.
   const dx = aim.x - muzzle.x;
@@ -163,6 +179,4 @@ function fire(ship: Ship, mount: CannonMount, c: CannonStats, target: CannonTarg
   projectiles.fire(muzzle, velocity, ship, c.damage, c.shell);
   if (c.shell) effects.mortarLaunch(muzzle);
   else effects.muzzleFlash(muzzle, Math.sin(angle), Math.cos(angle));
-  ship.markCombat();
-  ship.recoil(mount.angle);
 }

@@ -2,11 +2,11 @@
 // Un tableau d'amélioration = une valeur par niveau (le niveau 1 est la première case).
 
 import { UPGRADE_INFO, type ShipTypeDef } from './shipTypeDef';
-import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CARRACK_STATS, CORVETTE_STATS, FLUYT_STATS, FRIGATE_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, weaker, XEBEC_STATS } from './shipStats';
+import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CARRACK_STATS, CORVETTE_STATS, FLUYT_STATS, FRIGATE_STATS, GALLEASS_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, weaker, XEBEC_STATS } from './shipStats';
 
-export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'fluyt' | 'brig' | 'corvette' | 'carrack' | 'frigate';
+export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'fluyt' | 'brig' | 'corvette' | 'carrack' | 'galleass' | 'frigate';
 /** Du plus petit au plus gros (par rang de taille ; à rang égal, dans l'ordre d'affichage). */
-export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'carrack', 'frigate'];
+export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'carrack', 'galleass', 'frigate'];
 /** Nom du type d'un navire selon ses allongements (« Frégate allongée », « Grande frégate »). */
 export function typeName(type: ShipType, extension = 0): string {
   return extension > 0 ? (SHIP_TYPES[type].extensions?.[extension - 1]?.name ?? SHIP_TYPES[type].name) : SHIP_TYPES[type].name;
@@ -30,7 +30,7 @@ export { UPGRADE_INFO };
 export type { ExtensionDef, MassTable, ShipTypeDef, UpgradeTable } from './shipTypeDef';
 
 /** Types que le joueur peut acheter (la barque est réservée aux ennemis). */
-export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'carrack', 'frigate'];
+export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'carrack', 'galleass', 'frigate'];
 
 export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
   rowboat: {
@@ -487,6 +487,67 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
         turnFactor: 0.92,
         mass: 110,
         extraLevels: { cannons: 1, hold: 1 },
+      },
+    ],
+  },
+  galleass: {
+    name: 'Galéasse',
+    feminine: true,
+    description: 'Grande galère de guerre, longue et basse : trois mâts à voiles latines, éperon, château avant et château de poupe sous un tendelet. Par vent de face, ses rameurs sortent les avirons. Une batterie dans le bordé au-dessus des avirons et des pièces sur le pont ; à la proue, deux triples canons qui tirent trois boulets à la fois, et deux pièces légères sur le château avant.',
+    armament: 'broadside',
+    rank: 6,
+    threat: 6,
+    lootFactor: 6,
+    price: { gold: 7500, wood: 2600 },
+    respawnTime: 98,
+    hold: 90,
+    oars: 0.3,
+    stats: GALLEASS_STATS,
+    enemyStats: weaker(GALLEASS_STATS, 580, 18),
+    gunLabels: { main: 'Batterie et triples canons', deck: 'Pièces du pont et du château avant' },
+    upgrades: {
+      accuracy: {
+        costs: [{ gold: 80, wood: 0 }, { gold: 130, wood: 0 }, { gold: 190, wood: 0 }, { gold: 260, wood: 0 }],
+        spreadFactor: [0.8, 0.62, 0.46, 0.32],
+      },
+      range: { costs: [{ gold: 130, wood: 40 }, { gold: 200, wood: 60 }], rangeFactor: [1.15, 1.3] },
+      // 1 : un canon de batterie de plus par bord, 2 : une pièce sur le pont, 3 : un canon de batterie, 4 : une pièce ;
+      // grande galéasse, puis galéasse capitane : un canon de batterie et une pièce chacune (voir galleassArmament).
+      cannons: {
+        costs: [{ gold: 180, wood: 100 }, { gold: 230, wood: 130 }, { gold: 280, wood: 160 }, { gold: 340, wood: 200 }, { gold: 420, wood: 240 }, { gold: 520, wood: 300 }],
+        cannonsPerSide: [9, 10, 11, 12, 14, 16],
+      },
+      hull: {
+        costs: [{ gold: 60, wood: 60 }, { gold: 110, wood: 110 }, { gold: 160, wood: 160 }, { gold: 220, wood: 220 }],
+        healthFactor: [1.1, 1.2, 1.3, 1.4],
+      },
+      sails: { costs: [{ gold: 90, wood: 25 }, { gold: 140, wood: 40 }, { gold: 200, wood: 55 }], speedFactor: [1.06, 1.12, 1.18] },
+      hold: { costs: [{ gold: 90, wood: 50 }, { gold: 140, wood: 90 }, { gold: 200, wood: 130 }, { gold: 270, wood: 170 }], capacity: [110, 135, 160, 180] },
+      nets: { costs: [], catchFactor: [] },
+    },
+    mass: { base: 580, perExtraCannon: 8, hull: [20, 42, 66, 92], sails: [8, 16, 24], hold: [10, 20, 30, 40], speedLossPerUnit: 0.0003 },
+    extensions: [
+      {
+        name: 'Grande galéasse',
+        description: 'Le chantier rallonge la coque de quatre mètres au milieu : un sabord de plus par bord en batterie et une pièce de plus sur le pont (un niveau de canons en plus), et deux avirons de plus par bord.',
+        cost: { gold: 3600, wood: 1800 },
+        length: 4,
+        healthFactor: 1.15,
+        speedFactor: 1.03,
+        turnFactor: 0.92,
+        mass: 90,
+        extraLevels: { cannons: 1 },
+      },
+      {
+        name: 'Galéasse capitane',
+        description: 'Le chantier rallonge encore la coque de quatre mètres au milieu : un sabord de plus par bord en batterie, une pièce de plus sur le pont (un niveau de canons en plus), deux avirons de plus par bord et des membrures doublées.',
+        cost: { gold: 5400, wood: 2700 },
+        length: 4,
+        healthFactor: 1.15,
+        speedFactor: 1.03,
+        turnFactor: 0.92,
+        mass: 100,
+        extraLevels: { cannons: 1 },
       },
     ],
   },

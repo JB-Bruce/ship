@@ -7,8 +7,8 @@ import { armorFor, cannonMount, fireSpots, mastheadStaff, riggingMaterial, water
 import { addStatics, type LanternSpot } from '../parts/nightGlow';
 import { TornSail } from '../parts/tornSail';
 import type { CannonMount, EnsignStaff, FlagMount, ShipModel } from '../shipModel';
-import { alongMast, BOW_PLATFORM, DECK_Y, POOP, RAKE, xebecLayout, type XebecLateen, type XebecLayout } from './xebecLayout';
-import { XebecOars } from './xebecOars';
+import { OarBank } from '../parts/oarBank';
+import { alongMast, BOW_PLATFORM, DECK_Y, OAR, POOP, RAKE, xebecLayout, type XebecLateen, type XebecLayout } from './xebecLayout';
 import { FLAG, xebecTemplateFor, type XebecTemplate } from './xebecTemplate';
 
 const RUDDER_MAX_ANGLE = 0.55;
@@ -58,7 +58,7 @@ export class XebecModel implements ShipModel {
   private rudder!: THREE.Mesh;
   private wheel!: THREE.Mesh;
   private flag!: WavingFlag;
-  private oars!: XebecOars;
+  private oars!: OarBank;
   private gunports: THREE.Mesh[] = [];
   private armor: THREE.Mesh | null = null;
   private sailAmount = 0;
@@ -233,7 +233,7 @@ export class XebecModel implements ShipModel {
     this.flag = new WavingFlag(t.flagMaterial, FLAG.length, FLAG.height);
     this.flag.mesh.position.set(0, this.flagMount.position.y + this.flagLift, this.flagMount.position.z);
 
-    this.oars = new XebecOars(L, t.oar, t.palette);
+    this.oars = new OarBank(L.hull, L.oarZs, OAR, t.oar, t.palette);
     this.oars.setOut(this.oarsOut);
 
     const waterMask = new THREE.Mesh(t.waterMask, waterMaskMaterial);

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, ISLAND_INFO, OCEAN, SKY, WORLD, type IslandId } from './config';
 import { Campaign } from './campaign';
 import { ChaseCamera } from './camera/chaseCamera';
-import { cannonStatsOf, findTarget, updateCannons } from './combat/cannons';
+import { arcOf, cannonStatsOf, findTarget, updateCannons } from './combat/cannons';
 import { Criticals } from './combat/criticals';
 import { Projectiles, type Ball } from './combat/projectiles';
 import { setupDebug } from './debug';
@@ -385,7 +385,10 @@ export class Game {
   /** Un ennemi est-il dans la zone de tir d'un canon du bateau piloté ? */
   private inCombat(): boolean {
     const leader = this.fleet.leader;
-    return leader.alive && leader.model.cannons.some((m) => findTarget(leader, m.angle, this.ships, cannonStatsOf(leader, m)) !== null);
+    return leader.alive && leader.model.cannons.some((m) => {
+      const c = cannonStatsOf(leader, m);
+      return findTarget(leader, m.angle, this.ships, c, arcOf(m, c)) !== null;
+    });
   }
 
   private resize() {

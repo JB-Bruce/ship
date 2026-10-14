@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { sideTf, std } from '../parts/common';
-import type { HullShape, Station } from '../parts/hullShape';
+import { addLadder, bulkhead } from '../parts/deckFittings';
 import { addLantern, type Palette } from '../parts/props';
 import { cylinderBetween } from '../parts/sails';
 import { DECK_Y, FORE_LOWER_Y, type CarrackLayout, type Deck } from './carrackLayout';
@@ -17,44 +17,6 @@ const STERN_WINDOWS = [6.7, 8.8];
 const STEM_LINE = [0.8, 0.88, 0.94, 0.98, 1];
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
-/** Échelles raides des châteaux : inclinaison (rad, depuis la verticale), largeur, écart des barreaux (m). */
-const LADDER = { lean: 0.35, width: 0.55, rung: 0.32 };
-
-/**
- * Échelle raide contre une cloison, du pont `from` au pont `to`, en (x, z) au pied de la cloison ; `facing` = 1 si
- * l'on monte vers l'arrière (cloison d'un château arrière), -1 vers l'avant.
- */
-function addLadder(batch: GeometryBatch, p: Palette, x: number, z: number, from: number, to: number, facing: 1 | -1) {
-  const rise = to - from;
-  const run = rise * Math.tan(LADDER.lean);
-  const foot = (dx: number) => new THREE.Vector3(x + dx, from, z + facing * (run + 0.1));
-  const head = (dx: number) => new THREE.Vector3(x + dx, to + 0.5, z + facing * 0.05 - facing * Math.tan(LADDER.lean) * 0.5);
-  for (const dx of [-LADDER.width / 2, LADDER.width / 2]) batch.add(p.wood, cylinderBetween(foot(dx), head(dx), 0.045, 0.045, 4), new THREE.Matrix4());
-  for (let y = LADDER.rung; y < rise; y += LADDER.rung) {
-    const t = y / (rise + 0.5);
-    const a = foot(-LADDER.width / 2).lerp(head(-LADDER.width / 2), t);
-    batch.add(p.dark, cylinderBetween(a, a.clone().setX(x + LADDER.width / 2), 0.03, 0.03, 4), new THREE.Matrix4());
-  }
-}
-
-/** Points de hauteur pris sur le bordé pour dessiner une cloison qui l'épouse. */
-const BULKHEAD_STEPS = 6;
-
-/**
- * Cloison d'un étage de château, de `from` à `to` (m), à la station `s` : elle épouse le bordé qui rentre (pas de jour
- * sur les côtés, rien qui dépasse) ; `facing` = 1 si elle regarde vers l'avant, -1 vers l'arrière. Renvoie de quoi
- * plaquer des portes et des fenêtres sur sa face.
- */
-function bulkhead(batch: GeometryBatch, p: Palette, hull: HullShape, s: Station, from: number, to: number, facing: 1 | -1) {
-  const ys = Array.from({ length: BULKHEAD_STEPS + 1 }, (_, i) => from + ((to - from) * i) / BULKHEAD_STEPS);
-  const shape = new THREE.Shape();
-  ys.forEach((y, i) => (i === 0 ? shape.moveTo(hull.halfWidthAt(s, y) * 0.995, y) : shape.lineTo(hull.halfWidthAt(s, y) * 0.995, y)));
-  for (const y of [...ys].reverse()) shape.lineTo(-hull.halfWidthAt(s, y) * 0.995, y);
-  const geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.14, bevelEnabled: false });
-  geometry.translate(0, 0, s.z - 0.07);
-  batch.add(p.wood, geometry, new THREE.Matrix4());
-  return (x: number, y: number, w: number, h: number, m: THREE.Material) => batch.add(m, box(w, h, 0.04), tf(x, y, s.z + facing * 0.08));
-}
 
 /**
  * Châteaux : cloisons (portes, fenêtres) et échelles du demi-pont, du gaillard d'arrière, de la dunette et du château

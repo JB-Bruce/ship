@@ -221,6 +221,29 @@ export const CARRACK_STATS: ShipStats = {
   buoyancy: { stiffness: 22, damping: 7.8, tiltResponse: 3.8 },
 };
 
+/**
+ * Galéasse : grande galère de guerre, longue et basse, trois mâts à voiles latines, château avant et château de poupe,
+ * éperon ; ses rameurs sortent les avirons par vent de face. Deux calibres sur les flancs : batterie dans le bordé,
+ * au-dessus des avirons (angle de tir étroit), et pièces du pont dans le pavois. Canons de chasse (GALLEASS_BOW) : deux
+ * triples canons au calibre de la batterie dans la face du château avant, et deux pièces légères sur son dessus.
+ */
+export const GALLEASS_STATS: ShipStats = {
+  length: 33,
+  width: 7.2,
+  maxSpeed: 11.5,
+  acceleration: 1.9,
+  deceleration: 2.8,
+  turnRate: 0.3,
+  rudderSpeed: 1.9,
+  turnHeel: 0.004,
+  maxHealth: 700,
+  cannonsPerSide: 8,
+  chaseGuns: 4,
+  cannon: { range: 155, reloadTime: 4.6, arcHalfAngle: 20 * DEG, spread: 2.2 * DEG, rangeError: 0.06, damage: 22, ballSpeed: 62 },
+  deckCannon: { range: 130, reloadTime: 2.4, arcHalfAngle: 35 * DEG, spread: 2.6 * DEG, rangeError: 0.07, damage: 10, ballSpeed: 58 },
+  buoyancy: { stiffness: 23, damping: 7.9, tiltResponse: 3.9 },
+};
+
 /** Version ennemie : plus lente, moins précise, moins solide. */
 export function weaker(stats: ShipStats, health: number, damage: number): ShipStats {
   return {
