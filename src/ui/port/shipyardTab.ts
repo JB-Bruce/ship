@@ -33,13 +33,15 @@ export function shipyardTab(ctx: PortContext): string {
   const stats = member.ship.stats;
   const penalty = Math.round(massSpeedLoss(type, levels) * 100);
   const labels = SHIP_TYPES[type].gunLabels;
+  // Le mortier du brick n'a pas de type de canons à choisir.
+  const secondRow = stats.deckCannon !== undefined && !stats.deckCannon.shell;
   return `
     <p class="subtitle">Améliorations de <b>${member.name}</b> (${typeName(type, levels.extension)}). Prends la barre d'un autre navire (T) pour l'améliorer.</p>
     ${resourcesHtml(ctx)}
     <div class="list">${UPGRADE_IDS.filter((id) => maxLevel(type, id, levels) > 0).map((id) => card(ctx, id)).join('')}</div>
     ${extensionCard(ctx)}
     <h3 class="section">Type de canons</h3>
-    ${gunRow(ctx, 'main', stats.deckCannon ? (labels?.main ?? 'Batterie') : '')}${stats.deckCannon ? gunRow(ctx, 'deck', labels?.deck ?? 'Canons des gaillards') : ''}
+    ${gunRow(ctx, 'main', secondRow ? (labels?.main ?? 'Batterie') : '')}${secondRow ? gunRow(ctx, 'deck', labels?.deck ?? 'Canons des gaillards') : ''}
     <div class="footer">
       <span>Longueur <b>${stats.length} m</b></span>
       <span>Masse <b>${shipMass(type, levels)}</b>${penalty > 0 ? ` (−${penalty} % de vitesse)` : ''}</span>

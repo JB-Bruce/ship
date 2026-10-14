@@ -4,6 +4,7 @@ import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { buildWheel } from '../corvette/corvetteTemplate';
 import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } from '../parts/common';
 import { addHatch } from '../parts/deckFittings';
+import { addMortarPlatform, buildMortarGeometry } from '../parts/mortar';
 import { addBarrel, addCrate, addLantern, addRopeCoil, buildCarriageGunGeometry, type Palette } from '../parts/props';
 import { buildGaffSail, buildSquareSail, buildTriangleSail, cylinderBetween } from '../parts/sails';
 import { alongMast, BAND, DECK_Y, PORT_Y, RAKE, type BrigLayout } from './brigLayout';
@@ -29,6 +30,9 @@ export interface BrigTemplate {
   rudder: THREE.BufferGeometry;
   wheel: THREE.BufferGeometry;
   cannon: THREE.BufferGeometry;
+  /** Mortier du pont avant : affût (bois) et fût (métal), qui pivotent ensemble. */
+  mortarBed: THREE.BufferGeometry;
+  mortarTube: THREE.BufferGeometry;
   flagMaterial: THREE.Material;
   rigging: THREE.BufferGeometry;
   waterMask: THREE.BufferGeometry;
@@ -88,14 +92,16 @@ function buildTemplate(L: BrigLayout, livery: Livery): BrigTemplate {
   batch.add(p.dark, new THREE.CylinderGeometry(0.035, 0.035, 1.2, 4), tf(0, mainCap.y + 0.6, mainCap.z));
   batch.add(p.wood, box(0.14, L.wheel.y - DECK_Y, 0.14), tf(0, (L.wheel.y + DECK_Y) / 2, L.wheel.z - 0.12));
 
-  // Pont : caillebotis, cabestan entre les mâts, cargaison et cordages dans l'axe (les flancs restent aux canons).
+  // Pont : caillebotis, cabestan entre les mâts, cargaison et cordages dans l'axe (les flancs restent aux canons) ;
+  // plateforme tournante du mortier à l'avant.
   addHatch(batch, p, tf(0, DECK_Y, at(0.12).z), 1.1, 1.3, 'grating');
   addHatch(batch, p, tf(0, DECK_Y, at(-0.5).z), 1, 1.1, 'grating');
   const capstan = at(-0.05).z;
   batch.add(p.wood, new THREE.CylinderGeometry(0.28, 0.34, 0.8, 8), tf(0, DECK_Y + 0.4, capstan));
   batch.add(p.dark, new THREE.CylinderGeometry(0.4, 0.4, 0.08, 8), tf(0, DECK_Y + 0.82, capstan));
-  addBarrel(batch, p, tf(0.5, DECK_Y, at(0.62).z));
-  addBarrel(batch, p, tf(-0.5, DECK_Y, at(0.62).z, 0, 0.7));
+  addMortarPlatform(batch, p, tf(0, DECK_Y, L.mortar.z), L.mortar.platform);
+  addBarrel(batch, p, tf(0.5, DECK_Y, at(0.5).z));
+  addBarrel(batch, p, tf(-0.5, DECK_Y, at(0.5).z, 0, 0.7));
   addCrate(batch, p, tf(0.35, DECK_Y, at(-0.62).z, 0, 0.2));
   addRopeCoil(batch, p, tf(-0.5, DECK_Y, L.foreMast.z - 0.8));
   addRopeCoil(batch, p, tf(0.5, DECK_Y, L.mainMast.z - 0.8));
@@ -107,6 +113,7 @@ function buildTemplate(L: BrigLayout, livery: Livery): BrigTemplate {
       yard.rotateZ(Math.PI / 2);
       return yard;
     });
+  const mortar = buildMortarGeometry();
   return {
     palette: p,
     statics: batch.build(),
@@ -120,6 +127,8 @@ function buildTemplate(L: BrigLayout, livery: Livery): BrigTemplate {
     rudder: buildRudderGeometry(2.2),
     wheel: buildWheel(),
     cannon: buildCarriageGunGeometry(),
+    mortarBed: mortar.bed,
+    mortarTube: mortar.tube,
     flagMaterial: flagMaterialFor(livery),
     rigging: buildRigging(L),
     waterMask: hull.buildWaterMask(DECK_Y + WATER_MASK.aboveDeck),

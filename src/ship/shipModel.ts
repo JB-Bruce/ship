@@ -32,6 +32,8 @@ export interface CannonMount {
   fireDelay: number;
   /** Calibre : 'main' = ShipStats.cannon, 'deck' = ShipStats.deckCannon (pont supérieur d'un navire à deux calibres). */
   calibre: 'main' | 'deck';
+  /** Mortier (brick) : il garde toujours son allure, quel que soit le type de canons du calibre. */
+  mortar?: boolean;
 }
 
 /** Ce que tout modèle de bateau sait faire, quel que soit son type. */

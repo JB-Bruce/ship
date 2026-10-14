@@ -247,7 +247,16 @@ export class Game {
     for (const fort of Object.values(this.forts)) fort.update(dt, this.ships, this.projectiles, this.effects, this.wind);
     updateCannons(dt, this.ships, this.projectiles, this.effects);
     const besieged = this.campaign.besieged();
-    this.projectiles.update(dt, this.ships, this.waves, this.effects, (ship, ball) => this.onBallHit(ship, ball), besieged, (fort, ball) => fort.takeDamage(ball.damage));
+    this.projectiles.update(
+      dt,
+      this.ships,
+      this.waves,
+      this.effects,
+      (ship, ball) => this.onBallHit(ship, ball),
+      besieged,
+      (fort, ball) => fort.takeDamage(ball.damage),
+      (ship, ball, damage) => this.onShellBlast(ship, ball, damage),
+    );
     for (const ship of this.ships) this.effects.shipAmbient(dt, ship, this.waves);
     this.effects.update(dt, this.waves, this.ships);
     this.bossSinking.update(dt);
@@ -331,9 +340,21 @@ export class Game {
   }
 
   private onBallHit(ship: Ship, ball: Ball) {
-    this.effects.impact(ball.position);
+    // Un obus fait sa propre explosion (Projectiles), et secoue plus fort.
+    if (ball.shell) this.shellShake(ship);
+    else this.effects.impact(ball.position);
     this.applyDamage(ship, ball.damage, ball.owner);
     if (this.criticals.strike(ship) === 'magazine') this.applyDamage(ship, ship.stats.maxHealth * CRIT.magazineDamage, ball.owner);
+  }
+
+  /** Souffle d'un obus qui a explosé près d'un navire ennemi (sans coup critique). */
+  private onShellBlast(ship: Ship, ball: Ball, damage: number) {
+    this.shellShake(ship);
+    this.applyDamage(ship, damage, ball.owner);
+  }
+
+  private shellShake(ship: Ship) {
+    if (ship === this.fleet.leader) this.chaseCamera.shake(COMBAT.shellShake);
   }
 
   /** `attacker` : qui a porté le coup (bateau, fort), pour savoir qui a coulé un ennemi ; null pour la foudre et la mer. */

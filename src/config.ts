@@ -31,6 +31,25 @@ export interface CannonStats {
   damage: number;
   /** Vitesse horizontale du boulet (m/s). */
   ballSpeed: number;
+  /** Mortier : ce calibre tire des obus en cloche qui explosent (voir ShellStats), au lieu de boulets. */
+  shell?: ShellStats;
+}
+
+/**
+ * Obus de mortier : tiré en cloche (temps de vol selon la distance, gravité plus forte qu'un boulet pour une courbe
+ * haute et raide), il explose où il tombe ; son souffle touche les navires ennemis proches, même s'il les rate.
+ */
+export interface ShellStats {
+  /** Gravité de l'obus, en multiple de COMBAT.gravity. */
+  gravityFactor: number;
+  /** Temps de vol (s) = flightBase + flightPerMeter × distance. */
+  flightBase: number;
+  flightPerMeter: number;
+  /** Souffle : les navires ennemis dont le bordé est à moins de `blastRadius` m de l'explosion prennent `blastShare` des dégâts. */
+  blastRadius: number;
+  blastShare: number;
+  /** Taille de l'obus (× celle d'un boulet). */
+  size: number;
 }
 
 /** Caractéristiques d'un bateau. Les améliorations futures modifieront ces valeurs. */
@@ -134,10 +153,19 @@ export const COMBAT = {
   fleeHealth: 0.2,
   /** Un fuyard qui s'est réparé jusqu'à cette fraction de sa vie revient au combat. */
   rallyHealth: 0.8,
-  /** Secousse de caméra quand le joueur est touché (0..1). */
+  /** Secousse de caméra quand le joueur est touché (0..1), et en plus quand c'est par un obus de mortier (coup ou souffle). */
   hitShake: 0.55,
+  shellShake: 0.6,
   /** Délai aléatoire max (s) avant chaque tir d'un canon chargé et pointé : la bordée part en cascade, pas d'un bloc. */
   acquireDelay: 0.3,
+};
+
+/** Mortier du brick : obus en cloche (voir ShellStats) ; effets : traînée de fumée posée tous les `trailInterval` s, taille de l'explosion. */
+export const MORTAR_SHELL: ShellStats = { gravityFactor: 2, flightBase: 1.8, flightPerMeter: 0.0135, blastRadius: 12, blastShare: 0.5, size: 2.2 };
+export const MORTAR_FX = {
+  trailInterval: 0.025,
+  /** Taille de l'explosion d'un obus (Effects.explosion ; la sainte-barbe : CRIT.magazineScale). */
+  blastScale: 1.2,
 };
 
 /** Recul d'un coup de canon : le bateau roule (~2° pour une chaloupe, ~0,75° pour un brigantin), d'autant moins qu'il est lourd. */

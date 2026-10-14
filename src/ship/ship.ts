@@ -156,7 +156,8 @@ export class Ship {
 
   /** Rechargements décalés : tous les canons ne partent pas à la même image. */
   private randomCooldowns(): number[] {
-    return this.model.cannons.map(() => Math.random() * this.stats.cannon.reloadTime);
+    const { cannon, deckCannon } = this.stats;
+    return this.model.cannons.map((m) => Math.random() * (m.calibre === 'deck' && deckCannon ? deckCannon : cannon).reloadTime);
   }
 
   /** Tangage (rad, positif = proue haute) et roulis (rad, positif = bâbord haut) de la coque. */

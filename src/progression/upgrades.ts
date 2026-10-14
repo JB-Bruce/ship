@@ -76,8 +76,8 @@ export function chaseGunsFor(type: ShipType, levels: UpgradeLevels): number {
 /** Le type a-t-il des canons de chasse (montés d'emblée ou à acheter) ? */
 const hasChaseGuns = (type: ShipType) => SHIP_TYPES[type].upgrades.cannons.chaseFrom !== undefined || SHIP_TYPES[type].upgrades.cannons.chaseGuns !== undefined;
 
-/** Nombre total de canons d'un navire : ses deux flancs et ses canons de chasse. */
-export const cannonCount = (stats: ShipStats) => stats.cannonsPerSide * 2 + (stats.chaseGuns ?? 0);
+/** Nombre total de canons d'un navire : ses deux flancs, ses canons de chasse et son mortier (brick). */
+export const cannonCount = (stats: ShipStats) => stats.cannonsPerSide * 2 + (stats.chaseGuns ?? 0) + (stats.deckCannon?.shell ? 1 : 0);
 
 /** Masse totale du bateau selon ses améliorations. */
 export function shipMass(type: ShipType, levels: UpgradeLevels): number {

@@ -36,6 +36,8 @@ export const BAND = { from: DECK_Y + 0.1, to: DECK_Y + 0.78 };
 /** Sabords : hauteur de leur centre, régulièrement répartis sur le pont (u de base), 2 de plus par allongement. */
 export const PORT_Y = DECK_Y + 0.42;
 const GUN_SPAN = { from: -0.66, to: 0.6, slots: 9, perExtension: 2, first: 6 };
+/** Mortier : sur le pont avant, dans l'axe (u de base), sur sa plateforme tournante (rayon, m). */
+const MORTAR = { u: 0.7, platform: 0.85 };
 
 /** Un mât incliné vers l'arrière : pied, longueur, hune (le long du mât), et ses quatre voiles carrées. */
 export interface BrigMast {
@@ -65,6 +67,8 @@ export interface BrigLayout {
   /** Focs : point d'amure, têtière et point d'écoute. */
   readonly jibs: readonly { tack: THREE.Vector3; head: THREE.Vector3; clew: THREE.Vector3 }[];
   readonly wheel: { y: number; z: number };
+  /** Mortier du pont avant : centre de sa plateforme tournante (z) et son rayon. */
+  readonly mortar: { z: number; platform: number };
   readonly flag: { length: number; height: number };
   /** Sabords (z), tous percés dans la bande ; `gunSlots` = les mêmes dans l'ordre d'achat. */
   readonly ports: readonly number[];
@@ -119,8 +123,9 @@ function createLayout(level: number): BrigLayout {
   const deck: DeckPlan = {
     hands: DECK_CREW.hands.brig + DECK_CREW.handsPerExtension.brig * level,
     helm: { x: 0, y: DECK_Y, z: wheel.z - 0.55, facing: 0 },
-    lookout: { x: 0, y: DECK_Y, z: at(0.8).z, facing: 0 },
-    walks: deckWalks(DECK_Y, [0.7, -0.7], at(-0.72).z, at(0.7).z),
+    lookout: { x: 0, y: DECK_Y, z: at(0.86).z, facing: 0 },
+    // Les promenades s'arrêtent avant la plateforme du mortier.
+    walks: deckWalks(DECK_Y, [0.7, -0.7], at(-0.72).z, at(MORTAR.u).z - MORTAR.platform - 0.5),
     ropes: ropeSpots(DECK_Y, [foreMast.z, mainMast.z], (z) => hull.stationAt(z / half).halfWidth),
     isOpenGun: () => true,
   };
@@ -147,6 +152,7 @@ function createLayout(level: number): BrigLayout {
       { tack: new THREE.Vector3(0, 3.2, 11 + bowShift), head: fore(10.2), clew: new THREE.Vector3(0, 3.4, 6.6 + bowShift) },
     ],
     wheel,
+    mortar: { z: at(MORTAR.u).z, platform: MORTAR.platform },
     flag: { length: 1.8, height: 1.1 },
     ports,
     gunSlots: purchaseOrder(count, GUN_SPAN.first).map((k) => ports[k]),

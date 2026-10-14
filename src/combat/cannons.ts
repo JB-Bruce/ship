@@ -31,6 +31,11 @@ export function cannonStatsOf(ship: Ship, mount: CannonMount): CannonStats {
   return mount.calibre === 'deck' && ship.stats.deckCannon ? ship.stats.deckCannon : ship.stats.cannon;
 }
 
+/** Temps de vol (s) d'un tir de ce calibre jusqu'à `distance` m : boulet tendu, ou obus de mortier en cloche. */
+export function flightTime(c: CannonStats, distance: number): number {
+  return c.shell ? c.shell.flightBase + c.shell.flightPerMeter * distance : distance / c.ballSpeed;
+}
+
 /** Un tirage aléatoire entre -1 et 1, plus souvent proche de 0 (somme de deux tirages). */
 const centered = () => Math.random() + Math.random() - 1;
 
@@ -122,11 +127,10 @@ function siegeTargetFor(ship: Ship, angle: number, cannon: CannonStats): CannonT
 
 /** Anticipation : où sera la cible quand le boulet arrivera (résultat dans `aim`). */
 function leadTarget(ship: Ship, target: CannonTarget, c: CannonStats) {
-  const speed = c.ballSpeed;
   aim.x = target.position.x;
   aim.z = target.position.z;
   for (let k = 0; k < 3; k++) {
-    aim.flight = Math.hypot(aim.x - ship.position.x, aim.z - ship.position.z) / speed;
+    aim.flight = flightTime(c, Math.hypot(aim.x - ship.position.x, aim.z - ship.position.z));
     aim.x = target.position.x + target.velocityX * aim.flight;
     aim.z = target.position.z + target.velocityZ * aim.flight;
   }
@@ -148,14 +152,17 @@ function fire(ship: Ship, mount: CannonMount, c: CannonStats, target: CannonTarg
   const dx = aim.x - muzzle.x;
   const dz = aim.z - muzzle.z;
   const angle = Math.atan2(dx, dz) + centered() * c.spread;
-  const speed = c.ballSpeed * (1 + centered() * c.rangeError);
-  const flight = Math.hypot(dx, dz) / c.ballSpeed;
-  // Vitesse verticale pour retomber à hauteur de coque au bout du temps de vol.
-  const vy = (target.position.y + 0.6 - muzzle.y + 0.5 * COMBAT.gravity * flight * flight) / flight;
+  const distance = Math.hypot(dx, dz);
+  const flight = flightTime(c, distance);
+  const speed = (distance / flight) * (1 + centered() * c.rangeError);
+  // Vitesse verticale pour retomber à hauteur de coque au bout du temps de vol (l'obus tombe plus vite qu'un boulet).
+  const gravity = COMBAT.gravity * (c.shell?.gravityFactor ?? 1);
+  const vy = (target.position.y + 0.6 - muzzle.y + 0.5 * gravity * flight * flight) / flight;
   velocity.set(Math.sin(angle) * speed, vy, Math.cos(angle) * speed);
 
-  projectiles.fire(muzzle, velocity, ship, c.damage);
-  effects.muzzleFlash(muzzle, Math.sin(angle), Math.cos(angle));
+  projectiles.fire(muzzle, velocity, ship, c.damage, c.shell);
+  if (c.shell) effects.mortarLaunch(muzzle);
+  else effects.muzzleFlash(muzzle, Math.sin(angle), Math.cos(angle));
   ship.markCombat();
   ship.recoil(mount.angle);
 }

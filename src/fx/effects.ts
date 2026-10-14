@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { DAMAGE } from '../config';
+import { DAMAGE, MORTAR_FX } from '../config';
 import type { WakeMap } from '../ocean/wakeMap';
 import type { Waves } from '../ocean/waves';
 import type { Ship } from '../ship/ship';
@@ -7,6 +7,7 @@ import { HullFootprints } from './hullFootprints';
 import { COLORS, rand, reset } from './particleKit';
 import { ParticleSystem } from './particles';
 import { SeaSpray } from './seaSpray';
+import { ShellFx } from './shellFx';
 
 /** Réglages des embruns d'étrave (le sillage, lui, est dessiné par le shader de l'eau : voir ocean/wakeMap.ts). */
 const SPRAY = {
@@ -53,12 +54,14 @@ export class Effects {
   private readonly timers = new WeakMap<Ship, ShipTimers>();
   private readonly hulls = new HullFootprints();
   private readonly sea = new SeaSpray(this.lit);
+  private readonly shells: ShellFx;
 
   constructor(
     scene: THREE.Scene,
     private readonly wakes: WakeMap,
   ) {
     scene.add(this.lit.mesh, this.glow.mesh);
+    this.shells = new ShellFx(this.lit, this.glow, wakes);
   }
 
   /**
@@ -85,6 +88,23 @@ export class Effects {
       Object.assign(s, { vx: dirX * v + rand(-1, 1), vy: rand(0.3, 1.5), vz: dirZ * v + rand(-1, 1), life: rand(1.4, 2.4), size: rand(0.25, 0.45), sizeEnd: rand(0.9, 1.5), drag: 2.2, spin: rand(-1, 1) });
       this.lit.spawn(s);
     }
+  }
+
+  /** Mortier : départ du coup, traînée de l'obus, explosion où il tombe, colonne d'eau s'il tombe à la mer. */
+  mortarLaunch(p: THREE.Vector3) {
+    this.shells.launch(p);
+  }
+
+  shellTrail(p: THREE.Vector3) {
+    this.shells.trail(p);
+  }
+
+  shellBlast(p: THREE.Vector3) {
+    this.explosion(p, MORTAR_FX.blastScale);
+  }
+
+  waterColumn(x: number, y: number, z: number) {
+    this.shells.waterColumn(x, y, z);
   }
 
   /** Fine fumée laissée par un boulet en vol. */

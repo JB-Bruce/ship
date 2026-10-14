@@ -4,6 +4,7 @@ import { wrapAngle } from '../../utils/math';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import type { DeckPlan } from '../deckPlan';
 import { armorFor, cannonMount, fireSpots, mastheadStaff, riggingMaterial, waterMaskMaterial, WavingFlag } from '../parts/common';
+import { MORTAR_MUZZLE } from '../parts/mortar';
 import { addStatics, type LanternSpot } from '../parts/nightGlow';
 import { TornSail } from '../parts/tornSail';
 import type { CannonMount, EnsignStaff, FlagMount, ShipModel } from '../shipModel';
@@ -20,12 +21,15 @@ const SPANKER_GROWTH = 0.04;
 const MUZZLE = new THREE.Vector3(1, 0.38, 0);
 /** Retrait des affûts par rapport au bordé : la bouche des fûts sort par les sabords. */
 const GUN_INSET = 0.62;
+/** Le mortier repose sur sa plateforme tournante, à cette hauteur au-dessus du pont (m). */
+const MORTAR_DECK = 0.1;
 const { damp } = THREE.MathUtils;
 
 /**
  * Brick : pont ras, deux mâts carrés inclinés vers l'arrière (basse voile, hunier, perroquet et cacatois), grande
  * brigantine au grand mât dont la bôme déborde de la poupe et pivote selon le vent, trois focs sur un long bout-dehors.
- * Tous les canons sont sur affût sur le pont, derrière les sabords de la bande ocre. Allongé (setExtension), il est
+ * Tous les canons sont sur affût sur le pont, derrière les sabords de la bande ocre ; un mortier pivote sur sa plateforme
+ * du pont avant (second calibre). Allongé (setExtension), il est
  * reconstruit sur le plan long : canons, renfort, voilure, dégâts et pavillon sont remis en place.
  */
 export class BrigModel implements ShipModel {
@@ -119,7 +123,10 @@ export class BrigModel implements ShipModel {
     if (armor) this.body.add((this.armor = new THREE.Mesh(armor.geometry, armor.material)));
   }
 
-  /** Les `perSide` premiers sabords de chaque bord dans l'ordre d'achat (d'abord le milieu), canons sur affût. */
+  /**
+   * Les `perSide` premiers sabords de chaque bord dans l'ordre d'achat (d'abord le milieu), canons sur affût ; puis le
+   * mortier du pont avant (second calibre), qui pivote dans toutes les directions.
+   */
   setCannons(perSide: number) {
     this.perSide = perSide;
     const { hull, gunSlots } = this.layout;
@@ -134,6 +141,11 @@ export class BrigModel implements ShipModel {
         this.cannons.push(cannonMount(cannon, (side * Math.PI) / 2, MUZZLE));
       }
     }
+    const mortar = new THREE.Group();
+    mortar.add(new THREE.Mesh(this.template.mortarBed, this.template.palette.wood), new THREE.Mesh(this.template.mortarTube, this.template.palette.metal));
+    mortar.position.set(0, DECK_Y + MORTAR_DECK, this.layout.mortar.z);
+    this.body.add(mortar);
+    this.cannons.push({ ...cannonMount(mortar, 0, MORTAR_MUZZLE, 'deck'), mortar: true });
   }
 
   animate(dt: number) {

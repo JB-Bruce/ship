@@ -1,6 +1,6 @@
 // Caractéristiques de base de chaque type de bateau (avant améliorations), côté joueur, et version ennemie.
 
-import type { ShipStats } from './config';
+import { MORTAR_SHELL, type ShipStats } from './config';
 
 const DEG = Math.PI / 180;
 
@@ -117,7 +117,8 @@ export const XEBEC_STATS: ShipStats = {
 
 /**
  * Brick : deux mâts carrés, pont ras, tous ses canons (légers, rapides à recharger) sur le pont. Plus rapide et plus
- * maniable que la corvette, moins solide : le chasseur de la Marine.
+ * maniable que la corvette, moins solide : le chasseur de la Marine. Second calibre : un mortier sur le pont avant, qui
+ * pivote dans toutes les directions et lance en cloche de gros obus explosifs, lents à recharger et peu précis.
  */
 export const BRIG_STATS: ShipStats = {
   length: 20,
@@ -131,6 +132,7 @@ export const BRIG_STATS: ShipStats = {
   maxHealth: 350,
   cannonsPerSide: 6,
   cannon: { range: 125, reloadTime: 2.4, arcHalfAngle: 35 * DEG, spread: 2.6 * DEG, rangeError: 0.07, damage: 10, ballSpeed: 58 },
+  deckCannon: { range: 200, reloadTime: 10, arcHalfAngle: Math.PI, spread: 4 * DEG, rangeError: 0.12, damage: 50, ballSpeed: 45, shell: MORTAR_SHELL },
   buoyancy: { stiffness: 30, damping: 8.8, tiltResponse: 4.7 },
 };
 
