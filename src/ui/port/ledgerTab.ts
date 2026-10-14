@@ -2,7 +2,7 @@ import { BOSS_IDS, BOSSES } from '../../config';
 import { SHIP_TYPES, type ShipType } from '../../shipTypes';
 import { resourcesHtml, type PortContext } from './portContext';
 
-const ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'frigate'];
+const ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'carrack', 'frigate'];
 
 /** Onglet Registre : les exploits de ta flotte depuis le début de la partie, et tes trophées. */
 export function ledgerTab(ctx: PortContext): string {

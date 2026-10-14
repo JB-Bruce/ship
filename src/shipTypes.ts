@@ -2,11 +2,11 @@
 // Un tableau d'amélioration = une valeur par niveau (le niveau 1 est la première case).
 
 import { UPGRADE_INFO, type ShipTypeDef } from './shipTypeDef';
-import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CORVETTE_STATS, FLUYT_STATS, FRIGATE_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, weaker, XEBEC_STATS } from './shipStats';
+import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CARRACK_STATS, CORVETTE_STATS, FLUYT_STATS, FRIGATE_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, weaker, XEBEC_STATS } from './shipStats';
 
-export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'fluyt' | 'brig' | 'corvette' | 'frigate';
+export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'fluyt' | 'brig' | 'corvette' | 'carrack' | 'frigate';
 /** Du plus petit au plus gros (par rang de taille ; à rang égal, dans l'ordre d'affichage). */
-export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'frigate'];
+export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'carrack', 'frigate'];
 /** Nom du type d'un navire selon ses allongements (« Frégate allongée », « Grande frégate »). */
 export function typeName(type: ShipType, extension = 0): string {
   return extension > 0 ? (SHIP_TYPES[type].extensions?.[extension - 1]?.name ?? SHIP_TYPES[type].name) : SHIP_TYPES[type].name;
@@ -30,7 +30,7 @@ export { UPGRADE_INFO };
 export type { ExtensionDef, MassTable, ShipTypeDef, UpgradeTable } from './shipTypeDef';
 
 /** Types que le joueur peut acheter (la barque est réservée aux ennemis). */
-export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'frigate'];
+export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'carrack', 'frigate'];
 
 export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
   rowboat: {
@@ -421,6 +421,60 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
         turnFactor: 0.9,
         mass: 90,
         extraLevels: { cannons: 2, hull: 1, sails: 1, hold: 1 },
+      },
+    ],
+  },
+  carrack: {
+    name: 'Caraque',
+    feminine: true,
+    description: 'Grand navire à quatre mâts, château avant en surplomb et château arrière à trois étages : la plus solide, avec une cale énorme. Batterie basse de gros canons, pièces légères des châteaux qui tirent large, et deux gros canons de chasse à l’avant ; courte portée, lente, lourde à virer, et elle perd beaucoup au près.',
+    armament: 'broadside',
+    rank: 6,
+    threat: 5.5,
+    lootFactor: 6.5,
+    price: { gold: 5800, wood: 2800 },
+    respawnTime: 100,
+    hold: 140,
+    upwindLoss: 1.3,
+    stats: CARRACK_STATS,
+    enemyStats: weaker(CARRACK_STATS, 660, 18),
+    gunLabels: { main: 'Batterie basse', deck: 'Pièces des châteaux' },
+    upgrades: {
+      accuracy: {
+        costs: [{ gold: 80, wood: 0 }, { gold: 130, wood: 0 }, { gold: 190, wood: 0 }, { gold: 260, wood: 0 }],
+        spreadFactor: [0.8, 0.62, 0.46, 0.32],
+      },
+      range: { costs: [{ gold: 130, wood: 40 }, { gold: 200, wood: 60 }], rangeFactor: [1.15, 1.3] },
+      // 1 : un canon de batterie de plus par bord, 2 : une pièce sur le gaillard d'arrière, 3 : un canon de batterie ;
+      // grande caraque : un canon de batterie et une pièce sur le château avant (voir carrackArmament).
+      cannons: {
+        costs: [{ gold: 170, wood: 100 }, { gold: 230, wood: 130 }, { gold: 290, wood: 170 }, { gold: 400, wood: 230 }],
+        cannonsPerSide: [8, 9, 10, 12],
+      },
+      hull: {
+        costs: [{ gold: 60, wood: 60 }, { gold: 110, wood: 110 }, { gold: 160, wood: 160 }, { gold: 220, wood: 220 }],
+        healthFactor: [1.1, 1.2, 1.3, 1.4],
+      },
+      sails: { costs: [{ gold: 90, wood: 25 }, { gold: 140, wood: 40 }, { gold: 200, wood: 55 }], speedFactor: [1.06, 1.12, 1.18] },
+      // Grande caraque : un niveau de cale en plus.
+      hold: {
+        costs: [{ gold: 100, wood: 60 }, { gold: 150, wood: 100 }, { gold: 210, wood: 140 }, { gold: 280, wood: 180 }, { gold: 360, wood: 230 }],
+        capacity: [180, 240, 310, 400, 480],
+      },
+      nets: { costs: [], catchFactor: [] },
+    },
+    mass: { base: 600, perExtraCannon: 9, hull: [20, 42, 66, 92], sails: [8, 16, 24], hold: [14, 28, 42, 58, 74], speedLossPerUnit: 0.0003 },
+    extensions: [
+      {
+        name: 'Grande caraque',
+        description: 'Le chantier rallonge la coque de quatre mètres au milieu : un sabord de plus par bord dans la batterie basse et une pièce de plus sur le château avant (un niveau de canons en plus), et une cale encore plus grande.',
+        cost: { gold: 4000, wood: 2000 },
+        length: 4,
+        healthFactor: 1.15,
+        speedFactor: 1.03,
+        turnFactor: 0.92,
+        mass: 100,
+        extraLevels: { cannons: 1, hold: 1 },
       },
     ],
   },

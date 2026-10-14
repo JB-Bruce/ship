@@ -79,7 +79,10 @@ export interface ShipStats {
    * la caravelle (voir `chaseGuns`).
    */
   deckCannon?: CannonStats;
-  /** Canons de chasse : tirent droit devant, au second calibre (caravelle, débloqué par l'amélioration des canons ; chébec). */
+  /**
+   * Canons de chasse : tirent droit devant, au second calibre (caravelle, débloqué par l'amélioration des canons ;
+   * chébec), ou au calibre de la batterie (caraque).
+   */
   chaseGuns?: number;
   /** Réactivité de la flottaison : un petit bateau léger suit l'eau plus vite qu'un gros. */
   buoyancy: {
@@ -268,8 +271,8 @@ export const DECK_CREW = {
   /** Marins au plus dans le monde (taille des lots de dessin). */
   maxSailors: 400,
   /** Matelots à bord (en plus du barreur et de la vigie), et en plus à chaque allongement du navire. */
-  hands: { sloop: 3, caravel: 4, schooner: 4, brigantine: 5, xebec: 5, fluyt: 6, brig: 6, corvette: 7, frigate: 10 },
-  handsPerExtension: { schooner: 1, brigantine: 2, xebec: 1, fluyt: 2, brig: 2, corvette: 3, frigate: 3 },
+  hands: { sloop: 3, caravel: 4, schooner: 4, brigantine: 5, xebec: 5, fluyt: 6, brig: 6, corvette: 7, carrack: 9, frigate: 10 },
+  handsPerExtension: { schooner: 1, brigantine: 2, xebec: 1, fluyt: 2, brig: 2, corvette: 3, carrack: 3, frigate: 3 },
   walkSpeed: 1.1,
   runSpeed: 3,
   /** Pause d'un matelot entre deux promenades (s). */
@@ -310,7 +313,7 @@ export type OfficerTrait = 'lynx' | 'oldSalt' | 'ironArm' | 'resourceful' | 'luc
 /** Officiers de bord : recrutés à la taverne, affectés à un navire (places selon son type), ils progressent en combattant. */
 export const OFFICERS = {
   /** Places d'officiers par type de navire. */
-  slots: { rowboat: 0, longboat: 1, sloop: 1, caravel: 1, schooner: 1, brigantine: 2, xebec: 2, fluyt: 2, brig: 2, corvette: 2, frigate: 3 } as Record<ShipType, number>,
+  slots: { rowboat: 0, longboat: 1, sloop: 1, caravel: 1, schooner: 1, brigantine: 2, xebec: 2, fluyt: 2, brig: 2, corvette: 2, carrack: 3, frigate: 3 } as Record<ShipType, number>,
   /** Fonctions : nom, symbole, et effet par étoile de talent. */
   roles: {
     gunner: { name: 'Canonnier', icon: '💥', perStar: { reload: -0.04, spread: -0.05 } },
@@ -377,6 +380,7 @@ export const GUNS = {
     fluyt: { gold: 240, wood: 120 },
     brig: { gold: 260, wood: 130 },
     corvette: { gold: 300, wood: 150 },
+    carrack: { gold: 380, wood: 190 },
     frigate: { gold: 400, wood: 200 },
   } as Record<ShipType, Cost>,
   /** Les canons de gaillard (second calibre) coûtent cette part du prix. */
@@ -716,7 +720,7 @@ export const ENEMIES = {
     { minKills: 12, weights: { rowboat: 0.25, longboat: 0.5, sloop: 0.25 } },
     { minKills: 20, weights: { rowboat: 0.15, longboat: 0.3, sloop: 0.25, caravel: 0.1, schooner: 0.05, brigantine: 0.12, xebec: 0.06 } },
     { minKills: 35, weights: { rowboat: 0.1, longboat: 0.2, sloop: 0.25, caravel: 0.1, schooner: 0.05, brigantine: 0.15, xebec: 0.08, fluyt: 0.04, brig: 0.06, corvette: 0.1 } },
-    { minKills: 50, weights: { rowboat: 0.05, longboat: 0.1, sloop: 0.25, caravel: 0.1, schooner: 0.05, brigantine: 0.15, xebec: 0.08, fluyt: 0.05, brig: 0.08, corvette: 0.15, frigate: 0.1 } },
+    { minKills: 50, weights: { rowboat: 0.05, longboat: 0.1, sloop: 0.25, caravel: 0.1, schooner: 0.05, brigantine: 0.15, xebec: 0.08, fluyt: 0.05, brig: 0.08, corvette: 0.15, carrack: 0.06, frigate: 0.1 } },
   ],
   /** Passes d'attaque (barques) : distance où l'on dégage (m), angle (rad) et durée (s) du dégagement. */
   veerDistance: 28,
@@ -1895,7 +1899,7 @@ export const ISLAND_UPGRADES = {
    */
   shipyard: {
     costs: [{ gold: 400, wood: 250 }, { gold: 1000, wood: 600 }],
-    required: { brigantine: 1, xebec: 1, fluyt: 1, brig: 1, corvette: 1, frigate: 2 } as Partial<Record<ShipType, number>>,
+    required: { brigantine: 1, xebec: 1, fluyt: 1, brig: 1, corvette: 1, carrack: 2, frigate: 2 } as Partial<Record<ShipType, number>>,
   },
   workshop: {
     costs: [{ gold: 100, wood: 60 }, { gold: 220, wood: 120 }, { gold: 400, wood: 220 }],
@@ -1969,7 +1973,7 @@ export const ISLAND_TRADE = {
   /** Durée de l'escale au mouillage (s). */
   stay: [20, 40] as const,
   sail: 0.55,
-  types: ['sloop', 'sloop', 'caravel', 'schooner', 'brigantine', 'fluyt'] as const,
+  types: ['sloop', 'sloop', 'caravel', 'schooner', 'brigantine', 'fluyt', 'carrack'] as const,
 };
 
 /** Phare de la Tortue : lumière par temps sombre, taille selon le niveau de l'amélioration « Phare » (0 à 2). */

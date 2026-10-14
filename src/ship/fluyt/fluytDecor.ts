@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
-import { std } from '../parts/common';
+import { sideTf, std } from '../parts/common';
 import { addStairs } from '../parts/deckFittings';
-import type { HullShape, Station } from '../parts/hullShape';
+import type { HullShape } from '../parts/hullShape';
 import { addLantern, type Palette } from '../parts/props';
 import { cylinderBetween } from '../parts/sails';
 import { DECK_Y, type FluytLayout } from './fluytLayout';
@@ -20,13 +20,6 @@ const STEM_LINE = [0.8, 0.88, 0.94, 0.98, 1];
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 
-/**
- * Pièce plaquée sur le bordé à la hauteur y (sabord, fenêtre) : collée au flanc qui rentre, et inclinée comme lui.
- */
-export function sideTf(hull: HullShape, s: Station, y: number, side: 1 | -1, outset: number, scale = 1): THREE.Matrix4 {
-  const lean = Math.atan2(hull.halfWidthAt(s, y - 0.2) - hull.halfWidthAt(s, y + 0.2), 0.4);
-  return tf(side * (hull.halfWidthAt(s, y) + outset), y, s.z, 0, 0, side * lean, scale);
-}
 
 /**
  * Cloisons et escaliers : gaillard d'arrière (porte et fenêtres de la grand-chambre), dunette (fenêtres de la chambre

@@ -198,6 +198,29 @@ export const FRIGATE_STATS: ShipStats = {
   buoyancy: { stiffness: 24, damping: 8, tiltResponse: 4 },
 };
 
+/**
+ * Caraque : grand navire du XVIe siècle, large et haut, châteaux à étages à l'avant et à l'arrière, quatre mâts.
+ * Forteresse lente : la plus solide, lourde à virer, perd beaucoup au près. Deux calibres : batterie basse de gros
+ * canons dans le bordé (angle de tir étroit) et pièces légères des châteaux (angle large, courte portée) ; deux gros
+ * canons de chasse (au calibre de la batterie) sous le château avant.
+ */
+export const CARRACK_STATS: ShipStats = {
+  length: 29,
+  width: 8.8,
+  maxSpeed: 10.5,
+  acceleration: 1.6,
+  deceleration: 2.6,
+  turnRate: 0.28,
+  rudderSpeed: 1.8,
+  turnHeel: 0.004,
+  maxHealth: 800,
+  cannonsPerSide: 7,
+  chaseGuns: 2,
+  cannon: { range: 150, reloadTime: 4.6, arcHalfAngle: 20 * DEG, spread: 2.2 * DEG, rangeError: 0.06, damage: 22, ballSpeed: 62 },
+  deckCannon: { range: 110, reloadTime: 2.2, arcHalfAngle: 45 * DEG, spread: 2.8 * DEG, rangeError: 0.075, damage: 9, ballSpeed: 56 },
+  buoyancy: { stiffness: 22, damping: 7.8, tiltResponse: 3.8 },
+};
+
 /** Version ennemie : plus lente, moins précise, moins solide. */
 export function weaker(stats: ShipStats, health: number, damage: number): ShipStats {
   return {

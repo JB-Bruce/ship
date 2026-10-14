@@ -1,0 +1,157 @@
+import * as THREE from 'three';
+import { GeometryBatch, tf } from '../../utils/geometryBatch';
+import { sideTf, std } from '../parts/common';
+import type { HullShape, Station } from '../parts/hullShape';
+import { addLantern, type Palette } from '../parts/props';
+import { cylinderBetween } from '../parts/sails';
+import { DECK_Y, FORE_LOWER_Y, type CarrackLayout, type Deck } from './carrackLayout';
+
+/** Bordé en chêne, le même pour tous les camps ; préceintes et lisses verticales en bois sombre. */
+export const HULL_OAK = std(0x8a5a32);
+export const DARK_OAK = std(0x5a381c);
+/** Pavois peints (aux couleurs du camp) le long des plats-bords : écartement, taille (m). */
+const PAVISE = { spacing: 0.78, width: 0.5, height: 0.5, below: 0.36 };
+/** Fenêtres du tableau arrière : chambre sous le gaillard d'arrière, chambre de la dunette (hauteur du centre). */
+const STERN_WINDOWS = [6.7, 8.8];
+/** Étrave : sections (u de base) dont elle suit la quille, sous le château avant qui déborde. */
+const STEM_LINE = [0.8, 0.88, 0.94, 0.98, 1];
+
+const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
+/** Échelles raides des châteaux : inclinaison (rad, depuis la verticale), largeur, écart des barreaux (m). */
+const LADDER = { lean: 0.35, width: 0.55, rung: 0.32 };
+
+/**
+ * Échelle raide contre une cloison, du pont `from` au pont `to`, en (x, z) au pied de la cloison ; `facing` = 1 si
+ * l'on monte vers l'arrière (cloison d'un château arrière), -1 vers l'avant.
+ */
+function addLadder(batch: GeometryBatch, p: Palette, x: number, z: number, from: number, to: number, facing: 1 | -1) {
+  const rise = to - from;
+  const run = rise * Math.tan(LADDER.lean);
+  const foot = (dx: number) => new THREE.Vector3(x + dx, from, z + facing * (run + 0.1));
+  const head = (dx: number) => new THREE.Vector3(x + dx, to + 0.5, z + facing * 0.05 - facing * Math.tan(LADDER.lean) * 0.5);
+  for (const dx of [-LADDER.width / 2, LADDER.width / 2]) batch.add(p.wood, cylinderBetween(foot(dx), head(dx), 0.045, 0.045, 4), new THREE.Matrix4());
+  for (let y = LADDER.rung; y < rise; y += LADDER.rung) {
+    const t = y / (rise + 0.5);
+    const a = foot(-LADDER.width / 2).lerp(head(-LADDER.width / 2), t);
+    batch.add(p.dark, cylinderBetween(a, a.clone().setX(x + LADDER.width / 2), 0.03, 0.03, 4), new THREE.Matrix4());
+  }
+}
+
+/** Cloison avant d'un étage de château, de `from` à `to` (m), à la station `s` ; `facing` = 1 vers l'avant, -1 vers l'arrière. */
+function bulkhead(batch: GeometryBatch, p: Palette, hull: HullShape, s: Station, from: number, to: number, facing: 1 | -1) {
+  const height = to - from;
+  batch.add(p.wood, box(2 * hull.halfWidthAt(s, to) * 0.98, height, 0.14), tf(0, from + height / 2, s.z));
+  return (x: number, y: number, w: number, h: number, m: THREE.Material) => batch.add(m, box(w, h, 0.04), tf(x, y, s.z + facing * 0.08));
+}
+
+/**
+ * Châteaux : cloisons (portes, fenêtres) et échelles du demi-pont, du gaillard d'arrière, de la dunette et du château
+ * avant (deux étages, sabords de chasse dans sa face avant).
+ */
+export function addCastles(batch: GeometryBatch, p: Palette, L: CarrackLayout) {
+  const { hull, halfDeck, quarterdeck, poop, forecastle } = L;
+  const front = (d: Deck) => L.station(d.to);
+
+  const hd = bulkhead(batch, p, hull, front(halfDeck), DECK_Y, halfDeck.y, 1);
+  hd(0, DECK_Y + 0.7, 0.85, 1.4, p.dark);
+  for (const x of [-1.4, 1.4]) hd(x, DECK_Y + 1.6, 0.42, 0.36, p.window);
+  for (const side of [1, -1]) addLadder(batch, p, side * 2, front(halfDeck).z, DECK_Y, halfDeck.y, 1);
+
+  const qd = bulkhead(batch, p, hull, front(quarterdeck), halfDeck.y, quarterdeck.y, 1);
+  qd(0.3, halfDeck.y + 0.7, 0.8, 1.35, p.dark);
+  for (const x of [-1.3, 1.6]) qd(x, halfDeck.y + 1.3, 0.38, 0.34, p.window);
+  addLadder(batch, p, -1.4, front(quarterdeck).z, halfDeck.y, quarterdeck.y, 1);
+
+  const pp = bulkhead(batch, p, hull, front(poop), quarterdeck.y, poop.y, 1);
+  pp(-0.3, quarterdeck.y + 0.7, 0.75, 1.35, p.dark);
+  for (const x of [-1.3, 1.1]) pp(x, quarterdeck.y + 1.3, 0.34, 0.32, p.window);
+  addLadder(batch, p, 1.2, front(poop).z, quarterdeck.y, poop.y, 1);
+
+  // Château avant : cloison sur deux étages (portes en bas, fenêtres en haut), escaliers depuis le milieu.
+  const fcBack = L.station(forecastle.from);
+  const fc = bulkhead(batch, p, hull, fcBack, DECK_Y, forecastle.y, -1);
+  fc(0, DECK_Y + 0.7, 0.8, 1.4, p.dark);
+  for (const x of [-1.2, 0, 1.2]) fc(x, FORE_LOWER_Y + 1.1, 0.36, 0.34, p.window);
+  batch.add(p.trim, box(2 * hull.halfWidthAt(fcBack, FORE_LOWER_Y) * 0.98, 0.12, 0.2), tf(0, FORE_LOWER_Y, fcBack.z - 0.1));
+  for (const side of [1, -1]) addLadder(batch, p, side * 1.8, fcBack.z, DECK_Y, forecastle.y, -1);
+}
+
+/**
+ * Pavois peints le long des plats-bords, du milieu et des châteaux (pas sur les marches), aux couleurs du camp ; un
+ * cordon de bois sombre au-dessus.
+ */
+export function addPavises(batch: GeometryBatch, p: Palette, L: CarrackLayout) {
+  const { hull } = L;
+  const runs = [
+    [L.base(-0.99), L.base(-0.725)],
+    [L.base(-0.705), L.base(-0.49)],
+    [L.base(-0.47), L.base(-0.215)],
+    [L.base(-0.195), L.base(0.54)],
+    [L.base(0.565), L.base(0.99)],
+  ];
+  const half = hull.halfLength;
+  for (const [from, to] of runs) {
+    const n = Math.max(1, Math.floor(((to - from) * half) / PAVISE.spacing));
+    for (let i = 0; i < n; i++) {
+      const s = hull.stationAt(from + ((to - from) * (i + 0.5)) / n);
+      const y = s.gunwale - PAVISE.below;
+      for (const side of [1, -1] as const) {
+        batch.add(p.hull, box(0.05, PAVISE.height * 0.7, PAVISE.width), sideTf(hull, s, y + PAVISE.height * 0.15, side, 0.05));
+        batch.add(p.hull, box(0.05, PAVISE.height * 0.35, PAVISE.width * 0.5), sideTf(hull, s, y - PAVISE.height * 0.3, side, 0.05));
+      }
+    }
+  }
+}
+
+/** Lisses verticales qui renforcent le bordé, entre les sabords de la batterie, du bouchain au plat-bord du milieu. */
+export function addRiders(batch: GeometryBatch, L: CarrackLayout) {
+  const { hull, batteryPorts } = L;
+  for (let k = 0; k < batteryPorts.length - 1; k++) {
+    const s = L.station((batteryPorts[k] + batteryPorts[k + 1]) / 2);
+    const top = Math.min(s.gunwale, DECK_Y + 0.9) - 0.35;
+    for (const side of [1, -1]) {
+      const points = [0.4, (0.4 + top) / 2, top].map((y) => new THREE.Vector2(side * (hull.halfWidthAt(s, y) + 0.04), y));
+      for (let i = 0; i < 2; i++) {
+        const [a, b] = [points[i], points[i + 1]];
+        batch.add(DARK_OAK, box(0.1, a.distanceTo(b) + 0.06, 0.14), tf((a.x + b.x) / 2, (a.y + b.y) / 2, s.z, 0, 0, Math.atan2(a.x - b.x, b.y - a.y)));
+      }
+    }
+  }
+}
+
+/**
+ * Poupe haute : tableau à deux rangées de fenêtres entre des moulures, bande peinte aux couleurs du camp sous le
+ * couronnement, trois fanaux sur la lisse, boute-hors du contre-artimon.
+ */
+export function addStern(batch: GeometryBatch, p: Palette, L: CarrackLayout) {
+  const { hull } = L;
+  const stern = hull.stationAt(-1);
+  const z = stern.z - 0.02;
+  STERN_WINDOWS.forEach((y, row) => {
+    const half = hull.halfWidthAt(stern, y);
+    const xs = row === 0 ? [-1, -1 / 3, 1 / 3, 1] : [-0.75, 0, 0.75];
+    for (const x of xs) batch.add(p.window, box(0.38, 0.46, 0.05), tf(x * (half - 0.45), y, z));
+    for (const dy of [-0.36, 0.36]) batch.add(p.trim, box(2 * hull.halfWidthAt(stern, y + dy) - 0.08, 0.09, 0.06), tf(0, y + dy, z - 0.01));
+  });
+  const bandY = stern.gunwale - 0.45;
+  batch.add(p.hull, box(2 * hull.halfWidthAt(stern, bandY + 0.25) - 0.1, 0.5, 0.05), tf(0, bandY, z - 0.01));
+  batch.add(p.trim, box(2 * hull.halfWidthAt(stern, stern.gunwale) + 0.14, 0.16, 0.24), tf(0, stern.gunwale, stern.z + 0.08));
+  for (const x of [-1, 0, 1]) addLantern(batch, p, tf(x * 0.9, stern.gunwale + 0.08, stern.z + 0.25, 0, 0, 0, x === 0 ? 1.2 : 0.9));
+  batch.add(p.wood, cylinderBetween(L.bumkin.base, L.bumkin.tip, 0.11, 0.07), new THREE.Matrix4());
+}
+
+/** Avant : étrave sous le château qui déborde, sabords de chasse dans sa face avant, bossoirs, beaupré et civadière. */
+export function addBow(batch: GeometryBatch, p: Palette, L: CarrackLayout) {
+  const { hull, forecastle } = L;
+  const stem = hull.stationAt(1);
+  const line = STEM_LINE.map((u) => hull.stationAt(L.base(u))).map((s) => new THREE.Vector3(0, s.keel, s.z));
+  for (let i = 0; i < line.length - 1; i++) batch.add(p.trim, cylinderBetween(line[i], line[i + 1], 0.13, 0.13, 4), new THREE.Matrix4());
+  for (const x of [-L.chase.x, L.chase.x]) batch.add(p.dark, box(0.5, 0.48, 0.06), tf(x, L.chase.y, stem.z + 0.02));
+  batch.add(p.trim, box(2 * hull.halfWidthAt(stem, FORE_LOWER_Y) - 0.1, 0.12, 0.12), tf(0, FORE_LOWER_Y, stem.z + 0.04));
+  const cat = L.at(0.9);
+  for (const side of [1, -1]) batch.add(p.wood, box(1, 0.18, 0.18), tf(side * (hull.halfWidthAt(cat, forecastle.y + 0.5) + 0.25), forecastle.y + 0.5, cat.z));
+  const { base, tip } = L.bowsprit;
+  batch.add(p.wood, cylinderBetween(base.clone().add(new THREE.Vector3(0, -0.4, -1.4)), tip, 0.24, 0.11), new THREE.Matrix4());
+  const sprit = L.spritsail;
+  batch.add(p.wood, cylinderBetween(sprit.yard.clone().setX(-sprit.width / 2 - 0.2), sprit.yard.clone().setX(sprit.width / 2 + 0.2), 0.08), new THREE.Matrix4());
+}

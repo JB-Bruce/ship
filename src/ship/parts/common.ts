@@ -216,3 +216,11 @@ export function fireSpots(hull: HullShape, spots: readonly (readonly [number, nu
     return new THREE.Vector3(x, y, s.z);
   });
 }
+
+/**
+ * Pièce plaquée sur le bordé à la hauteur y (sabord, fenêtre) : collée au flanc qui rentre, et inclinée comme lui.
+ */
+export function sideTf(hull: HullShape, s: Station, y: number, side: 1 | -1, outset: number, scale = 1): THREE.Matrix4 {
+  const lean = Math.atan2(hull.halfWidthAt(s, y - 0.2) - hull.halfWidthAt(s, y + 0.2), 0.4);
+  return tf(side * (hull.halfWidthAt(s, y) + outset), y, s.z, 0, 0, side * lean, scale);
+}

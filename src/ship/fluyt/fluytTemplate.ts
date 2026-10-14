@@ -2,12 +2,12 @@ import * as THREE from 'three';
 import { WATER_MASK, type Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { buildBatteryGun, buildWheel } from '../corvette/corvetteTemplate';
-import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } from '../parts/common';
+import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, sideTf, std } from '../parts/common';
 import { addHatch } from '../parts/deckFittings';
 import type { Station } from '../parts/hullShape';
 import { addBarrel, addCrate, addRopeCoil, buildCarriageGunGeometry, type Palette } from '../parts/props';
 import { buildLateenSail, buildSquareSail, cylinderBetween } from '../parts/sails';
-import { addBow, addCastles, addStern, HULL_WOOD, sideTf } from './fluytDecor';
+import { addBow, addCastles, addStern, HULL_WOOD } from './fluytDecor';
 import { BATTERY_Y, DECK_Y, WALES, type FluytLayout, type Mast } from './fluytLayout';
 
 /** Haut du pavois peint aux couleurs du camp, sous la lisse de plat-bord (m). */
