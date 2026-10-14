@@ -121,7 +121,7 @@ export function deriveStats(type: ShipType, base: ShipStats, levels: UpgradeLeve
   }
   if (levels.cannons > 0) stats.cannonsPerSide = table.cannons.cannonsPerSide[levels.cannons - 1];
   if (hasChaseGuns(type)) stats.chaseGuns = chaseGunsFor(type, levels);
-  if (levels.hull > 0) stats.maxHealth += table.hull.healthBonus[levels.hull - 1];
+  if (levels.hull > 0) stats.maxHealth = Math.round(stats.maxHealth * table.hull.healthFactor[levels.hull - 1]);
   // Allongements : coque plus longue (plus de vie, file un peu mieux, vire moins vite) ; leurs effets se cumulent.
   let hullSpeed = 1;
   for (const e of appliedExtensions(type, levels)) {
@@ -153,7 +153,7 @@ export function describeLevel(type: ShipType, id: UpgradeId, level: number): str
     case 'cannons':
       return describeCannons(type, level);
     case 'hull':
-      return `Vie max +${t.hull.healthBonus[i]}`;
+      return `Vie max +${Math.round((t.hull.healthFactor[i] - 1) * 100)} %`;
     case 'sails':
       return `Vitesse +${Math.round((t.sails.speedFactor[i] - 1) * 100)} %`;
     case 'hold':

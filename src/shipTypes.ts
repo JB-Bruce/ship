@@ -51,7 +51,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       accuracy: { costs: [{ gold: 0, wood: 0 }], spreadFactor: [0.7] },
       range: { costs: [], rangeFactor: [] },
       cannons: { costs: [], cannonsPerSide: [] },
-      hull: { costs: [{ gold: 0, wood: 0 }], healthBonus: [12] },
+      hull: { costs: [{ gold: 0, wood: 0 }], healthFactor: [1.1] },
       sails: { costs: [{ gold: 0, wood: 0 }], speedFactor: [1.12] },
       hold: { costs: [], capacity: [] },
       nets: { costs: [], catchFactor: [] },
@@ -76,7 +76,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       accuracy: { costs: [{ gold: 20, wood: 0 }, { gold: 40, wood: 0 }, { gold: 60, wood: 0 }], spreadFactor: [0.7, 0.5, 0.3] },
       range: { costs: [], rangeFactor: [] },
       cannons: { costs: [{ gold: 40, wood: 30 }], cannonsPerSide: [2] },
-      hull: { costs: [{ gold: 15, wood: 20 }, { gold: 30, wood: 35 }], healthBonus: [25, 55] },
+      hull: { costs: [{ gold: 15, wood: 20 }, { gold: 30, wood: 35 }], healthFactor: [1.1, 1.2] },
       sails: { costs: [{ gold: 25, wood: 5 }, { gold: 40, wood: 10 }], speedFactor: [1.08, 1.16] },
       hold: { costs: [{ gold: 25, wood: 15 }, { gold: 45, wood: 25 }], capacity: [30, 40] },
       nets: { costs: [{ gold: 30, wood: 15 }, { gold: 60, wood: 25 }], catchFactor: [0.75, 0.55] },
@@ -100,7 +100,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       accuracy: { costs: [{ gold: 40, wood: 0 }, { gold: 70, wood: 0 }, { gold: 110, wood: 0 }], spreadFactor: [0.7, 0.5, 0.3] },
       range: { costs: [], rangeFactor: [] },
       cannons: { costs: [{ gold: 60, wood: 40 }, { gold: 100, wood: 60 }], cannonsPerSide: [3, 4] },
-      hull: { costs: [{ gold: 30, wood: 30 }, { gold: 50, wood: 50 }, { gold: 80, wood: 80 }], healthBonus: [40, 80, 130] },
+      hull: { costs: [{ gold: 30, wood: 30 }, { gold: 50, wood: 50 }, { gold: 80, wood: 80 }], healthFactor: [1.1, 1.2, 1.3] },
       sails: { costs: [{ gold: 40, wood: 10 }, { gold: 60, wood: 15 }, { gold: 90, wood: 25 }], speedFactor: [1.06, 1.12, 1.18] },
       hold: { costs: [{ gold: 40, wood: 25 }, { gold: 70, wood: 40 }, { gold: 100, wood: 60 }], capacity: [55, 70, 90] },
       nets: { costs: [{ gold: 45, wood: 20 }, { gold: 80, wood: 35 }, { gold: 120, wood: 50 }], catchFactor: [0.75, 0.55, 0.4] },
@@ -131,7 +131,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       cannons: { costs: [{ gold: 140, wood: 70 }, { gold: 110, wood: 70 }, { gold: 160, wood: 95 }], cannonsPerSide: [2, 3, 4], chaseFrom: 1 },
       hull: {
         costs: [{ gold: 35, wood: 35 }, { gold: 60, wood: 60 }, { gold: 90, wood: 90 }, { gold: 125, wood: 125 }],
-        healthBonus: [45, 95, 150, 210],
+        healthFactor: [1.1, 1.2, 1.3, 1.4],
       },
       sails: { costs: [{ gold: 50, wood: 12 }, { gold: 75, wood: 20 }, { gold: 110, wood: 30 }], speedFactor: [1.06, 1.12, 1.18] },
       hold: { costs: [{ gold: 50, wood: 30 }, { gold: 85, wood: 50 }, { gold: 120, wood: 75 }], capacity: [65, 85, 110] },
@@ -161,7 +161,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       range: { costs: [], rangeFactor: [] },
       // Goélette à hunier : un canon de plus par flanc, un niveau de voilure et un de cale en plus.
       cannons: { costs: [{ gold: 70, wood: 45 }, { gold: 110, wood: 65 }, { gold: 150, wood: 90 }], cannonsPerSide: [3, 4, 5] },
-      hull: { costs: [{ gold: 35, wood: 35 }, { gold: 60, wood: 60 }, { gold: 95, wood: 95 }], healthBonus: [35, 70, 110] },
+      hull: { costs: [{ gold: 35, wood: 35 }, { gold: 60, wood: 60 }, { gold: 95, wood: 95 }], healthFactor: [1.1, 1.2, 1.3] },
       sails: {
         costs: [{ gold: 45, wood: 12 }, { gold: 70, wood: 18 }, { gold: 100, wood: 28 }, { gold: 140, wood: 40 }],
         speedFactor: [1.05, 1.1, 1.15, 1.21],
@@ -207,7 +207,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       cannons: { costs: [{ gold: 100, wood: 60 }, { gold: 150, wood: 90 }, { gold: 200, wood: 110 }, { gold: 250, wood: 140 }], cannonsPerSide: [4, 5, 6, 7] },
       hull: {
         costs: [{ gold: 40, wood: 40 }, { gold: 70, wood: 70 }, { gold: 100, wood: 100 }, { gold: 140, wood: 140 }, { gold: 190, wood: 190 }],
-        healthBonus: [50, 100, 160, 230, 320],
+        healthFactor: [1.1, 1.2, 1.3, 1.4, 1.5],
       },
       // Brigantin allongé : deux niveaux de toile mieux taillée qui en font un coureur des mers.
       sails: {
@@ -261,7 +261,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       },
       hull: {
         costs: [{ gold: 40, wood: 40 }, { gold: 65, wood: 65 }, { gold: 95, wood: 95 }, { gold: 135, wood: 135 }],
-        healthBonus: [40, 85, 135, 190],
+        healthFactor: [1.1, 1.2, 1.3, 1.4],
       },
       // Chébec allongé : un niveau de toile en plus.
       sails: {
@@ -311,7 +311,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       },
       hull: {
         costs: [{ gold: 50, wood: 50 }, { gold: 90, wood: 90 }, { gold: 130, wood: 130 }, { gold: 180, wood: 180 }],
-        healthBonus: [50, 105, 165, 230],
+        healthFactor: [1.1, 1.2, 1.3, 1.4],
       },
       sails: { costs: [{ gold: 70, wood: 20 }, { gold: 110, wood: 30 }, { gold: 160, wood: 45 }, { gold: 220, wood: 60 }], speedFactor: [1.06, 1.12, 1.18, 1.24] },
       hold: { costs: [{ gold: 70, wood: 45 }, { gold: 110, wood: 70 }, { gold: 160, wood: 100 }], capacity: [90, 115, 145] },
@@ -356,7 +356,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       cannons: { costs: [{ gold: 150, wood: 90 }, { gold: 220, wood: 130 }, { gold: 300, wood: 170 }, { gold: 380, wood: 210 }], cannonsPerSide: [6, 8, 9, 10] },
       hull: {
         costs: [{ gold: 50, wood: 50 }, { gold: 90, wood: 90 }, { gold: 130, wood: 130 }, { gold: 180, wood: 180 }, { gold: 240, wood: 240 }],
-        healthBonus: [60, 130, 210, 300, 400],
+        healthFactor: [1.1, 1.2, 1.3, 1.4, 1.5],
       },
       sails: { costs: [{ gold: 70, wood: 20 }, { gold: 110, wood: 30 }, { gold: 160, wood: 45 }, { gold: 220, wood: 60 }], speedFactor: [1.06, 1.12, 1.18, 1.24] },
       hold: { costs: [{ gold: 80, wood: 50 }, { gold: 120, wood: 80 }, { gold: 170, wood: 110 }, { gold: 230, wood: 150 }], capacity: [110, 140, 180, 230] },
@@ -405,7 +405,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       },
       hull: {
         costs: [{ gold: 60, wood: 60 }, { gold: 110, wood: 110 }, { gold: 160, wood: 160 }, { gold: 220, wood: 220 }, { gold: 300, wood: 300 }],
-        healthBonus: [80, 170, 270, 380, 500],
+        healthFactor: [1.1, 1.2, 1.3, 1.4, 1.5],
       },
       sails: { costs: [{ gold: 90, wood: 25 }, { gold: 140, wood: 40 }, { gold: 200, wood: 55 }, { gold: 270, wood: 75 }, { gold: 350, wood: 100 }], speedFactor: [1.06, 1.12, 1.18, 1.24, 1.3] },
       hold: { costs: [{ gold: 100, wood: 60 }, { gold: 150, wood: 100 }, { gold: 210, wood: 140 }, { gold: 280, wood: 180 }, { gold: 360, wood: 230 }], capacity: [130, 170, 220, 280, 350] },

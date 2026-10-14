@@ -13,8 +13,8 @@ export interface UpgradeTable {
    * chaque niveau, pour un navire qui en a dès la base (chébec : `ShipStats.chaseGuns`).
    */
   cannons: { costs: Cost[]; cannonsPerSide: number[]; chaseFrom?: number; chaseGuns?: number[] };
-  /** Vie max ajoutée. */
-  hull: { costs: Cost[]; healthBonus: number[] };
+  /** Multiplicateur de la vie max (≈ +10 % de la vie de base par niveau). */
+  hull: { costs: Cost[]; healthFactor: number[] };
   /** Multiplicateur de vitesse et d'accélération. */
   sails: { costs: Cost[]; speedFactor: number[] };
   /** Places dans la cale (poisson, rhum, épices), remplaçant la capacité de base. */
