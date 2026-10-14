@@ -3,6 +3,9 @@
 Three.js + TypeScript + Vite. Ambiance pirates XVIIe-XVIIIe (fantasy possible), style low-poly, sensation façon AC IV Black Flag.
 Règles de gameplay et décisions : `docs/GAME_DESIGN.md` (à lire avant d'ajouter une mécanique).
 
+## ⚠️ TRÈS IMPORTANT : poser les questions
+**Pendant tout développement, poser à l'utilisateur toutes les questions nécessaires** : au moindre doute (interprétation d'une demande, chiffre manquant, choix de design ou de gameplay), pour toute proposition intéressante ou idée en plus, ou pour tout autre point qui mérite son avis. Ne pas trancher seul en silence : demander avant de construire, puis signaler clairement ce qui a été décidé.
+
 ## Commandes
 - `npm run dev` : serveur sur le port 5173 (config de preview `.claude/launch.json` : « jeu »). L'utilisateur le lance souvent lui-même via `Lancer le jeu.bat` : si le port est pris, ouvrir simplement `http://localhost:5173`.
 - `?debug` dans l'URL = panneau lil-gui + FPS, et `window.game` exposé. Si le panneau navigateur est masqué, le rAF est gelé : pour tester, `game.renderer.setAnimationLoop(null)` puis appeler `game.frame(t)` avec un `t` croissant (ms), puis recharger la page. Pour mesurer les performances, utiliser les requêtes de temps GPU (`EXT_disjoint_timer_query_webgl2`) en comparant A/B dans la même session : les temps « réels » sont faussés quand le panneau est masqué, et la puce graphique change de vitesse. Les résultats des requêtes n'arrivent qu'entre deux images (laisser la main au navigateur).
