@@ -2,6 +2,7 @@ import type * as THREE from 'three';
 import type { Livery, ShipStats } from '../config';
 import type { ShipType } from '../shipTypes';
 import { BrigModel } from './brig/brigModel';
+import { FluytModel } from './fluyt/fluytModel';
 import { BrigantineModel } from './brigantine/brigantineModel';
 import { CaravelModel } from './caravel/caravelModel';
 import { SchoonerModel } from './schooner/schoonerModel';
@@ -95,6 +96,7 @@ export function createShipModel(type: ShipType, stats: ShipStats, livery: Livery
   if (type === 'schooner') return new SchoonerModel(stats, livery);
   if (type === 'brigantine') return new BrigantineModel(stats, livery);
   if (type === 'xebec') return new XebecModel(stats, livery);
+  if (type === 'fluyt') return new FluytModel(stats, livery);
   if (type === 'brig') return new BrigModel(stats, livery);
   if (type === 'corvette') return new CorvetteModel(stats, livery);
   if (type === 'frigate') return new FrigateModel(stats, livery);

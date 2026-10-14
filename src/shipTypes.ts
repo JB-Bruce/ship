@@ -2,11 +2,11 @@
 // Un tableau d'amélioration = une valeur par niveau (le niveau 1 est la première case).
 
 import { UPGRADE_INFO, type ShipTypeDef } from './shipTypeDef';
-import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CORVETTE_STATS, FRIGATE_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, weaker, XEBEC_STATS } from './shipStats';
+import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CORVETTE_STATS, FLUYT_STATS, FRIGATE_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, weaker, XEBEC_STATS } from './shipStats';
 
-export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'brig' | 'corvette' | 'frigate';
+export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'fluyt' | 'brig' | 'corvette' | 'frigate';
 /** Du plus petit au plus gros (par rang de taille ; à rang égal, dans l'ordre d'affichage). */
-export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'brig', 'corvette', 'frigate'];
+export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'frigate'];
 /** Nom du type d'un navire selon ses allongements (« Frégate allongée », « Grande frégate »). */
 export function typeName(type: ShipType, extension = 0): string {
   return extension > 0 ? (SHIP_TYPES[type].extensions?.[extension - 1]?.name ?? SHIP_TYPES[type].name) : SHIP_TYPES[type].name;
@@ -30,7 +30,7 @@ export { UPGRADE_INFO };
 export type { ExtensionDef, MassTable, ShipTypeDef, UpgradeTable } from './shipTypeDef';
 
 /** Types que le joueur peut acheter (la barque est réservée aux ennemis). */
-export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'brig', 'corvette', 'frigate'];
+export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'frigate'];
 
 export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
   rowboat: {
@@ -283,6 +283,53 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
         turnFactor: 0.92,
         mass: 55,
         extraLevels: { cannons: 2, sails: 1 },
+      },
+    ],
+  },
+  fluyt: {
+    name: 'Flûte',
+    feminine: true,
+    description: 'Navire de charge hollandais : coque ventrue aux flancs très rentrés, haute sur l’eau, poupe étroite. Lente et lourde à virer, mais solide ; une cale immense, et ses ventes rapportent plus sur les routes commerciales. Une batterie couverte dans la coque et deux canons légers par bord sur le gaillard d’arrière.',
+    armament: 'broadside',
+    rank: 5,
+    threat: 4.5,
+    lootFactor: 4.5,
+    price: { gold: 2400, wood: 700 },
+    respawnTime: 78,
+    hold: 160,
+    tradeBonus: 0.15,
+    stats: FLUYT_STATS,
+    enemyStats: weaker(FLUYT_STATS, 325, 11),
+    upgrades: {
+      accuracy: {
+        costs: [{ gold: 60, wood: 0 }, { gold: 100, wood: 0 }, { gold: 150, wood: 0 }, { gold: 210, wood: 0 }],
+        spreadFactor: [0.8, 0.62, 0.46, 0.32],
+      },
+      range: { costs: [{ gold: 100, wood: 30 }, { gold: 160, wood: 50 }], rangeFactor: [1.15, 1.3] },
+      // Un canon de batterie de plus par bord à chaque niveau (4 → 6, les deux canons des gaillards restent) ; flûte
+      // allongée : un sabord de batterie et un canon de gaillard d'avant de plus par bord.
+      cannons: { costs: [{ gold: 150, wood: 90 }, { gold: 210, wood: 120 }, { gold: 300, wood: 170 }], cannonsPerSide: [7, 8, 10] },
+      hull: {
+        costs: [{ gold: 50, wood: 50 }, { gold: 90, wood: 90 }, { gold: 130, wood: 130 }, { gold: 180, wood: 180 }],
+        healthFactor: [1.1, 1.2, 1.3, 1.4],
+      },
+      sails: { costs: [{ gold: 70, wood: 20 }, { gold: 110, wood: 30 }, { gold: 160, wood: 45 }], speedFactor: [1.06, 1.12, 1.18] },
+      // Flûte allongée : un niveau de cale en plus.
+      hold: { costs: [{ gold: 80, wood: 50 }, { gold: 120, wood: 80 }, { gold: 170, wood: 110 }, { gold: 230, wood: 150 }], capacity: [200, 250, 300, 360] },
+      nets: { costs: [], catchFactor: [] },
+    },
+    mass: { base: 470, perExtraCannon: 8, hull: [14, 30, 48, 68], sails: [5, 10, 15], hold: [12, 24, 36, 50], speedLossPerUnit: 0.0004 },
+    extensions: [
+      {
+        name: 'Flûte allongée',
+        description: 'Le chantier rallonge la coque de quatre mètres au milieu : un sabord de batterie de plus par bord, un canon de plus sur le gaillard d’avant (un niveau de canons en plus), et une cale encore plus grande.',
+        cost: { gold: 1800, wood: 850 },
+        length: 4,
+        healthFactor: 1.15,
+        speedFactor: 1.04,
+        turnFactor: 0.92,
+        mass: 80,
+        extraLevels: { cannons: 1, hold: 1 },
       },
     ],
   },

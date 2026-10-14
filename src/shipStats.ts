@@ -135,6 +135,27 @@ export const BRIG_STATS: ShipStats = {
 };
 
 /**
+ * Flûte : navire de charge hollandais, ventru, haut sur l'eau, aux flancs très rentrés. Lente et lourde à virer, mais
+ * solide ; deux calibres : une batterie couverte dans la coque (angle de tir assez étroit) et des canons légers sur les
+ * gaillards.
+ */
+export const FLUYT_STATS: ShipStats = {
+  length: 24,
+  width: 6.8,
+  maxSpeed: 11.5,
+  acceleration: 2,
+  deceleration: 3,
+  turnRate: 0.36,
+  rudderSpeed: 2.1,
+  turnHeel: 0.005,
+  maxHealth: 400,
+  cannonsPerSide: 6,
+  cannon: { range: 150, reloadTime: 3.8, arcHalfAngle: 25 * DEG, spread: 2.3 * DEG, rangeError: 0.065, damage: 14, ballSpeed: 60 },
+  deckCannon: { range: 130, reloadTime: 2.6, arcHalfAngle: 35 * DEG, spread: 2.6 * DEG, rangeError: 0.07, damage: 10, ballSpeed: 58 },
+  buoyancy: { stiffness: 26, damping: 8.4, tiltResponse: 4.2 },
+};
+
+/**
  * Corvette : deux calibres. Batterie couverte = canons lourds, lents à recharger, coincés dans leurs sabords
  * (angle de tir étroit) ; pont supérieur = canons légers et rapides, angle de tir normal.
  */

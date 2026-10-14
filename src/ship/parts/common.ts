@@ -104,7 +104,7 @@ export function addDeckSeams(
     let zMax = -Infinity;
     for (let u = uFrom; u <= uTo; u += 0.02) {
       const s = hull.stationAt(u);
-      if (s.halfWidth * 0.95 > x + 0.05) {
+      if (hull.halfWidthAt(s, y) * 0.95 > x + 0.05) {
         zMin = Math.min(zMin, s.z);
         zMax = Math.max(zMax, s.z);
       }
@@ -137,9 +137,15 @@ export function armorFor(hull: HullShape, level: number): { geometry: THREE.Buff
     for (const side of [1, -1] as const) {
       for (const h of bands) batch.add(ironMaterial, hull.buildRail(side, h, 0.035, 0.04), identity);
       if (level < 2) continue;
+      // Chaque cercle suit le bordé en deux segments (il épouse les flancs qui rentrent).
       for (const u of straps) {
         const s = hull.stationAt(u);
-        batch.add(ironMaterial, new THREE.BoxGeometry(0.05, s.gunwale * 0.75, 0.12), tf(side * (hull.halfWidthAt(s, s.gunwale * 0.55) + 0.03), s.gunwale * 0.55, s.z));
+        const points = [0.175, 0.55, 0.925].map((f) => new THREE.Vector2(side * (hull.halfWidthAt(s, s.gunwale * f) + 0.03), s.gunwale * f));
+        for (let i = 0; i < 2; i++) {
+          const [a, b] = [points[i], points[i + 1]];
+          const length = a.distanceTo(b);
+          batch.add(ironMaterial, new THREE.BoxGeometry(0.05, length + 0.06, 0.12), tf((a.x + b.x) / 2, (a.y + b.y) / 2, s.z, 0, 0, Math.atan2(a.x - b.x, b.y - a.y)));
+        }
       }
     }
     const stemHeight = bow.gunwale - bow.keel + 0.4;
