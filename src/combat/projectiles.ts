@@ -40,7 +40,7 @@ export class Projectiles {
   private readonly balls: Ball[] = [];
   private readonly pool: Ball[] = [];
 
-  constructor(private readonly capacity = 64) {
+  constructor(private readonly capacity = COMBAT.maxBalls) {
     const material = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4, metalness: 0.5, flatShading: true });
     this.mesh = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.16, 1), material, capacity);
     this.mesh.count = 0;

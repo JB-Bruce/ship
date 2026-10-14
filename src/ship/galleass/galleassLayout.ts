@@ -15,8 +15,9 @@ const WAIST = { from: -0.6, to: 0.6 };
 
 /**
  * Gabarit de la coque (u de base) : longue et basse. Château de poupe et château avant (deux sections très proches font
- * chaque marche), milieu bas à peine creusé ; poupe ronde dont la quille remonte au-dessus de l'eau, avant large et
- * droit (les triples canons tirent par sa face).
+ * chaque marche), milieu bas à peine creusé ; poupe ronde dont la quille remonte au-dessus de l'eau. L'avant s'arrondit
+ * vu de dessus, et sa quille remonte en courbe jusque sous la face plate du château avant (les triples canons tirent par
+ * elle) : la coque fend l'eau, le château avant déborde au-dessus.
  */
 const HULL_ROWS: [number, number, number, number][] = [
   [-1, 0.5, 5.55, 0.4],
@@ -30,10 +31,13 @@ const HULL_ROWS: [number, number, number, number][] = [
   [0.35, 0.99, 3.75, -2.05],
   [0.645, 0.94, 3.85, -1.85],
   [0.655, 0.94, 5.7, -1.85],
-  [0.78, 0.84, 5.72, -1.55],
-  [0.88, 0.7, 5.74, -1.15],
-  [0.95, 0.56, 5.76, -0.7],
-  [1, 0.42, 5.8, -0.2],
+  [0.72, 0.9, 5.71, -1.75],
+  [0.8, 0.84, 5.72, -1.4],
+  [0.86, 0.77, 5.73, -0.85],
+  [0.91, 0.69, 5.74, 0],
+  [0.95, 0.61, 5.76, 0.9],
+  [0.98, 0.53, 5.78, 1.8],
+  [1, 0.45, 5.8, 2.4],
 ];
 /** Maître-bau (demi-largeur, m), haut du bouchain (m) et légère rentrée des flancs, mesurée à une hauteur fixe. */
 const HALF_WIDTH = 3.6;
@@ -48,12 +52,16 @@ export const BATTERY_Y = DECK_Y - 0.9;
 export const TRIPLE_Y = 4;
 /** Tonture des préceintes et des sabords de batterie (m) : `aft` × |u|^power vers la poupe, `fore` × u^power vers l'avant. */
 const SHEER = { aft: 0.25, fore: 0.3, power: 2 };
-/** Préceintes : hauteur au milieu, part de la tonture suivie, hauteur de la bande. */
-export const WALES = [
+/**
+ * Préceintes : hauteur au milieu, part de la tonture suivie, hauteur de la bande. Les deux basses s'effilent avant que
+ * la quille ne remonte sous le château avant (pleines jusqu'à `bowFull`, finies à `bowEnd`, en u de base, sur des
+ * sections du gabarit) ; la haute fait le tour de la face avant.
+ */
+export const WALES: readonly { y: number; sheer: number; height: number; bowFull?: number; bowEnd?: number }[] = [
   { y: BATTERY_Y + 0.58, sheer: 1.5, height: 0.18 },
-  { y: 1.5, sheer: 1.2, height: 0.16 },
-  { y: 0.45, sheer: 1, height: 0.14 },
-] as const;
+  { y: 1.5, sheer: 1.2, height: 0.16, bowFull: 0.86, bowEnd: 0.91 },
+  { y: 0.45, sheer: 1, height: 0.14, bowFull: 0.8, bowEnd: 0.86 },
+];
 /** Avirons, sous la batterie : sabords d'aviron, longueur hors bord et en dedans, pale. */
 export const OAR: OarSpec = { y: 1.1, outboard: 5, inboard: 0.8, blade: { length: 1, width: 0.24 } };
 /** Rangée d'avirons (u de base) : 12 par bord, 2 de plus par allongement. */
@@ -67,6 +75,8 @@ const DECK_SPAN = { from: -0.44, to: 0.54, slots: 6, perExtension: 1, first: 4 }
 /** Triples canons dans la face du château avant (écart de l'axe, m) et pièces légères sur son dessus (écart, recul de la face). */
 const TRIPLES: readonly number[] = [0.8, -0.8];
 const BOW_PIECES = { xs: [1.15, -1.15], back: 0.85 };
+/** Éperon : pied sur l'étrave à cette hauteur, pointe (hauteur, avancée au-delà de la face avant), pied de sa jambe de force sur l'étrave (m). */
+const SPUR = { y: 1.6, tipY: 1.95, reach: 3, brace: 0.3 };
 /** Haubans : pieds sur le plat-bord, derrière le mât, écartés de `spacing`, à `clearance` m au moins des sabords du pont. */
 const SHROUD_FEET = { first: 0.4, spacing: 0.5, count: 3, clearance: 0.45 };
 
@@ -114,8 +124,8 @@ export interface GalleassLayout {
   readonly mizzenMast: Mast;
   /** Misaine, grand mât, artimon : trois voiles latines. */
   readonly lateens: readonly Lateen[];
-  /** Éperon : du pied de l'étrave à sa pointe. */
-  readonly spur: { base: THREE.Vector3; tip: THREE.Vector3 };
+  /** Éperon : de l'étrave à sa pointe, et le pied de sa jambe de force, plus bas sur l'étrave. */
+  readonly spur: { base: THREE.Vector3; tip: THREE.Vector3; brace: THREE.Vector3 };
   readonly wheel: { y: number; z: number };
   readonly flag: { length: number; height: number; y: number };
   /** Sabords (u de la coque) : `…Ports` de l'arrière vers l'avant, `…Slots` dans l'ordre d'achat. */
@@ -139,7 +149,7 @@ const spread = (from: number, to: number, count: number) => Array.from({ length:
 
 function createLayout(level: number): GalleassLayout {
   const added = (SHIP_TYPES.galleass.extensions ?? []).slice(0, level).reduce((sum, e) => sum + e.length, 0);
-  const { half, extra, zOf, base } = hullStretch(BASE_HALF, [{ ...WAIST, added }]);
+  const { half, extra, base } = hullStretch(BASE_HALF, [{ ...WAIST, added }]);
   const hull = new HullShape(
     HULL_ROWS.map(([u, ...rest]) => [base(u), ...rest] as [number, number, number, number]),
     half,
@@ -149,7 +159,6 @@ function createLayout(level: number): GalleassLayout {
     TUMBLE.height,
   );
   const at = (u: number) => hull.stationAt(base(u));
-  const bowShift = zOf(BASE_HALF) - BASE_HALF;
   // Chaque château s'arrête à la section haute de sa marche (là où ses flancs ont toute leur hauteur).
   const sternDeck = { y: 5, from: base(-0.99), to: base(-0.652) };
   const forecastle = { y: 5.45, from: base(0.655), to: base(0.99) };
@@ -157,6 +166,12 @@ function createLayout(level: number): GalleassLayout {
   const mainMast = { z: at(0.036).z, base: DECK_Y, top: 19.6, topPlatform: 17.2 };
   const mizzenMast = { z: at(-0.51).z, base: DECK_Y, top: 14.4, topPlatform: 0 };
   const stem = hull.stationAt(1);
+  // L'étrave remonte sous le château avant : z où sa quille passe à la hauteur y.
+  const stemZ = (y: number) => {
+    let u = 1;
+    while (u > 0.6 && hull.stationAt(u).keel > y) u -= 0.002;
+    return hull.stationAt(u).z;
+  };
   const batteryPorts = spread(base(BATTERY_SPAN.from), base(BATTERY_SPAN.to), BATTERY_SPAN.slots + BATTERY_SPAN.perExtension * level);
   const deckPorts = spread(base(DECK_SPAN.from), base(DECK_SPAN.to), DECK_SPAN.slots + DECK_SPAN.perExtension * level);
   const oars = OAR_ROW.count + OAR_ROW.perExtension * level;
@@ -212,7 +227,11 @@ function createLayout(level: number): GalleassLayout {
         sail: { tack: new THREE.Vector3(0, -2.7, 3), peak: new THREE.Vector3(0, 5.5, -6.2), clew: new THREE.Vector3(0, -2.3, -5.6), bulge: 0.5 },
       },
     ],
-    spur: { base: new THREE.Vector3(0, 1.5, stem.z - 0.3), tip: new THREE.Vector3(0, 1.95, 19.5 + bowShift) },
+    spur: {
+      base: new THREE.Vector3(0, SPUR.y, stemZ(SPUR.y) - 0.15),
+      tip: new THREE.Vector3(0, SPUR.tipY, stem.z + SPUR.reach),
+      brace: new THREE.Vector3(0, SPUR.brace, stemZ(SPUR.brace)),
+    },
     wheel,
     flag: { length: 2.2, height: 1.35, y: mainMast.top + 0.1 },
     batteryPorts,

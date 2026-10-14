@@ -71,8 +71,12 @@ function buildTemplate(L: GalleassLayout, livery: Livery): GalleassTemplate {
   // Préceintes en bois sombre qui suivent la tonture ; haut du bordé peint aux couleurs du camp, de la préceinte haute
   // jusque sous la lisse de plat-bord (il monte avec les châteaux) ; pavois au liseré du camp.
   for (const w of WALES) {
-    const low = (_s: Station, u: number) => w.y + w.sheer * L.sheer(u) - w.height / 2;
-    batch.add(DARK_WOOD, hull.buildBand(low, (s, u) => low(s, u) + w.height, 0.025), identity);
+    // Les préceintes basses s'effilent jusqu'à rien avant que la quille ne remonte sous le château avant.
+    const { bowFull, bowEnd } = w;
+    const height = (u: number) =>
+      bowFull === undefined || bowEnd === undefined ? w.height : w.height * THREE.MathUtils.clamp((L.base(bowEnd) - u) / (L.base(bowEnd) - L.base(bowFull)), 0, 1);
+    const low = (_s: Station, u: number) => w.y + w.sheer * L.sheer(u) - height(u) / 2;
+    batch.add(DARK_WOOD, hull.buildBand(low, (s, u) => low(s, u) + height(u), 0.025), identity);
   }
   const top = WALES[0];
   batch.add(p.hull, hull.buildBand((_s, u) => top.y + top.sheer * L.sheer(u) + top.height / 2, (s) => s.gunwale - PAINT_BELOW_RAIL, 0.012), identity);

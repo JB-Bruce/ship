@@ -161,6 +161,11 @@ export const COMBAT = {
   shellShake: 0.6,
   /** Délai aléatoire max (s) avant chaque tir d'un canon chargé et pointé : la bordée part en cascade, pas d'un bloc. */
   acquireDelay: 0.3,
+  /**
+   * Boulets et obus en vol en même temps, au plus (au-delà, un tir ne part pas) : de quoi laisser les grandes bordées
+   * (frégate, caraque, triples canons de la galéasse) de plusieurs flottes se croiser.
+   */
+  maxBalls: 128,
 };
 
 /** Mortier du brick : obus en cloche (voir ShellStats) ; effets : traînée de fumée posée tous les `trailInterval` s, taille de l'explosion. */

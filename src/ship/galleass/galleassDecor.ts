@@ -20,6 +20,8 @@ const LADDER_X = { stern: 1.5, fore: 1.6 };
  * base) sur des montants, retrait des bords par rapport au bordé, flèche de l'arceau (part du rayon), nombre de bandes.
  */
 const AWNING = { aft: -0.96, fore: -0.7, posts: 1.15, inset: 0.4, rise: 0.42, stripes: 7 };
+/** Étrave : sections (u de base) dont elle suit la quille, qui remonte en courbe jusque sous la face avant. */
+const STEM_LINE = [0.8, 0.86, 0.91, 0.95, 0.98, 1];
 /** Fenêtres de la chambre sous le château de poupe : hauteur, places sur les flancs (u de base) et sur le tableau (x, part de la largeur). */
 const CABIN = { y: 4.1, sides: [-0.74, -0.86], stern: [-0.55, 0, 0.55] };
 
@@ -199,8 +201,9 @@ export function addStern(batch: GeometryBatch, p: Palette, L: GalleassLayout) {
 }
 
 /**
- * Avant : face plate du château avant (sabords des deux triples canons, préceintes en travers, lisse au niveau de son
- * pont), étrave et éperon (long bec, et la jambe de force dessous).
+ * Avant : face plate du château avant (sabords des deux triples canons, préceinte haute en travers, lisse au niveau de
+ * son pont), étrave qui suit la quille arrondie puis monte au milieu de la face, éperon (long bec, et la jambe de force
+ * dessous).
  */
 export function addBow(batch: GeometryBatch, p: Palette, L: GalleassLayout) {
   const { hull, forecastle, bow } = L;
@@ -211,15 +214,17 @@ export function addBow(batch: GeometryBatch, p: Palette, L: GalleassLayout) {
     batch.add(p.dark, box(0.86, 0.82, 0.06), tf(x, TRIPLE_Y, z + 0.01));
   }
   for (const w of WALES) {
+    if (w.bowEnd !== undefined) continue;
     const y = w.y + w.sheer * L.sheer(1);
     batch.add(DARK_WOOD, box(2 * hull.halfWidthAt(stem, y), w.height, 0.06), tf(0, y, z));
   }
   batch.add(p.trim, box(2 * hull.halfWidthAt(stem, forecastle.y), 0.12, 0.1), tf(0, forecastle.y, z));
   addPaintAcross(batch, p, L, 1, stem.z + 0.015);
-  // Étrave : un montant dans l'axe, de la quille au plat-bord, entre les deux triples canons.
+  // Étrave : le long de la quille qui remonte, puis un montant dans l'axe de la face, entre les deux triples canons.
+  const line = STEM_LINE.map((u) => L.at(u)).map((s) => new THREE.Vector3(0, s.keel, s.z));
+  for (let i = 0; i < line.length - 1; i++) batch.add(DARK_WOOD, cylinderBetween(line[i], line[i + 1], 0.12, 0.12, 4), identity);
   batch.add(DARK_WOOD, box(0.22, stem.gunwale - stem.keel, 0.16), tf(0, (stem.gunwale + stem.keel) / 2, z + 0.04));
-  const { base, tip } = L.spur;
+  const { base, tip, brace } = L.spur;
   batch.add(p.trim, cylinderBetween(base, tip, 0.28, 0.06), identity);
-  const knee = base.clone().lerp(tip, 0.45);
-  batch.add(p.trim, cylinderBetween(new THREE.Vector3(0, 0.3, stem.z - 0.1), knee, 0.11, 0.07), identity);
+  batch.add(p.trim, cylinderBetween(brace, base.clone().lerp(tip, 0.45), 0.11, 0.07), identity);
 }
