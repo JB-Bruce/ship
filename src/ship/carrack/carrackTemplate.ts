@@ -10,8 +10,8 @@ import { buildLateenSail, buildSquareSail, cylinderBetween } from '../parts/sail
 import { addBow, addCastles, addPavises, addRiders, addStern, DARK_OAK, HULL_OAK } from './carrackDecor';
 import { BATTERY_Y, DECK_Y, WALES, type CarrackLayout, type Mast } from './carrackLayout';
 
-/** Porte-haubans : planches qui débordent du bordé sous le plat-bord (dessous du plat-bord, largeur, m). */
-const CHANNEL = { below: 0.45, width: 0.5 };
+/** Porte-haubans : planches qui débordent du bordé sous le plat-bord (dessous du plat-bord, largeur, et ce qu'elles dépassent des pieds de haubans, m). */
+const CHANNEL = { below: 0.45, width: 0.5, overhang: 0.3 };
 /**
  * Pieds des haubans : à ces distances (m) derrière chaque mât ; ils restent sur le plat-bord du pont qui le porte
  * (`clearance` m des marches et de la poupe), quitte à se resserrer.
@@ -141,7 +141,6 @@ function buildTemplate(L: CarrackLayout, livery: Livery): CarrackTemplate {
 
 /** Mâts (grosses hunes rondes, chouques), hampe du pavillon au grand mât, porte-haubans. */
 function addMasts(batch: GeometryBatch, p: Palette, L: CarrackLayout) {
-  const { hull } = L;
   const masts: [Mast, number, number][] = [
     [L.foreMast, 0.26, 0.9],
     [L.mainMast, 0.34, 1.15],
@@ -154,16 +153,36 @@ function addMasts(batch: GeometryBatch, p: Palette, L: CarrackLayout) {
     batch.add(p.wood, new THREE.CylinderGeometry(platform, platform * 0.7, 0.55, 12), tf(0, mast.topPlatform + 0.27, mast.z));
     batch.add(p.dark, new THREE.CylinderGeometry(platform + 0.03, platform + 0.03, 0.08, 12), tf(0, mast.topPlatform + 0.52, mast.z));
     batch.add(p.dark, new THREE.CylinderGeometry(radius * 0.75, radius * 0.75, 0.1, 8), tf(0, mast.top + 0.05, mast.z));
-    const feet = shroudFeet(L, mast);
-    const mid = hull.stationAt((feet[0] + feet[feet.length - 1]) / 2 / hull.halfLength);
-    const length = feet[0] - feet[feet.length - 1] + 0.6;
-    const y = mid.gunwale - CHANNEL.below;
-    for (const side of [1, -1]) batch.add(p.wood, box(CHANNEL.width, 0.09, length), tf(side * (hull.halfWidthAt(mid, y) + CHANNEL.width / 2), y, mid.z));
+    if (hasChannels(L, mast)) addChannels(batch, p, L, shroudFeet(L, mast));
   }
   batch.add(p.dark, new THREE.CylinderGeometry(0.04, 0.04, 1.4, 4), tf(0, L.mainMast.top + 0.7, L.mainMast.z));
 }
 
-/** Haubans des quatre mâts (sur les porte-haubans), étais (contre-artimon → artimon → grand mât → misaine → beaupré), sous-barbe. */
+/** Le contre-artimon, tout à l'arrière où la coque se resserre, n'a pas de porte-haubans : ses haubans vont à la lisse. */
+const hasChannels = (L: CarrackLayout, mast: Mast) => mast !== L.bonaventureMast;
+
+/**
+ * Porte-haubans d'un mât, sur chaque bord : une planche qui suit le bordé (elle tourne avec lui là où la coque se
+ * resserre, vers la poupe), d'un peu avant le premier pied de hauban à un peu après le dernier.
+ */
+function addChannels(batch: GeometryBatch, p: Palette, L: CarrackLayout, feet: readonly number[]) {
+  const { hull } = L;
+  const zs = [feet[0] + CHANNEL.overhang, ...feet, feet[feet.length - 1] - CHANNEL.overhang];
+  for (const side of [1, -1]) {
+    const points = zs.map((z) => {
+      const s = hull.stationAt(z / hull.halfLength);
+      const y = s.gunwale - CHANNEL.below;
+      return new THREE.Vector3(side * (hull.halfWidthAt(s, y) + CHANNEL.width / 2), y, z);
+    });
+    for (let i = 0; i < points.length - 1; i++) {
+      const [a, b] = [points[i], points[i + 1]];
+      const length = a.distanceTo(b) + 0.04;
+      batch.add(p.wood, box(CHANNEL.width, 0.09, length), tf((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2, Math.atan2(a.y - b.y, Math.hypot(b.x - a.x, b.z - a.z)), Math.atan2(b.x - a.x, b.z - a.z)));
+    }
+  }
+}
+
+/** Haubans des quatre mâts (sur les porte-haubans, ou la lisse de la dunette), étais (contre-artimon → artimon → grand mât → misaine → beaupré), sous-barbe. */
 function buildRigging(L: CarrackLayout): THREE.BufferGeometry {
   const { hull } = L;
   const head = (m: Mast) => new THREE.Vector3(0, m.top - 0.5, m.z);
@@ -178,10 +197,11 @@ function buildRigging(L: CarrackLayout): THREE.BufferGeometry {
   for (const side of [1, -1]) {
     for (const mast of [L.foreMast, L.mainMast, L.mizzenMast, L.bonaventureMast]) {
       const top = new THREE.Vector3(side * 0.6, mast.topPlatform, mast.z);
+      const channels = hasChannels(L, mast);
       for (const z of shroudFeet(L, mast)) {
         const s = hull.stationAt(z / hull.halfLength);
-        const y = s.gunwale - CHANNEL.below;
-        points.push(top, new THREE.Vector3(side * (hull.halfWidthAt(s, y) + CHANNEL.width * 0.9), y, s.z));
+        const y = channels ? s.gunwale - CHANNEL.below : s.gunwale;
+        points.push(top, new THREE.Vector3(side * (hull.halfWidthAt(s, y) + (channels ? CHANNEL.width * 0.9 : 0)), y, s.z));
       }
       points.push(head(mast), new THREE.Vector3(side * 0.8, mast.topPlatform + 0.5, mast.z - 0.2));
     }
