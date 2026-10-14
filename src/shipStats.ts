@@ -111,7 +111,7 @@ export const XEBEC_STATS: ShipStats = {
   cannonsPerSide: 2,
   chaseGuns: 1,
   cannon: { range: 130, reloadTime: 3, arcHalfAngle: 35 * DEG, spread: 2.5 * DEG, rangeError: 0.07, damage: 14, ballSpeed: 58 },
-  deckCannon: { range: 155, reloadTime: 4.5, arcHalfAngle: 15 * DEG, spread: 2 * DEG, rangeError: 0.06, damage: 18, ballSpeed: 62 },
+  deckCannon: { range: 200, reloadTime: 4.5, arcHalfAngle: 15 * DEG, spread: 2 * DEG, rangeError: 0.06, damage: 18, ballSpeed: 62 },
   buoyancy: { stiffness: 32, damping: 9, tiltResponse: 5 },
 };
 
