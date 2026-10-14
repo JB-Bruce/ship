@@ -71,7 +71,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     hold: 20,
     canFish: true,
     stats: LONGBOAT_STATS,
-    enemyStats: weaker(LONGBOAT_STATS, 45, 8),
+    enemyStats: weaker(LONGBOAT_STATS, 60, 8),
     upgrades: {
       accuracy: { costs: [{ gold: 20, wood: 0 }, { gold: 40, wood: 0 }, { gold: 60, wood: 0 }], spreadFactor: [0.7, 0.5, 0.3] },
       range: { costs: [], rangeFactor: [] },
@@ -95,7 +95,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     hold: 40,
     canFish: true,
     stats: SLOOP_STATS,
-    enemyStats: weaker(SLOOP_STATS, 100, 10),
+    enemyStats: weaker(SLOOP_STATS, 135, 10),
     upgrades: {
       accuracy: { costs: [{ gold: 40, wood: 0 }, { gold: 70, wood: 0 }, { gold: 110, wood: 0 }], spreadFactor: [0.7, 0.5, 0.3] },
       range: { costs: [], rangeFactor: [] },
@@ -119,7 +119,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     respawnTime: 62,
     hold: 50,
     stats: CARAVEL_STATS,
-    enemyStats: weaker(CARAVEL_STATS, 145, 12),
+    enemyStats: weaker(CARAVEL_STATS, 195, 12),
     gunLabels: { main: 'Canons de flanc', deck: 'Canon de chasse' },
     upgrades: {
       accuracy: {
@@ -155,7 +155,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     detectability: 0.75,
     tradeBonus: 0.1,
     stats: SCHOONER_STATS,
-    enemyStats: weaker(SCHOONER_STATS, 110, 9),
+    enemyStats: weaker(SCHOONER_STATS, 150, 9),
     upgrades: {
       accuracy: { costs: [{ gold: 45, wood: 0 }, { gold: 75, wood: 0 }, { gold: 110, wood: 0 }], spreadFactor: [0.75, 0.55, 0.38] },
       range: { costs: [], rangeFactor: [] },
@@ -195,7 +195,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     respawnTime: 70,
     hold: 60,
     stats: BRIGANTINE_STATS,
-    enemyStats: weaker(BRIGANTINE_STATS, 160, 12),
+    enemyStats: weaker(BRIGANTINE_STATS, 215, 12),
     upgrades: {
       accuracy: {
         costs: [{ gold: 50, wood: 0 }, { gold: 80, wood: 0 }, { gold: 120, wood: 0 }, { gold: 170, wood: 0 }, { gold: 230, wood: 0 }],
@@ -244,7 +244,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     hold: 55,
     oars: 0.18,
     stats: XEBEC_STATS,
-    enemyStats: weaker(XEBEC_STATS, 140, 12),
+    enemyStats: weaker(XEBEC_STATS, 190, 12),
     gunLabels: { main: 'Canons de flanc', deck: 'Canons de chasse' },
     upgrades: {
       accuracy: {
@@ -297,7 +297,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     respawnTime: 76,
     hold: 70,
     stats: BRIG_STATS,
-    enemyStats: weaker(BRIG_STATS, 210, 9),
+    enemyStats: weaker(BRIG_STATS, 285, 9),
     upgrades: {
       accuracy: {
         costs: [{ gold: 60, wood: 0 }, { gold: 100, wood: 0 }, { gold: 150, wood: 0 }, { gold: 210, wood: 0 }],
@@ -344,7 +344,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     respawnTime: 80,
     hold: 80,
     stats: CORVETTE_STATS,
-    enemyStats: weaker(CORVETTE_STATS, 260, 14),
+    enemyStats: weaker(CORVETTE_STATS, 350, 14),
     upgrades: {
       accuracy: {
         costs: [{ gold: 60, wood: 0 }, { gold: 100, wood: 0 }, { gold: 150, wood: 0 }, { gold: 210, wood: 0 }],
@@ -389,7 +389,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     respawnTime: 95,
     hold: 100,
     stats: FRIGATE_STATS,
-    enemyStats: weaker(FRIGATE_STATS, 400, 16),
+    enemyStats: weaker(FRIGATE_STATS, 540, 16),
     upgrades: {
       accuracy: {
         costs: [{ gold: 80, wood: 0 }, { gold: 130, wood: 0 }, { gold: 190, wood: 0 }, { gold: 260, wood: 0 }],
