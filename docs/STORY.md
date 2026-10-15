@@ -153,7 +153,7 @@ Plus tard : abordage et capture de navires.
   au-delà ; 15 % de sa vie à chaque coup), sans alerte ni message : on s'en sort en faisant demi-tour à temps. Les IA
   restent à 300 m en deçà du bord, et rien n'y apparaît. Sur la carte M : une bande sombre et le bord en tirets. Le
   Mur des tempêtes de l'est est, pour l'instant, le même bord.
-- **Grande tempête** (2026-10-15) : septième temps (bouton ⛰) : houle de fond de 600 et 430 m entre les crêtes, ~22 m
+- **Grande tempête** (2026-10-15) : septième temps (bouton ⛰) : houle de fond de 300 et 215 m entre les crêtes, ~22 m
   du creux à la crête (jusqu'à ~30 m), pluie et vent modérés, ciel gris mais visibilité ~450 m, combat un peu gêné,
   paquets de mer rares mais forts. Les coques suivent toute la houle de fond. Pourra servir de passage vers une autre
   mer (tempêtes du voyage).

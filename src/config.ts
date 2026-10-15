@@ -1240,13 +1240,13 @@ export const OCEAN = {
     { dirX: 1, dirZ: -0.2, steepness: 0.06, wavelength: 16 },
   ] as WaveParams[],
   /**
-   * Houle de fond de la grande tempête : deux vagues gigantesques et très espacées (≈ 22 m et ≈ 6 m du creux à la
-   * crête, 600 et 430 m entre deux crêtes, ≈ 20 s entre deux passages), nulles par tout autre temps (raideur = celle-ci
+   * Houle de fond de la grande tempête : deux vagues gigantesques (≈ 22 m et ≈ 6 m du creux à la crête, 300 et 215 m
+   * entre deux crêtes, ≈ 14 s entre deux passages), nulles par tout autre temps (raideur = celle-ci
    * × WeatherProfile.groundSwell). Après la houle et le clapot dans la liste des vagues.
    */
   groundSwell: [
-    { dirX: 1, dirZ: 0.3, steepness: 0.115, wavelength: 600, long: true },
-    { dirX: 0.85, dirZ: -0.4, steepness: 0.045, wavelength: 430, long: true },
+    { dirX: 1, dirZ: 0.3, steepness: 0.23, wavelength: 300, long: true },
+    { dirX: 0.85, dirZ: -0.4, steepness: 0.09, wavelength: 215, long: true },
   ] as WaveParams[],
   deepColor: 0x0a3d5c,
   shallowColor: 0x1b7a9a,
