@@ -12,10 +12,10 @@ const GRATING = 0.38;
 /** Éperon courbe : épaisseur (m). */
 const CUTWATER = 0.32;
 /**
- * Ajours de l'éperon, bordés d'un cadre doré : deux ouvertures séparées par une traverse, le long de son bord bas
- * (étendues en paramètre de la courbe de ce bord), à `inset` m au-dessus de lui, et `below` m sous la plate-forme.
+ * Ajour de l'éperon, bordé d'un cadre doré : une seule ouverture le long de son bord bas (étendue en paramètre de la
+ * courbe de ce bord), à `inset` m au-dessus de lui et `below` m sous la plate-forme : de larges bords de bois tout autour.
  */
-const OPENINGS = { spans: [[0.12, 0.42], [0.5, 0.78]] as const, inset: 0.55, below: 0.6, steps: 6, frame: 0.045 };
+const OPENINGS = { spans: [[0.24, 0.7]] as const, inset: 0.85, below: 0.85, steps: 8, frame: 0.05 };
 /** Lion de proue cabré : inclinaison de son corps vers le haut (rad). */
 const LION_REAR = 0.62;
 
@@ -23,7 +23,7 @@ const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 const identity = new THREE.Matrix4();
 
 /**
- * Avant : étrave qui suit la quille, éperon courbe (ajouré, cadres dorés) qui part d'elle et remonte jusqu'au lion de proue doré, plate-forme
+ * Avant : étrave qui suit la quille, éperon courbe (ajouré, cadre doré) qui part d'elle et remonte jusqu'au lion de proue doré, plate-forme
  * à caillebotis de la poulaine posée dessus, lisses courbes de l'avant du château vers le lion, bossoirs ; beaupré qui
  * sort du pont du château avant et que des liures attachent à l'éperon, hune et petit mât de contre-civadière à sa
  * pointe, vergue de civadière.
@@ -58,7 +58,7 @@ export function addBow(batch: GeometryBatch, p: Palette, L: GalleonLayout) {
   plate.rotateY(-Math.PI / 2);
   plate.translate(CUTWATER / 2, 0, 0);
   batch.add(HULL_WOOD, plate, identity);
-  // Filets dorés le long du bord bas de l'éperon, et cadres dorés autour des ajours, de chaque côté.
+  // Filets dorés le long du bord bas de l'éperon, et cadre doré autour de l'ajour, de chaque côté.
   const edge = bottom.getPoints(10);
   for (const side of [1, -1]) {
     const x = side * (CUTWATER / 2 + 0.02);
