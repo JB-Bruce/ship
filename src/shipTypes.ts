@@ -71,7 +71,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     hold: 20,
     canFish: true,
     stats: LONGBOAT_STATS,
-    enemyStats: weaker(LONGBOAT_STATS, 60, 8),
+    enemyStats: weaker(LONGBOAT_STATS, 120, 8),
     upgrades: {
       accuracy: { costs: [{ gold: 20, wood: 0 }, { gold: 40, wood: 0 }, { gold: 60, wood: 0 }], spreadFactor: [0.7, 0.5, 0.3] },
       range: { costs: [], rangeFactor: [] },
@@ -95,7 +95,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     hold: 40,
     canFish: true,
     stats: SLOOP_STATS,
-    enemyStats: weaker(SLOOP_STATS, 135, 10),
+    enemyStats: weaker(SLOOP_STATS, 270, 10),
     upgrades: {
       accuracy: { costs: [{ gold: 40, wood: 0 }, { gold: 70, wood: 0 }, { gold: 110, wood: 0 }], spreadFactor: [0.7, 0.5, 0.3] },
       range: { costs: [], rangeFactor: [] },
@@ -119,14 +119,14 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     respawnTime: 62,
     hold: 50,
     stats: CARAVEL_STATS,
-    enemyStats: weaker(CARAVEL_STATS, 195, 12),
+    enemyStats: weaker(CARAVEL_STATS, 390, 12),
     gunLabels: { main: 'Canons de flanc', deck: 'Canon de chasse' },
     upgrades: {
       accuracy: {
         costs: [{ gold: 45, wood: 0 }, { gold: 75, wood: 0 }, { gold: 115, wood: 0 }, { gold: 160, wood: 0 }],
         spreadFactor: [0.75, 0.56, 0.4, 0.27],
       },
-      range: { costs: [{ gold: 70, wood: 20 }], rangeFactor: [1.15] },
+      range: { costs: [{ gold: 70, wood: 20 }], rangeFactor: [1.1] },
       // D'abord le gros canon de chasse sous le gaillard d'avant, puis un canon de plus par flanc à chaque niveau.
       cannons: { costs: [{ gold: 140, wood: 70 }, { gold: 110, wood: 70 }, { gold: 160, wood: 95 }], cannonsPerSide: [2, 3, 4], chaseFrom: 1 },
       hull: {
@@ -155,7 +155,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     detectability: 0.75,
     tradeBonus: 0.1,
     stats: SCHOONER_STATS,
-    enemyStats: weaker(SCHOONER_STATS, 150, 9),
+    enemyStats: weaker(SCHOONER_STATS, 300, 9),
     upgrades: {
       accuracy: { costs: [{ gold: 45, wood: 0 }, { gold: 75, wood: 0 }, { gold: 110, wood: 0 }], spreadFactor: [0.75, 0.55, 0.38] },
       range: { costs: [], rangeFactor: [] },
@@ -195,13 +195,13 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     respawnTime: 70,
     hold: 60,
     stats: BRIGANTINE_STATS,
-    enemyStats: weaker(BRIGANTINE_STATS, 215, 12),
+    enemyStats: weaker(BRIGANTINE_STATS, 430, 12),
     upgrades: {
       accuracy: {
         costs: [{ gold: 50, wood: 0 }, { gold: 80, wood: 0 }, { gold: 120, wood: 0 }, { gold: 170, wood: 0 }, { gold: 230, wood: 0 }],
         spreadFactor: [0.8, 0.62, 0.46, 0.32, 0.2],
       },
-      range: { costs: [{ gold: 80, wood: 20 }, { gold: 130, wood: 35 }], rangeFactor: [1.15, 1.3] },
+      range: { costs: [{ gold: 80, wood: 20 }, { gold: 130, wood: 35 }], rangeFactor: [1.1, 1.2] },
       // Les canons « bleus » du pont principal, achetés un par un ; brigantin allongé : un de plus au milieu, puis un
       // sous le gaillard d'avant.
       cannons: { costs: [{ gold: 100, wood: 60 }, { gold: 150, wood: 90 }, { gold: 200, wood: 110 }, { gold: 250, wood: 140 }], cannonsPerSide: [4, 5, 6, 7] },
@@ -244,14 +244,14 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     hold: 55,
     oars: 0.18,
     stats: XEBEC_STATS,
-    enemyStats: weaker(XEBEC_STATS, 190, 12),
+    enemyStats: weaker(XEBEC_STATS, 380, 12),
     gunLabels: { main: 'Canons de flanc', deck: 'Canons de chasse' },
     upgrades: {
       accuracy: {
         costs: [{ gold: 50, wood: 0 }, { gold: 80, wood: 0 }, { gold: 120, wood: 0 }, { gold: 170, wood: 0 }],
         spreadFactor: [0.78, 0.6, 0.44, 0.3],
       },
-      range: { costs: [{ gold: 80, wood: 20 }], rangeFactor: [1.15] },
+      range: { costs: [{ gold: 80, wood: 20 }], rangeFactor: [1.1] },
       // Un canon de chasse de plus, puis un canon par flanc, puis le troisième canon de chasse ; grand chébec : un
       // canon de plus par flanc à chacun des deux niveaux suivants.
       cannons: {
@@ -299,13 +299,13 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     hold: 160,
     tradeBonus: 0.15,
     stats: FLUYT_STATS,
-    enemyStats: weaker(FLUYT_STATS, 350, 11),
+    enemyStats: weaker(FLUYT_STATS, 700, 11),
     upgrades: {
       accuracy: {
         costs: [{ gold: 60, wood: 0 }, { gold: 100, wood: 0 }, { gold: 150, wood: 0 }, { gold: 210, wood: 0 }],
         spreadFactor: [0.8, 0.62, 0.46, 0.32],
       },
-      range: { costs: [{ gold: 100, wood: 30 }, { gold: 160, wood: 50 }], rangeFactor: [1.15, 1.3] },
+      range: { costs: [{ gold: 100, wood: 30 }, { gold: 160, wood: 50 }], rangeFactor: [1.1, 1.2] },
       // Un canon de batterie de plus par bord à chaque niveau (4 → 6, les deux canons des gaillards restent) ; flûte
       // allongée : un sabord de batterie et un canon de gaillard d'avant de plus par bord.
       cannons: { costs: [{ gold: 150, wood: 90 }, { gold: 210, wood: 120 }, { gold: 300, wood: 170 }], cannonsPerSide: [7, 8, 10] },
@@ -344,13 +344,13 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     respawnTime: 76,
     hold: 70,
     stats: BRIG_STATS,
-    enemyStats: weaker(BRIG_STATS, 285, 9),
+    enemyStats: weaker(BRIG_STATS, 570, 9),
     upgrades: {
       accuracy: {
         costs: [{ gold: 60, wood: 0 }, { gold: 100, wood: 0 }, { gold: 150, wood: 0 }, { gold: 210, wood: 0 }],
         spreadFactor: [0.8, 0.62, 0.46, 0.32],
       },
-      range: { costs: [{ gold: 100, wood: 30 }, { gold: 160, wood: 50 }], rangeFactor: [1.15, 1.3] },
+      range: { costs: [{ gold: 100, wood: 30 }, { gold: 160, wood: 50 }], rangeFactor: [1.1, 1.2] },
       // Un canon de plus par flanc à chaque niveau (6 → 9) ; brick allongé : deux niveaux de plus (10, 11).
       cannons: {
         costs: [{ gold: 140, wood: 80 }, { gold: 190, wood: 110 }, { gold: 240, wood: 140 }, { gold: 300, wood: 170 }, { gold: 360, wood: 200 }],
@@ -391,13 +391,13 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     respawnTime: 80,
     hold: 80,
     stats: CORVETTE_STATS,
-    enemyStats: weaker(CORVETTE_STATS, 350, 14),
+    enemyStats: weaker(CORVETTE_STATS, 700, 14),
     upgrades: {
       accuracy: {
         costs: [{ gold: 60, wood: 0 }, { gold: 100, wood: 0 }, { gold: 150, wood: 0 }, { gold: 210, wood: 0 }],
         spreadFactor: [0.8, 0.62, 0.46, 0.32],
       },
-      range: { costs: [{ gold: 100, wood: 30 }, { gold: 160, wood: 50 }], rangeFactor: [1.15, 1.3] },
+      range: { costs: [{ gold: 100, wood: 30 }, { gold: 160, wood: 50 }], rangeFactor: [1.1, 1.2] },
       // Les canons légers du pont supérieur, deux par deux sur chaque flanc ; corvette allongée : un canon de plus
       // par bord en batterie à chacun des deux niveaux suivants.
       cannons: { costs: [{ gold: 150, wood: 90 }, { gold: 220, wood: 130 }, { gold: 300, wood: 170 }, { gold: 380, wood: 210 }], cannonsPerSide: [6, 8, 9, 10] },
@@ -437,14 +437,14 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     hold: 140,
     upwindLoss: 1.3,
     stats: CARRACK_STATS,
-    enemyStats: weaker(CARRACK_STATS, 740, 18),
+    enemyStats: weaker(CARRACK_STATS, 1480, 18),
     gunLabels: { main: 'Batterie basse', deck: 'Pièces des châteaux' },
     upgrades: {
       accuracy: {
         costs: [{ gold: 80, wood: 0 }, { gold: 130, wood: 0 }, { gold: 190, wood: 0 }, { gold: 260, wood: 0 }],
         spreadFactor: [0.8, 0.62, 0.46, 0.32],
       },
-      range: { costs: [{ gold: 130, wood: 40 }, { gold: 200, wood: 60 }], rangeFactor: [1.15, 1.3] },
+      range: { costs: [{ gold: 130, wood: 40 }, { gold: 200, wood: 60 }], rangeFactor: [1.1, 1.2] },
       // 1 : un canon de batterie de plus par bord, 2 : une pièce sur le château avant, 3 : un canon de batterie ;
       // grande caraque : un canon de batterie et une pièce sur le château avant ; caraque royale : un canon de batterie et
       // une pièce sur le demi-pont (voir carrackArmament).
@@ -503,14 +503,14 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     hold: 90,
     oars: 0.3,
     stats: GALLEASS_STATS,
-    enemyStats: weaker(GALLEASS_STATS, 580, 18),
+    enemyStats: weaker(GALLEASS_STATS, 1160, 18),
     gunLabels: { main: 'Batterie et triples canons', deck: 'Pièces du pont et du château avant' },
     upgrades: {
       accuracy: {
         costs: [{ gold: 80, wood: 0 }, { gold: 130, wood: 0 }, { gold: 190, wood: 0 }, { gold: 260, wood: 0 }],
         spreadFactor: [0.8, 0.62, 0.46, 0.32],
       },
-      range: { costs: [{ gold: 130, wood: 40 }, { gold: 200, wood: 60 }], rangeFactor: [1.15, 1.3] },
+      range: { costs: [{ gold: 130, wood: 40 }, { gold: 200, wood: 60 }], rangeFactor: [1.1, 1.2] },
       // 1 : un canon de batterie de plus par bord, 2 : une pièce sur le pont, 3 : un canon de batterie, 4 : une pièce ;
       // grande galéasse, puis galéasse capitane : un canon de batterie et une pièce chacune (voir galleassArmament).
       cannons: {
@@ -563,13 +563,13 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     respawnTime: 95,
     hold: 100,
     stats: FRIGATE_STATS,
-    enemyStats: weaker(FRIGATE_STATS, 540, 16),
+    enemyStats: weaker(FRIGATE_STATS, 1080, 16),
     upgrades: {
       accuracy: {
         costs: [{ gold: 80, wood: 0 }, { gold: 130, wood: 0 }, { gold: 190, wood: 0 }, { gold: 260, wood: 0 }],
         spreadFactor: [0.8, 0.62, 0.46, 0.32],
       },
-      range: { costs: [{ gold: 130, wood: 40 }, { gold: 200, wood: 60 }], rangeFactor: [1.15, 1.3] },
+      range: { costs: [{ gold: 130, wood: 40 }, { gold: 200, wood: 60 }], rangeFactor: [1.1, 1.2] },
       // Chaque achat ajoute un canon de batterie par bord ; les achats 2 et 4, aussi un canon de gaillard. Frégate
       // allongée : le 5e ajoute deux canons de batterie par bord, le 6e un canon de gaillard d'avant ; grande frégate :
       // le 7e deux canons de batterie, le 8e un canon de gaillard d'arrière.
@@ -625,7 +625,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     tradeBonus: 0.1,
     navyOnly: true,
     stats: GALLEON_STATS,
-    enemyStats: weaker(GALLEON_STATS, 980, 20),
+    enemyStats: weaker(GALLEON_STATS, 1960, 20),
     gunLabels: { main: 'Batteries', deck: 'Pièces des châteaux et du pont' },
     upgrades: {
       // Galion amiral : un niveau de précision et un de portée en plus.
@@ -633,7 +633,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
         costs: [{ gold: 100, wood: 0 }, { gold: 160, wood: 0 }, { gold: 230, wood: 0 }, { gold: 310, wood: 0 }, { gold: 400, wood: 0 }],
         spreadFactor: [0.8, 0.62, 0.46, 0.32, 0.22],
       },
-      range: { costs: [{ gold: 160, wood: 50 }, { gold: 240, wood: 75 }, { gold: 320, wood: 95 }], rangeFactor: [1.15, 1.3, 1.45] },
+      range: { costs: [{ gold: 160, wood: 50 }, { gold: 240, wood: 75 }, { gold: 320, wood: 95 }], rangeFactor: [1.1, 1.2, 1.3] },
       // 1 : un canon de plus en batterie basse, 2 : en batterie haute, 3 : une pièce sur le château avant, 4 : basse,
       // 5 : haute ; grand galion, puis galion amiral : deux niveaux chacun, une pièce sur le pont et un canon de
       // batterie (basse, puis haute) à chaque niveau (voir galleonArmament).

@@ -61,14 +61,17 @@ export function rebuildFleet(fleet: Fleet, saved: SaveData['fleet']) {
   fleet.controlled = fleet.members.find((m) => m.id === saved.controlledId) ?? fleet.members[0];
 }
 
-/** Une fois l'équipage rétabli : caractéristiques de chaque navire (améliorations, officiers, rang), puis sa vie et sa voile. */
-export function finishFleet(fleet: Fleet, saved: SaveData['fleet'], crew: Crew) {
+/**
+ * Une fois l'équipage rétabli : caractéristiques de chaque navire (améliorations, officiers, rang), puis sa vie (× `healthScale`
+ * pour une ancienne sauvegarde, voir healthScaleOf) et sa voile.
+ */
+export function finishFleet(fleet: Fleet, saved: SaveData['fleet'], crew: Crew, healthScale = 1) {
   for (const s of saved.members) {
     const member = fleet.members.find((m) => m.id === s.id);
     if (!member) continue;
     refit(member, crew);
     if (!s.afloat) continue;
-    member.ship.health = Math.min(member.ship.stats.maxHealth, Math.max(1, s.afloat.health));
+    member.ship.health = Math.min(member.ship.stats.maxHealth, Math.max(1, s.afloat.health * healthScale));
     member.ship.controls.sail = s.afloat.sail;
   }
 }

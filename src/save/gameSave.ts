@@ -6,7 +6,7 @@ import { isHostile, type Ship } from '../ship/ship';
 import type { EnemySpawner } from '../world/enemySpawner';
 import type { Weather } from '../world/weather';
 import { finishFleet, rebuildFleet, snapshotMember } from './fleetSnapshot';
-import { SAVE_GAME_ID, SAVE_VERSION, type SaveData } from './saveData';
+import { healthScaleOf, SAVE_GAME_ID, SAVE_VERSION, type SaveData } from './saveData';
 
 /** Ce que la sauvegarde lit et rétablit. */
 export interface SaveTargets {
@@ -54,5 +54,5 @@ export function restoreGame(t: SaveTargets, data: SaveData) {
   t.spawner.kills = data.kills;
   t.weather.target = data.weather;
   t.campaign.restore(data.campaign);
-  finishFleet(t.fleet, data.fleet, t.campaign.crew);
+  finishFleet(t.fleet, data.fleet, t.campaign.crew, healthScaleOf(data.version));
 }

@@ -13,9 +13,9 @@ export const LONGBOAT_STATS: ShipStats = {
   turnRate: 0.85,
   rudderSpeed: 4,
   turnHeel: 0.012,
-  maxHealth: 80,
+  maxHealth: 160,
   cannonsPerSide: 1,
-  cannon: { range: 120, reloadTime: 3, arcHalfAngle: 35 * DEG, spread: 2 * DEG, rangeError: 0.06, damage: 12, ballSpeed: 55 },
+  cannon: { range: 120, reloadTime: 3, arcHalfAngle: 35 * DEG, spread: 3 * DEG, rangeError: 0.09, damage: 12, ballSpeed: 55 },
   buoyancy: { stiffness: 60, damping: 11, tiltResponse: 10 },
 };
 
@@ -29,9 +29,9 @@ export const SLOOP_STATS: ShipStats = {
   turnRate: 0.55,
   rudderSpeed: 3,
   turnHeel: 0.008,
-  maxHealth: 175,
+  maxHealth: 350,
   cannonsPerSide: 2,
-  cannon: { range: 130, reloadTime: 3.2, arcHalfAngle: 35 * DEG, spread: 2.5 * DEG, rangeError: 0.07, damage: 14, ballSpeed: 58 },
+  cannon: { range: 130, reloadTime: 3.2, arcHalfAngle: 35 * DEG, spread: 3.75 * DEG, rangeError: 0.105, damage: 14, ballSpeed: 58 },
   buoyancy: { stiffness: 40, damping: 10, tiltResponse: 6 },
 };
 
@@ -48,9 +48,9 @@ export const BRIGANTINE_STATS: ShipStats = {
   turnRate: 0.45,
   rudderSpeed: 2.5,
   turnHeel: 0.006,
-  maxHealth: 270,
+  maxHealth: 540,
   cannonsPerSide: 3,
-  cannon: { range: 140, reloadTime: 3.4, arcHalfAngle: 35 * DEG, spread: 2.2 * DEG, rangeError: 0.06, damage: 15, ballSpeed: 60 },
+  cannon: { range: 140, reloadTime: 3.4, arcHalfAngle: 35 * DEG, spread: 3.3 * DEG, rangeError: 0.09, damage: 15, ballSpeed: 60 },
   buoyancy: { stiffness: 32, damping: 9, tiltResponse: 5 },
 };
 
@@ -68,10 +68,10 @@ export const CARAVEL_STATS: ShipStats = {
   turnRate: 0.65,
   rudderSpeed: 3.2,
   turnHeel: 0.007,
-  maxHealth: 245,
+  maxHealth: 490,
   cannonsPerSide: 2,
-  cannon: { range: 130, reloadTime: 3.2, arcHalfAngle: 35 * DEG, spread: 2.5 * DEG, rangeError: 0.07, damage: 14, ballSpeed: 58 },
-  deckCannon: { range: 160, reloadTime: 6, arcHalfAngle: 15 * DEG, spread: 1.8 * DEG, rangeError: 0.05, damage: 28, ballSpeed: 64 },
+  cannon: { range: 130, reloadTime: 3.2, arcHalfAngle: 35 * DEG, spread: 3.75 * DEG, rangeError: 0.105, damage: 14, ballSpeed: 58 },
+  deckCannon: { range: 160, reloadTime: 6, arcHalfAngle: 15 * DEG, spread: 2.7 * DEG, rangeError: 0.075, damage: 28, ballSpeed: 64 },
   buoyancy: { stiffness: 36, damping: 9.5, tiltResponse: 5.5 },
 };
 
@@ -88,9 +88,9 @@ export const SCHOONER_STATS: ShipStats = {
   turnRate: 0.55,
   rudderSpeed: 3,
   turnHeel: 0.008,
-  maxHealth: 190,
+  maxHealth: 380,
   cannonsPerSide: 2,
-  cannon: { range: 125, reloadTime: 2.9, arcHalfAngle: 35 * DEG, spread: 2.5 * DEG, rangeError: 0.07, damage: 12, ballSpeed: 58 },
+  cannon: { range: 125, reloadTime: 2.9, arcHalfAngle: 35 * DEG, spread: 3.75 * DEG, rangeError: 0.105, damage: 12, ballSpeed: 58 },
   buoyancy: { stiffness: 38, damping: 10, tiltResponse: 6 },
 };
 
@@ -107,11 +107,11 @@ export const XEBEC_STATS: ShipStats = {
   turnRate: 0.52,
   rudderSpeed: 2.8,
   turnHeel: 0.007,
-  maxHealth: 235,
+  maxHealth: 470,
   cannonsPerSide: 2,
   chaseGuns: 1,
-  cannon: { range: 130, reloadTime: 3, arcHalfAngle: 35 * DEG, spread: 2.5 * DEG, rangeError: 0.07, damage: 14, ballSpeed: 58 },
-  deckCannon: { range: 200, reloadTime: 4.5, arcHalfAngle: 15 * DEG, spread: 2 * DEG, rangeError: 0.06, damage: 18, ballSpeed: 62 },
+  cannon: { range: 130, reloadTime: 3, arcHalfAngle: 35 * DEG, spread: 3.75 * DEG, rangeError: 0.105, damage: 14, ballSpeed: 58 },
+  deckCannon: { range: 200, reloadTime: 4.5, arcHalfAngle: 15 * DEG, spread: 3 * DEG, rangeError: 0.09, damage: 18, ballSpeed: 62 },
   buoyancy: { stiffness: 32, damping: 9, tiltResponse: 5 },
 };
 
@@ -129,10 +129,10 @@ export const BRIG_STATS: ShipStats = {
   turnRate: 0.47,
   rudderSpeed: 2.5,
   turnHeel: 0.006,
-  maxHealth: 350,
+  maxHealth: 700,
   cannonsPerSide: 6,
-  cannon: { range: 125, reloadTime: 2.4, arcHalfAngle: 35 * DEG, spread: 2.6 * DEG, rangeError: 0.07, damage: 10, ballSpeed: 58 },
-  deckCannon: { range: 200, reloadTime: 10, arcHalfAngle: Math.PI, spread: 4 * DEG, rangeError: 0.12, damage: 100, ballSpeed: 45, shell: MORTAR_SHELL },
+  cannon: { range: 125, reloadTime: 2.4, arcHalfAngle: 35 * DEG, spread: 3.9 * DEG, rangeError: 0.105, damage: 10, ballSpeed: 58 },
+  deckCannon: { range: 200, reloadTime: 10, arcHalfAngle: Math.PI, spread: 6 * DEG, rangeError: 0.18, damage: 100, ballSpeed: 45, shell: MORTAR_SHELL },
   buoyancy: { stiffness: 30, damping: 8.8, tiltResponse: 4.7 },
 };
 
@@ -150,10 +150,10 @@ export const FLUYT_STATS: ShipStats = {
   turnRate: 0.36,
   rudderSpeed: 2.1,
   turnHeel: 0.005,
-  maxHealth: 430,
+  maxHealth: 860,
   cannonsPerSide: 6,
-  cannon: { range: 150, reloadTime: 3.8, arcHalfAngle: 25 * DEG, spread: 2.3 * DEG, rangeError: 0.065, damage: 14, ballSpeed: 60 },
-  deckCannon: { range: 130, reloadTime: 2.6, arcHalfAngle: 35 * DEG, spread: 2.6 * DEG, rangeError: 0.07, damage: 10, ballSpeed: 58 },
+  cannon: { range: 150, reloadTime: 3.8, arcHalfAngle: 25 * DEG, spread: 3.45 * DEG, rangeError: 0.0975, damage: 14, ballSpeed: 60 },
+  deckCannon: { range: 130, reloadTime: 2.6, arcHalfAngle: 35 * DEG, spread: 3.9 * DEG, rangeError: 0.105, damage: 10, ballSpeed: 58 },
   buoyancy: { stiffness: 26, damping: 8.4, tiltResponse: 4.2 },
 };
 
@@ -170,10 +170,10 @@ export const CORVETTE_STATS: ShipStats = {
   turnRate: 0.4,
   rudderSpeed: 2.2,
   turnHeel: 0.005,
-  maxHealth: 430,
+  maxHealth: 860,
   cannonsPerSide: 4,
-  cannon: { range: 150, reloadTime: 4, arcHalfAngle: 20 * DEG, spread: 2.2 * DEG, rangeError: 0.06, damage: 18, ballSpeed: 62 },
-  deckCannon: { range: 130, reloadTime: 2.5, arcHalfAngle: 35 * DEG, spread: 2.6 * DEG, rangeError: 0.07, damage: 11, ballSpeed: 58 },
+  cannon: { range: 150, reloadTime: 4, arcHalfAngle: 20 * DEG, spread: 3.3 * DEG, rangeError: 0.09, damage: 18, ballSpeed: 62 },
+  deckCannon: { range: 130, reloadTime: 2.5, arcHalfAngle: 35 * DEG, spread: 3.9 * DEG, rangeError: 0.105, damage: 11, ballSpeed: 58 },
   buoyancy: { stiffness: 28, damping: 8.5, tiltResponse: 4.5 },
 };
 
@@ -191,10 +191,10 @@ export const FRIGATE_STATS: ShipStats = {
   turnRate: 0.33,
   rudderSpeed: 2,
   turnHeel: 0.004,
-  maxHealth: 650,
+  maxHealth: 1300,
   cannonsPerSide: 6,
-  cannon: { range: 160, reloadTime: 4.2, arcHalfAngle: 20 * DEG, spread: 2.2 * DEG, rangeError: 0.06, damage: 20, ballSpeed: 64 },
-  deckCannon: { range: 135, reloadTime: 2.6, arcHalfAngle: 35 * DEG, spread: 2.6 * DEG, rangeError: 0.07, damage: 12, ballSpeed: 58 },
+  cannon: { range: 160, reloadTime: 4.2, arcHalfAngle: 20 * DEG, spread: 3.3 * DEG, rangeError: 0.09, damage: 20, ballSpeed: 64 },
+  deckCannon: { range: 135, reloadTime: 2.6, arcHalfAngle: 35 * DEG, spread: 3.9 * DEG, rangeError: 0.105, damage: 12, ballSpeed: 58 },
   buoyancy: { stiffness: 24, damping: 8, tiltResponse: 4 },
 };
 
@@ -213,11 +213,11 @@ export const CARRACK_STATS: ShipStats = {
   turnRate: 0.28,
   rudderSpeed: 1.8,
   turnHeel: 0.004,
-  maxHealth: 900,
+  maxHealth: 1800,
   cannonsPerSide: 7,
   chaseGuns: 3,
-  cannon: { range: 150, reloadTime: 4.6, arcHalfAngle: 20 * DEG, spread: 2.2 * DEG, rangeError: 0.06, damage: 22, ballSpeed: 62 },
-  deckCannon: { range: 150, reloadTime: 2.2, arcHalfAngle: 45 * DEG, spread: 2.8 * DEG, rangeError: 0.075, damage: 9, ballSpeed: 56 },
+  cannon: { range: 150, reloadTime: 4.6, arcHalfAngle: 20 * DEG, spread: 3.3 * DEG, rangeError: 0.09, damage: 22, ballSpeed: 62 },
+  deckCannon: { range: 150, reloadTime: 2.2, arcHalfAngle: 45 * DEG, spread: 4.2 * DEG, rangeError: 0.1125, damage: 9, ballSpeed: 56 },
   buoyancy: { stiffness: 22, damping: 7.8, tiltResponse: 3.8 },
 };
 
@@ -236,11 +236,11 @@ export const GALLEASS_STATS: ShipStats = {
   turnRate: 0.3,
   rudderSpeed: 1.9,
   turnHeel: 0.004,
-  maxHealth: 700,
+  maxHealth: 1400,
   cannonsPerSide: 8,
   chaseGuns: 4,
-  cannon: { range: 155, reloadTime: 4.6, arcHalfAngle: 20 * DEG, spread: 2.2 * DEG, rangeError: 0.06, damage: 22, ballSpeed: 62 },
-  deckCannon: { range: 130, reloadTime: 2.4, arcHalfAngle: 35 * DEG, spread: 2.6 * DEG, rangeError: 0.07, damage: 10, ballSpeed: 58 },
+  cannon: { range: 155, reloadTime: 4.6, arcHalfAngle: 20 * DEG, spread: 3.3 * DEG, rangeError: 0.09, damage: 22, ballSpeed: 62 },
+  deckCannon: { range: 130, reloadTime: 2.4, arcHalfAngle: 35 * DEG, spread: 3.9 * DEG, rangeError: 0.105, damage: 10, ballSpeed: 58 },
   buoyancy: { stiffness: 23, damping: 7.9, tiltResponse: 3.9 },
 };
 
@@ -259,10 +259,10 @@ export const GALLEON_STATS: ShipStats = {
   turnRate: 0.24,
   rudderSpeed: 1.6,
   turnHeel: 0.0035,
-  maxHealth: 1200,
+  maxHealth: 2400,
   cannonsPerSide: 12,
-  cannon: { range: 155, reloadTime: 4.8, arcHalfAngle: 20 * DEG, spread: 2.2 * DEG, rangeError: 0.06, damage: 24, ballSpeed: 62 },
-  deckCannon: { range: 140, reloadTime: 2.4, arcHalfAngle: 45 * DEG, spread: 2.7 * DEG, rangeError: 0.072, damage: 10, ballSpeed: 57 },
+  cannon: { range: 155, reloadTime: 4.8, arcHalfAngle: 20 * DEG, spread: 3.3 * DEG, rangeError: 0.09, damage: 24, ballSpeed: 62 },
+  deckCannon: { range: 140, reloadTime: 2.4, arcHalfAngle: 45 * DEG, spread: 4.05 * DEG, rangeError: 0.108, damage: 10, ballSpeed: 57 },
   buoyancy: { stiffness: 20, damping: 7.5, tiltResponse: 3.5 },
 };
 
@@ -296,9 +296,9 @@ export const ROWBOAT_STATS: ShipStats = {
   turnRate: 1.1,
   rudderSpeed: 5,
   turnHeel: 0.01,
-  maxHealth: 35,
+  maxHealth: 70,
   /** Pour la barque : nombre de pierriers à l'avant. */
   cannonsPerSide: 1,
-  cannon: { range: 90, reloadTime: 4, arcHalfAngle: 30 * DEG, spread: 5 * DEG, rangeError: 0.12, damage: 5, ballSpeed: 50 },
+  cannon: { range: 90, reloadTime: 4, arcHalfAngle: 30 * DEG, spread: 7.5 * DEG, rangeError: 0.18, damage: 5, ballSpeed: 50 },
   buoyancy: { stiffness: 70, damping: 12, tiltResponse: 12 },
 };

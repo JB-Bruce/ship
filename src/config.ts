@@ -671,7 +671,7 @@ export const ENCOUNTER_ALERT = {
  * chacun demande `repairTime` s (l'incendie d'abord, puis les deux autres ensemble).
  */
 export const CRIT = {
-  chance: { magazine: 0.006, fire: 0.05, rudder: 0.03, rigging: 0.05 },
+  chance: { magazine: 0.003, fire: 0.025, rudder: 0.015, rigging: 0.025 },
   repairTime: { fire: 3, rudder: 5, rigging: 8 },
   /**
    * Gréement touché : une voile tombe, vitesse max réduite de cette fraction par voile abattue (au plus
