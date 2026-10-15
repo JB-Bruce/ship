@@ -69,17 +69,21 @@ const LOW_SPAN = { from: -0.417, to: 0.583, slots: 7, perExtension: 1, first: 4 
 const HIGH_SPAN = { from: -0.333, to: 0.5, slots: 6, perExtension: 1, first: 4 };
 /**
  * Pièces légères (second calibre, u de base), sur affût derrière les sabords du pavois, dans l'ordre d'achat : deux sur
- * le demi-pont et une sur le château avant, une autre sur le château avant (amélioration), puis une sur le pont du milieu
- * à chaque allongement. `deck` : le pont qui la porte.
+ * le demi-pont et une sur le château avant, une autre sur le château avant (amélioration), puis deux sur le pont du
+ * milieu à chaque allongement (entre les haubans du grand mât et les escaliers des châteaux). `deck` : le pont qui la porte.
  */
 const PIECE_SLOTS = [
   { u: -0.283, deck: 'halfDeck' },
   { u: -0.383, deck: 'halfDeck' },
   { u: 0.75, deck: 'forecastle' },
   { u: 0.85, deck: 'forecastle' },
-  { u: -0.139, deck: 'waist' },
-  { u: 0.417, deck: 'waist' },
+  { u: -0.1, deck: 'waist' },
+  { u: 0.36, deck: 'waist' },
+  { u: 0.25, deck: 'waist' },
+  { u: 0.47, deck: 'waist' },
 ] as const;
+/** Pièces légères montées par allongement. */
+const PIECES_PER_EXTENSION = 2;
 /** Fenêtres des flancs (u de base, hauteur) : chambres sous le gaillard et sous la dunette, étage bas du château avant. */
 const WINDOWS: readonly (readonly [number, number])[] = [
   [-0.5, 8.7],
@@ -98,7 +102,7 @@ const BEAK = { below: 0.45, reach: 4.4, halfWidth: 1.05, cutwaterFoot: 1.6, tip:
  * Beaupré : son pied sous le pont du château avant, juste devant le mât de misaine (il traverse le pont et repose sur la
  * lisse de l'avant), sa pointe, et le petit mât de contre-civadière dressé au bout (m).
  */
-const BOWSPRIT = { heel: 0.6, heelBelow: 0.5, tipY: 14.2, tipZ: 27.2, topmast: 4.2 };
+const BOWSPRIT = { heel: 0.6, heelBelow: 0.5, tipY: 14.2, tipZ: 27.2, topmast: 5 };
 
 export interface Deck {
   y: number;
@@ -257,8 +261,8 @@ function createLayout(level: number): GalleonLayout {
       { mastZ: mainMast.z, yardY: 21.2, width: 15.5, height: 10.4 },
       { mastZ: mainMast.z, yardY: 29.2, width: 9.6, height: 5.8 },
       { mastZ: mainMast.z, yardY: 32.8, width: 5.4, height: 3 },
-      { mastZ: mizzenMast.z, yardY: 25.8, width: 5.6, height: 3.8 },
-      { mastZ: bowTip.z, yardY: bowTip.y + BOWSPRIT.topmast - 0.3, width: 4.2, height: 2.7 },
+      { mastZ: mizzenMast.z, yardY: 25.8, width: 7.2, height: 4.6 },
+      { mastZ: bowTip.z, yardY: bowTip.y + BOWSPRIT.topmast - 0.3, width: 5.4, height: 3.4 },
     ],
     mainCourse: 3,
     lateens: [
@@ -275,7 +279,7 @@ function createLayout(level: number): GalleonLayout {
       },
     ],
     bowsprit,
-    spritsail: { yard: bowsprit.base.clone().lerp(bowsprit.tip, 0.68).add(new THREE.Vector3(0, -0.15, 0)), width: 6.6, height: 3.2 },
+    spritsail: { yard: bowsprit.base.clone().lerp(bowsprit.tip, 0.68).add(new THREE.Vector3(0, -0.15, 0)), width: 8, height: 3.7 },
     beak: {
       y: stem.gunwale - BEAK.below,
       rootZ: stem.z,
@@ -290,7 +294,7 @@ function createLayout(level: number): GalleonLayout {
     lowSlots: purchaseOrder(lowPorts.length, LOW_SPAN.first).map((k) => lowPorts[k]),
     highPorts,
     highSlots: purchaseOrder(highPorts.length, HIGH_SPAN.first).map((k) => highPorts[k]),
-    pieceSlots: PIECE_SLOTS.slice(0, 4 + level).map((p) => ({ u: base(p.u), y: deckY[p.deck] })),
+    pieceSlots: PIECE_SLOTS.slice(0, 4 + PIECES_PER_EXTENSION * level).map((p) => ({ u: base(p.u), y: deckY[p.deck] })),
     windows: WINDOWS.map(([u, y]) => ({ u: base(u), y })),
     hatches: [
       { u: base(0.36), width: 1.7, depth: 1.8 },
@@ -308,7 +312,8 @@ export const galleonLayout = (level: number): GalleonLayout => LAYOUTS[Math.min(
 /**
  * Répartition des canons d'un bord (stats.cannonsPerSide) entre batterie basse, batterie haute et pièces légères, selon
  * l'ordre d'achat : 12 = 5 + 4 + 3 au départ, 13 = 6 + 4 + 3, 14 = 6 + 5 + 3, 15 = 6 + 5 + 4, 16 = 7 + 5 + 4,
- * 17 = 7 + 6 + 4, 20 = 8 + 7 + 5 (grand galion), 23 = 9 + 8 + 6 (galion amiral).
+ * 17 = 7 + 6 + 4 ; chaque allongement ouvre deux niveaux, chacun une pièce sur le pont et un canon de batterie (basse,
+ * puis haute) : 19 = 8 + 6 + 5, 21 = 8 + 7 + 6 (grand galion), 23 = 9 + 7 + 7, 25 = 9 + 8 + 8 (galion amiral).
  */
 const SPLITS: Readonly<Record<number, readonly [number, number, number]>> = {
   12: [5, 4, 3],
@@ -317,8 +322,10 @@ const SPLITS: Readonly<Record<number, readonly [number, number, number]>> = {
   15: [6, 5, 4],
   16: [7, 5, 4],
   17: [7, 6, 4],
-  20: [8, 7, 5],
-  23: [9, 8, 6],
+  19: [8, 6, 5],
+  21: [8, 7, 6],
+  23: [9, 7, 7],
+  25: [9, 8, 8],
 };
 
 export function galleonArmament(perSide: number, layout: GalleonLayout): { low: number; high: number; pieces: number } {

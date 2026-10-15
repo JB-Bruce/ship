@@ -11,6 +11,11 @@ const STEM_LINE = [0.82, 0.9, 0.96, 1];
 const GRATING = 0.38;
 /** Éperon courbe : épaisseur (m). */
 const CUTWATER = 0.32;
+/**
+ * Ajours de l'éperon, bordés d'un cadre doré : deux ouvertures séparées par une traverse, le long de son bord bas
+ * (étendues en paramètre de la courbe de ce bord), à `inset` m au-dessus de lui, et `below` m sous la plate-forme.
+ */
+const OPENINGS = { spans: [[0.12, 0.42], [0.5, 0.78]] as const, inset: 0.55, below: 0.6, steps: 6, frame: 0.045 };
 /** Lion de proue cabré : inclinaison de son corps vers le haut (rad). */
 const LION_REAR = 0.62;
 
@@ -18,7 +23,7 @@ const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 const identity = new THREE.Matrix4();
 
 /**
- * Avant : étrave qui suit la quille, éperon courbe qui part d'elle et remonte jusqu'au lion de proue doré, plate-forme
+ * Avant : étrave qui suit la quille, éperon courbe (ajouré, cadres dorés) qui part d'elle et remonte jusqu'au lion de proue doré, plate-forme
  * à caillebotis de la poulaine posée dessus, lisses courbes de l'avant du château vers le lion, bossoirs ; beaupré qui
  * sort du pont du château avant et que des liures attachent à l'éperon, hune et petit mât de contre-civadière à sa
  * pointe, vergue de civadière.
@@ -31,26 +36,38 @@ export function addBow(batch: GeometryBatch, p: Palette, L: GalleonLayout) {
   line.push(new THREE.Vector3(0, beak.cutwaterFoot, stem.z));
   for (let i = 0; i < line.length - 1; i++) batch.add(DARK_WOOD, cylinderBetween(line[i], line[i + 1], 0.16, 0.16, 4), identity);
 
-  // Éperon : une pièce courbe dans l'axe (dessinée dans le plan (z, y), puis tournée), de l'étrave au lion.
+  // Éperon : une pièce courbe dans l'axe (dessinée dans le plan (z, y), puis tournée), de l'étrave au lion, ajourée.
   const foot = new THREE.Vector2(stem.z - 0.2, beak.cutwaterFoot);
   const nose = new THREE.Vector2(fig.z - 0.3, fig.y - 0.25);
   const top = new THREE.Vector2(fig.z - 0.75, fig.y + 0.1);
   const root = new THREE.Vector2(stem.z - 0.2, beak.y);
+  const bottom = new THREE.QuadraticBezierCurve(foot, new THREE.Vector2(beak.tipZ - 0.9, foot.y + 0.2), nose);
   const cutwater = new THREE.Shape();
   cutwater.moveTo(foot.x, foot.y);
   cutwater.quadraticCurveTo(beak.tipZ - 0.9, foot.y + 0.2, nose.x, nose.y);
   cutwater.lineTo(top.x, top.y);
   cutwater.quadraticCurveTo(beak.tipZ - 1.6, beak.y - 0.15, root.x, root.y);
   cutwater.lineTo(foot.x, foot.y);
+  const openings = OPENINGS.spans.map(([a, b]) => {
+    const along = Array.from({ length: OPENINGS.steps + 1 }, (_, i) => bottom.getPoint(a + ((b - a) * i) / OPENINGS.steps).add(new THREE.Vector2(0, OPENINGS.inset)));
+    const y = beak.y - OPENINGS.below;
+    return [...along, new THREE.Vector2(along[along.length - 1].x, y), new THREE.Vector2(along[0].x, y)];
+  });
+  cutwater.holes = openings.map((outline) => new THREE.Path(outline));
   const plate = new THREE.ExtrudeGeometry(cutwater, { depth: CUTWATER, bevelEnabled: false, curveSegments: 10 });
   plate.rotateY(-Math.PI / 2);
   plate.translate(CUTWATER / 2, 0, 0);
   batch.add(HULL_WOOD, plate, identity);
-  // Filets dorés le long du bord bas de l'éperon, de chaque côté.
-  const edge = new THREE.QuadraticBezierCurve(foot, new THREE.Vector2(beak.tipZ - 0.9, foot.y + 0.2), nose).getPoints(10);
+  // Filets dorés le long du bord bas de l'éperon, et cadres dorés autour des ajours, de chaque côté.
+  const edge = bottom.getPoints(10);
   for (const side of [1, -1]) {
-    const points = edge.map((v) => new THREE.Vector3(side * (CUTWATER / 2 + 0.02), v.y + 0.12, v.x));
+    const x = side * (CUTWATER / 2 + 0.02);
+    const points = edge.map((v) => new THREE.Vector3(x, v.y + 0.12, v.x));
     batch.add(GILT, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 12, 0.045, 4, false), identity);
+    for (const outline of openings) {
+      const ring = outline.map((v) => new THREE.Vector3(x, v.y, v.x));
+      ring.forEach((a, i) => batch.add(GILT, cylinderBetween(a, ring[(i + 1) % ring.length], OPENINGS.frame, OPENINGS.frame, 4), identity));
+    }
   }
 
   // Plate-forme à caillebotis, posée sur l'éperon, qui se resserre vers le lion.

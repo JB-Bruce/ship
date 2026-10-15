@@ -15,7 +15,7 @@ const RUDDER_MAX_ANGLE = 0.45;
 /** Tours de roue pour un coup de barre complet (rad). */
 const WHEEL_TURNS = 2.6;
 /** Élargissement des voiles carrées par niveau de voilure (en largeur seulement). */
-const SAIL_GROWTH = 0.07;
+const SAIL_GROWTH = 0.05;
 /** Bouches : fût dans un sabord (pivot au sabord), pièce sur affût d'un château. */
 const PORT_MUZZLE = new THREE.Vector3(0.8, 0, 0);
 const DECK_MUZZLE = new THREE.Vector3(1, 0.38, 0);
@@ -29,7 +29,7 @@ const LATEEN_OFFSET = 0.24;
  * (demi-pont, gaillard, dunette) et galeries de poupe, château avant bas, poulaine et lion de proue ; quatre mâts
  * (misaine et grand mât carrés à hunes rondes, artimon et contre-artimon à voiles latines qui pivotent selon le vent),
  * civadière. Deux batteries dans le bordé (5 et 4 par bord, jusqu'à 7 et 6 ; 8 et 7 grand galion, 9 et 8 galion amiral)
- * et des pièces légères sur affût (3 sur le demi-pont et le château avant, puis 4 ; une de plus sur le pont à chaque
+ * et des pièces légères sur affût (3 sur le demi-pont et le château avant, puis 4 ; deux de plus sur le pont à chaque
  * allongement). Allongé (setExtension), il est reconstruit sur le plan long : canons, renfort, voilure, dégâts et pavillon
  * sont remis en place.
  */

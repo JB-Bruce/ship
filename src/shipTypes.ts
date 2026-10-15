@@ -628,52 +628,60 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     enemyStats: weaker(GALLEON_STATS, 980, 20),
     gunLabels: { main: 'Batteries', deck: 'Pièces des châteaux et du pont' },
     upgrades: {
+      // Galion amiral : un niveau de précision et un de portée en plus.
       accuracy: {
-        costs: [{ gold: 100, wood: 0 }, { gold: 160, wood: 0 }, { gold: 230, wood: 0 }, { gold: 310, wood: 0 }],
-        spreadFactor: [0.8, 0.62, 0.46, 0.32],
+        costs: [{ gold: 100, wood: 0 }, { gold: 160, wood: 0 }, { gold: 230, wood: 0 }, { gold: 310, wood: 0 }, { gold: 400, wood: 0 }],
+        spreadFactor: [0.8, 0.62, 0.46, 0.32, 0.22],
       },
-      range: { costs: [{ gold: 160, wood: 50 }, { gold: 240, wood: 75 }], rangeFactor: [1.15, 1.3] },
+      range: { costs: [{ gold: 160, wood: 50 }, { gold: 240, wood: 75 }, { gold: 320, wood: 95 }], rangeFactor: [1.15, 1.3, 1.45] },
       // 1 : un canon de plus en batterie basse, 2 : en batterie haute, 3 : une pièce sur le château avant, 4 : basse,
-      // 5 : haute ; grand galion, puis galion amiral : un canon dans chaque batterie et une pièce sur le pont (voir
-      // galleonArmament).
+      // 5 : haute ; grand galion, puis galion amiral : deux niveaux chacun, une pièce sur le pont et un canon de
+      // batterie (basse, puis haute) à chaque niveau (voir galleonArmament).
       cannons: {
-        costs: [{ gold: 220, wood: 120 }, { gold: 280, wood: 160 }, { gold: 340, wood: 190 }, { gold: 410, wood: 230 }, { gold: 490, wood: 270 }, { gold: 620, wood: 350 }, { gold: 760, wood: 430 }],
-        cannonsPerSide: [13, 14, 15, 16, 17, 20, 23],
+        costs: [
+          { gold: 220, wood: 120 }, { gold: 280, wood: 160 }, { gold: 340, wood: 190 }, { gold: 410, wood: 230 }, { gold: 490, wood: 270 },
+          { gold: 560, wood: 310 }, { gold: 640, wood: 360 }, { gold: 740, wood: 420 }, { gold: 840, wood: 480 },
+        ],
+        cannonsPerSide: [13, 14, 15, 16, 17, 19, 21, 23, 25],
       },
       hull: {
         costs: [{ gold: 80, wood: 80 }, { gold: 140, wood: 140 }, { gold: 200, wood: 200 }, { gold: 280, wood: 280 }],
         healthFactor: [1.1, 1.2, 1.3, 1.4],
       },
-      sails: { costs: [{ gold: 110, wood: 30 }, { gold: 170, wood: 50 }, { gold: 240, wood: 70 }], speedFactor: [1.06, 1.12, 1.18] },
+      // Grand galion, puis galion amiral : un niveau de voilure en plus chacun.
+      sails: {
+        costs: [{ gold: 110, wood: 30 }, { gold: 170, wood: 50 }, { gold: 240, wood: 70 }, { gold: 320, wood: 90 }, { gold: 410, wood: 115 }],
+        speedFactor: [1.06, 1.12, 1.18, 1.24, 1.3],
+      },
       hold: {
         costs: [{ gold: 120, wood: 70 }, { gold: 180, wood: 110 }, { gold: 250, wood: 160 }, { gold: 330, wood: 210 }, { gold: 420, wood: 270 }],
         capacity: [300, 390, 490, 600, 700],
       },
       nets: { costs: [], catchFactor: [] },
     },
-    mass: { base: 720, perExtraCannon: 9, hull: [24, 50, 78, 108], sails: [10, 20, 30], hold: [16, 32, 50, 70, 90], speedLossPerUnit: 0.00025 },
+    mass: { base: 720, perExtraCannon: 9, hull: [24, 50, 78, 108], sails: [10, 20, 30, 40, 50], hold: [16, 32, 50, 70, 90], speedLossPerUnit: 0.00025 },
     extensions: [
       {
         name: 'Grand galion',
-        description: 'Le chantier rallonge la coque de quatre mètres au milieu : un sabord de plus par bord dans chaque batterie et une pièce de plus sur le pont (un niveau de canons en plus).',
+        description: 'Le chantier rallonge la coque de quatre mètres au milieu : un sabord de plus par bord dans chaque batterie et deux pièces de plus sur le pont (deux niveaux de canons en plus), et des mâts plus hauts pour un niveau de voilure en plus.',
         cost: { gold: 5000, wood: 2500 },
         length: 4,
         healthFactor: 1.15,
         speedFactor: 1.03,
         turnFactor: 0.92,
         mass: 120,
-        extraLevels: { cannons: 1 },
+        extraLevels: { cannons: 2, sails: 1 },
       },
       {
         name: 'Galion amiral',
-        description: 'Le chantier rallonge encore la coque de quatre mètres au milieu : un sabord de plus par bord dans chaque batterie, une seconde pièce sur le pont (un niveau de canons en plus) et des membrures doublées.',
+        description: 'Le chantier rallonge encore la coque de quatre mètres au milieu : un sabord de plus par bord dans chaque batterie et deux pièces de plus sur le pont (deux niveaux de canons en plus), un niveau de voilure, les meilleurs canonniers de la Marine (un niveau de précision et un de portée en plus) et des membrures doublées.',
         cost: { gold: 7000, wood: 3500 },
         length: 4,
         healthFactor: 1.15,
         speedFactor: 1.03,
         turnFactor: 0.92,
         mass: 130,
-        extraLevels: { cannons: 1 },
+        extraLevels: { cannons: 2, sails: 1, accuracy: 1, range: 1 },
       },
     ],
   },
