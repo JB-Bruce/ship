@@ -15,7 +15,7 @@ const CUTWATER = 0.32;
  * Ajour de l'éperon, bordé d'un cadre doré : une seule ouverture le long de son bord bas (étendue en paramètre de la
  * courbe de ce bord), à `inset` m au-dessus de lui et `below` m sous la plate-forme : de larges bords de bois tout autour.
  */
-const OPENINGS = { spans: [[0.24, 0.7]] as const, inset: 0.85, below: 0.85, steps: 8, frame: 0.05 };
+const OPENINGS = { spans: [[0.17, 0.7]] as const, inset: 0.85, below: 0.85, steps: 8, frame: 0.05 };
 /** Lion de proue cabré : inclinaison de son corps vers le haut (rad). */
 const LION_REAR = 0.62;
 
