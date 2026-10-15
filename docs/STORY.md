@@ -30,6 +30,27 @@ or maudit sur une île perdue, puis sombré quelque part au fond des mers. On se
 ## Prologue — l'île natale
 La légende, les deux marins, une chaloupe. Le tutoriel (pilotage, combat, pêche, port) se fait dans l'histoire.
 
+## Première mer — « Mer de la Tortue » (acte 1, proposition)
+Plan : `docs/plans/mer1-plan.png` (nord en haut ; +Z = nord, +X = ouest dans le jeu). Environ 7 × 6 km.
+- **Existant** : 1. la Tortue (île natale, repaire, Maëlle) ; 2. Port-Sabre (la Confrérie pirate, 1,2 km à l'est) ;
+  3. l'Île Royale (arsenal de la Marine, base de Valcourt, 2 km au nord) ; 4. l'Île du Dauphin (poste de la Marine,
+  1,3 km à l'ouest).
+- **Nouveau, proposé** :
+  - 5. **Port-Franc** (~1,9 km au sud) : comptoir neutre, ni pirate ni Marine ; le meilleur marché et les rumeurs
+    (indices, contrats de commerce). On ne peut pas le prendre.
+  - 6. **Le Cimetière des Navires** (~2,8 km au sud-est) : récifs semés d'épaves à fouiller (indices, butin) ; repaire
+    de la Veuve Noire par gros temps.
+  - 7. **La Crique du Corbeau** (~2,5 km au nord-est) : repaire caché d'Esteban Rojas, petit port pirate qu'on découvre
+    par l'histoire.
+  - 8. **Le Phare de l'Ermite** (~2,7 km à l'ouest) : îlot sans port, un vieux gardien qui a vu passer le galion.
+  - 9. **Les Îlots des Pêcheurs** (~2,2 km au sud-ouest) : village de pêcheurs, bancs de poissons, lieu du prologue.
+  - 10. **Le Fort de la Passe** (~3 km à l'est) : îlot fortifié de la Marine qui verrouille la route du Mur des
+    tempêtes ; il faut l'abattre pour passer (fin de l'acte 1 ou début de l'acte 2).
+  - 11. **Le Rocher du Crâne** (~3 km au nord) : îlot sans port, lieu de légende (indice, rencontre fantôme).
+- **Bords** : le **Mur des tempêtes** à l'est (passage vers la mer des Récifs, acte 2) ; des brumes du large au nord-ouest.
+- Technique : plus d'îles = plus de travail pour le shader de l'eau (tableaux d'uniforms des îles) ; les petits îlots
+  sans port pourraient être du décor simple sans calme des vagues.
+
 ## Acte 1 — « Les traces »
 L'archipel actuel (la Tortue, Port-Sabre, les îles de la Marine). On voyage d'île en île pour parler aux gens et
 trouver des indices ; chaque indice se gagne par une action (mission de taverne, fouille d'épave, poursuite, duel).
