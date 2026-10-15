@@ -1208,6 +1208,11 @@ export interface WaveParams {
 export const OCEAN = {
   /** Demi-taille de la grille d'eau (m), recentrée sur le joueur. */
   halfSize: 900,
+  /**
+   * Au-delà de cette distance du joueur (m), plus d'eau dessinée (coin de la grille : halfSize × √2) : un navire n'y
+   * calcule ni sa flottaison ni l'animation de son gréement (`Ship.far`).
+   */
+  farShips: 1300,
   segments: 256,
   /** Taille d'une cellule sous le joueur (m). Les cellules s'agrandissent vers le bord. */
   innerCell: 2.5,
@@ -1684,7 +1689,10 @@ export interface IslandShapeDef {
   /** Hauteur des sommets (m) et des falaises (relief 'cliffs'). */
   peak: number;
   cliff: number;
-  /** Les vagues sont atténuées sur cette distance au large de la côte (m) : nulles au rivage. */
+  /**
+   * Les vagues sont atténuées sur cette distance au large de la côte (m) : nulles au rivage. 0 = pas d'atténuation
+   * (îlot rocheux sans vraie plage : moins de calcul pour l'eau).
+   */
   calmDistance: number;
   /** Largeur du lagon turquoise (m) et du ressac blanc (m) le long du rivage. */
   lagoonWidth: number;
@@ -1701,6 +1709,11 @@ export interface IslandShapeDef {
 
 /** Nombre d'ondulations au plus par côte (taille des tableaux du shader de l'eau ; les manquantes sont nulles). */
 export const ISLAND_LOBES = 6;
+/**
+ * Îles envoyées au shader de l'eau, au plus : les plus proches du joueur parmi celles qui touchent la grille de l'eau
+ * (`islandShader.ts`). Chaque pixel d'eau ne parcourt que celles-là, quel que soit le nombre d'îles du monde.
+ */
+export const ISLAND_SLOTS = 8;
 
 export type IslandId = 'tortuga' | 'sabre' | 'royale' | 'dauphin';
 

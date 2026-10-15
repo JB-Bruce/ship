@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GRAPHICS, OCEAN } from '../config';
 import { RENDER_ORDER } from '../utils/renderOrder';
-import { ISLAND_GLSL, islandUniforms } from '../world/island';
+import { ISLAND_GLSL, islandUniforms, selectIslands } from '../world/islandShader';
 import { SKY_GLSL, skyUniforms } from '../world/sky';
 import { createRippleTexture } from './rippleTexture';
 import { seaStateUniforms } from './seaState';
@@ -261,6 +261,8 @@ export class Ocean {
     });
     this.uniforms.uMaxHeight.value = this.waves.maxHeight;
 
+    // Seules les îles proches de la grille sont parcourues par chaque pixel d'eau.
+    selectIslands(focus.x, focus.z);
     // Déplacer la grille par pas entiers de cellule évite que les sommets « glissent » sous la caméra.
     const step = OCEAN.innerCell;
     this.mesh.position.set(Math.round(focus.x / step) * step, 0, Math.round(focus.z / step) * step);

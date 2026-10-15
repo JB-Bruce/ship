@@ -53,6 +53,11 @@ export class Ship {
   heading = 0;
   /** Vitesse vers l'avant (m/s). */
   speed = 0;
+  /**
+   * Hors de la grille de l'eau (OCEAN.farShips, posé par `Game` à chaque image) : ni flottaison (il garde son assiette,
+   * sauf s'il sombre) ni animation du gréement. Il navigue, combat et répond aux collisions comme les autres.
+   */
+  far = false;
   health: number;
   /** Secondes écoulées depuis le naufrage, ou null si le bateau est à flot. */
   sinkTime: number | null = null;
@@ -275,7 +280,7 @@ export class Ship {
     if (burn > 0 && this.alive) this.health = Math.max(Math.min(this.health, CRIT.fireFloor * this.stats.maxHealth), this.health - burn * this.stats.maxHealth);
     const controls = this.alive ? this.controls : ADRIFT;
     this.updateMotion(dt, controls, wind);
-    this.updateBuoyancy(dt, waves);
+    if (!this.far || this.sinkTime !== null) this.updateBuoyancy(dt, waves);
     this.syncModel(dt, controls, wind);
   }
 
@@ -342,6 +347,12 @@ export class Ship {
 
   private syncModel(dt: number, controls: ShipControls, wind: Wind) {
     this.sailAmount = damp(this.sailAmount, controls.sail, 1.5, dt);
+    this.model.root.position.copy(this.position);
+    // Ordre YXZ : cap d'abord, puis tangage (proue haute = x négatif), puis roulis (bâbord haut = z positif).
+    this.model.root.rotation.set(-this.buoyancy.pitch, this.heading, this.buoyancy.roll, 'YXZ');
+    // Loin, ou noyé dans la brume (caché par FogCulling à l'image précédente) : rien à animer ; tout est remis à jour
+    // dès qu'il réapparaît.
+    if (this.far || !this.model.root.visible) return;
     this.model.setSailAmount(this.sailAmount);
     this.model.setRudder(this.rudder);
     this.model.setOars?.(this.oarsOut);
@@ -349,8 +360,6 @@ export class Ship {
     this.model.setWind(wind.direction - this.heading, wind.strength);
     this.model.animate(dt);
     this.dressing.update(dt, wind.direction - this.heading, wind.strength);
-    this.model.root.position.copy(this.position);
-    // Ordre YXZ : cap d'abord, puis tangage (proue haute = x négatif), puis roulis (bâbord haut = z positif).
-    this.model.root.rotation.set(-this.buoyancy.pitch, this.heading, this.buoyancy.roll, 'YXZ');
   }
+
 }

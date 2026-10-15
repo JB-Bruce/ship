@@ -243,7 +243,11 @@ export class Game {
     // Pendant une escorte, les suiveurs entourent le navire à protéger au lieu de te suivre.
     this.fleet.guarded = this.campaign.escorts().find((s) => s.alive) ?? null;
     this.fleet.update(dt, this.loot.crates);
-    for (const ship of this.ships) ship.update(dt, this.waves, this.wind);
+    const focus = this.fleet.leader.position;
+    for (const ship of this.ships) {
+      ship.far = Math.hypot(ship.position.x - focus.x, ship.position.z - focus.z) > OCEAN.farShips;
+      ship.update(dt, this.waves, this.wind);
+    }
     resolveCollisions(this.ships, this.effects, (ship, damage, other) => this.applyDamage(ship, damage, other));
     resolveLandCollisions(this.ships);
     this.repairStatus = this.campaign.repairAtPort(dt, this.ships, this.fleet.leader);

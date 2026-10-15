@@ -7,12 +7,13 @@ const smoothstep = (a: number, b: number, x: number) => {
   const t = clamp((x - a) / (b - a), 0, 1);
   return t * t * (3 - 2 * t);
 };
-/** Écart pour les dérivées numériques le long de la côte (rad). */
-const SLOPE_STEP = 0.01;
-/** Distance au-delà de laquelle la correction de pente s'efface (m). */
-const SLOPE_FADE = 30;
-/** Au-delà de cette distance de son rayon extérieur, une île n'est plus calculée en détail (m). */
-const FAR = 200;
+/**
+ * Réglages du calcul de la distance au rivage, partagés avec le shader de l'eau (`islandShader.ts`) : écart pour les
+ * dérivées le long de la côte (rad), distance où s'efface la correction de pente (m), et distance au-delà de son
+ * rayon extérieur où une île n'est plus calculée en détail (m).
+ */
+export const SDF = { slopeStep: 0.01, slopeFade: 30, far: 200 };
+const { slopeStep: SLOPE_STEP, slopeFade: SLOPE_FADE, far: FAR } = SDF;
 /** Décalages d'angle (rad) sur lesquels on moyenne la côte pour adoucir le relief intérieur. */
 const RELIEF_SMOOTHING = [-0.5, -0.25, 0, 0.25, 0.5];
 const NO_LOBE = [0, 0, 0] as const;
@@ -25,7 +26,7 @@ const shape = { x: 0, z: 0, length: 0, angle: 0, scale: 1 };
 
 /**
  * Une île, définie par une seule formule (voir IslandShapeDef dans config.ts).
- * Le shader de l'eau reprend exactement les mêmes calculs (ISLAND_GLSL) : les modifier aux deux endroits.
+ * Le shader de l'eau reprend exactement les mêmes calculs (ISLAND_GLSL de `islandShader.ts`) : les modifier aux deux endroits.
  */
 export class Island {
   readonly cx: number;
@@ -120,8 +121,9 @@ export class Island {
     return radial / Math.hypot(stretch * (sx - k * sz), (sz + k * sx) / stretch);
   }
 
-  /** Atténuation des vagues : 0 au rivage, 1 au large (même formule que le shader). */
+  /** Atténuation des vagues : 0 au rivage, 1 au large (même formule que le shader) ; aucune sans `calmDistance`. */
   calmAt(x: number, z: number): number {
+    if (this.def.calmDistance <= 0) return 1;
     if (Math.hypot(x - this.cx, z - this.cz) > this.outerRadius + this.def.calmDistance + 10) return 1;
     return smoothstep(0, this.def.calmDistance, this.sdf(x, z));
   }
@@ -244,85 +246,3 @@ export const land = {
     return { x, z };
   },
 };
-
-const COUNT = ISLAND_LIST.length;
-
-/** Uniforms des îles pour le shader de l'eau (un élément par île, dans l'ordre d'ISLAND_LIST). */
-export const islandUniforms = {
-  uIslandCenter: { value: ISLAND_LIST.map((i) => new THREE.Vector2(i.cx, i.cz)) },
-  /** (rayon moyen, distance d'atténuation des vagues, largeur du lagon, largeur du ressac) */
-  uIslandShape: { value: ISLAND_LIST.map((i) => new THREE.Vector4(i.def.radius, i.def.calmDistance, i.def.lagoonWidth, i.def.surfWidth)) },
-  /** (rayon extérieur, …) : au-delà, l'île n'est pas calculée en détail. */
-  uIslandOuter: { value: ISLAND_LIST.map((i) => i.outerRadius) },
-  uIslandLobes: { value: ISLAND_LIST.flatMap((i) => i.lobes.map(([k, amp, phase]) => new THREE.Vector3(k, amp, phase))) },
-  /** (cap de la crique dans le repère de la forme, largeur, profondeur) */
-  uIslandBay: { value: ISLAND_LIST.map((i) => new THREE.Vector3(i.bayAngle, i.def.bay.width, i.def.bay.depth)) },
-  /** Repère de la forme : (cos et sin de l'orientation du grand axe, étirement, inutilisé). */
-  uIslandFrame: { value: ISLAND_LIST.map((i) => new THREE.Vector4(i.frame.cos, i.frame.sin, i.frame.stretch, 0)) },
-};
-
-/**
- * Même calcul que Island.coastRadius / sdf / calmAt, en GLSL, pour toutes les îles. `islandShore` donne
- * (distance au rivage le plus proche, largeur de son lagon, largeur de son ressac). Nécessite `#include <common>` (PI).
- */
-export const ISLAND_GLSL = /* glsl */ `
-#define ISLAND_COUNT ${COUNT}
-#define ISLAND_LOBES ${ISLAND_LOBES}
-uniform vec2 uIslandCenter[ISLAND_COUNT];
-uniform vec4 uIslandShape[ISLAND_COUNT];
-uniform float uIslandOuter[ISLAND_COUNT];
-uniform vec3 uIslandLobes[ISLAND_COUNT * ISLAND_LOBES];
-uniform vec3 uIslandBay[ISLAND_COUNT];
-uniform vec4 uIslandFrame[ISLAND_COUNT];
-
-float islandCoast(int i, float t) {
-  float r = uIslandShape[i].x;
-  for (int k = 0; k < ISLAND_LOBES; k++) {
-    vec3 lobe = uIslandLobes[i * ISLAND_LOBES + k];
-    r += lobe.y * sin(lobe.x * t + lobe.z);
-  }
-  float d = mod(t - uIslandBay[i].x + PI, 2.0 * PI) - PI;
-  float b = d / uIslandBay[i].y;
-  return r - uIslandBay[i].z * exp(-b * b);
-}
-
-float islandSdfOf(int i, vec2 p) {
-  vec2 d = p - uIslandCenter[i];
-  float len = length(d);
-  if (len > uIslandOuter[i] + ${FAR.toFixed(1)}) return len - uIslandOuter[i];
-  // Repère de la forme (Island.toShape) : tourné, resserré le long du grand axe, élargi en travers.
-  vec4 f = uIslandFrame[i];
-  vec2 q = vec2((d.x * f.x - d.y * f.y) * f.z, (d.x * f.y + d.y * f.x) / f.z);
-  float t = atan(q.x, q.y);
-  vec2 s = vec2(sin(t), cos(t));
-  float rc = islandCoast(i, t);
-  float slope = (islandCoast(i, t + ${SLOPE_STEP.toFixed(3)}) - islandCoast(i, t - ${SLOPE_STEP.toFixed(3)})) / ${(2 * SLOPE_STEP).toFixed(3)};
-  float radial = length(q) - rc;
-  float scale = length(vec2(f.z * s.x, s.y / f.z));
-  float k = sqrt(exp(-abs(radial / scale) / ${SLOPE_FADE.toFixed(1)})) * slope / rc;
-  return radial / length(vec2(f.z * (s.x - k * s.y), (s.y + k * s.x) / f.z));
-}
-
-/** Atténuation des vagues : 0 au rivage, 1 au large (la plus forte des îles). */
-float islandCalm(vec2 p) {
-  float calm = 1.0;
-  for (int i = 0; i < ISLAND_COUNT; i++) {
-    if (length(p - uIslandCenter[i]) > uIslandOuter[i] + uIslandShape[i].y + 10.0) continue;
-    calm = min(calm, smoothstep(0.0, uIslandShape[i].y, islandSdfOf(i, p)));
-  }
-  return calm;
-}
-
-/** (distance au rivage le plus proche, largeur de son lagon, largeur de son ressac). */
-vec3 islandShore(vec2 p) {
-  vec3 best = vec3(1e6, 1.0, 1.0);
-  for (int i = 0; i < ISLAND_COUNT; i++) {
-    // Loin de l'île, une borne inférieure suffit (seule une distance sous la largeur du lagon ou du ressac compte) :
-    // pas de calcul de la côte pour la plupart des pixels d'eau.
-    float bound = length(p - uIslandCenter[i]) - uIslandOuter[i];
-    float s = bound > max(uIslandShape[i].z, uIslandShape[i].w) ? bound : islandSdfOf(i, p);
-    if (s < best.x) best = vec3(s, uIslandShape[i].z, uIslandShape[i].w);
-  }
-  return best;
-}
-`;

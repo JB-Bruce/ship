@@ -133,6 +133,12 @@ Plus tard : abordage et capture de navires.
   relief, radar, carte) et dans le shader de l'eau. Les quatre îles existantes sont restées identiques (vérifié point
   par point). Essai sur une île étirée 3 fois : distance au rivage aussi précise que sur les îles rondes, plage,
   ressac et lagon alignés. Les groupes de rochers viendront avec le point 2 (beaucoup de petites îles sans coût).
+- **Beaucoup d'îles sans coût** (2026-10-15) : le shader de l'eau ne reçoit plus que les 8 îles les plus proches du
+  joueur dont la zone touche la grille de l'eau (`ISLAND_SLOTS`) : son coût ne dépend plus du nombre d'îles. Une île
+  peut se passer de l'atténuation des vagues (`calmDistance` 0, îlots rocheux). Les navires au-delà de la grille de
+  l'eau ne calculent plus leur flottaison ni l'animation de leur gréement (mesure avec 32 navires dont 23 au loin :
+  0,59 → 0,32 ms par image pour les navires) ; les IA ne coûtent presque rien (0,1 ms), pas besoin de les mettre en
+  veille. Rendu vérifié identique au pixel près avant/après.
 
 ### 3. Plusieurs mers
 - **Monde par mer** : chaque mer a ses îles, ports, forts, météo, ciel, couleur d'eau, ennemis, créatures ; chargement et
