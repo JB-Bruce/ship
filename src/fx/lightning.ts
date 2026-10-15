@@ -92,6 +92,20 @@ export class Lightning {
     if (target) this.events.strike(target, top);
   }
 
+  /**
+   * La foudre tombe sur le mât de `ship` (tempête du bord du monde) : l'éclair, sa lueur et la secousse, sans l'événement
+   * `strike` (ni message ni dégâts : l'appelant s'en charge). Renvoie le point frappé.
+   */
+  strikeShip(ship: Ship, camera: THREE.Camera, focus: Ship): THREE.Vector3 {
+    top.set(ship.position.x, ship.position.y + ship.stats.length * LIGHTNING.mastHeight, ship.position.z);
+    const distance = Math.hypot(top.x - focus.position.x, top.z - focus.position.z);
+    this.build(top, camera);
+    this.age = 0;
+    this.peak = LIGHTNING.flash * THREE.MathUtils.clamp(1.15 - distance / 600, 0.35, 1);
+    this.events.bolt(distance);
+    return top;
+  }
+
   /** Un bateau à flot au hasard, près du joueur, ou null. */
   private pickShip(ships: readonly Ship[], focus: Ship): Ship | null {
     const near = ships.filter((s) => s.alive && s.distanceTo(focus) < LIGHTNING.strikeRadius);

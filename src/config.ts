@@ -1866,6 +1866,26 @@ export const ISLANDS: Record<IslandId, IslandShapeDef> = {
   },
 };
 
+/**
+ * Bord du monde : un cercle autour de l'archipel (toutes les îles prévues de la première mer, avec une petite marge),
+ * au-delà duquel règne une tempête géante (`world/worldEdge.ts`). Elle s'annonce sur `approach` m avant le bord : le
+ * temps affiché glisse vers la grosse tempête (ciel noir, mer énorme), sans changer le temps du reste du monde. Passé
+ * le bord, la foudre frappe chaque navire de plus en plus souvent (délai entre deux coups au bord, puis à `band` m au
+ * delà, s ; dégâts en part de la vie max), sans alerte ni message : on s'en sort en faisant demi-tour à temps.
+ */
+export const WORLD_EDGE = {
+  center: [-150, 450] as const,
+  radius: 3500,
+  approach: 400,
+  band: 300,
+  strikeInterval: [7, 1.2] as const,
+  strikeDamage: 0.15,
+  /** Le premier coup tombe après ce délai (s), une fois le bord passé. */
+  firstStrike: 2.5,
+  /** Les IA restent à cette distance en deçà du bord (m), et rien n'apparaît plus loin. */
+  margin: 300,
+};
+
 /** Navigation près des terres. */
 export const LAND = {
   /** Distance minimale au rivage que les IA gardent (m) : les ennemis l'évitent « à tout prix ». */

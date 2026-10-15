@@ -7,6 +7,7 @@ import { createShip, Ship } from '../ship/ship';
 import { maxRank, SHIP_SIZE_ORDER, SHIP_TYPES, sizeRank, typeOfRank, type ShipType } from '../shipTypes';
 import { wrapAngle } from '../utils/math';
 import { ISLAND_LIST, land } from './island';
+import { worldEdge } from './worldEdge';
 import { conditions } from './weather';
 
 export interface Enemy {
@@ -316,7 +317,7 @@ export class EnemySpawner {
       const x = center.position.x + Math.sin(angle) * distance;
       const z = center.position.z + Math.cos(angle) * distance;
       const nearPort = ISLAND_LIST.some((i) => Math.hypot(x - i.port.x, z - i.port.z) < LAND.portClearance);
-      if (nearPort || land.sdf(x, z) < LAND.spawnClearance) continue;
+      if (nearPort || land.sdf(x, z) < LAND.spawnClearance || worldEdge.room(x, z) < 0) continue;
       return angle;
     }
     return null;

@@ -1,7 +1,7 @@
 import type { MapZone } from '../missions/mission';
 import type { Ship } from '../ship/ship';
 import type { FishSchool } from '../world/fishSchools';
-import { ISLAND_INFO } from '../config';
+import { ISLAND_INFO, WORLD_EDGE } from '../config';
 import { harbors } from '../world/harbors';
 import { isIsland, LAND_LIST, type Islet, type Landmass } from '../world/island';
 import { LANDMARKS } from '../world/landmarks';
@@ -35,6 +35,8 @@ const COLORS = {
   ally: '#2f7a3c',
   enemy: '#b3261c',
   radar: 'rgba(74, 46, 20, 0.45)',
+  /** Tempête du bord du monde. */
+  storm: 'rgba(40, 44, 58, 0.45)',
   fish: '#2d7f9a',
   escort: '#3fb4e8',
   pirate: '#2f6fc0',
@@ -107,6 +109,7 @@ export function paintMap(ctx: CanvasRenderingContext2D, width: number, height: n
   ctx.stroke();
 
   for (const land of LAND_LIST) paintIsland(ctx, land, toX, toY, scale);
+  paintStormEdge(ctx, toX, toY, scale);
   // Une seule écriture par île : le nom de son port (sinon celui de l'île, voir paintIsland). Port de la Marine en rouge.
   for (const l of LANDMARKS) paintLandmark(ctx, l.kind, l.kind === 'port' ? l.name : null, toX(l.x), toY(l.z), !harbors.isOpen(l.island));
 
@@ -230,4 +233,26 @@ function paintIsletName(ctx: CanvasRenderingContext2D, islet: Islet, toX: (x: nu
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
   ctx.fillText(islet.def.name, toX(islet.cx), toY(islet.cz) - Math.max(12, islet.reach * scale * 0.7));
+}
+
+/** La tempête du bord du monde : une large bande sombre au-delà du bord, et le bord lui-même en tirets. */
+function paintStormEdge(ctx: CanvasRenderingContext2D, toX: (x: number) => number, toY: (z: number) => number, scale: number) {
+  const [cx, cz] = WORLD_EDGE.center;
+  const x = toX(cx);
+  const y = toY(cz);
+  const r = WORLD_EDGE.radius * scale;
+  const band = WORLD_EDGE.band * scale;
+  ctx.save();
+  ctx.strokeStyle = COLORS.storm;
+  ctx.lineWidth = band;
+  ctx.beginPath();
+  ctx.arc(x, y, r + band / 2, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([8, 6]);
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
 }

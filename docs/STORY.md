@@ -146,6 +146,13 @@ Plus tard : abordage et capture de navires.
   existantes sont restées identiques (vérifié point par point).
 - **Courbure** (2026-10-15) : une terre peut être courbée (`bend`, en arc ; modérée) ; le Banc du Naufragé l'est
   (26 m aux bouts). L'îlot a été renommé « Le Banc du Naufragé » à la demande du joueur.
+- **Bord du monde** (2026-10-15) : un cercle de 3,5 km de rayon autour de l'archipel prévu (centre à l'est-nord-est de
+  la Tortue), avec une petite marge. En approchant (400 m avant), le ciel se ferme et la mer grossit : le temps vu du
+  navire glisse vers la grosse tempête, sans changer le temps du monde (pas de Veuve Noire pour autant). Passé le bord,
+  la foudre frappe le navire de plus en plus souvent (d'un coup toutes les 7 s au bord à un toutes les 1,2 s à 300 m
+  au-delà ; 15 % de sa vie à chaque coup), sans alerte ni message : on s'en sort en faisant demi-tour à temps. Les IA
+  restent à 300 m en deçà du bord, et rien n'y apparaît. Sur la carte M : une bande sombre et le bord en tirets. Le
+  Mur des tempêtes de l'est est, pour l'instant, le même bord.
 
 ### 3. Plusieurs mers
 - **Monde par mer** : chaque mer a ses îles, ports, forts, météo, ciel, couleur d'eau, ennemis, créatures ; chargement et

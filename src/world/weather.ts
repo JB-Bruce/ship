@@ -10,6 +10,7 @@ import { seaStateUniforms } from '../ocean/seaState';
 import type { DayCycle } from './dayCycle';
 import { HeavySeas } from './heavySeas';
 import { SkyLighting } from './skyLighting';
+import { worldEdge } from './worldEdge';
 import type { Wind } from './wind';
 
 const { lerp, smoothstep } = THREE.MathUtils;
@@ -90,6 +91,13 @@ export class Weather {
   private readonly fromFog = new THREE.Color(SKY.horizonColor);
   private readonly fromZenith = new THREE.Color(SKY.zenithColor);
   private shownTarget: WeatherKind = 'clear';
+  /**
+   * Temps montré : le temps actuel, glissé vers la grosse tempête près du bord du monde (worldEdge.storm autour du
+   * bateau piloté). C'est lui qui s'applique à la scène et aux règles ; `current` reste le temps du monde (boss, transitions).
+   */
+  private readonly shown: WeatherProfile = { ...CLEAR };
+  private readonly shownFog = new THREE.Color(SKY.horizonColor);
+  private readonly shownZenith = new THREE.Color(SKY.zenithColor);
   /** Avancement du changement de temps (0..1). */
   private progress = 1;
   /** Houle du beau temps (0 = quasi plate, 1 = normale), sa cible et le délai avant d'en tirer une nouvelle. */
@@ -155,9 +163,10 @@ export class Weather {
     }
     this.progress = Math.min(1, this.progress + dt / WEATHER.transitionTime);
     this.blend(smoothstep(this.progress, 0, 1));
+    this.compose(worldEdge.storm(focus.position.x, focus.position.z));
     this.apply(wind);
 
-    const p = this.current;
+    const p = this.shown;
     const light = this.lighting.effectsLight;
     this.rain.update(dt, camera, p.rain, wind.direction, wind.strength, light);
     this.gustTime += dt;
@@ -177,7 +186,7 @@ export class Weather {
     if (strong <= 0) return 0;
     const t = (this.gustTime / g.period) * Math.PI * 2;
     const gust = smoothstep(Math.sin(t) * Math.sin(t * 0.37 + 1.3), 0.2, 0.7);
-    return g.streaks * strong * gust * (1 - this.current.rain);
+    return g.streaks * strong * gust * (1 - this.shown.rain);
   }
 
   /** De temps en temps, une nouvelle houle de beau temps, rejointe en douceur. */
@@ -192,6 +201,25 @@ export class Weather {
     CLEAR.waveFactor = lerp(s.min, 1, smoothstep(this.swell, 0, 1));
   }
 
+  /**
+   * Le temps montré : le temps actuel glissé de `edge` (0..1) vers la grosse tempête du bord du monde. La foudre
+   * ordinaire n'y vise pas les navires (c'est EdgeStorm qui frappe, sans message) et les paquets de mer restent ceux du
+   * temps actuel.
+   */
+  private compose(edge: number) {
+    const storm = PROFILES.tempest;
+    for (const key of NUMBERS) this.shown[key] = lerp(this.current[key], storm[key], edge);
+    this.shown.strikeFactor = lerp(this.current.strikeFactor, 0, edge);
+    this.shown.seaDamage = this.current.seaDamage;
+    this.shownFog.lerpColors(this.fogBase, COLORS.tempest.fog, edge);
+    this.shownZenith.lerpColors(this.zenith, COLORS.tempest.zenith, edge);
+  }
+
+  /** La foudre de la tempête du bord tombe sur le mât de `ship` (éclair, lueur, secousse) ; renvoie le point frappé. */
+  strikeShip(ship: Ship, camera: THREE.Camera, focus: Ship): THREE.Vector3 {
+    return this.lightning.strikeShip(ship, camera, focus);
+  }
+
   private blend(t: number) {
     const to = PROFILES[this.target];
     for (const key of NUMBERS) this.current[key] = lerp(this.from[key], to[key], t);
@@ -199,14 +227,14 @@ export class Weather {
     this.zenith.lerpColors(this.fromZenith, COLORS[this.target].zenith, t);
   }
 
-  /** Applique le temps actuel à la scène et aux règles. */
+  /** Applique le temps montré à la scène et aux règles. */
   private apply(wind: Wind) {
-    const p = this.current;
+    const p = this.shown;
     const fog = this.scene.fog as THREE.Fog;
     fog.near = p.fogNear;
     fog.far = p.fogFar;
     // Ciel, soleil, lune et lumières : la météo composée avec l'heure.
-    this.lighting.apply(p, this.zenith);
+    this.lighting.apply(p, this.shownZenith);
     wind.minKnots = p.windMin;
     wind.maxKnots = p.windMax;
     // Les vagues ne sont retouchées que si elles changent (le panneau ?debug peut les régler entre-temps).
@@ -230,6 +258,6 @@ export class Weather {
   /** Lueur d'un éclair : ciel, brume (donc tout le lointain) et lumière ambiante s'illuminent un instant. */
   private applyFlash(flash: number) {
     // La brume se fond dans l'horizon du ciel : même couleur (composée avec l'heure).
-    this.lighting.applyFog(this.current, this.fogBase, flash, this.scene.fog as THREE.Fog, this.scene.background as THREE.Color);
+    this.lighting.applyFog(this.shown, this.shownFog, flash, this.scene.fog as THREE.Fog, this.scene.background as THREE.Color);
   }
 }

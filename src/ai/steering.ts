@@ -6,6 +6,7 @@ import { SHIP_TYPES } from '../shipTypes';
 import { wrapAngle } from '../utils/math';
 import { land } from '../world/island';
 import { conditions } from '../world/weather';
+import { worldEdge } from '../world/worldEdge';
 
 /** Avantage (rad) qu'il faut pour changer de flanc pendant un engagement : évite d'hésiter. */
 const SIDE_SWITCH_MARGIN = 0.5;
@@ -27,18 +28,22 @@ export function steerTo(ship: Ship, heading: number, sail: number) {
 const DETOURS = [0.35, 0.7, 1.05, 1.4, 1.8, 2.3, 2.8];
 const away = { x: 0, z: 0 };
 
+/** Place libre autour de (x, z) : distance au rivage, ou à la limite que les IA gardent avant la tempête du bord. */
+const room = (x: number, z: number) => Math.min(land.sdf(x, z), worldEdge.room(x, z));
+
 /**
  * Sonde la mer devant le bateau dans la direction `heading` : si la route passe à moins de `margin` mètres
- * du rivage, renvoie le cap dégagé le plus proche (d'un côté ou de l'autre) ; si tout est bouché, le large.
+ * du rivage (ou de la limite de la tempête du bord), renvoie le cap dégagé le plus proche (d'un côté ou de l'autre) ;
+ * si tout est bouché, le large (ou le centre du monde).
  */
 export function avoidLand(ship: Ship, heading: number, margin: number): number {
   const p = ship.position;
   const look = ship.stats.length + 10 + ship.speed * 3;
-  if (land.sdf(p.x, p.z) > margin + look) return heading;
+  if (room(p.x, p.z) > margin + look) return heading;
   const clearance = (h: number) => {
     const sx = Math.sin(h);
     const sz = Math.cos(h);
-    return Math.min(land.sdf(p.x + sx * look * 0.5, p.z + sz * look * 0.5), land.sdf(p.x + sx * look, p.z + sz * look));
+    return Math.min(room(p.x + sx * look * 0.5, p.z + sz * look * 0.5), room(p.x + sx * look, p.z + sz * look));
   };
   if (clearance(heading) >= margin) return heading;
   for (const delta of DETOURS) {
@@ -46,7 +51,8 @@ export function avoidLand(ship: Ship, heading: number, margin: number): number {
     const right = clearance(heading - delta);
     if (left >= margin || right >= margin) return left >= right ? heading + delta : heading - delta;
   }
-  land.gradient(p.x, p.z, away);
+  if (worldEdge.room(p.x, p.z) < land.sdf(p.x, p.z)) worldEdge.inward(p.x, p.z, away);
+  else land.gradient(p.x, p.z, away);
   return Math.atan2(away.x, away.z);
 }
 

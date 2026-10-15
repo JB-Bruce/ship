@@ -1,5 +1,6 @@
 import { ISLANDS, ISLETS, PORT, type IslandId, type IslandShapeDef, type IsletDef, type IsletId } from '../config';
 import { Landmass, smoothstep } from './landmass';
+import { worldEdge } from './worldEdge';
 
 export { Landmass, SDF } from './landmass';
 
@@ -108,8 +109,12 @@ export const land = {
     return this.nearest(x, z).heightAt(x, z);
   },
 
-  /** Repousse le point (x, z) vers le large jusqu'à `margin` mètres du rivage. */
+  /**
+   * Repousse le point (x, z) vers le large jusqu'à `margin` mètres du rivage, après l'avoir ramené en deçà de la
+   * limite de la tempête du bord (rien n'apparaît ni ne mouille au-delà).
+   */
   keepOffshore(x: number, z: number, margin: number): { x: number; z: number } {
+    ({ x, z } = worldEdge.clampInside(x, z));
     const g = { x: 0, z: 0 };
     for (let i = 0; i < 4; i++) {
       const s = this.sdf(x, z);

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, ISLAND_INFO, OCEAN, SKY, WORLD, type IslandId } from './config';
+import { BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, ISLAND_INFO, OCEAN, SKY, WORLD, WORLD_EDGE, type IslandId } from './config';
 import { Campaign } from './campaign';
 import { ChaseCamera } from './camera/chaseCamera';
 import { arcOf, cannonStatsOf, findTarget, updateCannons } from './combat/cannons';
@@ -53,6 +53,7 @@ import { Loot } from './world/loot';
 import { PirateTraffic } from './world/pirateTraffic';
 import { Sky } from './world/sky';
 import { Weather } from './world/weather';
+import { EdgeStorm } from './world/worldEdge';
 import { weatherHazards } from './world/weatherHazards';
 import { Wind } from './world/wind';
 import { buildIslands } from './world/worldBuilder';
@@ -72,6 +73,8 @@ export class Game {
   private readonly ambient = new THREE.HemisphereLight(SKY.ambientSky, SKY.ambientGround, SKY.ambientIntensity);
   private readonly sun = new THREE.DirectionalLight(SKY.sunColor, SKY.sunIntensity);
   private readonly weather: Weather;
+  /** La foudre de la tempête du bord du monde (sans message). */
+  private readonly edgeStorm: EdgeStorm;
   private readonly weatherButtons: WeatherButtons;
   private readonly dayClock: DayClock;
   private readonly state = new PlayerState();
@@ -149,6 +152,10 @@ export class Game {
     this.hud = new Hud(container);
     const hazards = weatherHazards(this.chaseCamera, this.effects, this.fleet, this.hud, (ship, damage) => this.applyDamage(ship, damage));
     this.weather = new Weather(this.scene, this.waves, this.ambient, this.sun, this.dayCycle, hazards);
+    this.edgeStorm = new EdgeStorm((ship) => {
+      this.effects.impact(this.weather.strikeShip(ship, this.camera, this.fleet.leader));
+      this.applyDamage(ship, ship.stats.maxHealth * WORLD_EDGE.strikeDamage);
+    });
     const applyGraphics = () => applyQuality(this.settings.graphics, { display: this.display, ocean: this.ocean, wakes: this.wakes, weather: this.weather });
     applyGraphics();
     this.settings.onChange(applyGraphics);
@@ -278,6 +285,7 @@ export class Game {
     this.wakes.update(this.display.renderer, this.camera, dt, leader.position, this.ships, this.loot.crates, this.schools.list);
     this.chaseCamera.update(elapsed, leader, this.waves);
     this.weather.update(dt, this.camera, this.wind, this.ships, leader);
+    this.edgeStorm.update(dt, this.ships);
     this.fogCulling.update(this.camera, (this.scene.fog as THREE.Fog).far, this.ships);
     this.deckCrew.update(dt, this.camera, this.ships);
     this.weatherButtons.update();
