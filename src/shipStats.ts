@@ -266,26 +266,6 @@ export const GALLEON_STATS: ShipStats = {
   buoyancy: { stiffness: 20, damping: 7.5, tiltResponse: 3.5 },
 };
 
-/** Version ennemie : plus lente, moins précise, moins solide. */
-export function weaker(stats: ShipStats, health: number, damage: number): ShipStats {
-  return {
-    ...stats,
-    maxSpeed: stats.maxSpeed * 0.9,
-    turnRate: stats.turnRate * 0.9,
-    maxHealth: health,
-    cannon: { ...stats.cannon, reloadTime: stats.cannon.reloadTime * 1.15, spread: stats.cannon.spread * 1.75, rangeError: stats.cannon.rangeError * 1.6, damage },
-    // Le second calibre garde le même rapport de dégâts avec le premier.
-    deckCannon: stats.deckCannon && {
-      ...stats.deckCannon,
-      reloadTime: stats.deckCannon.reloadTime * 1.15,
-      spread: stats.deckCannon.spread * 1.75,
-      rangeError: stats.deckCannon.rangeError * 1.6,
-      damage: (stats.deckCannon.damage * damage) / stats.cannon.damage,
-    },
-    buoyancy: { ...stats.buoyancy },
-  };
-}
-
 /** Barque à rames ennemie : lente, fragile, un seul pierrier à l'avant. L'adversaire des débuts. */
 export const ROWBOAT_STATS: ShipStats = {
   length: 5,

@@ -86,7 +86,7 @@ export interface ShipTypeDef {
   canFish?: boolean;
   /** Caractéristiques de base d'un bateau du joueur. */
   stats: ShipStats;
-  /** Caractéristiques de base du même bateau chez l'ennemi (un peu plus faible). */
+  /** Caractéristiques de base du même bateau chez l'ennemi (aujourd'hui les mêmes que celles du joueur). */
   enemyStats: ShipStats;
   upgrades: UpgradeTable;
   mass: MassTable;

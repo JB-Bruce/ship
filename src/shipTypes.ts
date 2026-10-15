@@ -2,7 +2,7 @@
 // Un tableau d'amélioration = une valeur par niveau (le niveau 1 est la première case).
 
 import { UPGRADE_INFO, type ShipTypeDef } from './shipTypeDef';
-import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CARRACK_STATS, CORVETTE_STATS, FLUYT_STATS, FRIGATE_STATS, GALLEASS_STATS, GALLEON_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, weaker, XEBEC_STATS } from './shipStats';
+import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CARRACK_STATS, CORVETTE_STATS, FLUYT_STATS, FRIGATE_STATS, GALLEASS_STATS, GALLEON_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, XEBEC_STATS } from './shipStats';
 
 export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'fluyt' | 'brig' | 'corvette' | 'carrack' | 'galleass' | 'frigate' | 'galleon';
 /** Du plus petit au plus gros (par rang de taille ; à rang égal, dans l'ordre d'affichage). */
@@ -71,7 +71,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     hold: 20,
     canFish: true,
     stats: LONGBOAT_STATS,
-    enemyStats: weaker(LONGBOAT_STATS, 120, 8),
+    enemyStats: LONGBOAT_STATS,
     upgrades: {
       accuracy: { costs: [{ gold: 20, wood: 0 }, { gold: 40, wood: 0 }, { gold: 60, wood: 0 }], spreadFactor: [0.7, 0.5, 0.3] },
       range: { costs: [], rangeFactor: [] },
@@ -95,7 +95,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     hold: 40,
     canFish: true,
     stats: SLOOP_STATS,
-    enemyStats: weaker(SLOOP_STATS, 270, 10),
+    enemyStats: SLOOP_STATS,
     upgrades: {
       accuracy: { costs: [{ gold: 40, wood: 0 }, { gold: 70, wood: 0 }, { gold: 110, wood: 0 }], spreadFactor: [0.7, 0.5, 0.3] },
       range: { costs: [], rangeFactor: [] },
@@ -119,7 +119,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     respawnTime: 62,
     hold: 50,
     stats: CARAVEL_STATS,
-    enemyStats: weaker(CARAVEL_STATS, 390, 12),
+    enemyStats: CARAVEL_STATS,
     gunLabels: { main: 'Canons de flanc', deck: 'Canon de chasse' },
     upgrades: {
       accuracy: {
@@ -155,7 +155,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     detectability: 0.75,
     tradeBonus: 0.1,
     stats: SCHOONER_STATS,
-    enemyStats: weaker(SCHOONER_STATS, 300, 9),
+    enemyStats: SCHOONER_STATS,
     upgrades: {
       accuracy: { costs: [{ gold: 45, wood: 0 }, { gold: 75, wood: 0 }, { gold: 110, wood: 0 }], spreadFactor: [0.75, 0.55, 0.38] },
       range: { costs: [], rangeFactor: [] },
@@ -195,7 +195,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     respawnTime: 70,
     hold: 60,
     stats: BRIGANTINE_STATS,
-    enemyStats: weaker(BRIGANTINE_STATS, 430, 12),
+    enemyStats: BRIGANTINE_STATS,
     upgrades: {
       accuracy: {
         costs: [{ gold: 50, wood: 0 }, { gold: 80, wood: 0 }, { gold: 120, wood: 0 }, { gold: 170, wood: 0 }, { gold: 230, wood: 0 }],
@@ -244,7 +244,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     hold: 55,
     oars: 0.18,
     stats: XEBEC_STATS,
-    enemyStats: weaker(XEBEC_STATS, 380, 12),
+    enemyStats: XEBEC_STATS,
     gunLabels: { main: 'Canons de flanc', deck: 'Canons de chasse' },
     upgrades: {
       accuracy: {
@@ -299,7 +299,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     hold: 160,
     tradeBonus: 0.15,
     stats: FLUYT_STATS,
-    enemyStats: weaker(FLUYT_STATS, 700, 11),
+    enemyStats: FLUYT_STATS,
     upgrades: {
       accuracy: {
         costs: [{ gold: 60, wood: 0 }, { gold: 100, wood: 0 }, { gold: 150, wood: 0 }, { gold: 210, wood: 0 }],
@@ -344,7 +344,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     respawnTime: 76,
     hold: 70,
     stats: BRIG_STATS,
-    enemyStats: weaker(BRIG_STATS, 570, 9),
+    enemyStats: BRIG_STATS,
     upgrades: {
       accuracy: {
         costs: [{ gold: 60, wood: 0 }, { gold: 100, wood: 0 }, { gold: 150, wood: 0 }, { gold: 210, wood: 0 }],
@@ -391,7 +391,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     respawnTime: 80,
     hold: 80,
     stats: CORVETTE_STATS,
-    enemyStats: weaker(CORVETTE_STATS, 700, 14),
+    enemyStats: CORVETTE_STATS,
     upgrades: {
       accuracy: {
         costs: [{ gold: 60, wood: 0 }, { gold: 100, wood: 0 }, { gold: 150, wood: 0 }, { gold: 210, wood: 0 }],
@@ -437,7 +437,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     hold: 140,
     upwindLoss: 1.3,
     stats: CARRACK_STATS,
-    enemyStats: weaker(CARRACK_STATS, 1480, 18),
+    enemyStats: CARRACK_STATS,
     gunLabels: { main: 'Batterie basse', deck: 'Pièces des châteaux' },
     upgrades: {
       accuracy: {
@@ -503,7 +503,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     hold: 90,
     oars: 0.3,
     stats: GALLEASS_STATS,
-    enemyStats: weaker(GALLEASS_STATS, 1160, 18),
+    enemyStats: GALLEASS_STATS,
     gunLabels: { main: 'Batterie et triples canons', deck: 'Pièces du pont et du château avant' },
     upgrades: {
       accuracy: {
@@ -563,7 +563,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     respawnTime: 95,
     hold: 100,
     stats: FRIGATE_STATS,
-    enemyStats: weaker(FRIGATE_STATS, 1080, 16),
+    enemyStats: FRIGATE_STATS,
     upgrades: {
       accuracy: {
         costs: [{ gold: 80, wood: 0 }, { gold: 130, wood: 0 }, { gold: 190, wood: 0 }, { gold: 260, wood: 0 }],
@@ -625,7 +625,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     tradeBonus: 0.1,
     navyOnly: true,
     stats: GALLEON_STATS,
-    enemyStats: weaker(GALLEON_STATS, 1960, 20),
+    enemyStats: GALLEON_STATS,
     gunLabels: { main: 'Batteries', deck: 'Pièces des châteaux et du pont' },
     upgrades: {
       // Galion amiral : un niveau de précision et un de portée en plus.
