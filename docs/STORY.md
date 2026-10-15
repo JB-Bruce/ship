@@ -31,7 +31,7 @@ or maudit sur une île perdue, puis sombré quelque part au fond des mers. On se
 La légende, les deux marins, une chaloupe. Le tutoriel (pilotage, combat, pêche, port) se fait dans l'histoire.
 
 ## Première mer — « Mer de la Tortue » (acte 1, proposition)
-Plan : `docs/plans/mer1-plan.png` (nord en haut ; +Z = nord, +X = ouest dans le jeu). Environ 7 × 6 km.
+Plan : `docs/plans/mer1-plan.png`, description physique : `docs/MER1.md` (nord en haut ; +Z = nord, +X = ouest dans le jeu). Environ 7 × 6 km.
 - **Existant** : 1. la Tortue (île natale, repaire, Maëlle) ; 2. Port-Sabre (la Confrérie pirate, 1,2 km à l'est) ;
   3. l'Île Royale (arsenal de la Marine, base de Valcourt, 2 km au nord) ; 4. l'Île du Dauphin (poste de la Marine,
   1,3 km à l'ouest).
