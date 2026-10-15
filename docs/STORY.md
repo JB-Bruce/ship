@@ -38,8 +38,8 @@ Boss : la Veuve Noire ; premier duel contre un capitaine de la Marine (envoyé d
 
 ## Acte 2 — « Au-delà des cartes »
 Les fragments indiquent une route hors des cartes connues. Il faut un navire assez gros, la carte reconstituée et un
-navigateur. Traversée des tempêtes (Le Spectre garde le passage), puis on débouche sur **un nouvel océan** (ambiance à décider :
-pas de glace, réservée à l'acte 3). Nouvelle carte, nouveau port d'attache à gagner, on reprend l'enquête.
+navigateur. Traversée des tempêtes (Le Spectre garde le passage), puis on débouche sur **la mer des Récifs** : archipel sauvage et
+inexploré, lagons turquoise, récifs à fleur d'eau qui abîment la coque, hauts-fonds, villages oubliés. Nouvelle carte, nouveau port d'attache à gagner, on reprend l'enquête.
 Boss : Le Spectre (gardien de la tempête) ; un commodore de la Marine en frégate ; le grand fort de la Marine qui
 verrouille la route du nord.
 
@@ -77,3 +77,65 @@ Veuve Noire (fait), Le Spectre (fait), Hollandais volant, 2-3 boss pirates ou fa
 8. Autres mers perdues de l'acte 3 (brume éternelle, marécage) et créatures marines.
 9. Grotte finale (cinématique).
 Plus tard : abordage et capture de navires.
+
+## Ajouts techniques à implémenter
+
+### 1. Histoire et quêtes
+- **Moteur de quêtes** (`story/`) : actes, chapitres, étapes à objectifs (aller à, parler à, couler tel navire, trouver,
+  attendre un moment), déclencheurs (lieu, heure, météo, victoire, objet), récompenses ; s'appuie sur `QuestTracker`.
+- **Journal de quête** : nouveau menu parchemin (étapes faites et en cours, indices, résumé de l'histoire).
+- **Dialogues** : fenêtre de dialogue (portrait, nom, texte, choix), scripts de dialogue en données, PNJ attachés aux
+  ports (taverne, quai, gouverneur) et parfois en mer (héler un navire).
+- **Portraits** des personnages (dessinés en code ou images).
+- **Choix et drapeaux d'histoire** : état des choix, réputation éventuelle, conséquences.
+- **Indices et fragments de carte** : objets de quête, inventaire, carte qui se dévoile (fragments posés sur la carte M).
+- **Scènes scénarisées** : caméra pilotée, bandeaux, apparition d'une flotte, mise en pause des contrôles.
+- **Sauvegarde** : état de l'histoire, choix, objets, mer courante (nouvelle version de `SaveData`).
+
+### 2. Personnages et équipage
+- **Officiers d'histoire uniques** (Bastien, Lou…) : non vendables, talents propres, répliques ; base `fleet/officers.ts`.
+- **Départ en chaloupe à deux marins** : nouveau début de partie (prologue) et tutoriel intégré.
+
+### 3. Plusieurs mers
+- **Monde par mer** : chaque mer a ses îles, ports, forts, météo, ciel, couleur d'eau, ennemis, créatures ; chargement et
+  déchargement d'une mer (libérer géométries et textures), écran ou fondu de transition.
+- **Îles généralisées** : `ISLANDS`, `ISLAND_LIST`, `land`, le GLSL des îles (tableaux d'uniforms de taille fixe) et le
+  décor (`worldBuilder`) passent d'un archipel fixe à l'archipel de la mer courante.
+- **Carte M par mer**, et carte du monde (les mers et les routes entre elles).
+- **Voyage entre les mers** : traversée des tempêtes (séquence : paquets de mer, éclairs, gardien), arrivée dans la
+  nouvelle mer ; retour possible.
+- **Rayon vert** : aller loin à l'ouest au coucher du soleil (`DayCycle`), éclair vert à l'horizon (effet de ciel),
+  cingler dessus avec la relique → passage vers une mer perdue.
+- **Limites de la carte** : bords de mer (brume, tempête qui repousse) au lieu d'un monde ouvert à l'infini.
+
+### 4. Ambiances de mer
+- **Profils de mer** (comme les `WeatherProfile`) : eau, ciel, brume, lumière, vent, temps possibles.
+- **Mer des Récifs** : lagons turquoise, récifs et hauts-fonds (dégâts de coque, collisions), décor d'îles sauvages,
+  villages.
+- **Monde du froid** : neige qui tombe (comme la pluie), banquise et icebergs (collisions, dégâts de coque), tons froids
+  (palette de livrée et éclairage), neige sur les ponts, eau sombre.
+- **Mer-marécage** : eau verte immobile, mangroves et arbres morts sur l'eau, chenaux étroits, brume basse, vent presque nul.
+- **Mer de brume éternelle** : brouillard dense permanent (réutilise le brouillard).
+- **Archipel du naufrage** : tempête permanente.
+
+### 5. Ennemis, boss et créatures
+- **Boss à phases** : changement de tactique selon la vie, attaques spéciales, renforts, dialogues en combat ;
+  extension de `BossDef` et de `world/bossEncounter.ts`.
+- **Nouveaux boss** : Hollandais volant (plonge et réapparaît), Roi Blanc, Dame des Marais, 2-3 pirates ou fantastiques,
+  3 boss de la Marine (capitaine, commodore, amiral), grand fort de la Marine, carcasse vivante du galion.
+- **Vaisseaux fantômes** : livrée spectrale (coque délabrée, voiles en lambeaux, lueur verte, transparence ou brume),
+  apparitions de plus en plus fréquentes selon l'avancée, apparitions scénarisées aux tournants.
+- **Créatures marines** : Kraken (tentacules animés qui sortent de l'eau, saisissent un navire), serpent de mer ;
+  nouveaux modèles animés et une IA propre (pas un `Ship`).
+- **Antagoniste récurrent** : un navire et un capitaine nommés qui reviennent, fuient, survivent jusqu'à la fin.
+- **Armada de la Marine** : très grandes flottes (performances : nombre de navires, boulets `COMBAT.maxBalls`, équipage animé).
+
+### 6. Navires
+- **Vaisseau de l'amiral** (vaisseau de ligne, rang 8 ?), **carcasse du galion maudit** (modèle délabré et animé),
+  navires fantômes (variantes des modèles existants) ; éventuellement navires légendaires gagnés en récompense.
+
+### 7. Fin
+- **Grotte du trésor** : cinématique (décor de grotte, trésor, caméra), puis épilogue et retour au mode libre.
+
+### 8. Plus tard
+- Abordage et capture de navires.
