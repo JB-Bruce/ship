@@ -3,24 +3,27 @@
 État : brouillon de travail, idées validées par le joueur le 2026-10-15. Les noms propres sont provisoires.
 
 ## Contexte
-Sur l'île natale (la Tortue), on apprend la légende d'un galion qui aurait volé un or maudit sur une île perdue, puis
-sombré quelque part au fond des mers. On se jette à la mer avec les deux premiers marins trouvés pour suivre ses traces.
+Sur l'île natale (la Tortue), on apprend la légende de la *Nuestra Señora de las Ánimas*, un galion qui aurait volé un
+or maudit sur une île perdue, puis sombré quelque part au fond des mers. On se jette à la mer avec les deux premiers marins trouvés pour suivre ses traces.
 
 ## Fils rouges (présents dans tous les actes)
-- **L'antagoniste de la Marine** (provisoire : le commodore de Valmont) cherche aussi l'or maudit. Il te croise et te
+- **L'antagoniste de la Marine**, le commodore Armand de Valcourt, cherche aussi l'or maudit. Il te croise et te
   prévient (acte 1), te traque (acte 2), prend de l'avance ou te vole une part (acte 3), et débarque avec la grande
   flotte sur l'île du trésor (acte 4).
 - **La malédiction** : plus on avance (fragments, reliques), plus des **vaisseaux fantômes** apparaissent, de plus en plus
   souvent. Certaines apparitions sont scénarisées et marquent les tournants de l'histoire.
-- **Les personnages** : les deux marins de départ (provisoire : Bastien, vieux navigateur ; Lou, jeune casse-cou), qui
-  sont tes premiers officiers ; la conteuse de l'île natale, qui raconte la légende et recolle les fragments de carte ;
-  un pirate rival, ni ami ni ennemi, lui aussi sur la piste.
+- **Les personnages** : les deux marins de départ, Bastien Morel (vieux navigateur bourru) et Lou (jeune mousse
+  casse-cou), qui sont tes premiers officiers ; la vieille Maëlle, conteuse de la Tortue, qui raconte la légende et
+  recolle les fragments de carte ; Esteban « le Corbeau » Rojas, pirate rival, ni ami ni ennemi, lui aussi sur la piste.
+- **Les créatures marines** (Kraken, serpents de mer…) peuvent se croiser un peu partout hors des mers connues, en
+  rencontres rares.
 
 ## Les passages entre les mers
 - **Les tempêtes** : on quitte les mers connues en traversant de grosses tempêtes (séquence scénarisée : paquets de mer,
   éclairs, un gardien) et on en ressort ailleurs.
-- **Le rayon vert** (passage magique) : au coucher du soleil, par temps clair, un éclair vert au ras de l'horizon ;
-  en cinglant droit dessus avec la bonne relique, on passe vers les mers perdues. C'est le passage des actes 3 et 4.
+- **Le rayon vert** (passage magique) : il faut se trouver loin à l'ouest au moment du coucher du soleil ; un éclair
+  vert jaillit au ras de l'horizon, et en cinglant droit dessus avec la bonne relique, on passe vers les mers perdues.
+  C'est le passage des actes 3 et 4.
 - Chaque nouvelle mer est **une carte à part**, où l'on arrive par le voyage (plutôt qu'un monde géant : performances,
   et chaque mer garde son ambiance : météo, ciel, couleur de l'eau, décor).
 
@@ -35,8 +38,8 @@ Boss : la Veuve Noire ; premier duel contre un capitaine de la Marine (envoyé d
 
 ## Acte 2 — « Au-delà des cartes »
 Les fragments indiquent une route hors des cartes connues. Il faut un navire assez gros, la carte reconstituée et un
-navigateur. Traversée des tempêtes (Le Spectre garde le passage), puis on débouche sur **une mer glacée** : neige,
-banquise, icebergs, eau sombre, nuits longues. Nouvelle carte, nouveau port d'attache à gagner, on reprend l'enquête.
+navigateur. Traversée des tempêtes (Le Spectre garde le passage), puis on débouche sur **un nouvel océan** (ambiance à décider :
+pas de glace, réservée à l'acte 3). Nouvelle carte, nouveau port d'attache à gagner, on reprend l'enquête.
 Boss : Le Spectre (gardien de la tempête) ; un commodore de la Marine en frégate ; le grand fort de la Marine qui
 verrouille la route du nord.
 
@@ -45,8 +48,11 @@ Trois grands pirates hantés détiennent chacun une clé de l'archipel final. Ch
 loin** : un long voyage (tempêtes, rayon vert) pour l'atteindre. On les affronte dans l'ordre qu'on veut. Missions de
 plus en plus grandioses. Idées de mers et de boss :
 - le **Hollandais volant**, dans une mer de brume éternelle ;
-- un capitaine-squelette dans une mer volcanique (eau sombre, cendres, récifs de lave) ;
-- une sirène ou un Kraken dans une mer d'algues mortes (Sargasses), sans vent.
+- **le Roi Blanc** (capitaine-squelette pris dans les glaces), dans **le monde du froid** : le seul endroit glacé du
+  jeu. Neige qui tombe, banquise, icebergs ; coques et décor aux tons froids, neige sur les ponts ; **la glace abîme la
+  coque** (chocs contre les glaces flottantes et la banquise) ;
+- **la Dame des Marais**, dans **une mer-marécage** : eaux vertes et immobiles, mangroves, arbres morts, brume basse,
+  chenaux étroits, presque pas de vent.
 Boss en plus possibles : 2 ou 3 boss pirates ou fantastiques sur la route, un boss de la Marine.
 
 ## Acte 4 — « L'or maudit »
@@ -67,7 +73,7 @@ Veuve Noire (fait), Le Spectre (fait), Hollandais volant, 2-3 boss pirates ou fa
 4. Boss scénarisés à phases et attaques spéciales (sur la base des boss existants).
 5. Vaisseaux fantômes liés à la malédiction (apparitions de plus en plus fréquentes, tournants scénarisés).
 6. Plusieurs mers (cartes séparées), voyage par les tempêtes et par le rayon vert.
-7. Mer glacée : neige, banquise, icebergs (collisions), ambiance.
-8. Mers perdues de l'acte 3 (brume, volcan, algues mortes).
+7. Monde du froid : neige, tons froids, banquise et icebergs qui abîment la coque.
+8. Autres mers perdues de l'acte 3 (brume éternelle, marécage) et créatures marines.
 9. Grotte finale (cinématique).
 Plus tard : abordage et capture de navires.
