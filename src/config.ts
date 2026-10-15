@@ -168,6 +168,30 @@ export const COMBAT = {
   maxBalls: 128,
 };
 
+/**
+ * Point visé par chaque canon (navires et forts), tiré au hasard à chaque coup (`combat/aimSpread.ts`) : les tirs se
+ * répartissent sur tout le navire adverse au lieu de tomber au même endroit.
+ */
+export const AIM = {
+  /** Sur la coque : part de la demi-longueur (de la poupe à la proue), hauteur au-dessus de la flottaison (m). */
+  hullSpan: 0.8,
+  hullLow: 0.2,
+  hullHigh: 1.7,
+  /**
+   * Part des tirs dans le gréement, sur les navires dont le grand mât dépasse `riggingMinHeight` (m) : part de la
+   * demi-longueur, hauteur (part de celle du pavillon du grand mât). Un tel boulet ne touche que s'il passe dans la coque.
+   */
+  riggingShare: 0.2,
+  riggingMinHeight: 4,
+  riggingSpan: 0.6,
+  riggingLow: 0.3,
+  riggingHigh: 0.75,
+  /** Hauteur visée sur ce qui n'est pas un navire (ouvrage assiégé), au-dessus de son point de visée (m). */
+  structureHeight: 0.6,
+  /** Imprécision (angle et distance) à la portée maximale, en multiple de celle à bout portant ; entre les deux, linéaire. */
+  farSpread: 1.5,
+};
+
 /** Mortier du brick : obus en cloche (voir ShellStats) ; effets : traînée de fumée posée tous les `trailInterval` s, taille de l'explosion. */
 export const MORTAR_SHELL: ShellStats = { gravityFactor: 2, flightBase: 1.8, flightPerMeter: 0.0135, blastRadius: 12, blastShare: 0.5, size: 2.2 };
 export const MORTAR_FX = {

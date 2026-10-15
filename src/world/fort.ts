@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { COMBAT, FORT, FORT_FX, LIVERIES, type Faction, type IslandId } from '../config';
+import { aimSpot, distanceSpread, newAimPoint, pickAimPoint, type AimPoint } from '../combat/aimSpread';
 import type { Projectiles } from '../combat/projectiles';
 import type { Effects } from '../fx/effects';
 import { flagMaterialFor, paletteFor, std, WavingFlag } from '../ship/parts/common';
@@ -20,6 +21,7 @@ const AIM_BELOW_RAMPART = 1;
 const muzzle = new THREE.Vector3();
 const velocity = new THREE.Vector3();
 const spot = new THREE.Vector3();
+const aimed = { x: 0, z: 0 };
 const centered = () => Math.random() + Math.random() - 1;
 
 interface FortGun {
@@ -28,6 +30,8 @@ interface FortGun {
   /** Cap actuel du fût (rad, même convention que les bateaux). */
   yaw: number;
   cooldown: number;
+  /** Point visé sur sa cible, tiré à nouveau à chaque coup. */
+  readonly aim: AimPoint;
 }
 
 /**
@@ -93,7 +97,7 @@ export class Fort {
       object.position.copy(slot.position);
       object.rotation.y = slot.restYaw - Math.PI / 2;
       this.group.add(object);
-      this.guns.push({ slot, object, yaw: slot.restYaw, cooldown: Math.random() * FORT.reloadTime });
+      this.guns.push({ slot, object, yaw: slot.restYaw, cooldown: Math.random() * FORT.reloadTime, aim: newAimPoint() });
     }
     this.setArmament(FORT.guns, FORT.range, FORT.damage);
     const slots = model.slots;
@@ -160,22 +164,25 @@ export class Fort {
       let aimX = 0;
       let aimZ = 0;
       if (target) {
-        // Anticipation : où sera la cible quand le boulet arrivera.
-        aimX = target.position.x;
-        aimZ = target.position.z;
+        // Anticipation : où sera le point visé sur la cible quand le boulet arrivera.
+        if (gun.aim.target !== target) pickAimPoint(gun.aim, target);
+        aimSpot(gun.aim, target, aimed);
+        aimX = aimed.x;
+        aimZ = aimed.z;
         for (let k = 0; k < 2; k++) {
           const flight = Math.hypot(aimX - gun.object.position.x, aimZ - gun.object.position.z) / FORT.ballSpeed;
-          aimX = target.position.x + target.velocityX * flight;
-          aimZ = target.position.z + target.velocityZ * flight;
+          aimX = aimed.x + target.velocityX * flight;
+          aimZ = aimed.z + target.velocityZ * flight;
         }
         desired = Math.atan2(aimX - gun.object.position.x, aimZ - gun.object.position.z);
-      }
+      } else gun.aim.target = null;
       const diff = wrapAngle(desired - gun.yaw);
       gun.yaw = wrapAngle(gun.yaw + moveTowards(0, diff, FORT.turnSpeed * dt));
       gun.object.rotation.y = gun.yaw - Math.PI / 2;
       if (target && gun.cooldown === 0 && Math.abs(diff) < AIM_TOLERANCE) {
         this.fire(gun, aimX, aimZ, projectiles, effects);
         gun.cooldown = FORT.reloadTime * (0.9 + Math.random() * 0.2);
+        pickAimPoint(gun.aim, target);
       }
     }
   }
@@ -220,10 +227,12 @@ export class Fort {
     gun.object.localToWorld(muzzle.copy(MUZZLE));
     const dx = aimX - muzzle.x;
     const dz = aimZ - muzzle.z;
-    const angle = Math.atan2(dx, dz) + centered() * FORT.spread;
-    const flight = Math.hypot(dx, dz) / FORT.ballSpeed;
-    // Visée au niveau moyen de la mer plutôt qu'à la hauteur instantanée de la cible : la houle s'annule en moyenne.
-    const vy = (0.6 - muzzle.y + 0.5 * COMBAT.gravity * flight * flight) / flight;
+    const distance = Math.hypot(dx, dz);
+    // Imprécision qui grandit avec la distance, comme sur les navires.
+    const angle = Math.atan2(dx, dz) + centered() * FORT.spread * distanceSpread(distance, this.range * conditions.rangeFactor);
+    const flight = distance / FORT.ballSpeed;
+    // Hauteur visée au-dessus du niveau moyen de la mer plutôt que de la hauteur instantanée de la cible : la houle s'annule en moyenne.
+    const vy = (gun.aim.height - muzzle.y + 0.5 * COMBAT.gravity * flight * flight) / flight;
     velocity.set(Math.sin(angle) * FORT.ballSpeed, vy, Math.cos(angle) * FORT.ballSpeed);
     projectiles.fire(muzzle, velocity, this, this.damage);
     effects.muzzleFlash(muzzle, Math.sin(angle), Math.cos(angle));
