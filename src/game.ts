@@ -193,10 +193,10 @@ export class Game {
 
     addEventListener('keydown', (e) => {
       if (e.repeat) return;
-      // Triche de test : B donne 1000 or et 1000 bois.
+      // Triche de test : B donne 10 000 or et 10 000 bois.
       if (e.code === 'KeyB') {
-        this.state.earn({ gold: 1000, wood: 1000 });
-        this.hud.toast('+1000 or et +1000 bois', 1.5, 'good');
+        this.state.earn({ gold: 10000, wood: 10000 });
+        this.hud.toast('+10 000 or et +10 000 bois', 1.5, 'good');
       } else if (e.code === 'KeyF') {
         this.toggleFishing();
       } else if (e.code === 'KeyR') {
