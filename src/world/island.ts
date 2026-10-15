@@ -5,6 +5,7 @@ export { Landmass, SDF } from './landmass';
 
 /** Une île à port (fiche de campagne `ISLAND_INFO`) : son quai au fond de la crique, son village et parfois une ville. */
 export class Island extends Landmass {
+  override readonly kind = 'island';
   /** Point du rivage au fond de la crique, où se trouve le quai. */
   readonly port: { x: number; z: number };
   /** Où la flotte apparaît : dans la crique, proue vers le large. */
@@ -32,6 +33,9 @@ export class Island extends Landmass {
   }
 }
 
+/** Une île à port ? */
+export const isIsland = (land: Landmass): land is Island => land.kind === 'island';
+
 /** Un îlot : terre de décor ou lieu de quête, sans port ni fiche de campagne. */
 export class Islet extends Landmass {
   constructor(
@@ -48,9 +52,9 @@ export const royale = new Island('royale', ISLANDS.royale);
 export const dauphin = new Island('dauphin', ISLANDS.dauphin);
 /** Les îles à port (campagne : allégeance, marché, ports, pirates, marchands…). */
 export const ISLAND_LIST: readonly Island[] = [tortuga, sabre, royale, dauphin];
-export const longue = new Islet('longue', ISLETS.longue);
+export const castaway = new Islet('castaway', ISLETS.castaway);
 /** Les îlots (décor, lieux de quête). */
-export const ISLET_LIST: readonly Islet[] = [longue];
+export const ISLET_LIST: readonly Islet[] = [castaway];
 /** Toutes les terres : navigation, collisions, boulets, vagues, eau, radar, carte. */
 export const LAND_LIST: readonly Landmass[] = [...ISLAND_LIST, ...ISLET_LIST];
 export const islandById = (id: IslandId): Island => ISLAND_LIST.find((island) => island.id === id)!;

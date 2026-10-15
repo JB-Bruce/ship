@@ -22,7 +22,7 @@ export const islandUniforms = {
   uIslandB: { value: vectors4() },
   /** (cosinus et sinus de l'orientation du grand axe, étirement, cap de la crique dans le repère de la forme) */
   uIslandC: { value: vectors4() },
-  /** (largeur de la crique, inutilisés) */
+  /** (largeur de la crique, courbure, demi-longueur du grand axe, inutilisé) */
   uIslandD: { value: vectors4() },
   uIslandLobes: { value: Array.from({ length: ISLAND_SLOTS * ISLAND_LOBES }, () => new THREE.Vector3()) },
 };
@@ -77,7 +77,7 @@ function writeSlot(i: number, island: Landmass) {
   u.uIslandA.value[i].set(island.cx, island.cz, island.outerRadius, def.radius);
   u.uIslandB.value[i].set(def.calmDistance, def.lagoonWidth, def.surfWidth, def.bay?.depth ?? 0);
   u.uIslandC.value[i].set(frame.cos, frame.sin, frame.stretch, island.bayAngle);
-  u.uIslandD.value[i].set(def.bay?.width ?? 1, 0, 0, 0);
+  u.uIslandD.value[i].set(def.bay?.width ?? 1, frame.bend, frame.half, 0);
   island.lobes.forEach(([k, amp, phase], j) => u.uIslandLobes.value[i * ISLAND_LOBES + j].set(k, amp, phase));
 }
 
@@ -111,17 +111,21 @@ float islandSdfOf(int i, vec2 p) {
   vec2 d = p - uIslandA[i].xy;
   float len = length(d);
   if (len > uIslandA[i].z + ${SDF.far.toFixed(1)}) return len - uIslandA[i].z;
-  // Repère de la forme (Island.toShape) : tourné, resserré le long du grand axe, élargi en travers.
+  // Repère de la forme (Landmass.toShape) : tourné, axe redressé (courbure), resserré le long du grand axe, élargi en travers.
   vec3 f = uIslandC[i].xyz;
-  vec2 q = vec2((d.x * f.x - d.y * f.y) * f.z, (d.x * f.y + d.y * f.x) / f.z);
+  float along = d.x * f.y + d.y * f.x;
+  float u = along / uIslandD[i].z;
+  vec2 q = vec2((d.x * f.x - d.y * f.y - uIslandD[i].y * u * u) * f.z, along / f.z);
+  float bendSlope = 2.0 * uIslandD[i].y * u / uIslandD[i].z;
   float t = atan(q.x, q.y);
   vec2 s = vec2(sin(t), cos(t));
   float rc = islandCoast(i, t);
   float slope = (islandCoast(i, t + ${SDF.slopeStep.toFixed(3)}) - islandCoast(i, t - ${SDF.slopeStep.toFixed(3)})) / ${(2 * SDF.slopeStep).toFixed(3)};
   float radial = length(q) - rc;
-  float scale = length(vec2(f.z * s.x, s.y / f.z));
+  float scale = length(vec2(f.z * s.x, s.y / f.z - bendSlope * f.z * s.x));
   float k = sqrt(exp(-abs(radial / scale) / ${SDF.slopeFade.toFixed(1)})) * slope / rc;
-  return radial / length(vec2(f.z * (s.x - k * s.y), (s.y + k * s.x) / f.z));
+  float gx = f.z * (s.x - k * s.y);
+  return radial / length(vec2(gx, (s.y + k * s.x) / f.z - bendSlope * gx));
 }
 
 /** Atténuation des vagues : 0 au rivage, 1 au large (la plus forte des îles ; aucune pour une île sans atténuation). */

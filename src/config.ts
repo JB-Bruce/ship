@@ -1682,6 +1682,11 @@ export interface LandShapeDef {
   stretch?: number;
   rotation?: number;
   /**
+   * Courbure : décalage des deux bouts du grand axe vers bâbord (sa gauche, m ; négatif = vers tribord) par rapport au
+   * milieu, en arc de parabole. Modérée seulement : la côte doit rester visible depuis le centre (radar, carte, `pointAt`).
+   */
+  bend?: number;
+  /**
    * Crique : direction de son ouverture (cap, dans le monde : le port est sur la côte dans cette direction depuis le
    * centre), largeur angulaire (rad) et profondeur (m), mesurées dans le repère de la forme. Facultative pour un îlot.
    */
@@ -1725,7 +1730,7 @@ export const ISLAND_SLOTS = 8;
 export type IslandId = 'tortuga' | 'sabre' | 'royale' | 'dauphin';
 
 /** Îlots : terres de décor ou lieux de quête, sans port ni fiche de campagne (rien à sauvegarder). */
-export type IsletId = 'longue';
+export type IsletId = 'castaway';
 
 /** Décor semé sur une terre : palmiers, pins (au-dessus de `pineFrom` m), rochers, graine du tirage, altitude max (m). */
 export interface LandDecor {
@@ -1746,15 +1751,16 @@ export interface IsletDef extends LandShapeDef {
 
 export const ISLETS: Record<IsletId, IsletDef> = {
   /**
-   * L'Île Longue : un banc de sable blanc étroit (≈ 360 × 45 m) entre la Tortue et l'Île Royale, une rangée de
+   * Le Banc du Naufragé : un banc de sable blanc étroit (≈ 360 × 45 m) entre la Tortue et l'Île Royale, une rangée de
    * palmiers penchés, un lagon turquoise de chaque côté, une chaloupe échouée sur la plage.
    */
-  longue: {
-    name: "L'Île Longue",
+  castaway: {
+    name: 'Le Banc du Naufragé',
     center: [900, 1100],
     radius: 64,
     stretch: 8,
     rotation: 0.8,
+    bend: 26,
     lobes: [
       [3, 5, 0.4],
       [2, 3, 1.9],

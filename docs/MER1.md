@@ -45,7 +45,7 @@ Dimensions indicatives (diamètre ou longueur × largeur), hauteurs au-dessus de
     oiseaux de mer, eau sombre autour. La nuit, une lueur verte dans la grotte.
 
 ## Îlots de décor
-12. **L'Île Longue** (≈ 380 × 40 m, ~3 m) — un banc de sable blanc très étroit et courbe, une rangée de palmiers penchés,
+12. **Le Banc du Naufragé** (ex-« Île Longue », ≈ 360 × 45 m, ~3 m) — un banc de sable blanc très étroit et courbe, une rangée de palmiers penchés,
     lagon turquoise de chaque côté. Une épave de chaloupe sur la plage.
 13. **Les Dents** (cinq rochers de 20 à 50 m, jusqu'à ~15 m) — chapelet de rochers noirs pointus qui sortent de l'eau,
     récifs autour, écume. Cormorans.

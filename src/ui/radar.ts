@@ -2,7 +2,7 @@ import { RADAR, WIND } from '../config';
 import type { Ship } from '../ship/ship';
 import type { Enemy } from '../world/enemySpawner';
 import type { FishSchool } from '../world/fishSchools';
-import { Island, LAND_LIST, type Landmass } from '../world/island';
+import { isIsland, LAND_LIST, type Landmass } from '../world/island';
 import type { Wind } from '../world/wind';
 
 const COLORS = {
@@ -237,7 +237,7 @@ export class Radar {
     ctx.fill();
     ctx.strokeStyle = COLORS.coast;
     ctx.stroke();
-    if (!(island instanceof Island)) {
+    if (!isIsland(island)) {
       ctx.restore();
       return;
     }

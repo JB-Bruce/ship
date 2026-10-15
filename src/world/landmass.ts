@@ -22,9 +22,12 @@ const NO_BAY = { angle: 0, width: 1, depth: 0 };
 
 /**
  * Un point dans le repère de la forme d'une île (cercle avant étirement) : coordonnées, distance au centre, angle
- * (cap) et `scale` = étirement local (m de forme par m de monde, le long du rayon). Rempli par `Landmass.toShape`.
+ * (cap), `scale` = étirement local (m de forme par m de monde, le long du rayon) et `bendSlope` = pente de l'axe courbé
+ * à cet endroit. Rempli par `Landmass.toShape`.
  */
-const shape = { x: 0, z: 0, length: 0, angle: 0, scale: 1 };
+const shape = { x: 0, z: 0, length: 0, angle: 0, scale: 1, bendSlope: 0 };
+/** Racine de la côte le long d'un rayon (terre courbée) : itérations au plus, précision (m), pas de la dérivée (m). */
+const COAST_SEARCH = { steps: 12, tolerance: 0.02, probe: 0.5 };
 
 /**
  * Une terre (île à port ou îlot), définie par une seule formule (voir LandShapeDef dans config.ts) : côte, distance au
@@ -32,6 +35,8 @@ const shape = { x: 0, z: 0, length: 0, angle: 0, scale: 1 };
  * `islandShader.ts`) : les modifier aux deux endroits.
  */
 export class Landmass {
+  /** Île à port ou îlot (plutôt qu'`instanceof`, qui échoue sur des modules rechargés : voir `isIsland`). */
+  readonly kind: 'island' | 'islet' = 'islet';
   readonly cx: number;
   readonly cz: number;
   /** Rayon au-delà duquel on est sûrement en mer (pour les calculs rapides). */
@@ -40,8 +45,11 @@ export class Landmass {
   readonly reach: number;
   /** Ondulations de la côte, complétées jusqu'à ISLAND_LOBES. */
   readonly lobes: readonly (readonly [number, number, number])[];
-  /** Repère de la forme : cosinus et sinus de l'orientation du grand axe, étirement (√ du rapport longueur / largeur). */
-  readonly frame: { cos: number; sin: number; stretch: number };
+  /**
+   * Repère de la forme : cosinus et sinus de l'orientation du grand axe, étirement (√ du rapport longueur / largeur),
+   * courbure (décalage des bouts vers bâbord du grand axe, m) et demi-longueur du grand axe (m).
+   */
+  readonly frame: { cos: number; sin: number; stretch: number; bend: number; half: number };
   /** Cap de la crique dans le repère de la forme. */
   readonly bayAngle: number;
   /** Crique (aucune pour un îlot qui n'en a pas). */
@@ -50,10 +58,11 @@ export class Landmass {
   constructor(readonly def: LandShapeDef) {
     [this.cx, this.cz] = def.center;
     const rotation = def.rotation ?? 0;
-    this.frame = { cos: Math.cos(rotation), sin: Math.sin(rotation), stretch: Math.sqrt(def.stretch ?? 1) };
-    const spread = Math.max(this.frame.stretch, 1 / this.frame.stretch);
+    const stretch = Math.sqrt(def.stretch ?? 1);
+    this.frame = { cos: Math.cos(rotation), sin: Math.sin(rotation), stretch, bend: def.bend ?? 0, half: def.radius * stretch };
+    const spread = Math.max(stretch, 1 / stretch);
     this.lobes = Array.from({ length: ISLAND_LOBES }, (_, i) => def.lobes[i] ?? NO_LOBE);
-    this.outerRadius = (def.radius + def.lobes.reduce((s, l) => s + Math.abs(l[1]), 0)) * spread;
+    this.outerRadius = (def.radius + def.lobes.reduce((s, l) => s + Math.abs(l[1]), 0)) * spread + Math.abs(this.frame.bend);
     this.reach = def.radius * spread;
     const bay = def.bay ?? NO_BAY;
     this.bay = bay;
@@ -68,16 +77,21 @@ export class Landmass {
 
   /**
    * Passe le décalage (dx, dz) depuis le centre dans le repère de la forme (résultat dans `shape`) : on le tourne
-   * pour que le grand axe soit nord-sud, puis on le resserre le long du grand axe et on l'élargit en travers.
+   * pour que le grand axe soit nord-sud, on redresse la courbure (l'axe s'écarte de `bend` × (z / demi-longueur)²
+   * vers bâbord), puis on le resserre le long du grand axe et on l'élargit en travers.
    */
   private toShape(dx: number, dz: number) {
-    const { cos, sin, stretch } = this.frame;
-    shape.x = (dx * cos - dz * sin) * stretch;
-    shape.z = (dx * sin + dz * cos) / stretch;
+    const { cos, sin, stretch, bend, half } = this.frame;
+    const along = dx * sin + dz * cos;
+    const t = along / half;
+    shape.x = (dx * cos - dz * sin - bend * t * t) * stretch;
+    shape.z = along / stretch;
     shape.length = Math.hypot(shape.x, shape.z);
     shape.angle = Math.atan2(shape.x, shape.z);
-    // Étirement local le long du rayon : 1 pour une île ronde.
-    shape.scale = Math.hypot(stretch * Math.sin(shape.angle), Math.cos(shape.angle) / stretch);
+    shape.bendSlope = (2 * bend * t) / half;
+    // Étirement local le long du rayon : 1 pour une île ronde et droite.
+    const u = stretch * Math.sin(shape.angle);
+    shape.scale = Math.hypot(u, Math.cos(shape.angle) / stretch - shape.bendSlope * u);
   }
 
   /** Rayon de la côte dans le repère de la forme, au cap `angle` de ce repère. */
@@ -91,10 +105,24 @@ export class Landmass {
     return r - bay.depth * Math.exp(-b * b);
   }
 
-  /** Rayon de la côte dans la direction `theta` (cap depuis le centre, dans le monde). */
+  /**
+   * Rayon de la côte dans la direction `theta` (cap depuis le centre, dans le monde). Terre droite : direct ; terre
+   * courbée : on cherche où la distance au rivage s'annule le long du rayon (la côte doit rester visible du centre).
+   */
   coastRadius(theta: number): number {
-    this.toShape(Math.sin(theta), Math.cos(theta));
-    return this.shapeRadius(shape.angle) / shape.length;
+    const sx = Math.sin(theta);
+    const sz = Math.cos(theta);
+    this.toShape(sx, sz);
+    let t = this.shapeRadius(shape.angle) / shape.length;
+    if (this.frame.bend === 0) return t;
+    const { steps, tolerance, probe } = COAST_SEARCH;
+    for (let i = 0; i < steps; i++) {
+      const f = this.sdf(this.cx + sx * t, this.cz + sz * t);
+      if (Math.abs(f) < tolerance) break;
+      const slope = (this.sdf(this.cx + sx * (t + probe), this.cz + sz * (t + probe)) - f) / probe;
+      t = Math.max(0, t - f / Math.max(slope, 0.2));
+    }
+    return t;
   }
 
   /**
@@ -117,7 +145,8 @@ export class Landmass {
     const sx = Math.sin(angle);
     const sz = Math.cos(angle);
     const stretch = this.frame.stretch;
-    return radial / Math.hypot(stretch * (sx - k * sz), (sz + k * sx) / stretch);
+    const u = stretch * (sx - k * sz);
+    return radial / Math.hypot(u, (sz + k * sx) / stretch - shape.bendSlope * u);
   }
 
   /** Atténuation des vagues : 0 au rivage, 1 au large (même formule que le shader) ; aucune sans `calmDistance`. */
@@ -159,8 +188,9 @@ export class Landmass {
    * (en travers et le long du grand axe). Sert à semer le décor sans gaspiller les tirages sur une île longue.
    */
   pointInBox(across: number, along: number, spread: number): { x: number; z: number } {
-    const { cos, sin, stretch } = this.frame;
-    const x = across * (this.def.radius / stretch) * spread;
+    const { cos, sin, stretch, bend } = this.frame;
+    // Le rectangle suit l'axe courbé d'une terre courbée.
+    const x = across * (this.def.radius / stretch) * spread + bend * (along * spread) ** 2;
     const z = along * this.def.radius * stretch * spread;
     return { x: this.cx + x * cos + z * sin, z: this.cz - x * sin + z * cos };
   }

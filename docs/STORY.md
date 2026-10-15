@@ -48,7 +48,7 @@ Plan : `docs/plans/mer1-plan.png`, description physique : `docs/MER1.md` (nord e
   - 10. **Le Fort de la Passe** (~3 km à l'est) : îlot fortifié de la Marine qui verrouille la route du Mur des
     tempêtes ; on peut l'abattre pour passer.
   - 11. **Le Rocher du Crâne** (~3 km au nord) : îlot sans port, lieu de légende (indice, rencontre fantôme).
-  - **Décor** (sans grande importance) : 12. **l'Île Longue** (banc de sable étroit et palmiers, entre la Tortue et
+  - **Décor** (sans grande importance) : 12. **le Banc du Naufragé** (ex-« Île Longue », banc de sable étroit et palmiers, entre la Tortue et
     l'Île Royale) ; 13. **les Dents** (chapelet de rochers et récifs près du Cimetière) ; 14. **l'Îlot aux Oiseaux**
     (lagon en croissant, mouettes, au nord-ouest).
 - **Formes naturelles** : côtes irrégulières, îles étirées et tournées, criques ; jamais de rond parfait ni d'étoile.
@@ -141,9 +141,11 @@ Plus tard : abordage et capture de navires.
   veille. Rendu vérifié identique au pixel près avant/après.
 - **Deux sortes d'îles** (2026-10-15) : les îles à port (fiche de campagne, port, crique habitée) et les îlots (décor ou
   lieu de quête : nom sur la carte, décor, sans port ni rien à sauvegarder). Toutes partagent la même géométrie
-  (collisions, navigation, eau, radar, carte, terrain, végétation). Premier îlot : **l'Île Longue** (banc de sable de
+  (collisions, navigation, eau, radar, carte, terrain, végétation). Premier îlot : **le Banc du Naufragé** (renommé, ex-« Île Longue » ; banc de sable de
   ≈ 360 × 45 m entre la Tortue et l'Île Royale, palmiers, lagon, chaloupe échouée sur la plage). Les quatre îles
   existantes sont restées identiques (vérifié point par point).
+- **Courbure** (2026-10-15) : une terre peut être courbée (`bend`, en arc ; modérée) ; le Banc du Naufragé l'est
+  (26 m aux bouts). L'îlot a été renommé « Le Banc du Naufragé » à la demande du joueur.
 
 ### 3. Plusieurs mers
 - **Monde par mer** : chaque mer a ses îles, ports, forts, météo, ciel, couleur d'eau, ennemis, créatures ; chargement et

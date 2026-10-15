@@ -3,7 +3,7 @@ import type { Ship } from '../ship/ship';
 import type { FishSchool } from '../world/fishSchools';
 import { ISLAND_INFO } from '../config';
 import { harbors } from '../world/harbors';
-import { Island, LAND_LIST, type Islet, type Landmass } from '../world/island';
+import { isIsland, LAND_LIST, type Islet, type Landmass } from '../world/island';
 import { LANDMARKS } from '../world/landmarks';
 import type { Crate, LootKind } from '../world/loot';
 import type { Wind } from '../world/wind';
@@ -173,7 +173,7 @@ function paintIsland(ctx: CanvasRenderingContext2D, island: Landmass, toX: (x: n
   ctx.strokeStyle = INK;
   ctx.lineWidth = 1.5;
   ctx.stroke();
-  if (!(island instanceof Island)) {
+  if (!isIsland(island)) {
     paintIsletName(ctx, island as Islet, toX, toY, scale);
     return;
   }

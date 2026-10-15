@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import type { IslandId, LandDecor } from '../config';
 import { std } from '../ship/parts/common';
 import { GeometryBatch, tf } from '../utils/geometryBatch';
-import { Island, type Islet, type Landmass } from './island';
-import { CITADEL_SPOT, DAUPHIN_FORT_SPOT, FORT_SPOT, LIGHTHOUSE_SPOT, LONGUE_WRECK, ROYAL_FORT_SPOT } from './landmarks';
+import { isIsland, type Islet, type Landmass } from './island';
+import { CITADEL_SPOT, DAUPHIN_FORT_SPOT, FORT_SPOT, LIGHTHOUSE_SPOT, CASTAWAY_WRECK, ROYAL_FORT_SPOT } from './landmarks';
 
 /** Marge de la grille du terrain au-delà du rayon de l'île (m), et taille d'une case (m). */
 const EXTENT_MARGIN = 80;
@@ -48,7 +48,7 @@ export function seeded(seed: number) {
 export function buildTerrain(island: Landmass): THREE.Mesh {
   // Un rectangle le long des axes de l'île (un carré pour une île ronde).
   const { stretch } = island.frame;
-  const across = island.def.radius / stretch + EXTENT_MARGIN;
+  const across = island.def.radius / stretch + EXTENT_MARGIN + Math.abs(island.frame.bend);
   const along = island.def.radius * stretch + EXTENT_MARGIN;
   const plane = new THREE.PlaneGeometry(across * 2, along * 2, Math.round((across * 2) / CELL), Math.round((along * 2) / CELL));
   plane.rotateX(-Math.PI / 2);
@@ -87,7 +87,7 @@ export function buildTerrain(island: Landmass): THREE.Mesh {
 
 /** Dans le replat d'une ville, à plus de TOWN_SHORE m du rivage (le bord de mer garde sa plage). */
 function inTown(island: Landmass, x: number, z: number): boolean {
-  if (!(island instanceof Island)) return false;
+  if (!isIsland(island)) return false;
   const town = island.def.town;
   if (!town || !island.town) return false;
   return Math.hypot(x - island.town.x, z - island.town.z) < town.radius[0] && island.sdf(x, z) < -TOWN_SHORE;
@@ -140,18 +140,18 @@ const BUILT_UP = [
   [CITADEL_SPOT, 22],
   [ROYAL_FORT_SPOT, 36],
   [DAUPHIN_FORT_SPOT, 17],
-  [LONGUE_WRECK, 6],
+  [CASTAWAY_WRECK, 6],
 ] as const;
 
 /** Palmiers sur les plages et les basses terres, rochers au bord de l'eau, pour une terre (île à port ou îlot). */
 export function buildVegetation(island: Landmass): THREE.Group {
-  const decor = island instanceof Island ? DECOR[island.id] : { ...(island as Islet).def.decor, clear: 0 };
+  const decor = isIsland(island) ? DECOR[island.id] : { ...(island as Islet).def.decor, clear: 0 };
   const rand = seeded(decor.seed);
   const batch = new GeometryBatch();
   const m = { trunk: std(0x8a6a45), leaf: std(0x3f9a3a), nut: std(0x5a3d20) };
   const rock = std(0x8d857a, { roughness: 1 });
   // Rien ne pousse autour du port d'une île (village ou ville), à `extra` m près ; un îlot n'en a pas.
-  const port = island instanceof Island ? island.port : null;
+  const port = isIsland(island) ? island.port : null;
   const nearPort = (x: number, z: number, extra: number) => port !== null && Math.hypot(x - port.x, z - port.z) < decor.clear + extra;
   const spot = (spread: number) => island.pointInBox(rand() * 2 - 1, rand() * 2 - 1, spread);
   // Ni dans les forts, ni au pied du phare.
