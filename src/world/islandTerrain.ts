@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import type { IslandId } from '../config';
+import type { IslandId, LandDecor } from '../config';
 import { std } from '../ship/parts/common';
 import { GeometryBatch, tf } from '../utils/geometryBatch';
-import type { Island } from './island';
-import { CITADEL_SPOT, DAUPHIN_FORT_SPOT, FORT_SPOT, LIGHTHOUSE_SPOT, ROYAL_FORT_SPOT } from './landmarks';
+import { Island, type Islet, type Landmass } from './island';
+import { CITADEL_SPOT, DAUPHIN_FORT_SPOT, FORT_SPOT, LIGHTHOUSE_SPOT, LONGUE_WRECK, ROYAL_FORT_SPOT } from './landmarks';
 
 /** Marge de la grille du terrain au-delà du rayon de l'île (m), et taille d'une case (m). */
 const EXTENT_MARGIN = 80;
@@ -12,11 +12,10 @@ const CELL = 3.3;
 const TOWN_SHORE = 12;
 
 /**
- * Décor de chaque île : palmiers, pins (sur les hauteurs, au-dessus de `pineFrom` m), rochers, graine du tirage,
- * altitude max des palmiers et des pins (m), et rayon autour du port où rien ne pousse (village ou ville ; les
- * rochers et les pins s'en tiennent 10 m plus loin).
+ * Décor de chaque île à port (LandDecor), et rayon autour du port où rien ne pousse (village ou ville ; les rochers
+ * et les pins s'en tiennent 10 m plus loin). Celui des îlots est dans leur fiche (`ISLETS`).
  */
-const DECOR: Record<IslandId, { palms: number; pines: number; rocks: number; seed: number; palmHeight: number; pineFrom: number; pineHeight: number; clear: number }> = {
+const DECOR: Record<IslandId, LandDecor & { clear: number }> = {
   tortuga: { palms: 34, pines: 0, rocks: 26, seed: 42, palmHeight: 9, pineFrom: 0, pineHeight: 0, clear: 50 },
   sabre: { palms: 12, pines: 0, rocks: 48, seed: 97, palmHeight: 22, pineFrom: 0, pineHeight: 0, clear: 50 },
   royale: { palms: 10, pines: 90, rocks: 40, seed: 131, palmHeight: 6, pineFrom: 6, pineHeight: 55, clear: 105 },
@@ -46,7 +45,7 @@ export function seeded(seed: number) {
  * Terrain low-poly de l'île : chaque facette reçoit une seule couleur selon son altitude et sa pente
  * (sable au rivage, herbe, roche sur les pentes et les sommets). Le fond marin continue sous l'eau.
  */
-export function buildTerrain(island: Island): THREE.Mesh {
+export function buildTerrain(island: Landmass): THREE.Mesh {
   // Un rectangle le long des axes de l'île (un carré pour une île ronde).
   const { stretch } = island.frame;
   const across = island.def.radius / stretch + EXTENT_MARGIN;
@@ -87,7 +86,8 @@ export function buildTerrain(island: Island): THREE.Mesh {
 }
 
 /** Dans le replat d'une ville, à plus de TOWN_SHORE m du rivage (le bord de mer garde sa plage). */
-function inTown(island: Island, x: number, z: number): boolean {
+function inTown(island: Landmass, x: number, z: number): boolean {
+  if (!(island instanceof Island)) return false;
   const town = island.def.town;
   if (!town || !island.town) return false;
   return Math.hypot(x - island.town.x, z - island.town.z) < town.radius[0] && island.sdf(x, z) < -TOWN_SHORE;
@@ -140,16 +140,19 @@ const BUILT_UP = [
   [CITADEL_SPOT, 22],
   [ROYAL_FORT_SPOT, 36],
   [DAUPHIN_FORT_SPOT, 17],
+  [LONGUE_WRECK, 6],
 ] as const;
 
-/** Palmiers sur les plages et les basses terres, rochers au bord de l'eau, pour une île. */
-export function buildVegetation(island: Island): THREE.Group {
-  const decor = DECOR[island.id];
+/** Palmiers sur les plages et les basses terres, rochers au bord de l'eau, pour une terre (île à port ou îlot). */
+export function buildVegetation(island: Landmass): THREE.Group {
+  const decor = island instanceof Island ? DECOR[island.id] : { ...(island as Islet).def.decor, clear: 0 };
   const rand = seeded(decor.seed);
   const batch = new GeometryBatch();
   const m = { trunk: std(0x8a6a45), leaf: std(0x3f9a3a), nut: std(0x5a3d20) };
   const rock = std(0x8d857a, { roughness: 1 });
-  const port = island.port;
+  // Rien ne pousse autour du port d'une île (village ou ville), à `extra` m près ; un îlot n'en a pas.
+  const port = island instanceof Island ? island.port : null;
+  const nearPort = (x: number, z: number, extra: number) => port !== null && Math.hypot(x - port.x, z - port.z) < decor.clear + extra;
   const spot = (spread: number) => island.pointInBox(rand() * 2 - 1, rand() * 2 - 1, spread);
   // Ni dans les forts, ni au pied du phare.
   const builtUp = (x: number, z: number) => BUILT_UP.some(([p, r]) => Math.hypot(x - p.x, z - p.z) < r);
@@ -158,7 +161,7 @@ export function buildVegetation(island: Island): THREE.Group {
     const { x, z } = spot(1.2);
     const h = island.heightAt(x, z);
     // Pas sur le quai ni au milieu du village (on en plante quelques-uns à la main là-bas).
-    if (h < 1.2 || h > decor.palmHeight || Math.hypot(x - port.x, z - port.z) < decor.clear || builtUp(x, z)) continue;
+    if (h < 1.2 || h > decor.palmHeight || nearPort(x, z, 0) || builtUp(x, z)) continue;
     addPalm(batch, m, x, h - 0.2, z, rand() * Math.PI * 2, rand);
     palms++;
   }
@@ -168,7 +171,7 @@ export function buildVegetation(island: Island): THREE.Group {
   for (let tries = 0; tries < 3000 && pines < decor.pines; tries++) {
     const { x, z } = spot(1.2);
     const h = island.heightAt(x, z);
-    if (h < decor.pineFrom || h > decor.pineHeight || Math.hypot(x - port.x, z - port.z) < decor.clear + 10 || builtUp(x, z)) continue;
+    if (h < decor.pineFrom || h > decor.pineHeight || nearPort(x, z, 10) || builtUp(x, z)) continue;
     addPine(batch, pine, x, h - 0.3, z, rand);
     pines++;
   }
@@ -176,7 +179,7 @@ export function buildVegetation(island: Island): THREE.Group {
   for (let tries = 0; tries < 3000 && rocks < decor.rocks; tries++) {
     const { x, z } = spot(1.3);
     const s = island.sdf(x, z);
-    if (s < -6 || s > 4 || Math.hypot(x - port.x, z - port.z) < decor.clear + 10 || builtUp(x, z)) continue;
+    if (s < -6 || s > 4 || nearPort(x, z, 10) || builtUp(x, z)) continue;
     const size = 0.8 + rand() * 2.2;
     batch.add(rock, new THREE.DodecahedronGeometry(size, 0), tf(x, island.heightAt(x, z) + size * 0.2, z, rand() * 3, rand() * 3, 0, [1, 0.7, 1.1]));
     rocks++;

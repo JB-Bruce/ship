@@ -1,5 +1,5 @@
-import { ISLAND_INFO, ISLANDS, type IslandId } from '../config';
-import { dauphin, royale, sabre, tortuga } from './island';
+import { ISLAND_INFO, ISLANDS, ISLETS, type IslandId } from '../config';
+import { dauphin, longue, royale, sabre, tortuga } from './island';
 
 export type LandmarkKind = 'port' | 'fort' | 'lighthouse';
 
@@ -23,6 +23,9 @@ export const CITADEL_SPOT = sabre.pointAt(ISLANDS.sabre.bay.angle - 0.62, 30);
 export const ROYAL_FORT_SPOT = royale.pointAt(ISLANDS.royale.bay.angle + 0.5, 48);
 /** Fortin du Dauphin : sur la pointe nord de la crique de l'Île du Dauphin, au-dessus de l'entrée. */
 export const DAUPHIN_FORT_SPOT = dauphin.pointAt(ISLANDS.dauphin.bay.angle - 0.6, 20);
+
+/** Chaloupe échouée sur la plage de l'Île Longue (face sud-est), couchée le long du rivage. */
+export const LONGUE_WRECK = { ...longue.pointAt((ISLETS.longue.rotation ?? 0) + 2.05, 6), heading: (ISLETS.longue.rotation ?? 0) + 0.25 };
 
 /** Tous les lieux à montrer sur la carte. Un nouveau lieu (île, épave, trésor…) s'ajoute ici. */
 export const LANDMARKS: readonly Landmark[] = [

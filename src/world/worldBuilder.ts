@@ -2,9 +2,10 @@ import type * as THREE from 'three';
 import { CITADEL, FORT, NAVY_HOLDS, type IslandId, type NavyHoldDef } from '../config';
 import { Fort } from './fort';
 import { FORT_LAYOUTS } from './fortModel';
-import { dauphin, ISLAND_LIST, royale, sabre, type Island } from './island';
+import { dauphin, ISLAND_LIST, ISLET_LIST, longue, royale, sabre, type Island } from './island';
 import { buildTerrain, buildVegetation } from './islandTerrain';
-import { CITADEL_SPOT, DAUPHIN_FORT_SPOT, FORT_SPOT, ROYAL_FORT_SPOT } from './landmarks';
+import { buildStrandedBoat } from './isletProps';
+import { CITADEL_SPOT, DAUPHIN_FORT_SPOT, FORT_SPOT, LONGUE_WRECK, ROYAL_FORT_SPOT } from './landmarks';
 import { Lighthouse } from './lighthouse';
 import { buildPort } from './port';
 import type { LanternSpot } from '../ship/parts/nightGlow';
@@ -28,7 +29,7 @@ function bayMouthBearing(island: Island, fort: { x: number; z: number }, offing:
 /** Fort d'une île de la Marine (NAVY_HOLDS). */
 const hold = (id: IslandId): NavyHoldDef['fort'] => NAVY_HOLDS[id]!.fort;
 
-/** Ajoute à la scène toutes les îles (relief, végétation, port), leurs forts et le phare de la Tortue. */
+/** Ajoute à la scène toutes les îles (relief, végétation, port), les îlots (relief, végétation, décor), les forts et le phare de la Tortue. */
 export function buildIslands(scene: THREE.Scene): IslandWorks {
   const decor: THREE.Object3D[] = [];
   const lanterns: LanternSpot[] = [];
@@ -37,6 +38,8 @@ export function buildIslands(scene: THREE.Scene): IslandWorks {
     decor.push(buildTerrain(island), buildVegetation(island), port.group);
     lanterns.push(...port.lanterns);
   }
+  for (const islet of ISLET_LIST) decor.push(buildTerrain(islet), buildVegetation(islet));
+  decor.push(buildStrandedBoat(longue, LONGUE_WRECK.x, LONGUE_WRECK.z, LONGUE_WRECK.heading));
   const forts = {
     tortuga: new Fort('tortuga', FORT_SPOT, FORT_LAYOUTS.fort, FORT.health),
     // La citadelle regarde l'entrée de sa crique : ses canons couvrent le port et ses approches.

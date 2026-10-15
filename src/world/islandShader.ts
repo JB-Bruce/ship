@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ISLAND_LOBES, ISLAND_SLOTS, OCEAN } from '../config';
-import { ISLAND_LIST, SDF, type Island } from './island';
+import { LAND_LIST, SDF, type Landmass } from './island';
 
 /**
  * Au-delà de cette distance du joueur (m), aucune case de la grille de l'eau : son coin le plus lointain (la grille est
@@ -29,21 +29,21 @@ export const islandUniforms = {
 
 /** Îles candidates et leur distance au joueur (rivage le plus proche possible) : une fiche par île, réutilisée. */
 interface Candidate {
-  readonly island: Island;
+  readonly island: Landmass;
   key: number;
 }
-const entries = new Map<Island, Candidate>();
+const entries = new Map<Landmass, Candidate>();
 const candidates: Candidate[] = [];
 const byDistance = (a: Candidate, b: Candidate) => a.key - b.key;
-const chosen: Island[] = [];
+const chosen: Landmass[] = [];
 let warned = false;
 
 /**
  * Choisit les îles que l'eau doit connaître autour de (x, z) : celles dont la zone d'influence (atténuation, lagon,
  * ressac) touche la grille de l'eau, les plus proches d'abord, au plus ISLAND_SLOTS. Les uniforms ne sont réécrits que
- * si le choix change. `list` : toutes les îles du monde.
+ * si le choix change. `list` : toutes les terres du monde (îles et îlots).
  */
-export function selectIslands(x: number, z: number, list: readonly Island[] = ISLAND_LIST) {
+export function selectIslands(x: number, z: number, list: readonly Landmass[] = LAND_LIST) {
   candidates.length = 0;
   for (const island of list) {
     const { calmDistance, lagoonWidth, surfWidth } = island.def;
@@ -71,13 +71,13 @@ export function selectIslands(x: number, z: number, list: readonly Island[] = IS
   islandUniforms.uIslandCount.value = count;
 }
 
-function writeSlot(i: number, island: Island) {
+function writeSlot(i: number, island: Landmass) {
   const u = islandUniforms;
   const { def, frame } = island;
   u.uIslandA.value[i].set(island.cx, island.cz, island.outerRadius, def.radius);
-  u.uIslandB.value[i].set(def.calmDistance, def.lagoonWidth, def.surfWidth, def.bay.depth);
+  u.uIslandB.value[i].set(def.calmDistance, def.lagoonWidth, def.surfWidth, def.bay?.depth ?? 0);
   u.uIslandC.value[i].set(frame.cos, frame.sin, frame.stretch, island.bayAngle);
-  u.uIslandD.value[i].set(def.bay.width, 0, 0, 0);
+  u.uIslandD.value[i].set(def.bay?.width ?? 1, 0, 0, 0);
   island.lobes.forEach(([k, amp, phase], j) => u.uIslandLobes.value[i * ISLAND_LOBES + j].set(k, amp, phase));
 }
 

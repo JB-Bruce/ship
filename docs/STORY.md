@@ -139,6 +139,11 @@ Plus tard : abordage et capture de navires.
   l'eau ne calculent plus leur flottaison ni l'animation de leur gréement (mesure avec 32 navires dont 23 au loin :
   0,59 → 0,32 ms par image pour les navires) ; les IA ne coûtent presque rien (0,1 ms), pas besoin de les mettre en
   veille. Rendu vérifié identique au pixel près avant/après.
+- **Deux sortes d'îles** (2026-10-15) : les îles à port (fiche de campagne, port, crique habitée) et les îlots (décor ou
+  lieu de quête : nom sur la carte, décor, sans port ni rien à sauvegarder). Toutes partagent la même géométrie
+  (collisions, navigation, eau, radar, carte, terrain, végétation). Premier îlot : **l'Île Longue** (banc de sable de
+  ≈ 360 × 45 m entre la Tortue et l'Île Royale, palmiers, lagon, chaloupe échouée sur la plage). Les quatre îles
+  existantes sont restées identiques (vérifié point par point).
 
 ### 3. Plusieurs mers
 - **Monde par mer** : chaque mer a ses îles, ports, forts, météo, ciel, couleur d'eau, ennemis, créatures ; chargement et

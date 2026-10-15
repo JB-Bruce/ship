@@ -1193,6 +1193,8 @@ export const RADAR = {
   size: 180,
   /** Le radar est redessiné au plus ce nombre de fois par seconde (dessin 2D coûteux s'il est fait à chaque image). */
   refreshRate: 30,
+  /** Points de la côte d'une terre ronde (× l'étirement pour une terre allongée). */
+  coastSteps: 72,
 };
 
 /** Une vague de Gerstner. La somme des `steepness` doit rester < 1 (sinon les crêtes se replient). */
@@ -1662,13 +1664,13 @@ export const GRAPHICS = {
 };
 
 /**
- * Forme d'une île. Sa côte est un rayon qui varie selon l'angle (cap, 0 = nord / +Z) : rayon moyen + quelques
+ * Forme d'une terre (île à port ou îlot). Sa côte est un rayon qui varie selon l'angle (cap, 0 = nord / +Z) : rayon moyen + quelques
  * ondulations, moins une crique creusée en direction de `bay.angle`, où se niche le port. Cette forme peut être
  * étirée (`stretch`) le long d'un grand axe tourné vers `rotation` : les ondulations et la crique se mesurent alors
  * dans le repère de la forme (cercle avant étirement). La même formule sert au relief, aux collisions, à l'évitement,
  * au radar et au shader de l'eau.
  */
-export interface IslandShapeDef {
+export interface LandShapeDef {
   center: readonly [number, number];
   radius: number;
   /** Ondulations de la côte : [nombre de bosses sur le tour, amplitude (m), phase (rad)], au plus ISLAND_LOBES. */
@@ -1681,9 +1683,9 @@ export interface IslandShapeDef {
   rotation?: number;
   /**
    * Crique : direction de son ouverture (cap, dans le monde : le port est sur la côte dans cette direction depuis le
-   * centre), largeur angulaire (rad) et profondeur (m), mesurées dans le repère de la forme.
+   * centre), largeur angulaire (rad) et profondeur (m), mesurées dans le repère de la forme. Facultative pour un îlot.
    */
-  bay: { angle: number; width: number; depth: number };
+  bay?: { angle: number; width: number; depth: number };
   /** Relief : collines douces derrière de larges plages, ou falaises au-dessus d'une plage étroite. */
   relief: 'hills' | 'cliffs';
   /** Hauteur des sommets (m) et des falaises (relief 'cliffs'). */
@@ -1700,6 +1702,11 @@ export interface IslandShapeDef {
   /** Herbe (claire, sombre) : les îles rocheuses sont plus sèches. */
   grass: number;
   darkGrass: number;
+}
+
+/** Une île à port (fiche de campagne `ISLAND_INFO`) : sa crique abrite le port, et parfois une ville derrière. */
+export interface IslandShapeDef extends LandShapeDef {
+  bay: { angle: number; width: number; depth: number };
   /**
    * Replat d'une ville derrière le port (en plus de celui du village) : centré à `inland` m à l'intérieur des terres
    * depuis le quai, plat sur `radius[0]` m, puis rejoint le relief à `radius[1]` m.
@@ -1716,6 +1723,54 @@ export const ISLAND_LOBES = 6;
 export const ISLAND_SLOTS = 8;
 
 export type IslandId = 'tortuga' | 'sabre' | 'royale' | 'dauphin';
+
+/** Îlots : terres de décor ou lieux de quête, sans port ni fiche de campagne (rien à sauvegarder). */
+export type IsletId = 'longue';
+
+/** Décor semé sur une terre : palmiers, pins (au-dessus de `pineFrom` m), rochers, graine du tirage, altitude max (m). */
+export interface LandDecor {
+  palms: number;
+  pines: number;
+  rocks: number;
+  seed: number;
+  palmHeight: number;
+  pineFrom: number;
+  pineHeight: number;
+}
+
+/** Un îlot : sa forme, son nom sur la carte et son décor. */
+export interface IsletDef extends LandShapeDef {
+  name: string;
+  decor: LandDecor;
+}
+
+export const ISLETS: Record<IsletId, IsletDef> = {
+  /**
+   * L'Île Longue : un banc de sable blanc étroit (≈ 360 × 45 m) entre la Tortue et l'Île Royale, une rangée de
+   * palmiers penchés, un lagon turquoise de chaque côté, une chaloupe échouée sur la plage.
+   */
+  longue: {
+    name: "L'Île Longue",
+    center: [900, 1100],
+    radius: 64,
+    stretch: 8,
+    rotation: 0.8,
+    lobes: [
+      [3, 5, 0.4],
+      [2, 3, 1.9],
+      [5, 1.5, 2.6],
+    ],
+    relief: 'hills',
+    peak: 2.6,
+    cliff: 0,
+    calmDistance: 70,
+    lagoonWidth: 45,
+    surfWidth: 4,
+    grass: 0x9fbf6a,
+    darkGrass: 0x7fa354,
+    decor: { palms: 16, pines: 0, rocks: 5, seed: 333, palmHeight: 4, pineFrom: 0, pineHeight: 0 },
+  },
+};
 
 export const ISLANDS: Record<IslandId, IslandShapeDef> = {
   /** Île de la Tortue : ton repaire, verte et vallonnée. */

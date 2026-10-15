@@ -2,7 +2,7 @@ import { RADAR, WIND } from '../config';
 import type { Ship } from '../ship/ship';
 import type { Enemy } from '../world/enemySpawner';
 import type { FishSchool } from '../world/fishSchools';
-import { ISLAND_LIST, type Island } from '../world/island';
+import { Island, LAND_LIST, type Landmass } from '../world/island';
 import type { Wind } from '../world/wind';
 
 const COLORS = {
@@ -114,7 +114,7 @@ export class Radar {
     ctx.lineTo(c, c + r);
     ctx.stroke();
 
-    for (const island of ISLAND_LIST) this.drawIsland(c, r, player, island);
+    for (const land of LAND_LIST) this.drawIsland(c, r, player, land);
 
     // Monde → radar : avant du bateau vers le haut, bâbord vers la gauche.
     const sin = Math.sin(player.heading);
@@ -207,8 +207,8 @@ export class Radar {
     ctx.fill();
   }
 
-  /** Une île (côte dessinée point par point) et son port, découpés au bord du radar. */
-  private drawIsland(c: number, r: number, player: Ship, island: Island) {
+  /** Une terre (côte dessinée point par point) et son port s'il en a un, découpés au bord du radar. */
+  private drawIsland(c: number, r: number, player: Ship, island: Landmass) {
     const ctx = this.ctx;
     const sin = Math.sin(player.heading);
     const cos = Math.cos(player.heading);
@@ -222,7 +222,8 @@ export class Radar {
     this.circle(c, c, r - 1);
     ctx.clip();
     ctx.beginPath();
-    const steps = 72;
+    // Plus de points sur une terre étirée, dont la côte tourne vite aux deux bouts.
+    const steps = Math.round(RADAR.coastSteps * island.frame.stretch);
     for (let i = 0; i <= steps; i++) {
       const t = (i / steps) * Math.PI * 2;
       const rc = island.coastRadius(t);
@@ -236,6 +237,10 @@ export class Radar {
     ctx.fill();
     ctx.strokeStyle = COLORS.coast;
     ctx.stroke();
+    if (!(island instanceof Island)) {
+      ctx.restore();
+      return;
+    }
     const px = island.port.x - player.position.x;
     const pz = island.port.z - player.position.z;
     ctx.fillStyle = COLORS.port;
