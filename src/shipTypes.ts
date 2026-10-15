@@ -2,11 +2,11 @@
 // Un tableau d'amélioration = une valeur par niveau (le niveau 1 est la première case).
 
 import { UPGRADE_INFO, type ShipTypeDef } from './shipTypeDef';
-import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CARRACK_STATS, CORVETTE_STATS, FLUYT_STATS, FRIGATE_STATS, GALLEASS_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, weaker, XEBEC_STATS } from './shipStats';
+import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CARRACK_STATS, CORVETTE_STATS, FLUYT_STATS, FRIGATE_STATS, GALLEASS_STATS, GALLEON_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, weaker, XEBEC_STATS } from './shipStats';
 
-export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'fluyt' | 'brig' | 'corvette' | 'carrack' | 'galleass' | 'frigate';
+export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'fluyt' | 'brig' | 'corvette' | 'carrack' | 'galleass' | 'frigate' | 'galleon';
 /** Du plus petit au plus gros (par rang de taille ; à rang égal, dans l'ordre d'affichage). */
-export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'carrack', 'galleass', 'frigate'];
+export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon'];
 /** Nom du type d'un navire selon ses allongements (« Frégate allongée », « Grande frégate »). */
 export function typeName(type: ShipType, extension = 0): string {
   return extension > 0 ? (SHIP_TYPES[type].extensions?.[extension - 1]?.name ?? SHIP_TYPES[type].name) : SHIP_TYPES[type].name;
@@ -30,7 +30,7 @@ export { UPGRADE_INFO };
 export type { ExtensionDef, MassTable, ShipTypeDef, UpgradeTable } from './shipTypeDef';
 
 /** Types que le joueur peut acheter (la barque est réservée aux ennemis). */
-export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'carrack', 'galleass', 'frigate'];
+export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon'];
 
 export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
   rowboat: {
@@ -608,6 +608,72 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
         turnFactor: 0.9,
         mass: 90,
         extraLevels: { cannons: 2, hull: 1, sails: 1, hold: 1 },
+      },
+    ],
+  },
+  galleon: {
+    name: 'Galion',
+    description: 'Le navire au trésor : très haut, château arrière à trois étages et galeries dorées, poulaine et lion de proue, quatre mâts. Deux batteries couvertes de gros canons et des pièces légères sur les châteaux : la plus forte bordée et la plus grande cale. Lent, lourd à virer, et il perd beaucoup au près.',
+    armament: 'broadside',
+    rank: 7,
+    threat: 7,
+    lootFactor: 9,
+    price: { gold: 10000, wood: 5500 },
+    respawnTime: 110,
+    hold: 220,
+    upwindLoss: 1.3,
+    tradeBonus: 0.1,
+    navyOnly: true,
+    stats: GALLEON_STATS,
+    enemyStats: weaker(GALLEON_STATS, 980, 20),
+    gunLabels: { main: 'Batteries', deck: 'Pièces des châteaux et du pont' },
+    upgrades: {
+      accuracy: {
+        costs: [{ gold: 100, wood: 0 }, { gold: 160, wood: 0 }, { gold: 230, wood: 0 }, { gold: 310, wood: 0 }],
+        spreadFactor: [0.8, 0.62, 0.46, 0.32],
+      },
+      range: { costs: [{ gold: 160, wood: 50 }, { gold: 240, wood: 75 }], rangeFactor: [1.15, 1.3] },
+      // 1 : un canon de plus en batterie basse, 2 : en batterie haute, 3 : une pièce sur le château avant, 4 : basse,
+      // 5 : haute ; grand galion, puis galion amiral : un canon dans chaque batterie et une pièce sur le pont (voir
+      // galleonArmament).
+      cannons: {
+        costs: [{ gold: 220, wood: 120 }, { gold: 280, wood: 160 }, { gold: 340, wood: 190 }, { gold: 410, wood: 230 }, { gold: 490, wood: 270 }, { gold: 620, wood: 350 }, { gold: 760, wood: 430 }],
+        cannonsPerSide: [13, 14, 15, 16, 17, 20, 23],
+      },
+      hull: {
+        costs: [{ gold: 80, wood: 80 }, { gold: 140, wood: 140 }, { gold: 200, wood: 200 }, { gold: 280, wood: 280 }],
+        healthFactor: [1.1, 1.2, 1.3, 1.4],
+      },
+      sails: { costs: [{ gold: 110, wood: 30 }, { gold: 170, wood: 50 }, { gold: 240, wood: 70 }], speedFactor: [1.06, 1.12, 1.18] },
+      hold: {
+        costs: [{ gold: 120, wood: 70 }, { gold: 180, wood: 110 }, { gold: 250, wood: 160 }, { gold: 330, wood: 210 }, { gold: 420, wood: 270 }],
+        capacity: [300, 390, 490, 600, 700],
+      },
+      nets: { costs: [], catchFactor: [] },
+    },
+    mass: { base: 720, perExtraCannon: 9, hull: [24, 50, 78, 108], sails: [10, 20, 30], hold: [16, 32, 50, 70, 90], speedLossPerUnit: 0.00025 },
+    extensions: [
+      {
+        name: 'Grand galion',
+        description: 'Le chantier rallonge la coque de quatre mètres au milieu : un sabord de plus par bord dans chaque batterie et une pièce de plus sur le pont (un niveau de canons en plus).',
+        cost: { gold: 5000, wood: 2500 },
+        length: 4,
+        healthFactor: 1.15,
+        speedFactor: 1.03,
+        turnFactor: 0.92,
+        mass: 120,
+        extraLevels: { cannons: 1 },
+      },
+      {
+        name: 'Galion amiral',
+        description: 'Le chantier rallonge encore la coque de quatre mètres au milieu : un sabord de plus par bord dans chaque batterie, une seconde pièce sur le pont (un niveau de canons en plus) et des membrures doublées.',
+        cost: { gold: 7000, wood: 3500 },
+        length: 4,
+        healthFactor: 1.15,
+        speedFactor: 1.03,
+        turnFactor: 0.92,
+        mass: 130,
+        extraLevels: { cannons: 1 },
       },
     ],
   },

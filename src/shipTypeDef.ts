@@ -99,6 +99,8 @@ export interface ShipTypeDef {
    * (réglages communs OARS).
    */
   oars?: number;
+  /** Seulement dans la Marine (et à l'achat) : jamais chez les pirates alliés (galion). */
+  navyOnly?: boolean;
   /** Négoce : ses ventes sur une route commerciale rapportent cette part en plus (0 par défaut). */
   tradeBonus?: number;
   /** Noms des deux calibres au chantier (par défaut « Batterie » et « Canons des gaillards »). */

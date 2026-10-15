@@ -3,7 +3,7 @@ import { mooringSpot, PirateAI } from '../ai/pirateAI';
 import { ENEMIES, LIVERIES, PIRATES } from '../config';
 import { randomLevels } from '../progression/upgrades';
 import { createShip, type Ship } from '../ship/ship';
-import { maxRank, sizeRank, typeOfRank, type ShipType } from '../shipTypes';
+import { SHIP_SIZE_ORDER, SHIP_TYPES, sizeRank, typeOfRank, type ShipType } from '../shipTypes';
 import type { FleetPower } from './enemySpawner';
 import type { FishSchool } from './fishSchools';
 import { harbors } from './harbors';
@@ -16,6 +16,9 @@ interface Pirate {
 
 const rand = ([min, max]: readonly [number, number]) => min + Math.random() * (max - min);
 const randInt = ([min, max]: readonly [number, number]) => min + Math.floor(Math.random() * (max - min + 1));
+/** Un pirate allié n'arme jamais un navire réservé à la Marine (galion) ; le plus gros rang qui lui reste. */
+const pirateType = (type: ShipType) => !SHIP_TYPES[type].navyOnly;
+const PIRATE_MAX_RANK = Math.max(...SHIP_SIZE_ORDER.filter(pirateType).map(sizeRank));
 
 /**
  * Pirates alliés indépendants (camp « ally », points bleus) : 1 à 3 en mer, de la chaloupe jusqu'à un cran au-dessus
@@ -83,11 +86,11 @@ export class PirateTraffic {
     return true;
   }
 
-  /** De la chaloupe jusqu'à un cran au-dessus de ton plus gros navire. */
+  /** De la chaloupe jusqu'à un cran au-dessus de ton plus gros navire, jamais un navire réservé à la Marine (galion). */
   private pickType(): ShipType {
-    const max = Math.min(maxRank(), sizeRank(this.fleetPower().best) + 1);
+    const max = Math.min(PIRATE_MAX_RANK, sizeRank(this.fleetPower().best) + 1);
     const min = sizeRank('longboat');
-    return typeOfRank(min + Math.floor(Math.random() * (max - min + 1)));
+    return typeOfRank(min + Math.floor(Math.random() * (max - min + 1)), pirateType);
   }
 
   private remove(index: number) {

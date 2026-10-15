@@ -23,7 +23,7 @@ export const ISLAND_UPGRADE_INFO: Record<IslandUpgradeId, { name: string; descri
   fort: { name: 'Fort', description: 'Plus de canons sur les remparts, une meilleure poudre et des boulets plus lourds.' },
   citadel: { name: 'Citadelle', description: 'Les Frères du Sabre arment de nouveaux bastions : jusqu’à 8 canons, qui portent loin.' },
   royalFort: { name: 'Fort-Royal', description: 'Tes canonniers remettent en batterie les pièces de la Marine : jusqu’à 11 canons, les plus lourds de l’archipel.' },
-  shipyard: { name: 'Chantier naval', description: 'Des cales de construction et des maîtres charpentiers : le port peut bâtir des navires plus grands (brigantin et corvette, puis frégate).' },
+  shipyard: { name: 'Chantier naval', description: 'Des cales de construction et des maîtres charpentiers : le port peut bâtir des navires plus grands (brigantin, chébec, flûte, brick et corvette, puis caraque, galéasse et frégate, puis galion).' },
   dock: { name: 'Quai', description: 'Des charpentiers en nombre : réparations plus rapides, navires remis à flot plus vite et moins chers.' },
   workshop: { name: 'Scierie', description: 'Les bûcherons de l’île débitent du bois de charpente, même quand tu es au large. Il attend dans la réserve de l’île.' },
   counter: { name: 'Comptoir', description: 'Des négociants s’installent au port : les marchands alliés viennent plus souvent et laissent plus d’or dans la réserve de l’île.' },

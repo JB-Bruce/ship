@@ -37,6 +37,12 @@ export const GRAND_GALLEASS_ICON = `<svg viewBox="0 0 48 48"><path d="M1 25h6v3h
 /** Galéasse capitane : coque encore plus longue, six sabords, huit avirons, fanal de poupe. */
 export const CAPTAIN_GALLEASS_ICON = `<svg viewBox="0 0 48 48"><path d="M0 25h6v3h31v-3h7l1 6-2 5H6l-6-5z"/><path d="M45 31.5l3-1-3 2.5M0 25q3-5 6 0M10 31v1.5M15 31v1.5M20 31v1.5M25 31v1.5M30 31v1.5M35 31v1.5M8 36l-2 5M12 36l-2 5M16 36l-2 5M20 36l-2 5M24 36l-2 5M28 36l-2 5M32 36l-2 5M36 36l-2 5"/><path d="M35 28V10M22 28V4M10 28V12M43 21L30 6l2 18zM31 21L11 2l2 22zM15 22L3 10l1 11zM1 19h2v3H1z"/></svg>`;
 
+/** Grand galion : milieu plus long, six sabords en batterie basse, cinq en batterie haute. */
+export const GRAND_GALLEON_ICON = `<svg viewBox="0 0 48 48"><path d="M2 13h6v3h4v3h4v6h16v-3h8v3h3l4-1-4 3-2 4-3 7H11q-8-2-9-12z"/><path d="M14.5 33v1.5M19 33v1.5M23.5 33v1.5M28 33v1.5M32.5 33v1.5M37 33v1.5M16.5 29.5v1.5M21 29.5v1.5M25.5 29.5v1.5M30 29.5v1.5M34.5 29.5v1.5M13 21v1.5M10 18v1.5"/><path d="M36 22V6M24.5 25V2M13 19V7M5 13V6M31 9h10M30 15h12M18.5 5h12M17.5 11h14M16.5 18h16M18 16L8 4M8 11L1 5M39 22l5-7"/></svg>`;
+
+/** Galion amiral : coque encore plus longue, sept et six sabords. */
+export const ADMIRAL_GALLEON_ICON = `<svg viewBox="0 0 48 48"><path d="M2 13h6v3h4v3h4v6h17v-3h8v3h3l4-1-4 3-2 4-3 7H11q-8-2-9-12z"/><path d="M14 33v1.5M18.2 33v1.5M22.4 33v1.5M26.6 33v1.5M30.8 33v1.5M35 33v1.5M39.2 33v1.5M16 29.5v1.5M20.2 29.5v1.5M24.4 29.5v1.5M28.6 29.5v1.5M32.8 29.5v1.5M37 29.5v1.5M13 21v1.5M10 18v1.5"/><path d="M37 22V6M25 25V2M13 19V7M5 13V6M32 9h10M31 15h12M19 5h12M18 11h14M17 18h16M18 16L8 4M8 11L1 5M40 22l5-7"/></svg>`;
+
 /** Silhouettes après chaque allongement, par type. */
 const EXTENDED_ICONS: Partial<Record<ShipType, readonly string[]>> = {
   frigate: [LONG_FRIGATE_ICON, GRAND_FRIGATE_ICON],
@@ -47,6 +53,7 @@ const EXTENDED_ICONS: Partial<Record<ShipType, readonly string[]>> = {
   fluyt: [LONG_FLUYT_ICON],
   carrack: [GRAND_CARRACK_ICON, ROYAL_CARRACK_ICON],
   galleass: [GRAND_GALLEASS_ICON, CAPTAIN_GALLEASS_ICON],
+  galleon: [GRAND_GALLEON_ICON, ADMIRAL_GALLEON_ICON],
   brig: [LONG_BRIG_ICON],
 };
 
@@ -73,6 +80,7 @@ export const SHIP_ICONS: Record<ShipType, string> = {
   sloop: `<svg viewBox="0 0 48 48"><path d="M3 33h40l-6 8H9z"/><path d="M20 33V4M20 7l16 4-1 19H20M20 7L6 31h14M43 33l-6-4"/></svg>`,
   carrack: `<svg viewBox="0 0 48 48"><path d="M2 16h6v3h4v3h4v5h15v-5h12l-3 6-1 3-3 9H11q-8-2-9-9z"/><path d="M18 32.5v2M23 32.5v2M28 32.5v2M33 32.5v2M10 24v1.5M14 26v1.5M37 25v1.5"/><path d="M36 22V7M24 27V3M13 19V8M5 16V9M31 10h10M30 15h12M18 7h12M17 13h14M16 20h16M18 17L8 6M8 13L1 7M42 23l5-7"/></svg>`,
   galleass: `<svg viewBox="0 0 48 48"><path d="M2 25h6v3h27v-3h7l1 6-2 5H8l-6-5z"/><path d="M43 31.5l5-1-5 2.5M2 25q3-5 6 0M14 31v1.5M20 31v1.5M26 31v1.5M32 31v1.5M11 36l-2 5M15 36l-2 5M19 36l-2 5M23 36l-2 5M27 36l-2 5M31 36l-2 5"/><path d="M33 28V10M22 28V4M12 28V12M41 21L28 6l2 18zM31 21L11 2l2 22zM17 22L5 10l1 11z"/></svg>`,
+  galleon: `<svg viewBox="0 0 48 48"><path d="M2 13h6v3h4v3h4v6h15v-3h8v3h3l4-1-4 3-2 4-3 7H11q-8-2-9-12z"/><path d="M15 33v1.5M20 33v1.5M25 33v1.5M30 33v1.5M35 33v1.5M17.5 29.5v1.5M22.5 29.5v1.5M27.5 29.5v1.5M32.5 29.5v1.5M13 21v1.5M10 18v1.5"/><path d="M35 22V6M24 25V2M13 19V7M5 13V6M30 9h10M29 15h12M18 5h12M17 11h14M16 18h16M18 16L8 4M8 11L1 5M38 22l5-7"/></svg>`,
   frigate: `<svg viewBox="0 0 48 48"><path d="M1 30h46l-5 11H5z"/><path d="M4 34h40M7 38h35M2 30v-5h8v5"/><path d="M13 30V8M25 30V2M36 30V7M8 11h10M7 18h12M19 6h12M18 14h14M18 21h14M31 10h10M30 17h12M47 30L36 9M36 22l-6 7"/></svg>`,
   corvette: `<svg viewBox="0 0 48 48"><path d="M1 30h46l-5 10H7z"/><path d="M6 35h36M10 35v2M18 35v2M26 35v2M34 35v2"/><path d="M12 30V10M24 30V3M35 30V6M19 8h10M18 16h12M30 11h10M29 19h12M12 12l-8 16h8M47 30l-12-22"/></svg>`,
 };

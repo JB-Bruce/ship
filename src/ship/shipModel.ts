@@ -5,6 +5,7 @@ import { BrigModel } from './brig/brigModel';
 import { CarrackModel } from './carrack/carrackModel';
 import { FluytModel } from './fluyt/fluytModel';
 import { GalleassModel } from './galleass/galleassModel';
+import { GalleonModel } from './galleon/galleonModel';
 import { BrigantineModel } from './brigantine/brigantineModel';
 import { CaravelModel } from './caravel/caravelModel';
 import { SchoonerModel } from './schooner/schoonerModel';
@@ -111,6 +112,7 @@ export function createShipModel(type: ShipType, stats: ShipStats, livery: Livery
   if (type === 'corvette') return new CorvetteModel(stats, livery);
   if (type === 'carrack') return new CarrackModel(stats, livery);
   if (type === 'galleass') return new GalleassModel(stats, livery);
+  if (type === 'galleon') return new GalleonModel(stats, livery);
   if (type === 'frigate') return new FrigateModel(stats, livery);
   return new LongboatModel(stats, livery);
 }

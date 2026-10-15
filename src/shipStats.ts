@@ -244,6 +244,28 @@ export const GALLEASS_STATS: ShipStats = {
   buoyancy: { stiffness: 23, damping: 7.9, tiltResponse: 3.9 },
 };
 
+/**
+ * Galion : grand navire au trésor, très haut, château arrière à trois étages et galeries dorées, château avant bas en
+ * retrait de la poulaine, quatre mâts. Deux batteries couvertes dans le bordé, au même calibre (gros canons, angle de
+ * tir étroit), et le second calibre : pièces légères des châteaux, puis du pont (navire allongé), qui tirent large.
+ * Le plus solide et la plus forte bordée, une cale immense, mais lent, lourd à virer, et il perd beaucoup au près.
+ */
+export const GALLEON_STATS: ShipStats = {
+  length: 36,
+  width: 9.6,
+  maxSpeed: 10,
+  acceleration: 1.5,
+  deceleration: 2.4,
+  turnRate: 0.24,
+  rudderSpeed: 1.6,
+  turnHeel: 0.0035,
+  maxHealth: 1200,
+  cannonsPerSide: 12,
+  cannon: { range: 155, reloadTime: 4.8, arcHalfAngle: 20 * DEG, spread: 2.2 * DEG, rangeError: 0.06, damage: 24, ballSpeed: 62 },
+  deckCannon: { range: 140, reloadTime: 2.4, arcHalfAngle: 45 * DEG, spread: 2.7 * DEG, rangeError: 0.072, damage: 10, ballSpeed: 57 },
+  buoyancy: { stiffness: 20, damping: 7.5, tiltResponse: 3.5 },
+};
+
 /** Version ennemie : plus lente, moins précise, moins solide. */
 export function weaker(stats: ShipStats, health: number, damage: number): ShipStats {
   return {
