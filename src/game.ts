@@ -65,8 +65,8 @@ export class Game {
   private readonly display: Display;
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(CAMERA.fov, innerWidth / innerHeight, 0.5, 1000);
-  /** Houle, puis clapot de grosse tempête (nul par temps normal : la météo règle sa raideur). */
-  private readonly waves = new Waves([...OCEAN.waves, ...OCEAN.chopWaves.map((w) => ({ ...w, steepness: 0 }))]);
+  /** Houle, puis clapot et houle de fond (nuls tant que la météo ne les lève pas : elle règle leur raideur). */
+  private readonly waves = new Waves([...OCEAN.waves, ...[...OCEAN.chopWaves, ...OCEAN.groundSwell].map((w) => ({ ...w, steepness: 0 }))]);
   private readonly wind = new Wind();
   private readonly ocean = new Ocean(this.waves);
   private readonly sky = new Sky();

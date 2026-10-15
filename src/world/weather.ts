@@ -15,7 +15,7 @@ import type { Wind } from './wind';
 
 const { lerp, smoothstep } = THREE.MathUtils;
 
-export type WeatherKind = 'clear' | 'fog' | 'windy' | 'rain' | 'storm' | 'tempest';
+export type WeatherKind = 'clear' | 'fog' | 'windy' | 'rain' | 'storm' | 'tempest' | 'greatStorm';
 
 /** Ce que la météo fait subir aux bateaux, traité par le jeu (dégâts, effets, caméra). */
 export interface WeatherEvents extends LightningEvents {
@@ -57,6 +57,8 @@ const CLEAR: WeatherProfile = {
   seaDamage: 0,
   strikeFactor: 1,
   seaFoam: 0,
+  groundSwell: 0,
+  seaPower: 1,
 };
 const PROFILES: Record<WeatherKind, WeatherProfile> = {
   clear: CLEAR,
@@ -65,6 +67,7 @@ const PROFILES: Record<WeatherKind, WeatherProfile> = {
   rain: WEATHER.rain,
   storm: WEATHER.storm,
   tempest: WEATHER.tempest,
+  greatStorm: WEATHER.greatStorm,
 };
 const COLORS = Object.fromEntries(
   Object.entries(PROFILES).map(([kind, p]) => [kind, { fog: new THREE.Color(p.fogColor), zenith: new THREE.Color(p.zenithColor) }]),
@@ -107,6 +110,7 @@ export class Weather {
   private readonly baseSteepness: number[];
   private appliedWaveFactor = NaN;
   private appliedChop = NaN;
+  private appliedGround = NaN;
   private readonly heavySeas: HeavySeas;
   /** Horloge des rafales (s). */
   private gustTime = Math.random() * 100;
@@ -172,7 +176,7 @@ export class Weather {
     this.gustTime += dt;
     this.streaks.update(dt, camera, Math.max(p.windStreaks, this.gustStreaks(wind)), wind.direction, light);
     this.lightning.update(dt, p.lightning, p.strikeFactor, camera, this.waves, ships, focus);
-    this.heavySeas.update(dt, p.seaDamage, ships, this.waves);
+    this.heavySeas.update(dt, p.seaDamage, p.seaPower, ships, this.waves);
     this.applyFlash(this.lightning.flash);
   }
 
@@ -238,13 +242,17 @@ export class Weather {
     wind.minKnots = p.windMin;
     wind.maxKnots = p.windMax;
     // Les vagues ne sont retouchées que si elles changent (le panneau ?debug peut les régler entre-temps).
-    // Houle : raideur de base × waveFactor ; clapot (les dernières vagues de la liste) : raideur max × chop.
-    if (p.waveFactor !== this.appliedWaveFactor || p.chop !== this.appliedChop) {
+    // Houle : raideur de base × waveFactor ; puis clapot : raideur max × chop ; puis houle de fond : raideur max × groundSwell.
+    if (p.waveFactor !== this.appliedWaveFactor || p.chop !== this.appliedChop || p.groundSwell !== this.appliedGround) {
       this.appliedWaveFactor = p.waveFactor;
       this.appliedChop = p.chop;
+      this.appliedGround = p.groundSwell;
       const swells = OCEAN.waves.length;
+      const chops = swells + OCEAN.chopWaves.length;
       this.waves.list.forEach((w, k) => {
-        w.steepness = k < swells ? this.baseSteepness[k] * p.waveFactor : OCEAN.chopWaves[k - swells].steepness * p.chop;
+        if (k < swells) w.steepness = this.baseSteepness[k] * p.waveFactor;
+        else if (k < chops) w.steepness = OCEAN.chopWaves[k - swells].steepness * p.chop;
+        else w.steepness = OCEAN.groundSwell[k - chops].steepness * p.groundSwell;
       });
     }
     conditions.rangeFactor = p.rangeFactor;

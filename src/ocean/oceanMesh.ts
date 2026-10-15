@@ -34,6 +34,8 @@ void main() {
   vec3 dZ = vec3(0.0);  // … et selon z
   for (int i = 0; i < WAVE_COUNT; i++) {
     vec4 w = uWaves[i];
+    // Vague sans raideur (clapot, houle de fond hors tempête) : rien à calculer (même saut que côté CPU).
+    if (w.z == 0.0) continue;
     float k = 6.28318530718 / w.w;
     float c = sqrt(9.8 / k);
     float f = k * (dot(w.xy, p.xz) - c * uTime);

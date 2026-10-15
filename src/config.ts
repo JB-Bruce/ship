@@ -1205,6 +1205,11 @@ export interface WaveParams {
   steepness: number;
   /** Longueur d'onde (m). */
   wavelength: number;
+  /**
+   * Houle de fond (OCEAN.groundSwell) : bien plus longue que tout navire, la coque la suit entièrement (le pilonnement
+   * réduit des gros navires, BUOYANCY.heaveExponent, ne s'applique qu'aux autres vagues).
+   */
+  long?: boolean;
 }
 
 export const OCEAN = {
@@ -1233,6 +1238,15 @@ export const OCEAN = {
     { dirX: 0.8, dirZ: 0.6, steepness: 0.09, wavelength: 30 },
     { dirX: -0.3, dirZ: 1, steepness: 0.08, wavelength: 22 },
     { dirX: 1, dirZ: -0.2, steepness: 0.06, wavelength: 16 },
+  ] as WaveParams[],
+  /**
+   * Houle de fond de la grande tempête : deux vagues gigantesques et très espacées (≈ 22 m et ≈ 6 m du creux à la
+   * crête, 600 et 430 m entre deux crêtes, ≈ 20 s entre deux passages), nulles par tout autre temps (raideur = celle-ci
+   * × WeatherProfile.groundSwell). Après la houle et le clapot dans la liste des vagues.
+   */
+  groundSwell: [
+    { dirX: 1, dirZ: 0.3, steepness: 0.115, wavelength: 600, long: true },
+    { dirX: 0.85, dirZ: -0.4, steepness: 0.045, wavelength: 430, long: true },
   ] as WaveParams[],
   deepColor: 0x0a3d5c,
   shallowColor: 0x1b7a9a,
@@ -1399,6 +1413,10 @@ export interface WeatherProfile {
   strikeFactor: number;
   /** Écume de tempête sur toute la mer : crêtes blanches et traînées étirées par le vent (0..1). */
   seaFoam: number;
+  /** Houle de fond gigantesque (OCEAN.groundSwell, 0..1) : celle de la grande tempête. */
+  groundSwell: number;
+  /** Multiplie les dégâts d'un paquet de mer (vagues plus hautes, plus puissantes). */
+  seaPower: number;
 }
 
 /** Météo : choisie avec les boutons au-dessus du radar, elle change petit à petit. */
@@ -1431,6 +1449,8 @@ export const WEATHER = {
     seaDamage: 0,
     strikeFactor: 1,
     seaFoam: 0,
+    groundSwell: 0,
+    seaPower: 1,
   } satisfies WeatherProfile,
   windy: {
     fogNear: 220,
@@ -1453,6 +1473,8 @@ export const WEATHER = {
     seaDamage: 0,
     strikeFactor: 1,
     seaFoam: 0,
+    groundSwell: 0,
+    seaPower: 1,
   } satisfies WeatherProfile,
   rain: {
     fogNear: 50,
@@ -1475,6 +1497,8 @@ export const WEATHER = {
     seaDamage: 0,
     strikeFactor: 1,
     seaFoam: 0,
+    groundSwell: 0,
+    seaPower: 1,
   } satisfies WeatherProfile,
   storm: {
     fogNear: 30,
@@ -1497,6 +1521,8 @@ export const WEATHER = {
     seaDamage: 0,
     strikeFactor: 1,
     seaFoam: 0,
+    groundSwell: 0,
+    seaPower: 1,
   } satisfies WeatherProfile,
   /** Grosse tempête : houle énorme et pointue, mer blanche d'écume, vent féroce, éclairs fréquents. */
   tempest: {
@@ -1520,6 +1546,37 @@ export const WEATHER = {
     seaDamage: 1,
     strikeFactor: 2,
     seaFoam: 1,
+    groundSwell: 0,
+    seaPower: 1,
+  } satisfies WeatherProfile,
+  /**
+   * Grande tempête : pluie et vent modérés, ciel gris et bas mais on voit loin, et surtout une houle de fond
+   * gigantesque (OCEAN.groundSwell) : de longues collines d'eau qui soulèvent et engloutissent les navires. Paquets de
+   * mer plus rares qu'en grosse tempête mais bien plus violents ; combat un peu gêné.
+   */
+  greatStorm: {
+    fogNear: 90,
+    fogFar: 450,
+    fogColor: 0x8e999e,
+    zenithColor: 0x5e6b72,
+    sunlight: 0.3,
+    ambientIntensity: 1.05,
+    sunIntensity: 0.65,
+    waveFactor: 1.2,
+    windMin: 18,
+    windMax: 27,
+    rangeFactor: 0.85,
+    detectionFactor: 0.85,
+    rain: 0.4,
+    lightning: 0,
+    windStreaks: 0.12,
+    chop: 0.15,
+    turnFactor: 0.9,
+    seaDamage: 0.5,
+    strikeFactor: 1,
+    seaFoam: 0.3,
+    groundSwell: 1,
+    seaPower: 4,
   } satisfies WeatherProfile,
   /** Gouttes : nombre max, boîte autour de la caméra (m), chute (m/s), longueur des traits (m), inclinaison par le vent. */
   drops: 5500,
