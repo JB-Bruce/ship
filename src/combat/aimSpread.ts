@@ -1,5 +1,5 @@
 import { AIM } from '../config';
-import { Ship } from '../ship/ship';
+import type { Ship } from '../ship/ship';
 import type { CannonTarget } from './cannons';
 
 /**
@@ -14,6 +14,9 @@ export interface AimPoint {
 
 export const newAimPoint = (): AimPoint => ({ target: null, along: 0, height: AIM.structureHeight });
 
+/** Un navire (sinon, un ouvrage assiégé) : test de forme plutôt que `instanceof`, qui échoue sur des modules rechargés. */
+const isShip = (target: CannonTarget): target is Ship => 'heading' in target && 'model' in target;
+
 const between = (a: number, b: number) => a + (b - a) * Math.random();
 
 /**
@@ -23,7 +26,7 @@ const between = (a: number, b: number) => a + (b - a) * Math.random();
  */
 export function pickAimPoint(point: AimPoint, target: CannonTarget) {
   point.target = target;
-  if (!(target instanceof Ship)) {
+  if (!isShip(target)) {
     point.along = 0;
     point.height = AIM.structureHeight;
     return;
@@ -42,7 +45,7 @@ export function pickAimPoint(point: AimPoint, target: CannonTarget) {
 export function aimSpot(point: AimPoint, target: CannonTarget, out: { x: number; z: number }) {
   out.x = target.position.x;
   out.z = target.position.z;
-  if (!(target instanceof Ship)) return;
+  if (!isShip(target)) return;
   const shift = point.along * target.stats.length * 0.5;
   out.x += Math.sin(target.heading) * shift;
   out.z += Math.cos(target.heading) * shift;
