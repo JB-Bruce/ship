@@ -197,6 +197,10 @@ export class Game {
       if (e.code === 'KeyB') {
         this.state.earn({ gold: 10000, wood: 10000 });
         this.hud.toast('+10 000 or et +10 000 bois', 1.5, 'good');
+      } else if (e.code === 'KeyN') {
+        // Triche de test : un ennemi apparaît à 300 m, déjà lancé à ta poursuite.
+        if (this.spawner.spawnChaser(this.fleet.leader)) this.hud.toast('Un ennemi te prend en chasse !', 1.5, 'danger');
+        else this.hud.toast('Pas de place pour un ennemi ici (terre ou port trop proche)', 1.5, 'info');
       } else if (e.code === 'KeyF') {
         this.toggleFishing();
       } else if (e.code === 'KeyR') {

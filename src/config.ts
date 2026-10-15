@@ -729,6 +729,8 @@ export const ENEMIES = {
   detectionRange: 300,
   /** Distance à laquelle il perd le joueur de vue (m). */
   loseRange: 480,
+  /** Triche de test (touche N) : un ennemi apparaît à cette distance (m), déjà lancé à ta poursuite. */
+  cheatChaseDistance: 300,
   /**
    * Types d'ennemis selon le nombre d'ennemis déjà coulés : on commence contre des barques,
    * les chaloupes arrivent à partir de 5 victoires, les sloops à partir de 12, les brigantins à partir de 20,

@@ -192,6 +192,25 @@ export class EnemySpawner {
     if (i >= 0) this.remove(i);
   }
 
+  /**
+   * Triche de test (touche N) : un ennemi tiré comme une rencontre (selon tes victoires, au plus un cran au-dessus de ton
+   * plus gros navire, parfois d'élite), à ENEMIES.cheatChaseDistance m, cap sur toi et déjà lancé à ta poursuite.
+   * Renvoie false si aucun endroit valable n'a été trouvé (terre, port).
+   */
+  spawnChaser(center: Ship): boolean {
+    const angle = this.findSpawnAngle(center, ENEMIES.cheatChaseDistance);
+    if (angle === null) return false;
+    const top = Math.min(maxRank(), sizeRank(this.fleetPower().best) + 1);
+    const picked = this.pickType();
+    const type = sizeRank(picked) > top ? typeOfRank(top, (t) => this.weight(t) > 0) : picked;
+    const x = center.position.x + Math.sin(angle) * ENEMIES.cheatChaseDistance;
+    const z = center.position.z + Math.cos(angle) * ENEMIES.cheatChaseDistance;
+    const enemy = this.add(type, x, z, wrapAngle(angle + Math.PI), Math.random() < this.eliteChance(), null, null);
+    // Un groupe déjà alerté : il chasse aussitôt, comme un ennemi qui t'a repéré.
+    enemy.ai = new EnemyAI(enemy.ship, { leader: enemy.ship, alerted: true });
+    return true;
+  }
+
   /** Fait apparaître un ennemi ou une flottille. Renvoie false si aucun endroit valable n'a été trouvé. */
   /** `room` : nombre de navires qui peuvent encore apparaître (plafond près des îles, sinon Infinity). */
   private spawn(center: Ship, room: number): boolean {
