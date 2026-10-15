@@ -50,6 +50,18 @@ export function addHatch(batch: GeometryBatch, p: Palette, place: THREE.Matrix4,
   // Panneau relevé, appuyé en arrière contre la hiloire.
   add(p.wood, box(width + 0.1, 0.07, length + 0.1), tf(0, coaming + length / 2 - 0.02, -length / 2 - rim - 0.16, 1.35));
 }
+/** Petits escaliers des châteaux : hauteur visée d'une marche (m) ; le nombre de marches s'en déduit. */
+const CASTLE_STAIR_RISE = 0.36;
+
+/**
+ * Petit escalier plein contre la cloison d'un château, du pont `from` au pont `to`, en (x, z) au pied de la cloison ;
+ * `facing` = 1 s'il monte vers l'arrière (cloison d'un château arrière), -1 vers l'avant (château avant).
+ */
+export function addCastleStairs(batch: GeometryBatch, p: Palette, x: number, z: number, from: number, to: number, facing: 1 | -1, width = 0.6) {
+  const rise = to - from;
+  addStairs(batch, p, tf(x, from, z, 0, facing === 1 ? 0 : Math.PI), rise, Math.max(2, Math.round(rise / CASTLE_STAIR_RISE)), width);
+}
+
 /** Échelles raides des châteaux : inclinaison (rad, depuis la verticale), largeur, écart des barreaux (m). */
 const LADDER = { lean: 0.35, width: 0.55, rung: 0.32 };
 

@@ -16,8 +16,6 @@ const RUDDER_MAX_ANGLE = 0.45;
 const WHEEL_TURNS = 2.6;
 /** Élargissement des voiles carrées par niveau de voilure (en largeur seulement). */
 const SAIL_GROWTH = 0.07;
-/** Grand-voile basse (index dans squareSails) : la plus grande voile, qui porte l'emblème de la livrée. */
-const MAIN_COURSE = 2;
 /** Bouches : fût dans un sabord (pivot au sabord), pièce sur affût d'un château. */
 const PORT_MUZZLE = new THREE.Vector3(0.8, 0, 0);
 const DECK_MUZZLE = new THREE.Vector3(1, 0.38, 0);
@@ -203,7 +201,7 @@ export class GalleonModel implements ShipModel {
     this.sails = [];
     this.yards = [];
     L.squareSails.forEach((s, i) => {
-      const sail = new THREE.Mesh(t.squareSails[i], this.tornSail.material(t.squareSails[i], 'z', i === MAIN_COURSE));
+      const sail = new THREE.Mesh(t.squareSails[i], this.tornSail.material(t.squareSails[i], 'z', i === L.mainCourse));
       sail.position.set(0, s.yardY, s.mastZ + 0.26);
       const yard = new THREE.Mesh(t.yards[i], t.palette.wood);
       yard.position.set(0, s.yardY, s.mastZ + 0.12);

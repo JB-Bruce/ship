@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { sideTf, std } from '../parts/common';
-import { addLadder, bulkhead } from '../parts/deckFittings';
+import { addCastleStairs, bulkhead } from '../parts/deckFittings';
 import { addLantern, type Palette } from '../parts/props';
 import { cylinderBetween } from '../parts/sails';
 import { DECK_Y, FORE_LOWER_Y, type CarrackLayout, type Deck } from './carrackLayout';
@@ -19,7 +19,7 @@ const STEM_LINE = [0.8, 0.88, 0.94, 0.98, 1];
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 
 /**
- * Châteaux : cloisons (portes, fenêtres) et échelles du demi-pont, du gaillard d'arrière, de la dunette et du château
+ * Châteaux : cloisons (portes, fenêtres) et petits escaliers du demi-pont, du gaillard d'arrière, de la dunette et du château
  * avant (deux étages, sabords de chasse dans sa face avant).
  */
 export function addCastles(batch: GeometryBatch, p: Palette, L: CarrackLayout) {
@@ -29,17 +29,17 @@ export function addCastles(batch: GeometryBatch, p: Palette, L: CarrackLayout) {
   const hd = bulkhead(batch, p, hull, front(halfDeck), DECK_Y, halfDeck.y, 1);
   hd(0, DECK_Y + 0.7, 0.85, 1.4, p.dark);
   for (const x of [-1.4, 1.4]) hd(x, DECK_Y + 1.6, 0.42, 0.36, p.window);
-  for (const side of [1, -1]) addLadder(batch, p, side * 2, front(halfDeck).z, DECK_Y, halfDeck.y, 1);
+  for (const side of [1, -1]) addCastleStairs(batch, p, side * 2, front(halfDeck).z, DECK_Y, halfDeck.y, 1);
 
   const qd = bulkhead(batch, p, hull, front(quarterdeck), halfDeck.y, quarterdeck.y, 1);
   qd(0.3, halfDeck.y + 0.7, 0.8, 1.35, p.dark);
   for (const x of [-1.3, 1.6]) qd(x, halfDeck.y + 1.3, 0.38, 0.34, p.window);
-  addLadder(batch, p, -1.4, front(quarterdeck).z, halfDeck.y, quarterdeck.y, 1);
+  addCastleStairs(batch, p, -1.4, front(quarterdeck).z, halfDeck.y, quarterdeck.y, 1);
 
   const pp = bulkhead(batch, p, hull, front(poop), quarterdeck.y, poop.y, 1);
   pp(-0.3, quarterdeck.y + 0.7, 0.75, 1.35, p.dark);
   for (const x of [-1.3, 1.1]) pp(x, quarterdeck.y + 1.3, 0.34, 0.32, p.window);
-  addLadder(batch, p, 1.2, front(poop).z, quarterdeck.y, poop.y, 1);
+  addCastleStairs(batch, p, 1.2, front(poop).z, quarterdeck.y, poop.y, 1);
 
   // Château avant : cloison sur deux étages (portes en bas, fenêtres en haut), escaliers depuis le milieu.
   const fcBack = L.station(forecastle.from);
@@ -47,7 +47,7 @@ export function addCastles(batch: GeometryBatch, p: Palette, L: CarrackLayout) {
   fc(0, DECK_Y + 0.7, 0.8, 1.4, p.dark);
   for (const x of [-1.2, 0, 1.2]) fc(x, FORE_LOWER_Y + 1.1, 0.36, 0.34, p.window);
   batch.add(p.trim, box(2 * hull.halfWidthAt(fcBack, FORE_LOWER_Y) * 0.98, 0.12, 0.2), tf(0, FORE_LOWER_Y, fcBack.z - 0.1));
-  for (const side of [1, -1]) addLadder(batch, p, side * 1.8, fcBack.z, DECK_Y, forecastle.y, -1);
+  for (const side of [1, -1]) addCastleStairs(batch, p, side * 1.8, fcBack.z, DECK_Y, forecastle.y, -1);
 }
 
 /** Pavois peints le long des plats-bords, du milieu et des châteaux (pas sur les marches ni devant les sabords), aux couleurs du camp. */

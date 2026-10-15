@@ -252,7 +252,7 @@ export const GALLEASS_STATS: ShipStats = {
  */
 export const GALLEON_STATS: ShipStats = {
   length: 36,
-  width: 9.6,
+  width: 9.2,
   maxSpeed: 10,
   acceleration: 1.5,
   deceleration: 2.4,

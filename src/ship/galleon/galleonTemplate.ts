@@ -8,7 +8,8 @@ import type { Station } from '../parts/hullShape';
 import { addBarrel, addCrate, addRopeCoil, buildCarriageGunGeometry, type Palette } from '../parts/props';
 import { buildLateenSail, buildSquareSail, cylinderBetween } from '../parts/sails';
 import { addCastles, addMouldings, addPavises, DARK_WOOD, GILT, HULL_WOOD } from './galleonDecor';
-import { addBow, addQuarterGalleries, addStern } from './galleonEnds';
+import { addBow } from './galleonBow';
+import { addStern } from './galleonStern';
 import { DECK_Y, HIGH_Y, LOW_Y, WALES, type GalleonLayout, type Mast } from './galleonLayout';
 
 /** Porte-haubans : planches qui débordent du bordé sous le plat-bord (dessous du plat-bord, largeur, et ce qu'elles dépassent des pieds de haubans, m). */
@@ -98,7 +99,6 @@ function buildTemplate(L: GalleonLayout, livery: Livery): GalleonTemplate {
   }
   addCastles(batch, p, L);
   addStern(batch, p, L);
-  addQuarterGalleries(batch, p, L);
   addBow(batch, p, L);
   addMasts(batch, p, L);
 
@@ -186,17 +186,22 @@ function addChannels(batch: GeometryBatch, p: Palette, L: GalleonLayout, feet: r
   }
 }
 
-/** Haubans des quatre mâts (sur les porte-haubans, ou la lisse de la dunette), étais (contre-artimon → artimon → grand mât → misaine → beaupré), sous-barbe. */
+/**
+ * Haubans des quatre mâts (sur les porte-haubans, ou la lisse de la dunette), étais (contre-artimon → artimon → grand
+ * mât → misaine → beaupré, et du perroquet de misaine au mât de contre-civadière), sous-barbe vers l'éperon.
+ */
 function buildRigging(L: GalleonLayout): THREE.BufferGeometry {
-  const { hull } = L;
+  const { hull, bowsprit } = L;
   const head = (m: Mast) => new THREE.Vector3(0, m.top - 0.5, m.z);
   const [fore, main, mizzen, bonaventure] = [head(L.foreMast), head(L.mainMast), head(L.mizzenMast), head(L.bonaventureMast)];
+  const foreTop = new THREE.Vector3(0, L.foreMast.topPlatform + 0.4, L.foreMast.z);
   const points: THREE.Vector3[] = [
-    fore, L.bowsprit.tip,
-    main, new THREE.Vector3(0, L.foreMast.topPlatform + 0.4, L.foreMast.z),
+    foreTop, bowsprit.base.clone().lerp(bowsprit.tip, 0.5),
+    fore, bowsprit.topmast.clone().setY(bowsprit.topmast.y - 0.2),
+    main, foreTop,
     mizzen, new THREE.Vector3(0, L.mainMast.topPlatform - 1.5, L.mainMast.z),
     bonaventure, new THREE.Vector3(0, L.mizzenMast.topPlatform - 2, L.mizzenMast.z),
-    L.bowsprit.tip, new THREE.Vector3(0, L.beak.y, L.beak.tipZ - 0.6),
+    bowsprit.tip, new THREE.Vector3(0, L.beak.figurehead.y - 0.2, L.beak.figurehead.z - 0.4),
   ];
   for (const side of [1, -1]) {
     for (const mast of [L.foreMast, L.mainMast, L.mizzenMast, L.bonaventureMast]) {
