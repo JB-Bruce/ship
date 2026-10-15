@@ -1658,15 +1658,26 @@ export const GRAPHICS = {
 
 /**
  * Forme d'une île. Sa côte est un rayon qui varie selon l'angle (cap, 0 = nord / +Z) : rayon moyen + quelques
- * ondulations, moins une crique creusée en direction de `bay.angle`, où se niche le port. La même formule sert au
- * relief, aux collisions, à l'évitement, au radar et au shader de l'eau.
+ * ondulations, moins une crique creusée en direction de `bay.angle`, où se niche le port. Cette forme peut être
+ * étirée (`stretch`) le long d'un grand axe tourné vers `rotation` : les ondulations et la crique se mesurent alors
+ * dans le repère de la forme (cercle avant étirement). La même formule sert au relief, aux collisions, à l'évitement,
+ * au radar et au shader de l'eau.
  */
 export interface IslandShapeDef {
   center: readonly [number, number];
   radius: number;
-  /** Ondulations de la côte : [nombre de bosses sur le tour, amplitude (m), phase (rad)], toujours ISLAND_LOBES. */
+  /** Ondulations de la côte : [nombre de bosses sur le tour, amplitude (m), phase (rad)], au plus ISLAND_LOBES. */
   lobes: readonly (readonly [number, number, number])[];
-  /** Crique : direction de son ouverture (cap), largeur angulaire et profondeur (m). */
+  /**
+   * Allongement : rapport longueur / largeur de l'île (1 = ronde, par défaut), à surface égale, le long d'un grand
+   * axe orienté vers le cap `rotation` (rad, 0 par défaut = nord-sud).
+   */
+  stretch?: number;
+  rotation?: number;
+  /**
+   * Crique : direction de son ouverture (cap, dans le monde : le port est sur la côte dans cette direction depuis le
+   * centre), largeur angulaire (rad) et profondeur (m), mesurées dans le repère de la forme.
+   */
   bay: { angle: number; width: number; depth: number };
   /** Relief : collines douces derrière de larges plages, ou falaises au-dessus d'une plage étroite. */
   relief: 'hills' | 'cliffs';
@@ -1688,8 +1699,8 @@ export interface IslandShapeDef {
   town?: { inland: number; radius: readonly [number, number] };
 }
 
-/** Nombre d'ondulations de chaque côte (taille des tableaux du shader de l'eau). */
-export const ISLAND_LOBES = 4;
+/** Nombre d'ondulations au plus par côte (taille des tableaux du shader de l'eau ; les manquantes sont nulles). */
+export const ISLAND_LOBES = 6;
 
 export type IslandId = 'tortuga' | 'sabre' | 'royale' | 'dauphin';
 

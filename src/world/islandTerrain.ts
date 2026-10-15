@@ -47,10 +47,13 @@ export function seeded(seed: number) {
  * (sable au rivage, herbe, roche sur les pentes et les sommets). Le fond marin continue sous l'eau.
  */
 export function buildTerrain(island: Island): THREE.Mesh {
-  const extent = island.def.radius + EXTENT_MARGIN;
-  const segments = Math.round((extent * 2) / CELL);
-  const plane = new THREE.PlaneGeometry(extent * 2, extent * 2, segments, segments);
+  // Un rectangle le long des axes de l'île (un carré pour une île ronde).
+  const { stretch } = island.frame;
+  const across = island.def.radius / stretch + EXTENT_MARGIN;
+  const along = island.def.radius * stretch + EXTENT_MARGIN;
+  const plane = new THREE.PlaneGeometry(across * 2, along * 2, Math.round((across * 2) / CELL), Math.round((along * 2) / CELL));
   plane.rotateX(-Math.PI / 2);
+  plane.rotateY(island.def.rotation ?? 0);
   plane.translate(island.cx, 0, island.cz);
   const pos = plane.attributes.position;
   for (let i = 0; i < pos.count; i++) pos.setY(i, island.heightAt(pos.getX(i), pos.getZ(i)));
@@ -147,13 +150,12 @@ export function buildVegetation(island: Island): THREE.Group {
   const m = { trunk: std(0x8a6a45), leaf: std(0x3f9a3a), nut: std(0x5a3d20) };
   const rock = std(0x8d857a, { roughness: 1 });
   const port = island.port;
-  const reach = island.def.radius;
+  const spot = (spread: number) => island.pointInBox(rand() * 2 - 1, rand() * 2 - 1, spread);
   // Ni dans les forts, ni au pied du phare.
   const builtUp = (x: number, z: number) => BUILT_UP.some(([p, r]) => Math.hypot(x - p.x, z - p.z) < r);
   let palms = 0;
   for (let tries = 0; tries < 2000 && palms < decor.palms; tries++) {
-    const x = island.cx + (rand() * 2 - 1) * reach * 1.2;
-    const z = island.cz + (rand() * 2 - 1) * reach * 1.2;
+    const { x, z } = spot(1.2);
     const h = island.heightAt(x, z);
     // Pas sur le quai ni au milieu du village (on en plante quelques-uns à la main là-bas).
     if (h < 1.2 || h > decor.palmHeight || Math.hypot(x - port.x, z - port.z) < decor.clear || builtUp(x, z)) continue;
@@ -164,8 +166,7 @@ export function buildVegetation(island: Island): THREE.Group {
   const pine = { trunk: m.trunk, needles: std(0x2f5a35), dark: std(0x264a2c) };
   let pines = 0;
   for (let tries = 0; tries < 3000 && pines < decor.pines; tries++) {
-    const x = island.cx + (rand() * 2 - 1) * reach * 1.2;
-    const z = island.cz + (rand() * 2 - 1) * reach * 1.2;
+    const { x, z } = spot(1.2);
     const h = island.heightAt(x, z);
     if (h < decor.pineFrom || h > decor.pineHeight || Math.hypot(x - port.x, z - port.z) < decor.clear + 10 || builtUp(x, z)) continue;
     addPine(batch, pine, x, h - 0.3, z, rand);
@@ -173,8 +174,7 @@ export function buildVegetation(island: Island): THREE.Group {
   }
   let rocks = 0;
   for (let tries = 0; tries < 3000 && rocks < decor.rocks; tries++) {
-    const x = island.cx + (rand() * 2 - 1) * reach * 1.3;
-    const z = island.cz + (rand() * 2 - 1) * reach * 1.3;
+    const { x, z } = spot(1.3);
     const s = island.sdf(x, z);
     if (s < -6 || s > 4 || Math.hypot(x - port.x, z - port.z) < decor.clear + 10 || builtUp(x, z)) continue;
     const size = 0.8 + rand() * 2.2;

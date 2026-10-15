@@ -15,6 +15,13 @@ const SLOPE_FADE = 30;
 const FAR = 200;
 /** Décalages d'angle (rad) sur lesquels on moyenne la côte pour adoucir le relief intérieur. */
 const RELIEF_SMOOTHING = [-0.5, -0.25, 0, 0.25, 0.5];
+const NO_LOBE = [0, 0, 0] as const;
+
+/**
+ * Un point dans le repère de la forme d'une île (cercle avant étirement) : coordonnées, distance au centre, angle
+ * (cap) et `scale` = étirement local (m de forme par m de monde, le long du rayon). Rempli par `Island.toShape`.
+ */
+const shape = { x: 0, z: 0, length: 0, angle: 0, scale: 1 };
 
 /**
  * Une île, définie par une seule formule (voir IslandShapeDef dans config.ts).
@@ -29,6 +36,14 @@ export class Island {
   readonly portSpawn: { x: number; z: number; heading: number };
   /** Rayon au-delà duquel on est sûrement en mer (pour les calculs rapides). */
   readonly outerRadius: number;
+  /** Rayon moyen de l'île le long de son grand axe (m) : étendue de son terrain et de son décor. */
+  readonly reach: number;
+  /** Ondulations de la côte, complétées jusqu'à ISLAND_LOBES. */
+  readonly lobes: readonly (readonly [number, number, number])[];
+  /** Repère de la forme : cosinus et sinus de l'orientation du grand axe, étirement (√ du rapport longueur / largeur). */
+  readonly frame: { cos: number; sin: number; stretch: number };
+  /** Cap de la crique dans le repère de la forme. */
+  readonly bayAngle: number;
   /** Centre du replat de la ville derrière le port (IslandShapeDef.town), ou null. */
   readonly town: { x: number; z: number } | null;
 
@@ -37,39 +52,72 @@ export class Island {
     readonly def: IslandShapeDef,
   ) {
     [this.cx, this.cz] = def.center;
-    this.outerRadius = def.radius + def.lobes.reduce((s, l) => s + l[1], 0);
+    const rotation = def.rotation ?? 0;
+    this.frame = { cos: Math.cos(rotation), sin: Math.sin(rotation), stretch: Math.sqrt(def.stretch ?? 1) };
+    const spread = Math.max(this.frame.stretch, 1 / this.frame.stretch);
+    this.lobes = Array.from({ length: ISLAND_LOBES }, (_, i) => def.lobes[i] ?? NO_LOBE);
+    this.outerRadius = (def.radius + def.lobes.reduce((s, l) => s + Math.abs(l[1]), 0)) * spread;
+    this.reach = def.radius * spread;
+    this.toShape(Math.sin(def.bay.angle), Math.cos(def.bay.angle));
+    this.bayAngle = shape.angle;
     this.port = this.pointAt(def.bay.angle, 0);
     const spawn = this.pointAt(def.bay.angle, -PORT.spawnOffset);
     this.portSpawn = { ...spawn, heading: def.bay.angle };
     this.town = def.town ? this.pointAt(def.bay.angle, def.town.inland) : null;
   }
 
-  /** Rayon de la côte dans la direction `theta` (cap depuis le centre). */
-  coastRadius(theta: number): number {
-    const { radius, lobes, bay } = this.def;
+  /**
+   * Passe le décalage (dx, dz) depuis le centre dans le repère de la forme (résultat dans `shape`) : on le tourne
+   * pour que le grand axe soit nord-sud, puis on le resserre le long du grand axe et on l'élargit en travers.
+   */
+  private toShape(dx: number, dz: number) {
+    const { cos, sin, stretch } = this.frame;
+    shape.x = (dx * cos - dz * sin) * stretch;
+    shape.z = (dx * sin + dz * cos) / stretch;
+    shape.length = Math.hypot(shape.x, shape.z);
+    shape.angle = Math.atan2(shape.x, shape.z);
+    // Étirement local le long du rayon : 1 pour une île ronde.
+    shape.scale = Math.hypot(stretch * Math.sin(shape.angle), Math.cos(shape.angle) / stretch);
+  }
+
+  /** Rayon de la côte dans le repère de la forme, au cap `angle` de ce repère. */
+  private shapeRadius(angle: number): number {
+    const { radius, bay } = this.def;
     let r = radius;
-    for (const [k, amp, phase] of lobes) r += amp * Math.sin(k * theta + phase);
-    const d = theta - bay.angle;
+    for (const [k, amp, phase] of this.lobes) r += amp * Math.sin(k * angle + phase);
+    const d = angle - this.bayAngle;
     const wrapped = d - TWO_PI * Math.floor((d + Math.PI) / TWO_PI);
     const b = wrapped / bay.width;
     return r - bay.depth * Math.exp(-b * b);
   }
 
+  /** Rayon de la côte dans la direction `theta` (cap depuis le centre, dans le monde). */
+  coastRadius(theta: number): number {
+    this.toShape(Math.sin(theta), Math.cos(theta));
+    return this.shapeRadius(shape.angle) / shape.length;
+  }
+
   /**
-   * Distance signée au rivage (m) : positive en mer, négative à terre.
-   * Près de la côte, on corrige par la pente de la côte pour mesurer perpendiculairement (utile dans la crique).
+   * Distance signée au rivage (m) : positive en mer, négative à terre. Elle se mesure dans le repère de la forme,
+   * divisée par la pente de cette mesure dans le monde : l'étirement, et près de la côte la pente de la côte (pour
+   * mesurer perpendiculairement, utile dans la crique).
    */
   sdf(x: number, z: number): number {
     const dx = x - this.cx;
     const dz = z - this.cz;
     const r = Math.hypot(dx, dz);
     if (r > this.outerRadius + FAR) return r - this.outerRadius;
-    const theta = Math.atan2(dx, dz);
-    const rc = this.coastRadius(theta);
-    const slope = (this.coastRadius(theta + SLOPE_STEP) - this.coastRadius(theta - SLOPE_STEP)) / (2 * SLOPE_STEP);
-    const radial = r - rc;
-    const w = Math.exp(-Math.abs(radial) / SLOPE_FADE);
-    return radial / Math.sqrt(1 + w * (slope / rc) ** 2);
+    this.toShape(dx, dz);
+    const { angle, length, scale } = shape;
+    const rc = this.shapeRadius(angle);
+    const slope = (this.shapeRadius(angle + SLOPE_STEP) - this.shapeRadius(angle - SLOPE_STEP)) / (2 * SLOPE_STEP);
+    const radial = length - rc;
+    const k = Math.sqrt(Math.exp(-Math.abs(radial / scale) / SLOPE_FADE)) * (slope / rc);
+    // Pente de la mesure dans le repère de la forme (le long du rayon, et le long de la côte), ramenée au monde.
+    const sx = Math.sin(angle);
+    const sz = Math.cos(angle);
+    const stretch = this.frame.stretch;
+    return radial / Math.hypot(stretch * (sx - k * sz), (sz + k * sx) / stretch);
   }
 
   /** Atténuation des vagues : 0 au rivage, 1 au large (même formule que le shader). */
@@ -85,14 +133,12 @@ export class Island {
     // Distance à l'intérieur des terres. Près du rivage, elle est exacte (la plage suit la côte) ;
     // plus loin, on moyenne la côte sur plusieurs angles, sinon le « V » de la crique se prolongerait
     // en ravin étroit et rocheux derrière le village.
-    const dx = x - this.cx;
-    const dz = z - this.cz;
-    const r = Math.hypot(dx, dz);
-    const theta = Math.atan2(dx, dz);
-    const exact = this.coastRadius(theta) - r;
+    this.toShape(x - this.cx, z - this.cz);
+    const { angle, length, scale } = shape;
+    const exact = (this.shapeRadius(angle) - length) / scale;
     let average = 0;
-    for (const offset of RELIEF_SMOOTHING) average += this.coastRadius(theta + offset);
-    average = average / RELIEF_SMOOTHING.length - r;
+    for (const offset of RELIEF_SMOOTHING) average += this.shapeRadius(angle + offset);
+    average = (average / RELIEF_SMOOTHING.length - length) / scale;
     const inland = exact + (average - exact) * smoothstep(10, 60, exact);
     const noise = 0.5 + 0.25 * Math.sin(x * 0.031 + 1.3) * Math.sin(z * 0.027 + 0.4) + 0.25 * Math.sin(x * 0.013 - z * 0.017);
     // Le village s'étale sur un replat autour du port (et la ville sur le sien) ; ailleurs le terrain monte vite.
@@ -108,6 +154,17 @@ export class Island {
     }
     const beach = Math.min(inland / 10, 1) * 1.4;
     return beach + peak * smoothstep(8, 120, inland) * (0.65 + 0.35 * noise) * nearPort;
+  }
+
+  /**
+   * Point du rectangle qui couvre l'île le long de ses axes, agrandi de `spread` : `across` et `along` vont de -1 à 1
+   * (en travers et le long du grand axe). Sert à semer le décor sans gaspiller les tirages sur une île longue.
+   */
+  pointInBox(across: number, along: number, spread: number): { x: number; z: number } {
+    const { cos, sin, stretch } = this.frame;
+    const x = across * (this.def.radius / stretch) * spread;
+    const z = along * this.def.radius * stretch * spread;
+    return { x: this.cx + x * cos + z * sin, z: this.cz - x * sin + z * cos };
   }
 
   /** Point dans la direction `theta`, à `inland` mètres à l'intérieur des terres depuis la côte (négatif = au large). */
@@ -197,8 +254,11 @@ export const islandUniforms = {
   uIslandShape: { value: ISLAND_LIST.map((i) => new THREE.Vector4(i.def.radius, i.def.calmDistance, i.def.lagoonWidth, i.def.surfWidth)) },
   /** (rayon extérieur, …) : au-delà, l'île n'est pas calculée en détail. */
   uIslandOuter: { value: ISLAND_LIST.map((i) => i.outerRadius) },
-  uIslandLobes: { value: ISLAND_LIST.flatMap((i) => i.def.lobes.map(([k, amp, phase]) => new THREE.Vector3(k, amp, phase))) },
-  uIslandBay: { value: ISLAND_LIST.map((i) => new THREE.Vector3(i.def.bay.angle, i.def.bay.width, i.def.bay.depth)) },
+  uIslandLobes: { value: ISLAND_LIST.flatMap((i) => i.lobes.map(([k, amp, phase]) => new THREE.Vector3(k, amp, phase))) },
+  /** (cap de la crique dans le repère de la forme, largeur, profondeur) */
+  uIslandBay: { value: ISLAND_LIST.map((i) => new THREE.Vector3(i.bayAngle, i.def.bay.width, i.def.bay.depth)) },
+  /** Repère de la forme : (cos et sin de l'orientation du grand axe, étirement, inutilisé). */
+  uIslandFrame: { value: ISLAND_LIST.map((i) => new THREE.Vector4(i.frame.cos, i.frame.sin, i.frame.stretch, 0)) },
 };
 
 /**
@@ -213,6 +273,7 @@ uniform vec4 uIslandShape[ISLAND_COUNT];
 uniform float uIslandOuter[ISLAND_COUNT];
 uniform vec3 uIslandLobes[ISLAND_COUNT * ISLAND_LOBES];
 uniform vec3 uIslandBay[ISLAND_COUNT];
+uniform vec4 uIslandFrame[ISLAND_COUNT];
 
 float islandCoast(int i, float t) {
   float r = uIslandShape[i].x;
@@ -229,13 +290,17 @@ float islandSdfOf(int i, vec2 p) {
   vec2 d = p - uIslandCenter[i];
   float len = length(d);
   if (len > uIslandOuter[i] + ${FAR.toFixed(1)}) return len - uIslandOuter[i];
-  float t = atan(d.x, d.y);
+  // Repère de la forme (Island.toShape) : tourné, resserré le long du grand axe, élargi en travers.
+  vec4 f = uIslandFrame[i];
+  vec2 q = vec2((d.x * f.x - d.y * f.y) * f.z, (d.x * f.y + d.y * f.x) / f.z);
+  float t = atan(q.x, q.y);
+  vec2 s = vec2(sin(t), cos(t));
   float rc = islandCoast(i, t);
   float slope = (islandCoast(i, t + ${SLOPE_STEP.toFixed(3)}) - islandCoast(i, t - ${SLOPE_STEP.toFixed(3)})) / ${(2 * SLOPE_STEP).toFixed(3)};
-  float radial = len - rc;
-  float w = exp(-abs(radial) / ${SLOPE_FADE.toFixed(1)});
-  float k = slope / rc;
-  return radial / sqrt(1.0 + w * k * k);
+  float radial = length(q) - rc;
+  float scale = length(vec2(f.z * s.x, s.y / f.z));
+  float k = sqrt(exp(-abs(radial / scale) / ${SLOPE_FADE.toFixed(1)})) * slope / rc;
+  return radial / length(vec2(f.z * (s.x - k * s.y), (s.y + k * s.x) / f.z));
 }
 
 /** Atténuation des vagues : 0 au rivage, 1 au large (la plus forte des îles). */

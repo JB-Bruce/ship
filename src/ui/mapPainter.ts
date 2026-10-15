@@ -190,8 +190,8 @@ function paintIsland(ctx: CanvasRenderingContext2D, island: Island, toX: (x: num
   // Une île sans port porte son propre nom, du côté opposé à la crique (sinon, c'est le nom du port qui la désigne).
   if (LANDMARKS.some((l) => l.kind === 'port' && l.island === island.id)) return;
   const away = island.def.bay.angle + Math.PI;
-  const nameX = toX(island.cx + Math.sin(away) * island.def.radius * 0.45);
-  const name = toY(island.cz + Math.cos(away) * island.def.radius * 0.45);
+  const nameX = toX(island.cx + Math.sin(away) * island.reach * 0.45);
+  const name = toY(island.cz + Math.cos(away) * island.reach * 0.45);
   ctx.fillStyle = INK;
   ctx.font = `${Math.round(Math.min(24, Math.max(12, 45 * scale)))}px 'Pirata One', Georgia, serif`;
   ctx.textAlign = 'center';

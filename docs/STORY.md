@@ -127,6 +127,13 @@ Plus tard : abordage et capture de navires.
 - **Officiers d'histoire uniques** (Bastien, Lou…) : non vendables, talents propres, répliques ; base `fleet/officers.ts`.
 - **Départ en chaloupe à deux marins** : nouveau début de partie (prologue) et tutoriel intégré.
 
+### Fait
+- **Formes d'île naturelles** (2026-10-15) : une île peut être étirée (`stretch`, rapport longueur / largeur) le long
+  d'un grand axe orienté (`rotation`), avec jusqu'à 6 ondulations de côte ; même calcul dans le jeu (collisions,
+  relief, radar, carte) et dans le shader de l'eau. Les quatre îles existantes sont restées identiques (vérifié point
+  par point). Essai sur une île étirée 3 fois : distance au rivage aussi précise que sur les îles rondes, plage,
+  ressac et lagon alignés. Les groupes de rochers viendront avec le point 2 (beaucoup de petites îles sans coût).
+
 ### 3. Plusieurs mers
 - **Monde par mer** : chaque mer a ses îles, ports, forts, météo, ciel, couleur d'eau, ennemis, créatures ; chargement et
   déchargement d'une mer (libérer géométries et textures), écran ou fondu de transition.
