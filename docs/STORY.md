@@ -36,8 +36,9 @@ Plan : `docs/plans/mer1-plan.png` (nord en haut ; +Z = nord, +X = ouest dans le 
   3. l'Île Royale (arsenal de la Marine, base de Valcourt, 2 km au nord) ; 4. l'Île du Dauphin (poste de la Marine,
   1,3 km à l'ouest).
 - **Nouveau, proposé** :
-  - 5. **Port-Franc** (~1,9 km au sud) : comptoir neutre, ni pirate ni Marine ; le meilleur marché et les rumeurs
-    (indices, contrats de commerce). On ne peut pas le prendre.
+  - 5. **Port-Franc** (~1,9 km au sud) : comptoir marchand, ni pirate ni Marine ; le meilleur marché et les rumeurs
+    (indices, contrats de commerce). On peut l'améliorer comme ses îles (plus tard, la carte montrera les zones qu'on
+    contrôle).
   - 6. **Le Cimetière des Navires** (~2,8 km au sud-est) : récifs semés d'épaves à fouiller (indices, butin) ; repaire
     de la Veuve Noire par gros temps.
   - 7. **La Crique du Corbeau** (~2,5 km au nord-est) : repaire caché d'Esteban Rojas, petit port pirate qu'on découvre
@@ -45,11 +46,20 @@ Plan : `docs/plans/mer1-plan.png` (nord en haut ; +Z = nord, +X = ouest dans le 
   - 8. **Le Phare de l'Ermite** (~2,7 km à l'ouest) : îlot sans port, un vieux gardien qui a vu passer le galion.
   - 9. **Les Îlots des Pêcheurs** (~2,2 km au sud-ouest) : village de pêcheurs, bancs de poissons, lieu du prologue.
   - 10. **Le Fort de la Passe** (~3 km à l'est) : îlot fortifié de la Marine qui verrouille la route du Mur des
-    tempêtes ; il faut l'abattre pour passer (fin de l'acte 1 ou début de l'acte 2).
+    tempêtes ; on peut l'abattre pour passer.
   - 11. **Le Rocher du Crâne** (~3 km au nord) : îlot sans port, lieu de légende (indice, rencontre fantôme).
-- **Bords** : le **Mur des tempêtes** à l'est (passage vers la mer des Récifs, acte 2) ; des brumes du large au nord-ouest.
-- Technique : plus d'îles = plus de travail pour le shader de l'eau (tableaux d'uniforms des îles) ; les petits îlots
-  sans port pourraient être du décor simple sans calme des vagues.
+  - **Décor** (sans grande importance) : 12. **l'Île Longue** (banc de sable étroit et palmiers, entre la Tortue et
+    l'Île Royale) ; 13. **les Dents** (chapelet de rochers et récifs près du Cimetière) ; 14. **l'Îlot aux Oiseaux**
+    (lagon en croissant, mouettes, au nord-ouest).
+- **Formes naturelles** : côtes irrégulières, îles étirées et tournées, criques ; jamais de rond parfait ni d'étoile.
+- **Bords** : le **Mur des tempêtes** à l'est (passage vers la mer des Récifs, acte 2) ; des brumes du large au
+  nord-ouest. **Tout autour de la carte, une tempête géante** : en approchant du bord, ciel noir, mer énorme, et des
+  éclairs qui frappent et **détruisent ton navire** si tu insistes.
+- Technique :
+  - les îles sans plage importante (Phare, Rocher du Crâne, décor) n'ont pas le calme des vagues ;
+  - la carte est grande : ce qui est loin ne doit coûter ni au rendu ni aux calculs (îles, décor, forts, navires et
+    leur IA au-delà de la brume : pas dessinés, mis à jour moins souvent ou en veille ; le shader de l'eau ne parcourt
+    que les îles proches).
 
 ## Acte 1 — « Les traces »
 L'archipel actuel (la Tortue, Port-Sabre, les îles de la Marine). On voyage d'île en île pour parler aux gens et
