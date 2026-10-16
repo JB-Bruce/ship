@@ -2,6 +2,7 @@ import { ALLEGIANCE_NAMES } from '../../config';
 import { ISLAND_UPGRADE_INFO, type IslandUpgradeId } from '../../progression/islandState';
 import { costHtml } from '../parchmentMenu';
 import { islandInSentence, resourcesHtml, type PortContext } from './portContext';
+import { traderCard } from './routesTab';
 
 const ICONS: Record<IslandUpgradeId, string> = {
   fort: `<svg viewBox="0 0 48 48"><path d="M8 44V16h6v-6h6v6h8v-6h6v6h6v28z"/><path d="M20 44v-9a4 4 0 0 1 8 0v9M14 24h4M30 24h4"/></svg>`,
@@ -13,6 +14,7 @@ const ICONS: Record<IslandUpgradeId, string> = {
   counter: `<svg viewBox="0 0 48 48"><path d="M24 6v32M12 42h24M6 12h36"/><path d="M6 12L2 24h8zM42 12l-4 12h8z"/><path d="M2 24a4 3 0 0 0 8 0M38 24a4 3 0 0 0 8 0"/><circle cx="24" cy="6" r="2"/></svg>`,
   royalFort: `<svg viewBox="0 0 48 48"><path d="M24 4l6 10h12l-6 10 6 10H30l-6 10-6-10H6l6-10-6-10h12z"/><path d="M18 26l2-6 4 3 4-3 2 6zM18 29h12"/></svg>`,
   smuggling: `<svg viewBox="0 0 48 48"><path d="M8 20h32v22H8z"/><path d="M8 28h32M24 20v22M14 20l4-10h12l4 10"/><circle class="solid" cx="36" cy="10" r="3"/></svg>`,
+  moorings: `<svg viewBox="0 0 48 48"><circle cx="24" cy="9" r="4"/><path d="M24 13v29M15 20h18M8 30c2 8 9 12 16 12s14-4 16-12M8 30l-3 4M8 30l4 3M40 30l3 4M40 30l-4 3"/></svg>`,
 };
 
 /** Onglet Île : allégeance, propriétaire, ressources, production et services du port. */
@@ -31,7 +33,19 @@ export function islandTab(ctx: PortContext): string {
       <div><span>Réparation à quai</span><b>${Math.round(island.repairRate * 100)} % de la vie par seconde</b></div>
       <div><span>${fortName}</span><b>${fort.guns} canons · portée ${fort.range} m</b></div>
     </div>
-    ${purchase(ctx)}`;
+    ${purchase(ctx)}
+    ${moorings(ctx)}`;
+}
+
+/** Mouillage d'une île à toi : ses emplacements de navires en commerce, et ceux qui y ont le leur. */
+function moorings(ctx: PortContext): string {
+  const { island, routes } = ctx;
+  if (!island.owned) return '';
+  const homed = routes.homedAt(island.id);
+  const list = homed.length ? homed.map((m) => traderCard(ctx, m)).join('') : '<p class="effect">Aucun navire en commerce n’a son emplacement ici : envoie-en un depuis l’onglet Routes.</p>';
+  return `
+    <h3 class="section">Mouillage <span class="count">${homed.length} / ${island.tradeSlots} emplacements</span></h3>
+    <div class="list">${list}</div>`;
 }
 
 /** Onglet Améliorations de l'île (seulement si elle t'appartient). */

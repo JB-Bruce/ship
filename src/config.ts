@@ -1979,7 +1979,7 @@ export interface Price {
 export type TradeGood = 'wood' | 'fish' | 'rum' | 'spices';
 
 /** Améliorations d'île possibles (chaque île n'en propose que certaines, voir IslandInfoDef.upgrades). */
-export type IslandUpgradeId = 'fort' | 'citadel' | 'royalFort' | 'dock' | 'shipyard' | 'workshop' | 'counter' | 'lighthouse' | 'smuggling';
+export type IslandUpgradeId = 'fort' | 'citadel' | 'royalFort' | 'dock' | 'shipyard' | 'workshop' | 'counter' | 'lighthouse' | 'smuggling' | 'moorings';
 
 /** Ce que le joueur sait d'une île : son port, qui la tient, son marché, ce qu'on peut y construire. */
 export interface IslandInfoDef {
@@ -2022,7 +2022,7 @@ export const ISLAND_INFO: Record<IslandId, IslandInfoDef> = {
       rum: { buy: 8, sell: 6 },
       spices: { buy: null, sell: 14 },
     },
-    upgrades: ['fort', 'dock', 'shipyard', 'workshop', 'counter', 'lighthouse'],
+    upgrades: ['fort', 'dock', 'shipyard', 'moorings', 'workshop', 'counter', 'lighthouse'],
   },
   sabre: {
     name: 'Île du Sabre',
@@ -2041,7 +2041,7 @@ export const ISLAND_INFO: Record<IslandId, IslandInfoDef> = {
       rum: { buy: null, sell: 13 },
       spices: { buy: 9, sell: 7 },
     },
-    upgrades: ['citadel', 'shipyard', 'smuggling'],
+    upgrades: ['citadel', 'shipyard', 'moorings', 'smuggling'],
   },
   royale: {
     name: 'Île Royale',
@@ -2061,7 +2061,7 @@ export const ISLAND_INFO: Record<IslandId, IslandInfoDef> = {
       rum: { buy: null, sell: 11 },
       spices: { buy: null, sell: 16 },
     },
-    upgrades: ['royalFort', 'dock', 'shipyard', 'workshop', 'counter'],
+    upgrades: ['royalFort', 'dock', 'shipyard', 'moorings', 'workshop', 'counter'],
     captureLevels: { shipyard: 2 },
   },
   dauphin: {
@@ -2082,7 +2082,7 @@ export const ISLAND_INFO: Record<IslandId, IslandInfoDef> = {
       rum: { buy: null, sell: 9 },
       spices: { buy: null, sell: 12 },
     },
-    upgrades: ['fort', 'dock', 'shipyard', 'workshop', 'counter'],
+    upgrades: ['fort', 'dock', 'shipyard', 'moorings', 'workshop', 'counter'],
   },
 };
 
@@ -2143,6 +2143,14 @@ export const ISLAND_UPGRADES = {
     sellBonus: [0.1, 0.2, 0.3],
     buyDiscount: [0.05, 0.1, 0.15],
   },
+  /**
+   * Mouillage : emplacements pour les navires que l'île envoie en route commerciale (TRADE_ROUTES.islandSlots sans
+   * lui, puis un par niveau).
+   */
+  moorings: {
+    costs: [{ gold: 200, wood: 120 }, { gold: 450, wood: 250 }],
+    slots: [2, 3],
+  },
   lighthouse: {
     costs: [{ gold: 150, wood: 60 }, { gold: 300, wood: 120 }],
     /** Portée du radar près de l'île (m)… */
@@ -2152,8 +2160,13 @@ export const ISLAND_UPGRADES = {
   },
 };
 
-/** Routes commerciales confiées à tes navires (onglet Routes du port). */
+/**
+ * Routes commerciales confiées à tes navires (onglet Routes du port). Un navire en commerce quitte tes places de flotte
+ * et prend un emplacement de l'île d'où il part (une île à toi) ; on le reprend à son port, s'il reste une place.
+ */
 export const TRADE_ROUTES = {
+  /** Emplacements d'une île à toi sans Mouillage (ISLAND_UPGRADES.moorings ensuite). */
+  islandSlots: 1,
   /** Chargement au départ de la route (s). */
   loadTime: 6,
   /** Escale à chaque port : vente, puis chargement (s). */

@@ -9,6 +9,7 @@ import { SHIP_TYPES, sizeRank, type ShipType } from '../shipTypes';
 import { islandById, land } from '../world/island';
 import type { Crate } from '../world/loot';
 import { guardSlot } from './escortGuard';
+import { formationOffset } from './formations';
 import { freeSpace } from './holds';
 import type { TradeOrder } from './tradeRoutes';
 
@@ -58,8 +59,13 @@ export interface FleetMember {
  */
 export class Fleet {
   readonly members: FleetMember[] = [];
-  /** Les navires qui naviguent avec toi (pas en commerce), tenus à jour sans allocation par image. */
+  /**
+   * Les navires qui naviguent avec toi (pas en commerce), tenus à jour sans allocation par image : ce sont eux qui
+   * occupent tes places de flotte (`PlayerState.slots`) ; ceux en commerce occupent un emplacement de leur île.
+   */
   readonly hand: FleetMember[] = [];
+  /** Les navires en commerce (carte, radar), tenus à jour avec `hand`. */
+  readonly traders: Ship[] = [];
   controlled!: FleetMember;
   formation: Formation = 'vee';
   /** Multiplicateur du délai de réapparition (chantier du port amélioré). */
@@ -249,35 +255,7 @@ export class Fleet {
     const others = this.hand.filter((m) => m !== this.controlled && m.inWorld);
     if (this.guarded) return guardSlot(Math.max(0, others.indexOf(member)), others.length, this.guarded, member.ship);
     const rank = Math.max(1, others.indexOf(member) + 1);
-    const pair = Math.ceil(rank / 2);
-    const alternate = rank % 2 === 1 ? 1 : -1;
-    const s = FLEET.spacing;
-    let back = 0;
-    let side = 0;
-    switch (this.formation) {
-      case 'column':
-        back = s * rank;
-        break;
-      case 'line':
-        side = alternate * s * pair;
-        back = 2;
-        break;
-      case 'vee':
-        side = alternate * s * 0.75 * pair;
-        back = s * 0.85 * pair;
-        break;
-      case 'free': {
-        const f = member.freeSlot;
-        f.timer -= dt;
-        if (f.timer <= 0) {
-          f.side = (Math.random() * 2 - 1) * 55;
-          f.back = -25 + Math.random() * 85;
-          f.timer = 15 + Math.random() * 10;
-        }
-        side = f.side;
-        back = f.back;
-      }
-    }
+    const { back, side } = formationOffset(this.formation, rank, member.freeSlot, dt);
     const leader = this.leader;
     const fx = Math.sin(leader.heading);
     const fz = Math.cos(leader.heading);
@@ -317,7 +295,11 @@ export class Fleet {
 
   private refreshHand() {
     this.hand.length = 0;
-    for (const m of this.members) if (!m.trade) this.hand.push(m);
+    this.traders.length = 0;
+    for (const m of this.members) {
+      if (m.trade) this.traders.push(m.ship);
+      else this.hand.push(m);
+    }
   }
 
   private pickName(): string {

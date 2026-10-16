@@ -13,6 +13,8 @@ import { INK, paintCompass, paintLandmark, paintScale, paintShip } from './mapGl
 export interface MapData {
   leader: Ship;
   allies: readonly Ship[];
+  /** Tes navires en commerce (hors de ta flotte), en vert plus foncé. */
+  traders: readonly Ship[];
   enemies: readonly Ship[];
   crates: readonly Crate[];
   schools: readonly FishSchool[];
@@ -33,6 +35,7 @@ const COLORS = {
   forest: 'rgba(95, 120, 60, 0.5)',
   player: '#1f1a14',
   ally: '#2f7a3c',
+  trader: '#1f5229',
   enemy: '#b3261c',
   radar: 'rgba(74, 46, 20, 0.45)',
   /** Tempête du bord du monde. */
@@ -132,6 +135,7 @@ export function paintMap(ctx: CanvasRenderingContext2D, width: number, height: n
   for (const s of data.schools) if (!s.diving) ctx.fillText('≋', toX(s.x), toY(s.z));
   for (const ship of data.enemies) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 7, COLORS.enemy);
   for (const ship of data.allies) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 7, COLORS.ally);
+  for (const ship of data.traders) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 7, COLORS.trader);
   for (const ship of data.pirates) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 7, COLORS.pirate);
   for (const ship of data.escorts) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 8, COLORS.escort);
   for (const zone of data.zones) paintZone(ctx, zone, toX, toY, scale);

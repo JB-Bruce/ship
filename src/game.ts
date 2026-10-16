@@ -300,7 +300,7 @@ export class Game {
     this.hud.quests.update(dt, this.campaign.contracts, this.fleet, (c) => this.campaign.missions.status(c), () => this.campaign.navy.objectives());
     this.radar.range = this.campaign.islands.tortuga.radarRange(tortuga.sdf(leader.position.x, leader.position.z)) * this.fleet.radarFactor();
     this.encounters.update(this.spawner.enemies, leader);
-    this.radar.update(dt, leader, this.spawner.enemies, this.wind, this.ships, this.schools.list, this.campaign.escorts());
+    this.radar.update(dt, leader, this.spawner.enemies, this.wind, this.ships, this.schools.list, this.campaign.escorts(), this.fleet.traders);
     this.betrayal.update(this.camera, leader, (this.scene.fog as THREE.Fog).far);
     this.healthBars.update(this.camera, this.ships, leader, (this.scene.fog as THREE.Fog).far, this.spawner.enemies, this.fleet.members);
     this.healthBars.mark(this.betrayal.marked, this.betrayal.hovered);

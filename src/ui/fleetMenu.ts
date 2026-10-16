@@ -24,6 +24,7 @@ export class FleetMenu extends ParchmentMenu {
   }
 
   render() {
+    const traders = this.fleet.members.filter((m) => m.trade);
     const formations = (Object.keys(FORMATION_NAMES) as Formation[])
       .map((f) => `<button class="choice${this.fleet.formation === f ? ' on' : ''}" data-action="formation" data-arg="${f}">${FORMATION_NAMES[f]}</button>`)
       .join('');
@@ -33,7 +34,10 @@ export class FleetMenu extends ParchmentMenu {
       ${this.fleet.guarded ? '<p class="subtitle">Escorte en cours : tes navires entourent le marchand à protéger ; la formation reprendra à son arrivée.</p>' : ''}
       <div class="choices">${formations}</div>
       <h3 class="section">Tes navires</h3>
-      <div class="list">${this.fleet.members.map((m) => this.memberCard(m)).join('')}</div>`;
+      <div class="list">${this.fleet.hand.map((m) => this.memberCard(m)).join('')}</div>
+      ${traders.length ? `<h3 class="section">En commerce</h3>
+      <p class="subtitle">Hors de ta flotte : chacun a un emplacement dans l’île d’où il est parti, où tu peux le reprendre.</p>
+      <div class="list">${traders.map((m) => this.memberCard(m)).join('')}</div>` : ''}`;
   }
 
   protected onAction(action: string, arg: string) {

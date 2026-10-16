@@ -14,6 +14,8 @@ const COLORS = {
   fleeing: '#c9a0ff',
   boss: '#ff2a1a',
   ally: '#6fe08a',
+  /** Tes navires en commerce : vert plus foncé. */
+  trader: '#3c9d56',
   fish: '#8fe3ff',
   escort: '#a6ecff',
   pirate: '#4a9bff',
@@ -45,7 +47,7 @@ function gustsIcon(level: number): string {
 
 /**
  * Radar circulaire qui tourne avec le bateau : le haut = devant toi.
- * Vert = navire de ta flotte, bleu = autre allié (pirate, marchand), bleu ciel cerclé de blanc = navire à protéger. Rouge = ennemi qui te chasse, orange = en patrouille, violet = en fuite, gros point
+ * Vert = navire de ta flotte, vert plus foncé = ton navire en commerce, bleu = autre allié (pirate, marchand), bleu ciel cerclé de blanc = navire à protéger. Rouge = ennemi qui te chasse, orange = en patrouille, violet = en fuite, gros point
  * rouge cerclé = boss, poisson bleu = banc de poissons. Le butin n'y figure pas (il encombrait le radar).
  * Hors de portée : point pâle au bord, dans sa direction. La portée grandit près de l'île avec le phare.
  * Le triangle clair sur le bord montre d'où vient le vent ; au-dessus, ses crans de force (1 à 5), ses nœuds et son effet sur ta vitesse.
@@ -81,8 +83,11 @@ export class Radar {
   }
 
   /** `ships` : tous les bateaux (les alliés y sont repérés par leur camp). */
-  /** `escorts` : navires à protéger (en bleu ciel) ; les autres alliés hors de ta flotte sont en bleu. */
-  update(dt: number, player: Ship, enemies: readonly Enemy[], wind: Wind, ships: readonly Ship[], schools: readonly FishSchool[], escorts: readonly Ship[]) {
+  /**
+   * `escorts` : navires à protéger (en bleu ciel) ; les autres alliés hors de ta flotte sont en bleu. `traders` : tes
+   * navires en commerce (vert plus foncé).
+   */
+  update(dt: number, player: Ship, enemies: readonly Enemy[], wind: Wind, ships: readonly Ship[], schools: readonly FishSchool[], escorts: readonly Ship[], traders: readonly Ship[]) {
     // Redessiner un dessin 2D à chaque image coûte cher : RADAR.refreshRate fois par seconde suffit.
     this.sinceDraw += dt;
     if (this.sinceDraw < 1 / RADAR.refreshRate) return;
@@ -157,9 +162,10 @@ export class Radar {
     }
     for (const ship of ships) {
       if (ship === player || ship.faction === 'enemy' || !ship.alive) continue;
-      // Vert : ta flotte ; bleu ciel cerclé : navire à protéger ; bleu : autre allié (pirate, marchand des îles).
+      // Vert : ta flotte (plus foncé : en commerce) ; bleu ciel cerclé : navire à protéger ; bleu : autre allié (pirate, marchand des îles).
       const escort = escorts.includes(ship);
-      ctx.fillStyle = ship.faction === 'player' ? COLORS.ally : escort ? COLORS.escort : COLORS.pirate;
+      const own = traders.includes(ship) ? COLORS.trader : COLORS.ally;
+      ctx.fillStyle = ship.faction === 'player' ? own : escort ? COLORS.escort : COLORS.pirate;
       const p = place(ship.position.x, ship.position.z);
       this.circle(p.x, p.y, escort ? 5.5 : p.outside ? 3 : 4);
       ctx.fill();

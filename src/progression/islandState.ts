@@ -9,6 +9,7 @@ import {
   PORT,
   RADAR,
   ROYAL_FORT,
+  TRADE_ROUTES,
   type Cost,
   type IslandId,
   type IslandInfoDef,
@@ -28,6 +29,7 @@ export const ISLAND_UPGRADE_INFO: Record<IslandUpgradeId, { name: string; descri
   workshop: { name: 'Scierie', description: 'Les bûcherons de l’île débitent du bois de charpente, même quand tu es au large. Il attend dans la réserve de l’île.' },
   counter: { name: 'Comptoir', description: 'Des négociants s’installent au port : les marchands alliés viennent plus souvent et laissent plus d’or dans la réserve de l’île.' },
   lighthouse: { name: 'Phare', description: 'Une lanterne plus haute et des vigies : le radar porte plus loin près de l’île, et la carte montre les ennemis qui l’approchent.' },
+  moorings: { name: 'Mouillage', description: 'Des corps-morts et des quais pour les navires de commerce : l’île peut armer plus de routes commerciales. Chaque navire envoyé d’ici y prend un emplacement et y revient quand tu le rappelles.' },
   smuggling: { name: 'Comptoir de contrebande', description: 'Des receleurs sûrs : le marché de l’île t’achète plus cher et te vend moins cher, et plus de marchands alliés y font escale.' },
 };
 
@@ -46,7 +48,7 @@ export interface IslandSnapshot {
 export class IslandState {
   readonly info: IslandInfoDef;
   owned: boolean;
-  readonly levels: Record<IslandUpgradeId, number> = { fort: 0, citadel: 0, royalFort: 0, dock: 0, shipyard: 0, workshop: 0, counter: 0, lighthouse: 0, smuggling: 0 };
+  readonly levels: Record<IslandUpgradeId, number> = { fort: 0, citadel: 0, royalFort: 0, dock: 0, shipyard: 0, workshop: 0, counter: 0, lighthouse: 0, smuggling: 0, moorings: 0 };
   /** Réserve en attente (fractions comprises). */
   private readonly stock = { gold: 0, wood: 0 };
 
@@ -147,6 +149,8 @@ export class IslandState {
         return this.tradeText(level);
       case 'lighthouse':
         return `Radar ${u.lighthouse.radarRange[i]} m à moins de ${u.lighthouse.coverage[i]} m de l'île`;
+      case 'moorings':
+        return `${u.moorings.slots[i]} emplacements pour les routes commerciales`;
       case 'smuggling':
         return `Ventes +${Math.round(u.smuggling.sellBonus[i] * 100)} % · achats −${Math.round(u.smuggling.buyDiscount[i] * 100)} % · ${this.tradeText(level)}`;
     }
@@ -231,6 +235,11 @@ export class IslandState {
       buy: base.buy === null ? null : Math.max(1, Math.round(base.buy * buy)),
       sell: base.sell === null ? null : Math.round(base.sell * sell),
     };
+  }
+
+  /** Emplacements pour les navires que l'île envoie en route commerciale (aucun si elle n'est pas à toi). */
+  get tradeSlots(): number {
+    return this.owned ? this.at(ISLAND_UPGRADES.moorings.slots, 'moorings', TRADE_ROUTES.islandSlots) : 0;
   }
 
   /** Zone couverte par le phare (distance à la côte, m), 0 sans phare. */

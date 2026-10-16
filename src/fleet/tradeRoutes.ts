@@ -43,9 +43,11 @@ const rand = ([min, max]: readonly [number, number]) => min + Math.random() * (m
 
 /**
  * Routes commerciales : un navire de ta flotte confié à une route la quitte et fait l'aller-retour entre deux ports, en
- * vrai (visible, attaquable, ses canons se défendent seuls). À chaque port, il vend ce qu'il a apporté (l'or te revient
- * tout de suite) puis achète, sur ton or, la marchandise prévue pour l'autre port, autant que sa cale en tient. Coulé, il
- * perd sa cargaison et réapparaît au port d'où partait son étape après le délai habituel. Il continue jusqu'à son rappel.
+ * vrai (visible, attaquable, ses canons se défendent seuls). Il libère sa place de flotte et prend un emplacement de
+ * l'île d'où il part (`ports[0]`, une île à toi : `IslandState.tradeSlots`) ; on ne le reprend qu'à ce port, s'il reste
+ * une place dans la flotte. À chaque port, il vend ce qu'il a apporté (l'or te revient tout de suite) puis achète, sur
+ * ton or, la marchandise prévue pour l'autre port, autant que sa cale en tient. Coulé, il perd sa cargaison et
+ * réapparaît au port d'où partait son étape après le délai habituel. Il continue jusqu'à son rappel.
  */
 export class TradeRoutes {
   private readonly runners: Runner[] = [];
@@ -102,14 +104,41 @@ export class TradeRoutes {
     return leg(goods[0], ports[0], ports[1]) + leg(goods[1], ports[1], ports[0]);
   }
 
-  /** Confie un navire (pas celui qu'on pilote) à une route qui part du port `from`, où il se trouve. */
+  /** Navires en commerce qui ont leur emplacement dans l'île `island` (celle d'où ils sont partis). */
+  homedAt(island: IslandId): FleetMember[] {
+    return this.fleet.members.filter((m) => m.trade?.ports[0] === island);
+  }
+
+  /** Emplacements encore libres dans l'île `island` (aucun si elle n'est pas à toi). */
+  freeSlots(island: IslandId): number {
+    return Math.max(0, this.islands[island].tradeSlots - this.homedAt(island).length);
+  }
+
+  /** Reste-t-il une place dans ta flotte (les navires en commerce n'y comptent pas) ? */
+  get fleetHasRoom(): boolean {
+    return this.fleet.hand.length < this.state.slots;
+  }
+
+  /** Peut-on reprendre ce navire depuis le port `here` : celui de son île, et une place libre dans la flotte. */
+  canRecall(member: FleetMember, here: IslandId): boolean {
+    return member.trade?.ports[0] === here && this.fleetHasRoom;
+  }
+
+  /**
+   * Confie un navire (pas celui qu'on pilote) à une route qui part du port `from`, où il se trouve : il faut que l'île
+   * soit à toi et qu'il lui reste un emplacement.
+   */
   start(member: FleetMember, from: IslandId, to: IslandId, out: Good | null, back: Good | null): boolean {
-    if (from === to || this.runner(member) || !this.fleet.setTrade(member, { ports: [from, to], goods: [out, back], leg: 0 })) return false;
+    if (from === to || this.runner(member) || this.freeSlots(from) <= 0) return false;
+    if (!this.fleet.setTrade(member, { ports: [from, to], goods: [out, back], leg: 0 })) return false;
     this.runners.push({ member, phase: 'docked', ai: null, stay: TRADE_ROUTES.loadTime, load: null });
     return true;
   }
 
-  /** Rappelle un navire : il quitte sa route et rejoint la flotte (sa cargaison reste dans sa cale). */
+  /**
+   * Rappelle un navire : il quitte sa route et rejoint la flotte (sa cargaison reste dans sa cale). Sans condition : le
+   * port s'en assure (`canRecall`) ; une île perdue renvoie aussi les siens, même si la flotte est pleine.
+   */
   recall(member: FleetMember) {
     const i = this.runners.findIndex((r) => r.member === member);
     if (i >= 0) this.drop(i);

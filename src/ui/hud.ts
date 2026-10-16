@@ -131,8 +131,8 @@ export class Hud {
   }
 
   /**
-   * Nom du bateau piloté, places dans les cales, et bandeau de la flotte : pour chacun, étoiles de rang, nom, type, vie
-   * (ou délai avant son retour).
+   * Nom du bateau piloté, places dans les cales, et bandeau de la flotte (sans les navires en commerce, qui n'en font
+   * plus partie) : pour chacun, étoiles de rang, nom, type, vie (ou délai avant son retour).
    */
   private renderFleet(fleet: Fleet) {
     const hold = fleetHold(fleet.hand);
@@ -141,11 +141,11 @@ export class Hud {
     const c = fleet.controlled;
     const name = `${c.name} · ${typeName(c.type, c.levels.extension)}`;
     if (this.shipName.textContent !== name) this.shipName.textContent = name;
-    if (fleet.members.length < 2) {
+    if (fleet.hand.length < 2) {
       this.fleetStrip.innerHTML = '';
       return;
     }
-    this.fleetStrip.innerHTML = fleet.members
+    this.fleetStrip.innerHTML = fleet.hand
       .map((m) => {
         const afloat = m.inWorld && m.ship.alive;
         const state = afloat
@@ -155,7 +155,7 @@ export class Hud {
         const stars = rankOf(m.kills);
         const rank = stars ? `<span class="rank" title="${rankName(stars)}">${'★'.repeat(stars)}</span>` : '';
         const type = `<span class="type">${typeName(m.type, m.levels.extension)}</span>`;
-        return `<div class="hud-fleet-row${m === c ? ' helm' : ''}"><span class="name">${m.trade ? '⚖ ' : ''}${rank}${m.name}${type}${icons ? ` <span class="crits">${icons}</span>` : ''}</span>${state}</div>`;
+        return `<div class="hud-fleet-row${m === c ? ' helm' : ''}"><span class="name">${rank}${m.name}${type}${icons ? ` <span class="crits">${icons}</span>` : ''}</span>${state}</div>`;
       })
       .join('');
   }

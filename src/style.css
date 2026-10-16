@@ -816,6 +816,10 @@ body {
   color: #2f7a3c;
 }
 
+.map-legend .trader {
+  color: #1f5229;
+}
+
 .map-legend .enemy {
   color: #b3261c;
 }
