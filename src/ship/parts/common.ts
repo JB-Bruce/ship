@@ -3,6 +3,7 @@ import type { Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import type { CannonMount, EnsignStaff } from '../shipModel';
 import type { HullShape, Station } from './hullShape';
+import { lampMaterial, windowMaterial } from './nightGlow';
 import { buildFlagTexture, type Palette } from './props';
 
 /** Monture de canon pointant vers `angle` (0 = proue, +π/2 = bâbord, -π/2 = tribord). */
@@ -56,7 +57,8 @@ export function paletteFor(l: Livery): Palette {
       shirtRed: std(0x9b2d20),
       pants: std(0x3a3a50),
       bandana: std(0xb3261e),
-      glow: std(l.lantern ?? 0xffc860, { emissive: l.lantern ?? 0xffa030, emissiveIntensity: 1.2 }),
+      glow: lampMaterial(l.lantern ?? 0xffc860, l.lantern ?? 0xffa030),
+      window: windowMaterial,
     };
     palettes.set(l, p);
   }
@@ -102,7 +104,7 @@ export function addDeckSeams(
     let zMax = -Infinity;
     for (let u = uFrom; u <= uTo; u += 0.02) {
       const s = hull.stationAt(u);
-      if (s.halfWidth * 0.95 > x + 0.05) {
+      if (hull.halfWidthAt(s, y) * 0.95 > x + 0.05) {
         zMin = Math.min(zMin, s.z);
         zMax = Math.max(zMax, s.z);
       }
@@ -135,9 +137,15 @@ export function armorFor(hull: HullShape, level: number): { geometry: THREE.Buff
     for (const side of [1, -1] as const) {
       for (const h of bands) batch.add(ironMaterial, hull.buildRail(side, h, 0.035, 0.04), identity);
       if (level < 2) continue;
+      // Chaque cercle suit le bordé en deux segments (il épouse les flancs qui rentrent).
       for (const u of straps) {
         const s = hull.stationAt(u);
-        batch.add(ironMaterial, new THREE.BoxGeometry(0.05, s.gunwale * 0.75, 0.12), tf(side * (hull.halfWidthAt(s, s.gunwale * 0.55) + 0.03), s.gunwale * 0.55, s.z));
+        const points = [0.175, 0.55, 0.925].map((f) => new THREE.Vector2(side * (hull.halfWidthAt(s, s.gunwale * f) + 0.03), s.gunwale * f));
+        for (let i = 0; i < 2; i++) {
+          const [a, b] = [points[i], points[i + 1]];
+          const length = a.distanceTo(b);
+          batch.add(ironMaterial, new THREE.BoxGeometry(0.05, length + 0.06, 0.12), tf((a.x + b.x) / 2, (a.y + b.y) / 2, s.z, 0, 0, Math.atan2(a.x - b.x, b.y - a.y)));
+        }
       }
     }
     const stemHeight = bow.gunwale - bow.keel + 0.4;
@@ -207,4 +215,12 @@ export function fireSpots(hull: HullShape, spots: readonly (readonly [number, nu
     const x = Math.abs(side) >= 1 ? Math.sign(side) * w * 1.02 : side * w;
     return new THREE.Vector3(x, y, s.z);
   });
+}
+
+/**
+ * Pièce plaquée sur le bordé à la hauteur y (sabord, fenêtre) : collée au flanc qui rentre, et inclinée comme lui.
+ */
+export function sideTf(hull: HullShape, s: Station, y: number, side: 1 | -1, outset: number, scale = 1): THREE.Matrix4 {
+  const lean = Math.atan2(hull.halfWidthAt(s, y - 0.2) - hull.halfWidthAt(s, y + 0.2), 0.4);
+  return tf(side * (hull.halfWidthAt(s, y) + outset), y, s.z, 0, 0, side * lean, scale);
 }

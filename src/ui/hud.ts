@@ -1,10 +1,12 @@
 import type { Fleet } from '../fleet/fleet';
 import { fleetHold } from '../fleet/holds';
+import { rankName, rankOf } from '../fleet/officers';
 import type { PlayerState } from '../progression/playerState';
 import type { Ship } from '../ship/ship';
 import { typeName } from '../shipTypes';
 import { Notifications } from './notifications';
 import { QuestTracker } from './questTracker';
+import { Toasts, type ToastTone } from './toasts';
 
 /** Intervalle de rafraîchissement du bandeau de flotte (s) : inutile de le refaire à chaque image. */
 const FLEET_REFRESH = 0.3;
@@ -25,9 +27,12 @@ export class Hud {
   private readonly sailFill: HTMLElement;
   private readonly sailName: HTMLElement;
   private readonly speed: HTMLElement;
+  private readonly crits: HTMLElement;
+  private critText = '';
   private readonly banner: HTMLElement;
   private readonly shipName: HTMLElement;
   private readonly fleetStrip: HTMLElement;
+  private readonly toasts: Toasts;
   private bannerTime = 0;
   private fleetTimer = 0;
   private last = { sail: -1, knots: -1, health: -1, maxHealth: -1, gold: -1, wood: -1, combat: false };
@@ -46,23 +51,30 @@ export class Hud {
     this.sailFill = sailGauge.appendChild(el('div', 'hud-sail-fill'));
     this.sailName = el('div', 'hud-sail');
     this.speed = el('div', 'hud-speed');
-    panel.append(this.shipName, health, resources, sailGauge, this.sailName, this.speed);
+    this.crits = el('div', 'hud-crits');
+    panel.append(this.shipName, health, resources, sailGauge, this.sailName, this.speed, this.crits);
     this.fleetStrip = el('div', 'hud-fleet');
 
     this.combat = el('div', 'hud-combat');
     this.combat.textContent = '⚔ À portée de tir';
     this.banner = el('div', 'hud-banner');
-    const help = el('div', 'hud-help');
-    help.textContent =
-      'Z / S (maintenir) : hisser / affaler la voile · Q / D : barre · T : flotte · M : carte · E : port (près du quai) · F : pêcher (près d’un banc) · Glisser la souris : caméra · Molette : zoom · Échap : paramètres · Les canons tirent seuls';
     const topRight = el('div', 'hud-top-right');
-    root.append(this.fleetStrip, panel, this.combat, this.banner, help, topRight);
+    root.append(this.fleetStrip, panel, this.combat, this.banner, topRight);
+    this.toasts = new Toasts(root);
     parent.appendChild(root);
     this.quests = new QuestTracker(topRight);
     this.notifications = new Notifications(topRight, panel);
   }
 
-  /** Affiche un message au centre de l'écran pendant quelques secondes. `danger` : alerte en rouge (boss). */
+  /** Petit message d'information en haut de l'écran (achats, pêche, barre…), qui s'efface seul. */
+  toast(text: string, seconds = 3, tone: ToastTone = 'info') {
+    this.toasts.show(text, seconds, tone);
+  }
+
+  /**
+   * Grand bandeau au centre de l'écran, réservé aux alertes et aux moments forts (boss, rencontre, naufrage) ;
+   * le reste passe par `toast`. `danger` : alerte en rouge.
+   */
   message(text: string, seconds = 3, danger = false) {
     this.banner.textContent = text;
     this.banner.classList.add('on');
@@ -72,6 +84,7 @@ export class Hud {
 
   update(dt: number, ship: Ship, state: PlayerState, inCombat: boolean, fleet: Fleet) {
     this.notifications.update(dt);
+    this.toasts.update(dt);
     this.fleetTimer -= dt;
     if (this.fleetTimer <= 0 || dt === 0) {
       this.fleetTimer = FLEET_REFRESH;
@@ -97,6 +110,8 @@ export class Hud {
       this.healthFill.style.width = `${fraction * 100}%`;
       this.healthFill.classList.toggle('low', fraction < 0.3);
     }
+    const crits = critsText(ship);
+    if (crits !== this.critText) this.crits.textContent = this.critText = crits;
     if (state.gold !== l.gold) {
       l.gold = state.gold;
       this.gold.textContent = `${state.gold} or`;
@@ -115,7 +130,10 @@ export class Hud {
     }
   }
 
-  /** Nom du bateau piloté, places dans les cales, et bandeau de la flotte : vie de chacun, ou délai avant son retour. */
+  /**
+   * Nom du bateau piloté, places dans les cales, et bandeau de la flotte (sans les navires en commerce, qui n'en font
+   * plus partie) : pour chacun, étoiles de rang, nom, type, vie (ou délai avant son retour).
+   */
   private renderFleet(fleet: Fleet) {
     const hold = fleetHold(fleet.hand);
     const holdText = `Cales ${hold.used} / ${hold.capacity}`;
@@ -123,20 +141,32 @@ export class Hud {
     const c = fleet.controlled;
     const name = `${c.name} · ${typeName(c.type, c.levels.extension)}`;
     if (this.shipName.textContent !== name) this.shipName.textContent = name;
-    if (fleet.members.length < 2) {
+    if (fleet.hand.length < 2) {
       this.fleetStrip.innerHTML = '';
       return;
     }
-    this.fleetStrip.innerHTML = fleet.members
+    this.fleetStrip.innerHTML = fleet.hand
       .map((m) => {
         const afloat = m.inWorld && m.ship.alive;
         const state = afloat
           ? `<span class="bar"><span style="width:${(m.ship.health / m.ship.stats.maxHealth) * 100}%"></span></span>`
           : `<span class="away">${m.inWorld ? 'coule…' : `retour ${Math.ceil(m.respawnIn)} s`}</span>`;
-        return `<div class="hud-fleet-row${m === c ? ' helm' : ''}"><span class="name">${m.trade ? '⚖ ' : ''}${m.name}</span>${state}</div>`;
+        const icons = afloat ? m.ship.crits.icons : '';
+        const stars = rankOf(m.kills);
+        const rank = stars ? `<span class="rank" title="${rankName(stars)}">${'★'.repeat(stars)}</span>` : '';
+        const type = `<span class="type">${typeName(m.type, m.levels.extension)}</span>`;
+        return `<div class="hud-fleet-row${m === c ? ' helm' : ''}"><span class="name">${rank}${m.name}${type}${icons ? ` <span class="crits">${icons}</span>` : ''}</span>${state}</div>`;
       })
       .join('');
   }
+}
+
+/** Avaries du navire piloté, en toutes lettres (« Avaries : 🔥 incendie · ⛵ gréement »), ou chaîne vide. */
+function critsText(ship: Ship): string {
+  const c = ship.crits;
+  if (!c.any) return '';
+  const parts = [c.fire > 0 ? '🔥 incendie' : '', c.rudder > 0 ? '☸ gouvernail' : '', c.rigging > 0 ? '⛵ gréement' : ''].filter(Boolean);
+  return `Avaries : ${parts.join(' · ')}`;
 }
 
 function el(tag: string, className: string): HTMLElement {

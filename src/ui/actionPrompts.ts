@@ -7,29 +7,34 @@ interface Prompt {
 
 /**
  * Commandes contextuelles en bas de l'écran : « E · Port de la Tortue » près du quai, « F · Pêcher » près d'un
- * banc, et une ligne d'état (pêche en cours). Cliquer revient à presser la touche.
+ * banc, « R · Trahir » quand un allié qu'on peut trahir est à portée, et une ligne d'état (pêche en cours, consigne de
+ * visée). Cliquer revient à presser la touche.
  */
 export class ActionPrompts {
   private readonly port: Prompt;
   private readonly fish: Prompt;
+  private readonly betray: Prompt;
   private readonly status: HTMLElement;
   private statusText: string | null = null;
 
-  constructor(parent: HTMLElement, onPort: () => void, onFish: () => void) {
+  constructor(parent: HTMLElement, onPort: () => void, onFish: () => void, onBetray: () => void) {
     const root = document.createElement('div');
     root.className = 'action-prompts';
     this.status = document.createElement('div');
     this.status.className = 'action-status';
     this.port = this.prompt('E', onPort);
     this.fish = this.prompt('F', onFish);
-    root.append(this.status, this.port.button, this.fish.button);
+    this.betray = this.prompt('R', onBetray);
+    this.betray.button.classList.add('danger');
+    root.append(this.status, this.port.button, this.fish.button, this.betray.button);
     parent.appendChild(root);
   }
 
-  /** Libellés à afficher (null = commande cachée) et état de la pêche. */
-  update(port: string | null, fish: string | null, status: string | null) {
+  /** Libellés à afficher (null = commande cachée) et ligne d'état (pêche, visée). */
+  update(port: string | null, fish: string | null, betray: string | null, status: string | null) {
     this.set(this.port, port);
     this.set(this.fish, fish);
+    this.set(this.betray, betray);
     if (status === this.statusText) return;
     this.statusText = status;
     this.status.textContent = status ?? '';

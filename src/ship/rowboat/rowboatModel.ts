@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Livery, ShipStats } from '../../config';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import { armorFor, cannonMount, fireSpots, sternStaff, waterMaskMaterial, WavingFlag } from '../parts/common';
+import { addStatics, type LanternSpot } from '../parts/nightGlow';
 import type { CannonMount, EnsignStaff, FlagMount, ShipModel } from '../shipModel';
 import { BOW_GUN_U, FLAG, FLOOR_Y, ROWBOAT_HULL, ROWBOAT_LENGTH, ROWER_BENCHES_U, rowboatTemplateFor } from './rowboatTemplate';
 
@@ -33,6 +34,7 @@ export class RowboatModel implements ShipModel {
   readonly flagMount: FlagMount = { position: new THREE.Vector3(0, FLAG.y, ROWBOAT_HULL.stationAt(-1).z + 0.05), length: FLAG.length, height: FLAG.height };
   readonly ensignStaff: EnsignStaff = sternStaff(ROWBOAT_HULL.stationAt(-1), 0.5);
   // Fond de la barque et une brèche dans le bordé.
+  readonly lanterns: LanternSpot[];
   readonly fireSpots = fireSpots(ROWBOAT_HULL, [
     [-0.5, 0.2, FLOOR_Y + 0.15],
     [0.3, -0.3, FLOOR_Y + 0.15],
@@ -52,7 +54,7 @@ export class RowboatModel implements ShipModel {
     const t = rowboatTemplateFor(livery);
     this.cannonGeometry = t.cannon;
     this.cannonMaterial = t.palette.metal;
-    for (const { geometry, material } of t.statics) this.root.add(new THREE.Mesh(geometry, material));
+    this.lanterns = addStatics(this.root, t.statics);
 
     for (const u of ROWER_BENCHES_U) {
       const s = ROWBOAT_HULL.stationAt(u);

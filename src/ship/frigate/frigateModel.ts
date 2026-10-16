@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import type { Livery, ShipStats } from '../../config';
+import { SAIL_BILLOW, type Livery, type ShipStats } from '../../config';
 import { wrapAngle } from '../../utils/math';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import { armorFor, cannonMount, fireSpots, mastheadStaff, riggingMaterial, waterMaskMaterial, WavingFlag } from '../parts/common';
+import { addStatics, type LanternSpot } from '../parts/nightGlow';
 import { TornSail } from '../parts/tornSail';
 import type { DeckPlan } from '../deckPlan';
 import type { CannonMount, EnsignStaff, FlagMount, ShipModel } from '../shipModel';
@@ -36,6 +37,7 @@ export class FrigateModel implements ShipModel {
   flagMount!: FlagMount;
   ensignStaff!: EnsignStaff;
   fireSpots!: THREE.Vector3[];
+  lanterns!: LanternSpot[];
   deckPlan!: DeckPlan;
   private layout!: FrigateLayout;
   /** Tout le navire (le plan courant) ; les drapeaux de rang et les trophées sont posés à côté, sur `root`. */
@@ -84,6 +86,7 @@ export class FrigateModel implements ShipModel {
 
   setSailAmount(amount: number) {
     this.sailAmount = amount;
+    this.tornSail.setDeployment(amount);
     this.applySails();
   }
 
@@ -101,6 +104,7 @@ export class FrigateModel implements ShipModel {
   /** La bôme de brigantine part du côté où va le vent : presque dans l'axe au près, très ouverte au vent arrière. */
   setWind(relativeDirection: number, strength: number) {
     this.flag.setWind(relativeDirection, strength);
+    this.tornSail.setWind(relativeDirection, strength);
     this.spritFlag.setWind(relativeDirection, strength);
     const s = Math.sin(relativeDirection);
     // Hystérésis : au vent arrière pile, rien ne change de bord sans arrêt.
@@ -192,11 +196,11 @@ export class FrigateModel implements ShipModel {
       ] as const).map(([u, side, y]) => [L.base(u), side, y] as const),
     );
     this.tornSail = new TornSail(t.sailMaterial, this.livery.sailEmblem);
-    for (const { geometry, material } of t.statics) this.body.add(new THREE.Mesh(geometry, material));
+    this.lanterns = addStatics(this.body, t.statics);
 
     L.squareSails.forEach((s, i) => {
       // La grand-voile (la plus grande) porte l'emblème de la livrée, s'il y en a un.
-      const sail = new THREE.Mesh(t.squareSails[i], this.tornSail.material(i === MAIN_COURSE ? t.squareSails[i] : undefined));
+      const sail = new THREE.Mesh(t.squareSails[i], this.tornSail.material(t.squareSails[i], 'z', i === MAIN_COURSE));
       sail.position.set(0, s.yardY, s.z);
       const yard = new THREE.Mesh(t.yards[i], t.palette.wood);
       yard.position.set(0, s.yardY, s.z - 0.13);
@@ -205,13 +209,13 @@ export class FrigateModel implements ShipModel {
       this.body.add(sail, yard);
     });
     L.jibs.forEach((j, i) => {
-      const jib = new THREE.Mesh(t.jibs[i], this.tornSail.material());
+      const jib = new THREE.Mesh(t.jibs[i], this.tornSail.material(t.jibs[i], 'x'));
       jib.position.copy(j.tack);
       this.jibs.push(jib);
       this.body.add(jib);
     });
     this.hoist = new THREE.Group();
-    this.hoist.add(new THREE.Mesh(t.spanker, this.tornSail.material()), new THREE.Mesh(t.spankerGaff, t.palette.wood));
+    this.hoist.add(new THREE.Mesh(t.spanker, this.tornSail.material(t.spanker, 'x', false, SAIL_BILLOW.aftSailCurve)), new THREE.Mesh(t.spankerGaff, t.palette.wood));
     this.spankerRig = new THREE.Group();
     this.spankerRig.add(new THREE.Mesh(t.spankerBoom, t.palette.wood), this.hoist);
     this.spankerRig.position.set(0, L.spankerBoomY, L.mizzenMast.z);
@@ -232,6 +236,7 @@ export class FrigateModel implements ShipModel {
     this.setCannons(this.perSide);
     this.setArmorLevel(this.armorLevel);
     this.tornSail.setDamage(this.damage);
+    this.tornSail.setDeployment(this.sailAmount);
     this.applySails();
   }
 

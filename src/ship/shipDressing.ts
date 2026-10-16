@@ -126,6 +126,7 @@ export class ShipDressing {
   /** Allure des fûts selon le type de canons de chaque calibre (le fût pointe vers +X local). */
   applyGunLook(guns: Guns) {
     for (const mount of this.model.cannons) {
+      if (mount.mortar) continue;
       const look = GUNS.types[mount.calibre === 'deck' ? guns.deck : guns.main].look;
       mount.object.scale.set(look.length, look.girth, look.girth);
     }

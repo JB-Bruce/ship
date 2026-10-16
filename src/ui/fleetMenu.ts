@@ -2,7 +2,7 @@ import { FORMATION_NAMES } from '../config';
 import type { Fleet, FleetMember, Formation } from '../fleet/fleet';
 import { capacityOf } from '../fleet/holds';
 import { cargoTotal, GOODS, goodText } from '../progression/goods';
-import { isExtended, maxLevel, totalLevels, UPGRADE_IDS } from '../progression/upgrades';
+import { cannonCount, isExtended, maxLevel, totalLevels, UPGRADE_IDS } from '../progression/upgrades';
 import { SHIP_TYPES, typeName } from '../shipTypes';
 import { ParchmentMenu } from './parchmentMenu';
 import { shipIcon } from './shipIcons';
@@ -24,15 +24,20 @@ export class FleetMenu extends ParchmentMenu {
   }
 
   render() {
+    const traders = this.fleet.members.filter((m) => m.trade);
     const formations = (Object.keys(FORMATION_NAMES) as Formation[])
       .map((f) => `<button class="choice${this.fleet.formation === f ? ' on' : ''}" data-action="formation" data-arg="${f}">${FORMATION_NAMES[f]}</button>`)
       .join('');
     this.body.innerHTML = `
       <p class="subtitle">Les navires que tu ne pilotes pas te suivent et se battent à tes côtés (sauf ceux confiés au commerce, onglet Routes du port).</p>
       <h3 class="section">Formation</h3>
+      ${this.fleet.guarded ? '<p class="subtitle">Escorte en cours : tes navires entourent le marchand à protéger ; la formation reprendra à son arrivée.</p>' : ''}
       <div class="choices">${formations}</div>
       <h3 class="section">Tes navires</h3>
-      <div class="list">${this.fleet.members.map((m) => this.memberCard(m)).join('')}</div>`;
+      <div class="list">${this.fleet.hand.map((m) => this.memberCard(m)).join('')}</div>
+      ${traders.length ? `<h3 class="section">En commerce</h3>
+      <p class="subtitle">Hors de ta flotte : chacun a un emplacement dans l’île d’où il est parti, où tu peux le reprendre.</p>
+      <div class="list">${traders.map((m) => this.memberCard(m)).join('')}</div>` : ''}`;
   }
 
   protected onAction(action: string, arg: string) {
@@ -58,7 +63,7 @@ export class FleetMenu extends ParchmentMenu {
         <div class="body">
           <h2>${m.name} <span class="tag${isExtended(m.levels) ? ' extended' : ''}">${typeName(m.type, m.levels.extension)}</span>${atHelm ? '<span class="tag helm">À la barre</span>' : ''}${m.trade ? '<span class="tag trade">⚖ En commerce</span>' : ''}<span class="tag kills" title="Navires ennemis coulés">☠ ${m.kills} coulé${m.kills > 1 ? 's' : ''}</span>${rankTag(m)}</h2>
           ${status}
-          <p>Vie ${Math.ceil(ship.health)} / ${ship.stats.maxHealth} · ${ship.stats.cannonsPerSide * 2} canons · ${Math.round(ship.stats.maxSpeed * MS_TO_KNOTS)} nœuds · améliorations ${totalLevels(m.levels)} / ${maxUpgrades}</p>
+          <p>Vie ${Math.ceil(ship.health)} / ${ship.stats.maxHealth} · ${cannonCount(ship.stats)} canons · ${Math.round(ship.stats.maxSpeed * MS_TO_KNOTS)} nœuds · améliorations ${totalLevels(m.levels)} / ${maxUpgrades}</p>
           <p class="effect">${hold}</p>
         </div>
         <div class="buy">

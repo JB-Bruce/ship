@@ -1,13 +1,22 @@
 import type * as THREE from 'three';
 import type { Livery, ShipStats } from '../config';
 import type { ShipType } from '../shipTypes';
+import { BrigModel } from './brig/brigModel';
+import { CarrackModel } from './carrack/carrackModel';
+import { FluytModel } from './fluyt/fluytModel';
+import { GalleassModel } from './galleass/galleassModel';
+import { GalleonModel } from './galleon/galleonModel';
 import { BrigantineModel } from './brigantine/brigantineModel';
+import { CaravelModel } from './caravel/caravelModel';
+import { SchoonerModel } from './schooner/schoonerModel';
 import { CorvetteModel } from './corvette/corvetteModel';
 import type { DeckPlan } from './deckPlan';
+import type { LanternSpot } from './parts/nightGlow';
 import { FrigateModel } from './frigate/frigateModel';
 import { LongboatModel } from './longboat/longboatModel';
 import { RowboatModel } from './rowboat/rowboatModel';
 import { SloopModel } from './sloop/sloopModel';
+import { XebecModel } from './xebec/xebecModel';
 
 export interface CannonMount {
   object: THREE.Object3D;
@@ -26,6 +35,14 @@ export interface CannonMount {
   fireDelay: number;
   /** Calibre : 'main' = ShipStats.cannon, 'deck' = ShipStats.deckCannon (pont supérieur d'un navire à deux calibres). */
   calibre: 'main' | 'deck';
+  /** Mortier (brick) : il garde toujours son allure, quel que soit le type de canons du calibre. */
+  mortar?: boolean;
+  /** Canon à plusieurs fûts (triple canon de la galéasse) : leurs bouches (repère du canon) ; une salve tire un boulet par fût. */
+  barrels?: readonly THREE.Vector3[];
+  /** Rechargement : multiple de celui de son calibre (1 par défaut). */
+  reloadFactor?: number;
+  /** Demi-angle de tir propre (rad), à la place de celui de son calibre. */
+  arcHalfAngle?: number;
 }
 
 /** Ce que tout modèle de bateau sait faire, quel que soit son type. */
@@ -55,6 +72,8 @@ export interface ShipModel {
   readonly waterline: readonly number[];
   /** Endroits où fumée et feu peuvent naître quand le bateau est abîmé (repère du bateau : ponts, bordé). */
   readonly fireSpots: readonly THREE.Vector3[];
+  /** Lanternes (repère du bateau), dont les halos brillent la nuit (fx/lanternHalos.ts). */
+  readonly lanterns: readonly LanternSpot[];
   /** Pont où vit l'équipage animé (deckCrew/), pour les navires pontés ; les barques gardent leurs rameurs fixes. */
   readonly deckPlan?: DeckPlan;
   /** 0 = voiles carguées, 1 = pleine voile. */
@@ -65,8 +84,10 @@ export interface ShipModel {
   setRudder(rudder: number): void;
   /** Vent relatif au bateau (rad, 0 = vers la proue) et sa force 0..1. */
   setWind(relativeDirection: number, strength: number): void;
-  /** (Re)crée `perSide` canons sur chaque flanc. */
-  setCannons(perSide: number): void;
+  /** (Re)crée `perSide` canons sur chaque flanc, et `chase` canons de chasse à la proue (caravelle, chébec, caraque, galéasse). */
+  setCannons(perSide: number, chase?: number): void;
+  /** Avirons (chébec, galéasse) : 0 = rentrés, 1 = sortis ; sortis, ils nagent en cadence. */
+  setOars?(out: number): void;
   /** Niveau de renfort de coque (bandes de fer). */
   setArmorLevel(level: number): void;
   /** Allongement (0 ou 1), pour les types qui en ont un : le modèle se reconstruit. Renvoie true s'il a changé. */
@@ -82,8 +103,16 @@ export interface ShipModel {
 export function createShipModel(type: ShipType, stats: ShipStats, livery: Livery): ShipModel {
   if (type === 'sloop') return new SloopModel(stats, livery);
   if (type === 'rowboat') return new RowboatModel(stats, livery);
+  if (type === 'caravel') return new CaravelModel(stats, livery);
+  if (type === 'schooner') return new SchoonerModel(stats, livery);
   if (type === 'brigantine') return new BrigantineModel(stats, livery);
+  if (type === 'xebec') return new XebecModel(stats, livery);
+  if (type === 'fluyt') return new FluytModel(stats, livery);
+  if (type === 'brig') return new BrigModel(stats, livery);
   if (type === 'corvette') return new CorvetteModel(stats, livery);
+  if (type === 'carrack') return new CarrackModel(stats, livery);
+  if (type === 'galleass') return new GalleassModel(stats, livery);
+  if (type === 'galleon') return new GalleonModel(stats, livery);
   if (type === 'frigate') return new FrigateModel(stats, livery);
   return new LongboatModel(stats, livery);
 }

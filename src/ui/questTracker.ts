@@ -1,6 +1,7 @@
 import { ISLAND_INFO } from '../config';
 import type { Fleet } from '../fleet/fleet';
 import { MISSION_TYPES, missionType, starsText, type Contract, type Contracts } from '../progression/contracts';
+import type { Objective } from '../progression/navyIsland';
 import { contractProgress } from './port/tavernTab';
 
 /** Intervalle de rafraîchissement (s) : inutile de refaire la liste à chaque image. */
@@ -9,6 +10,7 @@ const REFRESH = 0.3;
 /**
  * Suivi des contrats acceptés, en haut à droite : titre, avancement et petite barre. Un contrat rempli rappelle
  * où aller toucher la prime (ou livrer la marchandise). `status` : état d'une mission en cours (escorte, siège…).
+ * En tête, les objectifs hors contrat (contre-attaque de la Marine sur une île prise).
  */
 export class QuestTracker {
   private readonly root: HTMLElement;
@@ -22,11 +24,12 @@ export class QuestTracker {
   }
 
   /** Pendant la pause (dt = 0), la liste suit tout de suite ce qui change à la taverne. */
-  update(dt: number, contracts: Contracts, fleet: Fleet, status: (c: Contract) => string | null) {
+  update(dt: number, contracts: Contracts, fleet: Fleet, status: (c: Contract) => string | null, objectives: () => readonly Objective[] = () => []) {
     this.timer -= dt;
     if (this.timer > 0 && dt > 0) return;
     this.timer = REFRESH;
-    const html = contracts.active.map((c) => this.entry(c, contracts, fleet, status(c))).join('');
+    const extra = objectives().map((o) => `<div class="quest"><div class="quest-title">${o.title}</div><div class="quest-note">${o.note}</div></div>`).join('');
+    const html = extra + contracts.active.map((c) => this.entry(c, contracts, fleet, status(c))).join('');
     if (html === this.html) return;
     this.html = html;
     this.root.innerHTML = html;

@@ -29,6 +29,12 @@ class Follower {
     this.lastTarget = NaN;
   }
 
+  copy(other: Follower) {
+    this.value = other.value;
+    this.speed = other.speed;
+    this.lastTarget = other.lastTarget;
+  }
+
   update(target: number, stiffness: number, damping: number, maxOffset: number, dt: number, o: FollowOptions = DEFAULT_FOLLOW) {
     if (dt <= 0) return;
     // Premier calcul (apparition) : on part posé sur l'eau.
@@ -112,6 +118,14 @@ export class Buoyancy {
     this.recoil.pitchSpeed += pitch;
   }
 
+  /** Reprend l'assiette d'une autre coque du même type (même masse) : hauteur, tangage, roulis et leurs élans. */
+  copyFrom(other: Buoyancy) {
+    this.height.copy(other.height);
+    this.pitchFollower.copy(other.pitchFollower);
+    this.rollFollower.copy(other.rollFollower);
+    Object.assign(this.recoil, other.recoil);
+  }
+
   reset(y: number) {
     this.height.reset(y);
     this.pitchFollower.reset(0);
@@ -129,16 +143,28 @@ export class Buoyancy {
     const fz = Math.cos(heading);
     const l = stats.length * BUOYANCY.sampleLength;
     const w = stats.width * BUOYANCY.sampleWidth;
-    const center = waves.heightAt(x, z);
-    const bow = waves.heightAt(x + fx * l, z + fz * l);
-    const stern = waves.heightAt(x - fx * l, z - fz * l);
-    const port = waves.heightAt(x + fz * w, z - fx * w);
-    const starboard = waves.heightAt(x - fz * w, z + fx * w);
+    // Hauteur de l'eau aux cinq mesures, et part de la houle de fond (suivie entièrement, même par un gros navire).
+    const c = BUOYANCY.centerWeight;
+    let h = waves.heightSplit(x, z);
+    const center = h.total;
+    let long = h.long * c;
+    h = waves.heightSplit(x + fx * l, z + fz * l);
+    const bow = h.total;
+    long += h.long;
+    h = waves.heightSplit(x - fx * l, z - fz * l);
+    const stern = h.total;
+    long += h.long;
+    h = waves.heightSplit(x + fz * w, z - fx * w);
+    const port = h.total;
+    long += h.long;
+    h = waves.heightSplit(x - fz * w, z + fx * w);
+    const starboard = h.total;
+    long = (long + h.long) / (c + 4);
 
     // Naufrage : la coque s'alourdit, s'enfonce par l'avant et se couche sur le flanc.
     const sinkDepth = sinking * sinking * 9;
-    const c = BUOYANCY.centerWeight;
-    const targetY = ((center * c + bow + stern + port + starboard) / (c + 4)) * this.heave - sinkDepth;
+    const water = (center * c + bow + stern + port + starboard) / (c + 4);
+    const targetY = long + (water - long) * this.heave - sinkDepth;
     const targetPitch = Math.atan2(bow - stern, 2 * l) - sinking * 0.35;
     const targetRoll = Math.atan2(port - starboard, 2 * w) + heel + sinking * 0.8;
 

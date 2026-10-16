@@ -3,6 +3,7 @@ import { DECK_CREW, type Livery, type ShipStats } from '../../config';
 import { wrapAngle } from '../../utils/math';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import { armorFor, cannonMount, fireSpots, sternStaff, riggingMaterial, waterMaskMaterial, WavingFlag } from '../parts/common';
+import { addStatics, type LanternSpot } from '../parts/nightGlow';
 import { TornSail } from '../parts/tornSail';
 import { deckWalks, ropeSpots, type DeckPlan } from '../deckPlan';
 import type { CannonMount, EnsignStaff, FlagMount, ShipModel } from '../shipModel';
@@ -39,6 +40,7 @@ export class SloopModel implements ShipModel {
   readonly flagMount: FlagMount = { position: new THREE.Vector3(0, FLAG.y, MAST_Z), length: FLAG.length, height: FLAG.height };
   readonly ensignStaff: EnsignStaff = sternStaff(SLOOP_HULL.stationAt(-1), 0.9);
   // Sur le pont, autour de la cabine et du mât, et deux brèches dans le bordé.
+  readonly lanterns: LanternSpot[];
   readonly fireSpots = fireSpots(SLOOP_HULL, [
     [-0.7, 0.3, DECK_Y],
     [-0.2, -0.4, DECK_Y],
@@ -74,14 +76,14 @@ export class SloopModel implements ShipModel {
     this.gunportGeometry = t.gunport;
     this.cannonMaterial = t.palette.metal;
     this.gunportMaterial = t.palette.dark;
-    for (const { geometry, material } of t.statics) this.root.add(new THREE.Mesh(geometry, material));
+    this.lanterns = addStatics(this.root, t.statics);
 
-    this.hoist.add(new THREE.Mesh(t.mainSail, this.tornSail.material(t.mainSail)), new THREE.Mesh(t.gaff, t.palette.wood));
-    if (t.patchMaterial) this.hoist.add(new THREE.Mesh(t.patches, t.patchMaterial));
+    this.hoist.add(new THREE.Mesh(t.mainSail, this.tornSail.material(t.mainSail, 'x', true)), new THREE.Mesh(t.gaff, t.palette.wood));
+    if (t.patchMaterial) this.hoist.add(new THREE.Mesh(t.patches, this.tornSail.patchMaterial(t.patchMaterial, t.mainSail, 'x')));
     this.rig.add(new THREE.Mesh(t.boom, t.palette.wood), this.hoist, new THREE.LineSegments(t.rigLines, riggingMaterial));
     this.rig.position.set(0, BOOM_Y, MAST_Z);
 
-    this.jib = new THREE.Mesh(t.jib, this.tornSail.material());
+    this.jib = new THREE.Mesh(t.jib, this.tornSail.material(t.jib, 'x'));
     this.jib.position.copy(BOWSPRIT_TIP);
 
     this.rudder = new THREE.Mesh(t.rudder, t.palette.trim);
@@ -101,6 +103,7 @@ export class SloopModel implements ShipModel {
 
   setSailAmount(amount: number) {
     this.sailAmount = amount;
+    this.tornSail.setDeployment(amount);
     this.applySails();
   }
 
@@ -119,6 +122,7 @@ export class SloopModel implements ShipModel {
    */
   setWind(relativeDirection: number, strength: number) {
     this.flag.setWind(relativeDirection, strength);
+    this.tornSail.setWind(relativeDirection, strength);
     const s = Math.sin(relativeDirection);
     // Hystérésis : au vent arrière pile, la bôme ne passe pas d'un bord à l'autre sans arrêt.
     if (s > 0.15) this.leeSide = 1;

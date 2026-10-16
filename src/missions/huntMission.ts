@@ -2,6 +2,7 @@ import { CONTRACTS, LAND } from '../config';
 import type { Contract } from '../progression/contracts';
 import type { Enemy } from '../world/enemySpawner';
 import { ISLAND_LIST, islandById, land, type Island } from '../world/island';
+import { worldEdge } from '../world/worldEdge';
 import { squadronTypes, type MapZone, type Mission, type MissionOutcome, type MissionWorld } from './mission';
 
 const rand = ([min, max]: readonly [number, number]) => min + Math.random() * (max - min);
@@ -28,7 +29,7 @@ export class HuntMission implements Mission {
     const name = contract.captain ?? 'Capitaine de la Marine';
     this.area = { ...center, radius: h.radius, label: name };
     // Les étoiles règlent le navire du capitaine et son escorte.
-    const s = contract.stars - 1;
+    const s = (contract.tier ?? contract.stars) - 1;
     // Escadre imposée par une mission spéciale, ou tirée selon les étoiles.
     const types = contract.squadron ?? squadronTypes(h.captain[s], randInt(h.escorts[s]), h.escortMin[s]);
     const home = { x: center.x, z: center.z, radius: h.radius };
@@ -63,7 +64,7 @@ function findOpenSea(island: Island): { x: number; z: number } {
     const x = island.cx + Math.sin(angle) * d;
     const z = island.cz + Math.cos(angle) * d;
     const nearPort = ISLAND_LIST.some((island) => Math.hypot(x - island.port.x, z - island.port.z) < LAND.portClearance);
-    if (!nearPort && land.sdf(x, z) > h.radius + LAND.spawnClearance) return { x, z };
+    if (!nearPort && land.sdf(x, z) > h.radius + LAND.spawnClearance && worldEdge.room(x, z) > h.radius) return { x, z };
   }
   return land.keepOffshore(island.cx - h.distance[1], island.cz, h.radius + LAND.spawnClearance);
 }

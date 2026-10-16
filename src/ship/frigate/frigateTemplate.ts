@@ -1,3 +1,4 @@
+import { WATER_MASK } from '../../config';
 import * as THREE from 'three';
 import type { Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
@@ -93,13 +94,13 @@ function buildTemplate(L: FrigateLayout, livery: Livery): FrigateTemplate {
   const castleHeight = quarterdeck.y - DECK_Y;
   batch.add(p.wood, box(2 * L.width(quarterdeck.to, DECK_Y) * 0.97, castleHeight, 0.12), tf(0, DECK_Y + castleHeight / 2, castle.z));
   batch.add(p.dark, box(0.85, 1.5, 0.04), tf(0, DECK_Y + 0.75, castle.z + 0.07));
-  for (const x of [-1.1, 1.1]) batch.add(p.dark, box(0.42, 0.36, 0.04), tf(x, DECK_Y + 1.4, castle.z + 0.07));
+  for (const x of [-1.1, 1.1]) batch.add(p.window, box(0.42, 0.36, 0.04), tf(x, DECK_Y + 1.4, castle.z + 0.07));
   for (const side of [1, -1]) addStairs(batch, p, tf(side * 1.7, DECK_Y, castle.z), castleHeight, 7);
   const aft = L.station(poop.to);
   const poopHeight = poop.y - quarterdeck.y;
   batch.add(lightWood, box(2 * L.width(poop.to, quarterdeck.y) * 0.96, poopHeight, 0.12), tf(0, quarterdeck.y + poopHeight / 2, aft.z));
   batch.add(p.dark, box(0.8, 1.4, 0.04), tf(0, quarterdeck.y + 0.7, aft.z + 0.07));
-  for (const x of [-1.2, 1.2]) batch.add(p.dark, box(0.4, 0.34, 0.04), tf(x, quarterdeck.y + 1.25, aft.z + 0.07));
+  for (const x of [-1.2, 1.2]) batch.add(p.window, box(0.4, 0.34, 0.04), tf(x, quarterdeck.y + 1.25, aft.z + 0.07));
   batch.add(gold, box(2 * L.width(poop.to, poop.y) * 0.94, 0.08, 0.06), tf(0, poop.y - 0.05, aft.z + 0.08));
   for (const side of [1, -1]) addStairs(batch, p, tf(side * 1.6, quarterdeck.y, aft.z), poopHeight, 6);
   const fore = L.station(forecastle.from);
@@ -163,7 +164,7 @@ function buildTemplate(L: FrigateLayout, livery: Livery): FrigateTemplate {
     deckGun: buildCarriageGunGeometry(),
     flagMaterial: flagMaterialFor(livery),
     rigging: buildRigging(L),
-    waterMask: hull.buildWaterMask(),
+    waterMask: hull.buildWaterMask(DECK_Y + WATER_MASK.aboveDeck),
   };
 }
 

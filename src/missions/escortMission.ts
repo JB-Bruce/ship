@@ -33,7 +33,7 @@ export class EscortMission implements Mission {
     contract: Contract,
     private readonly onAmbush: () => void,
   ) {
-    this.stars = contract.stars;
+    this.stars = contract.tier ?? contract.stars;
     const from = islandById(contract.from);
     const to = islandById(contract.claimAt);
     this.destination = ISLAND_INFO[to.id].shortName;

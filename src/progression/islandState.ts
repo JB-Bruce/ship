@@ -1,11 +1,15 @@
+import { SHIP_TYPES, type ShipType } from '../shipTypes';
 import {
   CITADEL,
   FORT,
   ISLAND_INFO,
   ISLAND_TRADE,
   ISLAND_UPGRADES,
+  NAVY_HOLDS,
   PORT,
   RADAR,
+  ROYAL_FORT,
+  TRADE_ROUTES,
   type Cost,
   type IslandId,
   type IslandInfoDef,
@@ -19,12 +23,22 @@ export type { IslandUpgradeId };
 export const ISLAND_UPGRADE_INFO: Record<IslandUpgradeId, { name: string; description: string }> = {
   fort: { name: 'Fort', description: 'Plus de canons sur les remparts, une meilleure poudre et des boulets plus lourds.' },
   citadel: { name: 'Citadelle', description: 'Les Frères du Sabre arment de nouveaux bastions : jusqu’à 8 canons, qui portent loin.' },
-  dock: { name: 'Quai et chantier', description: 'Des charpentiers en nombre : réparations plus rapides, navires remis à flot plus vite et moins chers.' },
+  royalFort: { name: 'Fort-Royal', description: 'Tes canonniers remettent en batterie les pièces de la Marine : jusqu’à 11 canons, les plus lourds de l’archipel.' },
+  shipyard: { name: 'Chantier naval', description: 'Des cales de construction et des maîtres charpentiers : le port peut bâtir des navires plus grands (brigantin, chébec, flûte, brick et corvette, puis caraque, galéasse et frégate, puis galion).' },
+  dock: { name: 'Quai', description: 'Des charpentiers en nombre : réparations plus rapides, navires remis à flot plus vite et moins chers.' },
   workshop: { name: 'Scierie', description: 'Les bûcherons de l’île débitent du bois de charpente, même quand tu es au large. Il attend dans la réserve de l’île.' },
   counter: { name: 'Comptoir', description: 'Des négociants s’installent au port : les marchands alliés viennent plus souvent et laissent plus d’or dans la réserve de l’île.' },
   lighthouse: { name: 'Phare', description: 'Une lanterne plus haute et des vigies : le radar porte plus loin près de l’île, et la carte montre les ennemis qui l’approchent.' },
+  moorings: { name: 'Mouillage', description: 'Des corps-morts et des quais pour les navires de commerce : l’île peut armer plus de routes commerciales. Chaque navire envoyé d’ici y prend un emplacement et y revient quand tu le rappelles.' },
   smuggling: { name: 'Comptoir de contrebande', description: 'Des receleurs sûrs : le marché de l’île t’achète plus cher et te vend moins cher, et plus de marchands alliés y font escale.' },
 };
+
+/** Ce qu'une sauvegarde garde d'une île. */
+export interface IslandSnapshot {
+  owned: boolean;
+  levels: Record<IslandUpgradeId, number>;
+  stock: { gold: number; wood: number };
+}
 
 /**
  * Une île : son allégeance, son marché et, si elle t'appartient, ses améliorations et sa réserve (bois de la scierie,
@@ -34,13 +48,47 @@ export const ISLAND_UPGRADE_INFO: Record<IslandUpgradeId, { name: string; descri
 export class IslandState {
   readonly info: IslandInfoDef;
   owned: boolean;
-  readonly levels: Record<IslandUpgradeId, number> = { fort: 0, citadel: 0, dock: 0, workshop: 0, counter: 0, lighthouse: 0, smuggling: 0 };
+  readonly levels: Record<IslandUpgradeId, number> = { fort: 0, citadel: 0, royalFort: 0, dock: 0, shipyard: 0, workshop: 0, counter: 0, lighthouse: 0, smuggling: 0, moorings: 0 };
   /** Réserve en attente (fractions comprises). */
   private readonly stock = { gold: 0, wood: 0 };
 
   constructor(readonly id: IslandId) {
     this.info = ISLAND_INFO[id];
     this.owned = this.info.owned;
+  }
+
+  /** État à sauvegarder : allégeance, améliorations et réserve. */
+  snapshot(): IslandSnapshot {
+    return { owned: this.owned, levels: { ...this.levels }, stock: { ...this.stock } };
+  }
+
+  restore(s: IslandSnapshot) {
+    this.owned = s.owned;
+    Object.assign(this.levels, s.levels);
+    Object.assign(this.stock, s.stock);
+  }
+
+  /** Tenue par la Marine : port fermé, fort ennemi. */
+  get navyHeld(): boolean {
+    return !this.owned && this.info.allegiance === 'navy';
+  }
+
+  /** L'île est prise à la Marine : elle t'appartient, avec ce qui est déjà bâti (arsenal). */
+  capture() {
+    this.owned = true;
+    for (const [id, level] of Object.entries(this.info.captureLevels ?? {}) as [IslandUpgradeId, number][]) this.levels[id] = Math.max(this.levels[id], level);
+  }
+
+  /** La Marine reprend l'île : la réserve est perdue, les améliorations restent pour le jour où tu la reprendras. */
+  lose() {
+    this.owned = false;
+    this.stock.gold = this.stock.wood = 0;
+  }
+
+  /** Butin d'une escadre repoussée, déposé dans la réserve (au-delà de sa limite). */
+  addSpoils(spoils: Cost) {
+    this.stock.gold += spoils.gold;
+    this.stock.wood += spoils.wood;
   }
 
   /** Production de la scierie, dans la limite de la réserve. */
@@ -87,15 +135,22 @@ export class IslandState {
     switch (id) {
       case 'fort':
       case 'citadel':
+      case 'royalFort':
         return `${u[id].guns[i]} canons · portée ${u[id].range[i]} m · ${u[id].damage[i]} dégâts`;
       case 'dock':
         return `Réparation ×${(u.dock.repairRate[i] / PORT.repairRate).toFixed(1)} · retour des navires −${Math.round((1 - u.dock.respawnFactor[i]) * 100)} % · navires −${Math.round(u.dock.shipDiscount[i] * 100)} %`;
+      case 'shipyard': {
+        const types = (Object.keys(u.shipyard.required) as ShipType[]).filter((t) => u.shipyard.required[t] === level);
+        return `Construction : ${types.map((t) => SHIP_TYPES[t].name.toLowerCase()).join(', ')}`;
+      }
       case 'workshop':
         return `${u.workshop.woodPerMinute[i]} bois par minute`;
       case 'counter':
         return this.tradeText(level);
       case 'lighthouse':
         return `Radar ${u.lighthouse.radarRange[i]} m à moins de ${u.lighthouse.coverage[i]} m de l'île`;
+      case 'moorings':
+        return `${u.moorings.slots[i]} emplacements pour les routes commerciales`;
       case 'smuggling':
         return `Ventes +${Math.round(u.smuggling.sellBonus[i] * 100)} % · achats −${Math.round(u.smuggling.buyDiscount[i] * 100)} % · ${this.tradeText(level)}`;
     }
@@ -130,8 +185,14 @@ export class IslandState {
     return this.levels[id] > 0 ? values[this.levels[id] - 1] : base;
   }
 
-  /** Armement du fort de l'île (fort de la Tortue ou citadelle de Port-Sabre). */
+  /** Armement du fort de l'île (fort de la Tortue, citadelle de Port-Sabre, fort d'une île de la Marine, Fort-Royal à toi). */
   get fortArmament(): { guns: number; range: number; damage: number } {
+    const hold = NAVY_HOLDS[this.id];
+    if (this.navyHeld && hold) return hold.fort;
+    if (this.info.upgrades.includes('royalFort')) {
+      const r = ISLAND_UPGRADES.royalFort;
+      return { guns: this.at(r.guns, 'royalFort', ROYAL_FORT.guns), range: this.at(r.range, 'royalFort', ROYAL_FORT.range), damage: this.at(r.damage, 'royalFort', ROYAL_FORT.damage) };
+    }
     if (this.info.upgrades.includes('citadel')) {
       const c = ISLAND_UPGRADES.citadel;
       return { guns: this.at(c.guns, 'citadel', CITADEL.guns), range: this.at(c.range, 'citadel', CITADEL.range), damage: this.at(c.damage, 'citadel', CITADEL.damage) };
@@ -149,6 +210,16 @@ export class IslandState {
   }
 
   /** Prix d'un navire après la remise du chantier. */
+  /** Niveau de chantier naval qu'il faut pour construire `type` ici (0 : aucun). */
+  shipyardFor(type: ShipType): number {
+    return ISLAND_UPGRADES.shipyard.required[type] ?? 0;
+  }
+
+  /** Ce port peut-il construire `type` (chantier naval assez amélioré) ? */
+  canBuild(type: ShipType): boolean {
+    return this.levels.shipyard >= this.shipyardFor(type);
+  }
+
   shipPrice(price: Cost): Cost {
     const f = 1 - this.at(ISLAND_UPGRADES.dock.shipDiscount, 'dock', 0);
     return { gold: Math.round(price.gold * f), wood: Math.round(price.wood * f) };
@@ -164,6 +235,11 @@ export class IslandState {
       buy: base.buy === null ? null : Math.max(1, Math.round(base.buy * buy)),
       sell: base.sell === null ? null : Math.round(base.sell * sell),
     };
+  }
+
+  /** Emplacements pour les navires que l'île envoie en route commerciale (aucun si elle n'est pas à toi). */
+  get tradeSlots(): number {
+    return this.owned ? this.at(ISLAND_UPGRADES.moorings.slots, 'moorings', TRADE_ROUTES.islandSlots) : 0;
   }
 
   /** Zone couverte par le phare (distance à la côte, m), 0 sans phare. */

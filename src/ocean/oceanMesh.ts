@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GRAPHICS, OCEAN } from '../config';
 import { RENDER_ORDER } from '../utils/renderOrder';
-import { ISLAND_GLSL, islandUniforms } from '../world/island';
+import { ISLAND_GLSL, islandUniforms, selectIslands } from '../world/islandShader';
 import { SKY_GLSL, skyUniforms } from '../world/sky';
 import { createRippleTexture } from './rippleTexture';
 import { seaStateUniforms } from './seaState';
@@ -34,6 +34,8 @@ void main() {
   vec3 dZ = vec3(0.0);  // … et selon z
   for (int i = 0; i < WAVE_COUNT; i++) {
     vec4 w = uWaves[i];
+    // Vague sans raideur (clapot, houle de fond hors tempête) : rien à calculer (même saut que côté CPU).
+    if (w.z == 0.0) continue;
     float k = 6.28318530718 / w.w;
     float c = sqrt(9.8 / k);
     float f = k * (dot(w.xy, p.xz) - c * uTime);
@@ -133,7 +135,7 @@ void main() {
   vec3 body = mix(uDeep, uShallow, smoothstep(0.2, 1.0, h));
   body *= 0.6 + 0.4 * max(dot(N, uSunDir), 0.0);
   // Contre-jour : le soleil traverse les crêtes et les teinte en turquoise.
-  vec3 sunFlat = normalize(vec3(uSunDir.x, 0.0, uSunDir.z));
+  vec3 sunFlat = normalize(vec3(uSunDir.x, 0.0, uSunDir.z) + vec3(1e-4, 0.0, 0.0));
   vec3 viewFlat = normalize(vec3(-V.x, 0.0, -V.z));
   float backLight = pow(max(dot(viewFlat, sunFlat), 0.0), 3.0);
   body += uScatter * (backLight * 0.8 + 0.2) * smoothstep(0.45, 1.0, h) * 0.6 * uSunlight;
@@ -145,13 +147,18 @@ void main() {
 
   // Eau brassée par un bateau : un peu plus claire et laiteuse.
   body = mix(body, body * 1.06 + uScatter * 0.03, wakeCalm * 0.6);
-  // Ciel couvert : l'eau s'assombrit.
-  body *= mix(0.6, 1.0, uSunlight);
+  // Ciel couvert : l'eau s'assombrit ; la nuit encore plus (l'eau ne reçoit pas les lumières de la scène).
+  body *= mix(0.6, 1.0, uSunlight) * uWaterLight;
 
   vec3 color = mix(body, reflection, fresnel * 0.9);
   // Reflet du soleil : un éclat net et un halo, rendus pétillants par les rides.
   float spec = max(dot(R, uSunDir), 0.0);
   color += uSunColor * (pow(spec, 900.0) * 5.0 + pow(spec, 90.0) * 0.2) * uSunlight;
+  // La nuit, la lune trace son chemin de reflets sur l'eau.
+  float moonSpec = max(dot(R, uMoonDir), 0.0);
+  color += uMoonColor * (pow(moonSpec, 350.0) * 2.2 + pow(moonSpec, 40.0) * 0.07) * uNight * uClearSky;
+  // Écume : de la couleur de l'écume, plus sombre la nuit.
+  vec3 foam = uFoam * uFoamLight;
 
   // Écume : seulement au sommet des crêtes qui se resserrent, en petites touches découpées par le bruit.
   // Mer calme = très peu d'écume ; une mer forte (météo) en fera apparaître beaucoup plus.
@@ -161,7 +168,7 @@ void main() {
   // un endroit tiré au hasard dans sa case (~11 m) et change de place à chaque cycle, jamais deux fois au même endroit.
   float storm = uSeaFoam;
   float crest = smoothstep(0.85, 0.65, vJacobian) * smoothstep(0.7, 0.95, h);
-  color = mix(color, uFoam, crest * smoothstep(0.55, 0.8, noise) * 0.85 * (1.0 - storm));
+  color = mix(color, foam, crest * smoothstep(0.55, 0.8, noise) * 0.85 * (1.0 - storm));
   // (Seulement en haut des vagues, le seul endroit où elles se voient : le reste de l'eau saute ce calcul.)
   if (storm > 0.0 && h > 0.62) {
     vec2 cellPos = vWorldPos.xz / 11.0;
@@ -173,7 +180,7 @@ void main() {
     float radius = (0.15 + 0.15 * spot.x) * sin(3.1416 * fract(cycle));
     float d = length(fract(cellPos) - 0.2 - 0.6 * spot) + (noise - 0.5) * 0.12;
     float blot = 1.0 - smoothstep(radius * 0.5, radius, d);
-    color = mix(color, uFoam, blot * smoothstep(0.62, 0.85, h) * step(0.3, seed) * storm * 0.75);
+    color = mix(color, foam, blot * smoothstep(0.62, 0.85, h) * step(0.3, seed) * storm * 0.75);
   }
   // Sillages, anneaux et vague d'étrave : écume découpée par le bruit, qui se défait en s'estompant.
   // Dense juste derrière le bateau, puis en dentelle qui se défait en pâlissant (jamais un aplat blanc).
@@ -185,11 +192,11 @@ void main() {
       + noise * 0.25;
     float trailFoam = clamp((min(wake.r, 1.0) - (1.0 - lace) * 0.95) * 2.2, 0.0, 1.0);
     float hullF = clamp((hullFoam(vWorldPos.xz, vWorldPos.y, uTime) - (1.0 - lace) * 0.35) * 2.2, 0.0, 1.0);
-    color = mix(color, uFoam, max(trailFoam * 0.65, hullF * 0.7));
+    color = mix(color, foam, max(trailFoam * 0.65, hullF * 0.7));
   }
   // Ressac : un liseré d'écume qui ondule le long du rivage.
   float surf = 1.0 - smoothstep(0.0, coast.z * (0.6 + 0.8 * noise), shore);
-  color = mix(color, uFoam, surf * 0.9);
+  color = mix(color, foam, surf * 0.9);
 
   gl_FragColor = vec4(color, 1.0);
   #include <tonemapping_fragment>
@@ -256,6 +263,8 @@ export class Ocean {
     });
     this.uniforms.uMaxHeight.value = this.waves.maxHeight;
 
+    // Seules les îles proches de la grille sont parcourues par chaque pixel d'eau.
+    selectIslands(focus.x, focus.z);
     // Déplacer la grille par pas entiers de cellule évite que les sommets « glissent » sous la caméra.
     const step = OCEAN.innerCell;
     this.mesh.position.set(Math.round(focus.x / step) * step, 0, Math.round(focus.z / step) * step);

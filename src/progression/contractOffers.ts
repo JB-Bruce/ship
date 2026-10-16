@@ -2,6 +2,8 @@ import { CONTRACTS, ISLAND_INFO, type Cost, type IslandId, type SpecialContractD
 import { SHIP_TYPES, sizeRank, type ShipType } from '../shipTypes';
 import type { Contract, ContractKind, ContractOptions } from './contracts';
 import { GOODS, goodText, type Good } from './goods';
+import { averageThreat, rangeThreat, shipThreat, squadronThreat, starsForThreat, targetThreat } from './missionThreat';
+import { harbors } from '../world/harbors';
 
 /** Une offre de taverne, avant qu'on lui donne un numéro. */
 export type Offer = Omit<Contract, 'id' | 'progress'>;
@@ -16,6 +18,10 @@ const rewardFor = (gold: number, wood: number, stars: number): Cost => {
   return { gold: Math.round(gold * f), wood: Math.round(wood * f) };
 };
 const ISLAND_IDS = Object.keys(ISLAND_INFO) as IslandId[];
+const average = ([min, max]: readonly [number, number]) => (min + max) / 2;
+/** Menace d'une escadre tirée par `squadronTypes` : un chef d'élite et `followers` navires entre `min` et lui. */
+const drawnSquadronThreat = (leader: ShipType, followers: number, min: ShipType) =>
+  shipThreat(leader) * CONTRACTS.eliteThreat + followers * rangeThreat(min, leader);
 
 /** Genre d'une offre, pour ne pas en proposer deux pareilles : les livraisons se distinguent par leur marchandise. */
 export const offerKey = (c: Offer): string => (c.kind === 'deliver' ? `deliver-${c.good}` : c.kind);
@@ -24,11 +30,14 @@ export const offerKey = (c: Offer): string => (c.kind === 'deliver' ? `deliver-$
  * Nouvelle offre du jour pour la taverne d'une île pirate, d'un genre qui n'est ni déjà proposé ici ni déjà accepté
  * (`taken`) : couler des navires de la Marine, livrer du poisson, chasse à un capitaine, défense du port, escorte d'un
  * marchand, et les convois de son marché. La chasse à un type de navire reste toujours possible (elle varie par le type).
+ * `stars` (tiré autour du niveau de ta flotte) choisit le palier des tables ; pour un combat, les étoiles affichées et la
+ * prime viennent ensuite de la menace réelle (missionThreat.ts).
  */
 export function createOffer(island: IslandId, options: ContractOptions, stars: number, taken: ReadonlySet<string>): Offer {
   const offer = (kind: ContractKind, title: string, description: string, target: number, reward: Cost, claimAt = island): Offer => ({
     kind,
     stars,
+    tier: stars,
     title,
     description,
     target,
@@ -51,13 +60,15 @@ export function createOffer(island: IslandId, options: ContractOptions, stars: n
   switch (kind) {
     case 'sink': {
       const n = 2 + stars + randInt([0, 2]);
-      return offer('sink', 'Nettoyer les eaux', `Coule ${n} navires de la Marine, quels qu'ils soient.`, n, rewardFor(CONTRACTS.sink.gold, CONTRACTS.sink.wood, stars));
+      const s = starsForThreat(n * averageThreat(options.types));
+      return { ...offer('sink', 'Nettoyer les eaux', `Coule ${n} navires de la Marine, quels qu'ils soient.`, n, rewardFor(CONTRACTS.sink.gold, CONTRACTS.sink.wood, s)), stars: s };
     }
     case 'sinkElite': {
       const e = CONTRACTS.sinkElite;
       const n = e.count[stars - 1];
+      const s = starsForThreat(n * averageThreat(options.types) * CONTRACTS.eliteThreat);
       const text = n > 1 ? `Coule ${n} navires d’élite de la Marine (couronne dorée sur la grand-voile).` : 'Coule un navire d’élite de la Marine (couronne dorée sur la grand-voile).';
-      return offer('sinkElite', 'Humilier la Couronne', text, n, rewardFor(e.gold, e.wood, stars));
+      return { ...offer('sinkElite', 'Humilier la Couronne', text, n, rewardFor(e.gold, e.wood, s)), stars: s };
     }
     case 'deliver-fish': {
       const d = CONTRACTS.deliverFish;
@@ -67,31 +78,40 @@ export function createOffer(island: IslandId, options: ContractOptions, stars: n
     case 'hunt': {
       const h = CONTRACTS.hunt;
       const name = pick(h.names);
-      const ship = SHIP_TYPES[h.captain[stars - 1]].name.toLowerCase();
+      const i = stars - 1;
+      const ship = SHIP_TYPES[h.captain[i]].name.toLowerCase();
+      const s = starsForThreat(drawnSquadronThreat(h.captain[i], average(h.escorts[i]), h.escortMin[i]));
       const text = `${name} (${ship} d'élite) et son escorte rôdent dans une zone marquée sur ta carte (M). Coule son navire.`;
-      return { ...offer('hunt', `Tête mise à prix : ${name}`, text, 1, rewardFor(h.gold, h.wood, stars)), captain: name };
+      return { ...offer('hunt', `Tête mise à prix : ${name}`, text, 1, rewardFor(h.gold, h.wood, s)), stars: s, captain: name };
     }
     case 'defend': {
       const d = CONTRACTS.defend;
       const fort = `${info.fort.feminine ? 'la' : 'le'} ${info.fort.noun}`;
-      const text = `Une escadre de ${d.squadron[stars - 1]} navires de la Marine attaquera ${fort} ${d.delay} s après ton accord. Coule-la avant qu'elle ne fasse tomber les remparts. Prime versée sur-le-champ.`;
-      return offer('defend', `Défendre ${info.shortName}`, text, 1, rewardFor(d.gold, d.wood, stars));
+      const i = stars - 1;
+      const s = starsForThreat(drawnSquadronThreat(d.leader[i], d.squadron[i] - 1, d.followerMin[i]));
+      const text = `Une escadre de ${d.squadron[i]} navires de la Marine attaquera ${fort} ${d.delay} s après ton accord. Coule-la avant qu'elle ne fasse tomber les remparts. Prime versée sur-le-champ.`;
+      return { ...offer('defend', `Défendre ${info.shortName}`, text, 1, rewardFor(d.gold, d.wood, s)), stars: s };
     }
     case 'escort': {
       const e = CONTRACTS.escort;
-      const to = pick(ISLAND_IDS.filter((id) => id !== island));
-      const ambushes = e.ambushes[stars - 1];
+      const to = pick(ISLAND_IDS.filter((id) => id !== island && harbors.isOpen(id)));
+      const i = stars - 1;
+      const ambushes = e.ambushes[i];
+      const s = starsForThreat(ambushes ? ambushes * drawnSquadronThreat(e.ambushLeader[i], e.ambushSize[i] - 1, e.ambushMin[i]) : 0);
       const danger = ambushes ? ` On craint ${ambushes > 1 ? 'des embuscades' : 'une embuscade'} en route.` : '';
       const text = `Un sloop marchand quitte ${info.shortName} pour ${ISLAND_INFO[to].shortName}. Protège-le jusqu'au port.${danger} Prime versée à l'arrivée.`;
-      return offer('escort', 'Escorter un marchand', text, 1, rewardFor(e.gold, e.wood, stars), to);
+      return { ...offer('escort', 'Escorter un marchand', text, 1, rewardFor(e.gold, e.wood, s), to), stars: s };
     }
     default: {
       // Plus d'étoiles = un type plus gros, parmi ceux qui apparaissent déjà.
       const types = [...options.types].sort((a, b) => sizeRank(a) - sizeRank(b));
       const type = types[Math.min(types.length - 1, Math.floor(((stars - 1) / (CONTRACTS.stars - 1)) * types.length))] ?? 'rowboat';
-      const n = randInt(CONTRACTS.sinkType.count);
-      const reward = rewardFor(CONTRACTS.sinkType.gold, CONTRACTS.sinkType.wood, stars);
-      return { ...offer('sinkType', `Chasse aux ${plural(type)}`, `Coule ${n} ${plural(type)} de la Marine.`, n, reward), shipType: type };
+      // Autant de navires qu'il en faut pour approcher la menace visée (dans les bornes du nombre).
+      const [least, most] = CONTRACTS.sinkType.count;
+      const n = Math.min(most, Math.max(least, Math.round(targetThreat(stars) / shipThreat(type))));
+      const s = starsForThreat(n * shipThreat(type));
+      const reward = rewardFor(CONTRACTS.sinkType.gold, CONTRACTS.sinkType.wood, s);
+      return { ...offer('sinkType', `Chasse aux ${plural(type)}`, `Coule ${n} ${plural(type)} de la Marine.`, n, reward), stars: s, shipType: type };
     }
   }
 }
@@ -101,7 +121,8 @@ export function createOffer(island: IslandId, options: ContractOptions, stars: n
  * d'une offre du jour du même genre et de la même difficulté × CONTRACTS.specialReward (les primes sur les boss sont fixes).
  */
 export function specialOffer(island: IslandId, def: SpecialContractDef): Offer {
-  const { stars } = def;
+  // Chasse et défense à escadre imposée : leurs étoiles viennent de sa menace (le chef est d'élite).
+  const stars = def.squadron ? starsForThreat(squadronThreat(def.squadron, true)) : def.stars;
   const twice = (c: Cost): Cost => ({ gold: Math.round(c.gold * CONTRACTS.specialReward), wood: Math.round(c.wood * CONTRACTS.specialReward) });
   const base = { kind: def.kind, stars, title: def.title, description: def.description, target: 1, from: island, claimAt: island, special: def.id };
   switch (def.kind) {
@@ -140,7 +161,8 @@ function convoyRoutes(island: IslandId): { good: Good; to: IslandId }[] {
     let best: IslandId | null = null;
     for (const id of ISLAND_IDS) {
       const sell = ISLAND_INFO[id].market[good].sell;
-      if (id !== island && sell !== null && sell > buy && (!best || sell > (ISLAND_INFO[best].market[good].sell ?? 0))) best = id;
+      if (id === island || !harbors.isOpen(id)) continue;
+      if (sell !== null && sell > buy && (!best || sell > (ISLAND_INFO[best].market[good].sell ?? 0))) best = id;
     }
     if (best) routes.push({ good, to: best });
   }

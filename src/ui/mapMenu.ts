@@ -27,9 +27,9 @@ export interface MapSource {
   coverage(): number;
   /** Zones de mission (chasse à un capitaine). */
   zones(): readonly MapZone[];
-  /** Navires escortés (marchands). */
+  /** Navires à protéger (marchand escorté). */
   escorts(): readonly Ship[];
-  /** Pirates alliés en mer. */
+  /** Autres alliés en mer (pirates, marchands des îles). */
   pirates(): readonly Ship[];
 }
 
@@ -52,15 +52,17 @@ export class MapMenu extends ParchmentMenu {
     legend.innerHTML = `
       <span><b class="me">▲</b> Toi</span>
       <span><b class="ally">▲</b> Ta flotte</span>
+      <span><b class="trader">▲</b> En commerce</span>
       <span><b class="enemy">▲</b> Ennemis repérés</span>
       <span><b class="gold">■</b> Or</span>
       <span><b class="wood">■</b> Bois</span>
       <span><b class="rum">■</b> Rhum, épices</span>
       <span><b class="fish">≋</b> Banc de poissons</span>
       <span><b class="zone">◌</b> Portée du radar</span>
-      <span><b class="merchant">▲</b> Marchands alliés</span>
-      <span><b class="pirate">▲</b> Pirates alliés</span>
-      <span><b class="hunt">◌</b> Zone de chasse</span>`;
+      <span><b class="pirate">▲</b> Alliés</span>
+      <span><b class="escort">▲</b> À protéger</span>
+      <span><b class="hunt">◌</b> Zone de chasse</span>
+      <span><b class="navy">♛</b> Port de la Marine</span>`;
     this.body.append(this.canvas, legend);
   }
 
@@ -78,7 +80,8 @@ export class MapMenu extends ParchmentMenu {
     const { fleet } = this.source;
     const leader = fleet.leader;
     const allies: Ship[] = [];
-    for (const m of fleet.members) if (m !== fleet.controlled && m.inWorld && m.ship.alive) allies.push(m.ship);
+    const traders: Ship[] = [];
+    for (const m of fleet.members) if (m !== fleet.controlled && m.inWorld && m.ship.alive) (m.trade ? traders : allies).push(m.ship);
     // Seuls les ennemis que ton radar voit sont connus (pas un boss caché dans la brume), plus ceux qui approchent de l'île (vigies du phare).
     const range = this.source.radarRange();
     const coverage = this.source.coverage();
@@ -91,6 +94,7 @@ export class MapMenu extends ParchmentMenu {
     paintMap(ctx, width, height, {
       leader,
       allies,
+      traders,
       enemies,
       crates: source.crates(),
       schools: source.schools(),

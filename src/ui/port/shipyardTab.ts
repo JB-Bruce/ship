@@ -1,7 +1,7 @@
 import { GUNS, type GunType } from '../../config';
 import { capacityOf } from '../../fleet/holds';
 import { gunCost } from '../../progression/modifiers';
-import { describeLevel, extensionLevels, massSpeedLoss, maxLevel, nextCost, shipMass, UPGRADE_IDS, type UpgradeId } from '../../progression/upgrades';
+import { cannonCount, describeLevel, extensionLevels, massSpeedLoss, maxLevel, nextCost, shipMass, UPGRADE_IDS, type UpgradeId } from '../../progression/upgrades';
 import { SHIP_TYPES, typeName, UPGRADE_INFO } from '../../shipTypes';
 import { costHtml } from '../parchmentMenu';
 import { extensionIcon } from '../shipIcons';
@@ -17,6 +17,7 @@ const ICONS: Record<UpgradeId, string> = {
   hull: `<svg viewBox="0 0 48 48"><path d="M24 4l16 6v12c0 11-7 18-16 22C15 40 8 33 8 22V10z"/><path d="M8.5 18h31M10 29h28M24 4v40"/></svg>`,
   sails: `<svg viewBox="0 0 48 48"><path d="M24 3v41M10 9h28M12 37h24M7 44h34"/><path d="M12 9c-3 9-3 19 0 28h24c3-9 3-19 0-28"/></svg>`,
   hold: `<svg viewBox="0 0 48 48"><path d="M14 5h20c5 7 5 31 0 38H14c-5-7-5-31 0-38z"/><path d="M10 15h28M10 33h28M19 5c-2 9-2 29 0 38M29 5c2 9 2 29 0 38"/></svg>`,
+  nets: `<svg viewBox="0 0 48 48"><path d="M6 8h36L34 42H14z"/><path d="M10 16h28M12 25h24M13 34h22M16 8l6 34M24 8v34M32 8l-6 34"/><circle class="solid" cx="6" cy="8" r="2"/><circle class="solid" cx="42" cy="8" r="2"/></svg>`,
 };
 
 const GUN_TYPES = Object.keys(GUNS.types) as GunType[];
@@ -31,19 +32,22 @@ export function shipyardTab(ctx: PortContext): string {
   const { type, levels } = member;
   const stats = member.ship.stats;
   const penalty = Math.round(massSpeedLoss(type, levels) * 100);
+  const labels = SHIP_TYPES[type].gunLabels;
+  // Le mortier du brick n'a pas de type de canons à choisir.
+  const secondRow = stats.deckCannon !== undefined && !stats.deckCannon.shell;
   return `
     <p class="subtitle">Améliorations de <b>${member.name}</b> (${typeName(type, levels.extension)}). Prends la barre d'un autre navire (T) pour l'améliorer.</p>
     ${resourcesHtml(ctx)}
     <div class="list">${UPGRADE_IDS.filter((id) => maxLevel(type, id, levels) > 0).map((id) => card(ctx, id)).join('')}</div>
     ${extensionCard(ctx)}
     <h3 class="section">Type de canons</h3>
-    ${gunRow(ctx, 'main', stats.deckCannon ? 'Batterie' : '')}${stats.deckCannon ? gunRow(ctx, 'deck', 'Canons des gaillards') : ''}
+    ${gunRow(ctx, 'main', secondRow ? (labels?.main ?? 'Batterie') : '')}${secondRow ? gunRow(ctx, 'deck', labels?.deck ?? 'Canons des gaillards') : ''}
     <div class="footer">
       <span>Longueur <b>${stats.length} m</b></span>
       <span>Masse <b>${shipMass(type, levels)}</b>${penalty > 0 ? ` (−${penalty} % de vitesse)` : ''}</span>
       <span>Vitesse max <b>${Math.round(stats.maxSpeed * MS_TO_KNOTS)} nœuds</b></span>
       <span>Vie max <b>${stats.maxHealth}</b></span>
-      <span>Canons <b>${stats.cannonsPerSide * 2}</b> · portée <b>${Math.round(stats.cannon.range)} m</b></span>
+      <span>Canons <b>${cannonCount(stats)}</b> · portée <b>${Math.round(stats.cannon.range)} m</b></span>
       <span>Cale <b>${capacityOf(member)} places</b></span>
     </div>`;
 }
@@ -62,7 +66,9 @@ function extensionCard(ctx: PortContext): string {
   const ext = all[index];
   const pct = (f: number) => `${f >= 1 ? '+' : '−'}${Math.round(Math.abs(f - 1) * 100)} %`;
   const from = def.stats.length + all.slice(0, index).reduce((sum, e) => sum + e.length, 0);
-  const effects = `Coque ${from} → ${from + ext.length} m · vie ${pct(ext.healthFactor)} · vitesse ${pct(ext.speedFactor)} · virage ${pct(ext.turnFactor)} · masse +${ext.mass}`;
+  const hull = ext.length > 0 ? `Coque ${from} → ${from + ext.length} m · ` : '';
+  const turn = ext.turnFactor !== 1 ? ` · virage ${pct(ext.turnFactor)}` : '';
+  const effects = `${hull}vie ${pct(ext.healthFactor)} · vitesse ${pct(ext.speedFactor)}${turn} · masse +${ext.mass}`;
   // Niveaux qu'il ouvre : ceux qui suivent les niveaux déjà ouverts avant lui.
   const unlocks = UPGRADE_IDS.filter((id) => ext.extraLevels[id])
     .map((id) => {

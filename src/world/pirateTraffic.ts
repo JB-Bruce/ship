@@ -1,12 +1,12 @@
 import type * as THREE from 'three';
 import { mooringSpot, PirateAI } from '../ai/pirateAI';
-import { LIVERIES, PIRATES } from '../config';
+import { ENEMIES, LIVERIES, PIRATES } from '../config';
 import { randomLevels } from '../progression/upgrades';
 import { createShip, type Ship } from '../ship/ship';
-import { SHIP_SIZE_ORDER, sizeRank, type ShipType } from '../shipTypes';
+import { SHIP_SIZE_ORDER, SHIP_TYPES, sizeRank, typeOfRank, type ShipType } from '../shipTypes';
 import type { FleetPower } from './enemySpawner';
 import type { FishSchool } from './fishSchools';
-import { ISLAND_LIST } from './island';
+import { harbors } from './harbors';
 import type { Crate } from './loot';
 
 interface Pirate {
@@ -16,6 +16,9 @@ interface Pirate {
 
 const rand = ([min, max]: readonly [number, number]) => min + Math.random() * (max - min);
 const randInt = ([min, max]: readonly [number, number]) => min + Math.floor(Math.random() * (max - min + 1));
+/** Un pirate allié n'arme jamais un navire réservé à la Marine (galion) ; le plus gros rang qui lui reste. */
+const pirateType = (type: ShipType) => !SHIP_TYPES[type].navyOnly;
+const PIRATE_MAX_RANK = Math.max(...SHIP_SIZE_ORDER.filter(pirateType).map(sizeRank));
 
 /**
  * Pirates alliés indépendants (camp « ally », points bleus) : 1 à 3 en mer, de la chaloupe jusqu'à un cran au-dessus
@@ -31,6 +34,8 @@ export class PirateTraffic {
     private readonly scene: THREE.Scene,
     private readonly ships: Ship[],
     private readonly fleetPower: () => FleetPower,
+    /** Un pirate a fini de couler : son épave laisse son butin. */
+    private readonly onWreck: (ship: Ship) => void,
   ) {}
 
   /** Ce navire est-il un pirate allié ? */
@@ -38,10 +43,22 @@ export class PirateTraffic {
     return this.pirates.some((p) => p.ship === ship);
   }
 
+  /**
+   * Retire un pirate encore à flot sans naufrage ni épave (il passe à l'ennemi : trahison). Un autre prendra la mer plus
+   * tard, comme après un naufrage. Renvoie false si ce n'est pas un pirate allié à flot.
+   */
+  release(ship: Ship): boolean {
+    const index = this.pirates.findIndex((p) => p.ship === ship);
+    if (index < 0 || !ship.alive) return false;
+    this.remove(index);
+    return true;
+  }
+
   update(dt: number, crates: readonly Crate[], schools: readonly FishSchool[], leader: Ship) {
     for (let i = this.pirates.length - 1; i >= 0; i--) {
       const { ship, ai } = this.pirates[i];
       if (ship.sunk) {
+        this.onWreck(ship);
         this.remove(i);
         continue;
       }
@@ -55,11 +72,11 @@ export class PirateTraffic {
 
   /** Un pirate prend la mer au mouillage d'un port loin du joueur. Renvoie false s'il n'y en a pas. */
   private spawn(leader: Ship): boolean {
-    const harbors = ISLAND_LIST.filter((i) => Math.hypot(i.port.x - leader.position.x, i.port.z - leader.position.z) > PIRATES.spawnClearance);
-    if (!harbors.length) return false;
-    const island = harbors[Math.floor(Math.random() * harbors.length)];
+    const ports = harbors.open().filter((i) => Math.hypot(i.port.x - leader.position.x, i.port.z - leader.position.z) > PIRATES.spawnClearance);
+    if (!ports.length) return false;
+    const island = ports[Math.floor(Math.random() * ports.length)];
     const type = this.pickType();
-    const ship = createShip(type, 'ally', randomLevels(type, PIRATES.upgrades), LIVERIES.ally);
+    const ship = createShip(type, 'ally', randomLevels(type, PIRATES.upgrades, ENEMIES.extensionChance), LIVERIES.ally);
     const m = mooringSpot(island, this.ships, ship);
     ship.respawn(m.x, m.z);
     ship.heading = island.def.bay.angle + (Math.random() - 0.5) * Math.PI;
@@ -69,11 +86,11 @@ export class PirateTraffic {
     return true;
   }
 
-  /** De la chaloupe jusqu'à un cran au-dessus de ton plus gros navire. */
+  /** De la chaloupe jusqu'à un cran au-dessus de ton plus gros navire, jamais un navire réservé à la Marine (galion). */
   private pickType(): ShipType {
-    const max = Math.min(SHIP_SIZE_ORDER.length - 1, sizeRank(this.fleetPower().best) + 1);
+    const max = Math.min(PIRATE_MAX_RANK, sizeRank(this.fleetPower().best) + 1);
     const min = sizeRank('longboat');
-    return SHIP_SIZE_ORDER[min + Math.floor(Math.random() * (max - min + 1))];
+    return typeOfRank(min + Math.floor(Math.random() * (max - min + 1)), pirateType);
   }
 
   private remove(index: number) {

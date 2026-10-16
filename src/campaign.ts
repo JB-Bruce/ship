@@ -1,22 +1,26 @@
 import { BOSSES, ISLAND_INFO, OFFICERS, PORT, type BossId, type IslandId } from './config';
-import { Crew } from './fleet/crew';
+import { Crew, type CrewSnapshot } from './fleet/crew';
 import { rankName, rankOf } from './fleet/officers';
 import { refit } from './fleet/refit';
-import { TradeRoutes } from './fleet/tradeRoutes';
+import { TradeRoutes, type RunnerSnapshot } from './fleet/tradeRoutes';
 import { factor } from './progression/modifiers';
 import type { Fleet, FleetMember } from './fleet/fleet';
 import { loseCargo, store } from './fleet/holds';
 import { MissionDirector } from './missions/missionDirector';
 import type { MissionWorld } from './missions/mission';
-import { Contracts, fleetLevel, type Contract, type ContractOptions } from './progression/contracts';
+import { Contracts, fleetLevel, type Contract, type ContractOptions, type ContractsSnapshot } from './progression/contracts';
 import { Harbor } from './progression/harbor';
-import { IslandState } from './progression/islandState';
-import { Ledger } from './progression/ledger';
+import { IslandState, type IslandSnapshot } from './progression/islandState';
+import { Ledger, type LedgerSnapshot } from './progression/ledger';
+import { NavyIslands } from './progression/navyIslands';
+import { repairAtPort } from './progression/portRepair';
 import type { PlayerState } from './progression/playerState';
-import { isHostile, type Combatant, type Ship } from './ship/ship';
+import type { Combatant, Ship } from './ship/ship';
 import { SHIP_TYPES } from './shipTypes';
 import type { Hud } from './ui/hud';
 import type { EnemySpawner } from './world/enemySpawner';
+import type { Fort } from './world/fort';
+import { harbors } from './world/harbors';
 import { MerchantTraffic } from './world/merchantTraffic';
 import { ISLAND_LIST, islandById, type Island } from './world/island';
 import type { Lighthouse } from './world/lighthouse';
@@ -25,13 +29,25 @@ import type { LootKind } from './world/loot';
 /** Délai entre deux avertissements « cale pleine » (s). */
 const FULL_WARNING_DELAY = 5;
 
+/** Ce qu'une sauvegarde garde de la campagne. */
+export interface CampaignSnapshot {
+  islands: Record<IslandId, IslandSnapshot>;
+  lastPort: IslandId;
+  ledger: LedgerSnapshot;
+  contracts: ContractsSnapshot;
+  crew: CrewSnapshot;
+  routes: RunnerSnapshot[];
+  /** Vie des forts de la Marine encore debout (part du maximum), par île qu'elle tient. */
+  navyForts?: Partial<Record<IslandId, number>>;
+}
+
 /**
  * La campagne du joueur, hors du combat lui-même : les îles et leurs ports (escales, rachat, améliorations), le
  * registre, les contrats des tavernes et les missions, et ce qui les fait avancer (butin rangé, poisson pêché,
  * navires coulés de part et d'autre).
  */
 export class Campaign {
-  readonly islands: Record<IslandId, IslandState> = { tortuga: new IslandState('tortuga'), sabre: new IslandState('sabre') };
+  readonly islands = Object.fromEntries(ISLAND_LIST.map((i) => [i.id, new IslandState(i.id)])) as Record<IslandId, IslandState>;
   readonly ledger = new Ledger();
   readonly contracts = new Contracts();
   /** Officiers engagés et candidats des tavernes. */
@@ -42,6 +58,8 @@ export class Campaign {
   readonly missions: MissionDirector;
   /** Marchands alliés qui laissent de l'or dans la réserve de tes îles. */
   readonly merchants: MerchantTraffic;
+  /** Îles de la Marine (l'Île Royale) : fort, garnison, prise, contre-attaques. */
+  readonly navy: NavyIslands;
   /** Dernier port où la flotte a fait escale : elle y réapparaît si elle sombre tout entière. */
   lastPort: IslandId = 'tortuga';
   private fullWarning = 0;
@@ -55,7 +73,8 @@ export class Campaign {
     private readonly spawner: EnemySpawner,
   ) {
     this.missions = new MissionDirector(world, {
-      say: (text, danger) => hud.message(text, 4, danger),
+      // Les alertes de mission (embuscade, attaque) au centre ; le reste en petit message.
+      say: (text, danger) => (danger ? hud.message(text, 4, true) : hud.toast(text, 4)),
       succeeded: (c) => this.missionSucceeded(c),
       failed: (c, reason) => {
         this.contracts.remove(c);
@@ -65,7 +84,7 @@ export class Campaign {
     });
     this.routes = new TradeRoutes(fleet, state, this.ledger, this.islands, world.ships, (text) => hud.notifications.kill(text));
     this.harbor = new Harbor(state, fleet, this.islands.tortuga, this.contracts, this.ledger, this.crew, this.routes, {
-      say: (text) => hud.message(text, 2.5),
+      say: (text) => hud.toast(text, 2.5),
       log: (text) => hud.notifications.kill(text),
       islandChanged: (island) => this.applyIsland(island),
       contractOptions: () => this.contractOptions(),
@@ -75,12 +94,58 @@ export class Campaign {
     this.merchants = new MerchantTraffic(world.scene, world.ships, (island) => this.islands[island.id], {
       deposited: () => this.ledger.merchantVisits++,
       sunk: (island) => hud.notifications.kill(`☠ Un marchand allié a sombré au large de ${island.info.shortName}`),
+      wrecked: (ship) => world.wreckLoot(ship),
+    });
+    this.navy = new NavyIslands(this.islands, world, {
+      alert: (text) => hud.message(text, 5, true),
+      toast: (text, tone) => hud.toast(text, 4, tone),
+      changed: (island, captured) => this.navyIslandChanged(island, captured),
+      fleetLevel: () => fleetLevel(fleet.members.map((m) => m.type)),
     });
     for (const island of ISLAND_LIST) {
       this.contracts.refresh(island.id, this.contractOptions());
       this.applyIsland(this.islands[island.id]);
     }
     this.crew.newDay();
+  }
+
+  /** Une île de la Marine prise, ou reprise par elle : son fort, sa taverne, et ce qui partait vers son port. */
+  private navyIslandChanged(island: Island, captured: boolean) {
+    this.applyIsland(this.islands[island.id]);
+    if (captured) {
+      this.contracts.refresh(island.id, this.contractOptions());
+      this.hud.notifications.kill(`⚑ ${ISLAND_INFO[island.id].portName} est à toi`);
+      return;
+    }
+    if (this.lastPort === island.id) this.lastPort = 'tortuga';
+    // Les navires en route commerciale vers ce port rejoignent la flotte.
+    for (const m of this.fleet.members) if (m.trade?.ports.includes(island.id)) this.routes.recall(m);
+    this.hud.notifications.kill(`⚑ La Marine a repris ${ISLAND_INFO[island.id].portName}`);
+  }
+
+  /** État à sauvegarder : îles, dernier port, registre, contrats, équipage, routes commerciales. */
+  snapshot(): CampaignSnapshot {
+    const islands = Object.fromEntries(ISLAND_LIST.map((i) => [i.id, this.islands[i.id].snapshot()])) as Record<IslandId, IslandSnapshot>;
+    const { lastPort, ledger, contracts, crew, routes, navy } = this;
+    return { islands, lastPort, ledger: ledger.snapshot(), contracts: contracts.snapshot(), crew: crew.snapshot(), routes: routes.snapshot(), navyForts: navy.snapshot() };
+  }
+
+  /** Reprend une sauvegarde, la flotte déjà rétablie. Les missions en cours (chasse, défense, escorte) recommencent. */
+  restore(s: CampaignSnapshot) {
+    for (const island of ISLAND_LIST) {
+      const state = this.islands[island.id];
+      if (s.islands[island.id]) state.restore(s.islands[island.id]);
+    }
+    this.navy.restore(s.navyForts);
+    for (const island of ISLAND_LIST) this.applyIsland(this.islands[island.id]);
+    this.lastPort = s.lastPort;
+    this.ledger.restore(s.ledger);
+    this.contracts.restore(s.contracts);
+    this.crew.restore(s.crew);
+    this.routes.restore(s.routes);
+    for (const c of this.contracts.active) {
+      if ((c.kind === 'hunt' || c.kind === 'defend' || c.kind === 'escort') && !this.contracts.isDone(c)) this.missions.start(c);
+    }
   }
 
   /** Ce que les contrats peuvent demander, et le niveau de ta flotte (étoiles des offres). */
@@ -90,56 +155,47 @@ export class Campaign {
 
   /** Les îles produisent même quand tu es au large ; le port où se trouve le bateau piloté devient l'escale. */
   update(dt: number, leader: Ship) {
+    this.ledger.logSailing(leader);
     for (const island of Object.values(this.islands)) island.update(dt);
-    // Nouvelle journée : les tavernes affichent de nouvelles offres du jour.
+    // Nouvelle journée (à l'aube) : les tavernes affichent de nouvelles offres du jour.
     if (this.contracts.tick(dt)) {
       for (const island of ISLAND_LIST) this.contracts.refresh(island.id, this.contractOptions());
       this.crew.newDay();
-      this.hud.notifications.kill('📜 Nouvelle journée : nouvelles offres et nouvelles recrues dans les tavernes');
+      this.hud.notifications.kill('🌅 L’aube se lève : nouvelles offres et nouvelles recrues dans les tavernes');
     }
     this.fullWarning = Math.max(0, this.fullWarning - dt);
     const port = this.portInRange(leader);
     if (port) this.lastPort = port.id;
     this.missions.update(dt);
+    this.navy.update(dt, leader);
     this.merchants.update(dt, leader);
     this.routes.update(dt);
   }
 
-  /** Navires alliés hors de ta flotte en jaune sur le radar et la carte : marchand escorté, marchands des îles. */
+  /** Navires à protéger (marchand escorté), en bleu ciel sur le radar et la carte. */
   escorts(): Ship[] {
-    return [...this.missions.escorts(), ...this.merchants.ships];
+    return this.missions.escorts();
   }
 
-  /** L'île dont le port est à portée du bateau (zone d'escale et de réparation), ou null. */
+  /** L'île dont le port (ouvert) est à portée du bateau (zone d'escale et de réparation), ou null. */
   portInRange(ship: Ship): Island | null {
     if (!ship.alive) return null;
-    return ISLAND_LIST.find((i) => Math.hypot(ship.position.x - i.port.x, ship.position.z - i.port.z) < PORT.repairRadius) ?? null;
+    return ISLAND_LIST.find((i) => harbors.isOpen(i.id) && Math.hypot(ship.position.x - i.port.x, ship.position.z - i.port.z) < PORT.repairRadius) ?? null;
   }
 
-  /**
-   * À quai, les navires de la flotte se réparent vite, mais seulement hors combat : aucun ennemi à moins de
-   * PORT.combatRadius du port. Renvoie l'état à afficher pour le bateau piloté abîmé au port, sinon null.
-   */
+  /** Ouvrages que les boulets peuvent toucher : forts assiégés (missions, contre-attaques) et forts de la Marine debout. */
+  besieged(): Fort[] {
+    return this.navy.besieged(this.missions.besieged());
+  }
+
+  /** Fort dont la barre de vie s'affiche : assiégé par une mission, sinon celui d'une île de la Marine. */
+  objectiveFort(eye: { x: number; z: number }, fog: { near: number; far: number }): Fort | null {
+    return this.missions.besieged()[0] ?? this.navy.barFort(eye, fog);
+  }
+
+  /** Réparation rapide à quai (voir portRepair.ts). Renvoie l'état à afficher pour le bateau piloté, sinon null. */
   repairAtPort(dt: number, ships: readonly Ship[], leader: Ship): string | null {
-    let status: string | null = null;
-    for (const island of ISLAND_LIST) {
-      const port = island.port;
-      const inPort = (ship: Ship) => Math.hypot(ship.position.x - port.x, ship.position.z - port.z) < PORT.repairRadius;
-      const threatened = ships.some(
-        (s) => s.alive && isHostile(leader, s) && Math.hypot(s.position.x - port.x, s.position.z - port.z) < PORT.combatRadius,
-      );
-      if (!threatened) {
-        const rate = this.islands[island.id].repairRate;
-        for (const ship of ships) {
-          if (ship.faction !== 'player' || !ship.alive || !inPort(ship)) continue;
-          ship.health = Math.min(ship.stats.maxHealth, ship.health + rate * ship.stats.maxHealth * dt);
-        }
-      }
-      if (leader.alive && inPort(leader) && leader.health < leader.stats.maxHealth) {
-        status = threatened ? 'Réparation suspendue : ennemis près du port' : 'Réparation au quai…';
-      }
-    }
-    return status;
+    return repairAtPort(dt, ships, leader, this.islands, this.spawner.enemies);
   }
 
   /** Effets des améliorations d'une île sur son fort, le phare de la Tortue et la flotte. */
@@ -183,7 +239,7 @@ export class Campaign {
     const info = ISLAND_INFO[c.from];
     const place = info.shortName.charAt(0).toUpperCase() + info.shortName.slice(1);
     const thanks = c.kind === 'defend' ? `${place} a tenu ! ${info.holders} te remercient` : 'Le marchand est arrivé à bon port';
-    this.hud.message(`${thanks} : +${c.reward.gold} or${c.reward.wood ? `, +${c.reward.wood} bois` : ''}`, 4);
+    this.hud.toast(`${thanks} : +${c.reward.gold} or${c.reward.wood ? `, +${c.reward.wood} bois` : ''}`, 4, 'good');
   }
 
   /** Port de réapparition de la flotte (le dernier port visité). */
@@ -206,7 +262,7 @@ export class Campaign {
       taken = member ? store(member, kind, value) : 0;
       if (taken === 0 && member && this.fullWarning === 0) {
         this.fullWarning = FULL_WARNING_DELAY;
-        this.hud.message(`${member.name} a la cale pleine`, 2);
+        this.hud.toast(`${member.name} a la cale pleine`, 2.5);
       }
     }
     if (taken > 0) this.hud.notifications.pickup(kind, taken);
