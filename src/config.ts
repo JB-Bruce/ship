@@ -97,6 +97,27 @@ export interface ShipStats {
 
 // Les caractéristiques de chaque type de bateau (chaloupe, sloop…) sont dans src/shipTypes.ts.
 
+/**
+ * Glisse sur la houle (tous les navires, par tous les temps) : la vitesse suit la pente de l'eau sous la coque, lue sur
+ * le tangage. En descente (proue basse), le navire glisse et peut dépasser sa vitesse max ; en montée, il perd un peu.
+ * L'effet est proportionnel à la pente, entier à `fullAngle` et plafonné au-delà.
+ */
+export const SURF = {
+  /** Pente (rad) où l'effet est entier : ~12°, les plus raides de la grande tempête. */
+  fullAngle: 0.21,
+  /** Vitesse gagnée en descente et perdue en montée à cette pente (part de la vitesse). */
+  downhill: 0.4,
+  uphill: 0.1,
+  /** Vitesse à laquelle l'élan suit la pente (1/s) : la glisse se gagne et se perd en une seconde environ. */
+  response: 1.2,
+  /** Embruns d'étrave en pleine glisse : densité × (1 + spray), gouttes lancées plus haut (m/s en plus). */
+  spray: 2.5,
+  sprayLift: 2,
+  /** Champ de vision de la caméra en pleine glisse (part en plus), et vitesse à laquelle il la suit (1/s). */
+  fovGain: 0.08,
+  fovResponse: 1.5,
+};
+
 /** Flottaison commune à tous les bateaux (les ressorts propres à chaque type sont dans shipTypes.ts). */
 export const BUOYANCY = {
   /** Où la coque mesure la hauteur de l'eau, en fraction de longueur / largeur (plus le centre). */

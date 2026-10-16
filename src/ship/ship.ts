@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COMBAT, CRIT, DAMAGE, LIVERIES, OARS, RECOIL, REPAIR, type Faction, type Livery, type ShipStats } from '../config';
+import { COMBAT, CRIT, DAMAGE, LIVERIES, OARS, RECOIL, REPAIR, SURF, type Faction, type Livery, type ShipStats } from '../config';
 import type { CannonTarget } from '../combat/cannons';
 import type { Waves } from '../ocean/waves';
 import { applyModifiers, factor, noModifiers, standardGuns, type Guns, type StatModifiers } from '../progression/modifiers';
@@ -51,8 +51,24 @@ export class Ship {
   readonly position = new THREE.Vector3();
   /** Cap (rad). 0 = proue vers +Z (nord) ; augmente en tournant vers bâbord. */
   heading = 0;
-  /** Vitesse vers l'avant (m/s). */
-  speed = 0;
+  /** Vitesse de croisière (m/s) : celle que donnent voilure, vent et avaries, gagnée et perdue avec l'accélération du navire. */
+  private cruise = 0;
+  /** Glisse sur la houle : multiplicateur de vitesse selon la pente sous la coque (SURF), lissé. */
+  private surge = 1;
+
+  /** Vitesse vers l'avant (m/s) : vitesse de croisière × glisse sur la houle. */
+  get speed(): number {
+    return this.cruise * this.surge;
+  }
+
+  set speed(value: number) {
+    this.cruise = value / this.surge;
+  }
+
+  /** Glisse en descente, de 0 (aucune) à 1 (pleine, SURF.downhill) : embruns d'étrave, caméra. */
+  get surfAmount(): number {
+    return Math.min(1, Math.max(0, (this.surge - 1) / SURF.downhill));
+  }
   /**
    * Hors de la grille de l'eau (OCEAN.farShips, posé par `Game` à chaque image) : ni flottaison (il garde son assiette,
    * sauf s'il sombre) ni animation du gréement. Il navigue, combat et répond aux collisions comme les autres.
@@ -239,7 +255,8 @@ export class Ship {
   copyMotion(from: Ship) {
     this.position.copy(from.position);
     this.heading = from.heading;
-    this.speed = from.speed;
+    this.cruise = from.cruise;
+    this.surge = from.surge;
     this.health = from.health;
     this.calmTime = from.calmTime;
     this.rudder = from.rudder;
@@ -258,6 +275,7 @@ export class Ship {
     this.position.set(x, 0, z);
     this.heading = Math.random() * Math.PI * 2;
     this.speed = this.yawRate = this.oarsOut = 0;
+    this.surge = 1;
     this.rowing = false;
     this.buoyancy.reset(0);
     this.health = this.stats.maxHealth;
@@ -305,8 +323,9 @@ export class Ship {
     const windEffect = 1 + w * (w > 0 ? factor(this.modifiers, 'wind') : upwind / factor(this.modifiers, 'wind'));
     const rowing = this.updateOars(dt, controls, wind);
     const targetSpeed = s.maxSpeed * torn * this.crits.speedFactor * controls.sail * (windEffect + rowing);
-    const accel = targetSpeed > this.speed ? s.acceleration : s.deceleration;
-    this.speed = moveTowards(this.speed, targetSpeed, accel * dt);
+    const accel = targetSpeed > this.cruise ? s.acceleration : s.deceleration;
+    this.cruise = moveTowards(this.cruise, targetSpeed, accel * dt);
+    this.surge = damp(this.surge, this.surfTarget(), SURF.response, dt);
 
     this.rudder = moveTowards(this.rudder, controls.rudder, s.rudderSpeed * dt);
     // Le safran n'agit que si l'eau coule dessus : immobile, le bateau ne tourne pas du tout,
@@ -318,6 +337,14 @@ export class Ship {
 
     this.position.x += this.velocityX * dt;
     this.position.z += this.velocityZ * dt;
+  }
+
+  /** Glisse visée : plus vite en descendant la pente d'une vague (proue basse), un peu moins en la montant. */
+  private surfTarget(): number {
+    // Loin (assiette figée) ou en train de couler : pas de glisse.
+    if (this.far || this.sinkTime !== null) return 1;
+    const slope = Math.min(1, Math.max(-1, -this.buoyancy.pitch / SURF.fullAngle));
+    return 1 + slope * (slope > 0 ? SURF.downhill : SURF.uphill);
   }
 
   /**

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { DAMAGE, MORTAR_FX } from '../config';
+import { DAMAGE, MORTAR_FX, SURF } from '../config';
 import type { WakeMap } from '../ocean/wakeMap';
 import type { Waves } from '../ocean/waves';
 import type { Ship } from '../ship/ship';
@@ -251,7 +251,9 @@ export class Effects {
     // projetées vers l'extérieur et vers l'avant (pour ne pas retomber dans la coque qui avance).
     const bowAhead = half * SPRAY.bowAhead;
     const bowOut = (ship.stats.width / 2) * SPRAY.bowOut + SPRAY.bowGap;
-    t.bow += dt * Math.max(0, ship.speed - SPRAY.sprayMinSpeed) * SPRAY.sprayRate;
+    // En glisse sur la pente d'une vague, l'étrave en jette bien plus, et plus haut.
+    const surf = ship.surfAmount;
+    t.bow += dt * Math.max(0, ship.speed - SPRAY.sprayMinSpeed) * SPRAY.sprayRate * (1 + SURF.spray * surf);
     while (t.bow >= 1) {
       t.bow -= 1;
       const side = Math.random() < 0.5 ? 1 : -1;
@@ -265,7 +267,7 @@ export class Effects {
       const forward = ship.speed * rand(SPRAY.sprayForward[0], SPRAY.sprayForward[1]);
       const d = reset(x, waves.heightAt(x, z) + 0.05, z, COLORS.water);
       Object.assign(d, {
-        vx: ox * out + fx * forward, vy: rand(1.5, 3) + ship.speed * 0.08, vz: oz * out + fz * forward,
+        vx: ox * out + fx * forward, vy: rand(1.5, 3) + ship.speed * 0.08 + SURF.sprayLift * surf, vz: oz * out + fz * forward,
         life: rand(0.6, 0.9), size: rand(0.1, 0.18), sizeEnd: 0.05, gravity: 9, drag: 0.4, water: true,
       });
       this.lit.spawn(d);

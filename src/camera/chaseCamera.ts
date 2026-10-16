@@ -1,10 +1,12 @@
 import * as THREE from 'three';
-import { CAMERA } from '../config';
+import { CAMERA, SURF } from '../config';
 import type { Waves } from '../ocean/waves';
 import type { Ship } from '../ship/ship';
 import { wrapAngle } from '../utils/math';
 
 const { clamp, damp } = THREE.MathUtils;
+/** Écart de champ de vision (degrés) en deçà duquel on ne recalcule pas la projection. */
+const FOV_EPSILON = 0.01;
 
 /**
  * Caméra arrière qui suit le cap du bateau. Glisser la souris tourne autour, la molette zoome,
@@ -22,6 +24,8 @@ export class ChaseCamera {
   private trauma = 0;
   /** Zoom passager en cours (punch), ou null. */
   private zoom: { amount: number; duration: number; time: number } | null = null;
+  /** Élargissement du champ de vision en glisse (part en plus, lissée). */
+  private surfFov = 0;
   /** Appui en cours : déplacement cumulé (px) et heure de l'appui (ms), pour distinguer un clic d'un glisser. */
   private pressMoved = 0;
   private pressTime = 0;
@@ -108,14 +112,21 @@ export class ChaseCamera {
     cam.y = Math.max(cam.y, waves.heightAt(cam.x, cam.z) + 1.5);
     this.camera.lookAt(this.target);
 
+    // Champ de vision : un peu plus large en glisse sur la pente d'une vague, resserré par un zoom passager.
+    this.surfFov = damp(this.surfFov, SURF.fovGain * ship.surfAmount, SURF.fovResponse, dt);
+    let zoom = 0;
     if (this.zoom) {
       const z = this.zoom;
       z.time += dt;
       const t = Math.min(1, z.time / z.duration);
       const envelope = t < 0.2 ? Math.sin((t / 0.2) * (Math.PI / 2)) : 0.5 + 0.5 * Math.cos(((t - 0.2) / 0.8) * Math.PI);
-      this.camera.fov = CAMERA.fov * (1 - z.amount * envelope);
-      this.camera.updateProjectionMatrix();
+      zoom = z.amount * envelope;
       if (t >= 1) this.zoom = null;
+    }
+    const fov = CAMERA.fov * (1 + this.surfFov) * (1 - zoom);
+    if (Math.abs(fov - this.camera.fov) > FOV_EPSILON) {
+      this.camera.fov = fov;
+      this.camera.updateProjectionMatrix();
     }
 
     // Secousse : décalage aléatoire proportionnel au carré du trauma (les petits chocs restent discrets).
