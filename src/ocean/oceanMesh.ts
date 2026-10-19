@@ -164,24 +164,10 @@ void main() {
   // Mer calme = très peu d'écume ; une mer forte (météo) en fera apparaître beaucoup plus.
   float noise = r1.a * 0.6 + r2.a * 0.4;
   // Par grosse tempête (uSeaFoam), cette écume de crête s'efface : une ligne sur chaque crête dessinerait un motif
-  // répétitif. À la place, quelques taches éparses au sommet des plus hautes vagues seulement : chaque tache naît à
-  // un endroit tiré au hasard dans sa case (~11 m) et change de place à chaque cycle, jamais deux fois au même endroit.
+  // répétitif.
   float storm = uSeaFoam;
   float crest = smoothstep(0.85, 0.65, vJacobian) * smoothstep(0.7, 0.95, h);
   color = mix(color, foam, crest * smoothstep(0.55, 0.8, noise) * 0.85 * (1.0 - storm));
-  // (Seulement en haut des vagues, le seul endroit où elles se voient : le reste de l'eau saute ce calcul.)
-  if (storm > 0.0 && h > 0.62) {
-    vec2 cellPos = vWorldPos.xz / 11.0;
-    vec2 cell = floor(cellPos);
-    float seed = fract(sin(dot(cell, vec2(127.1, 311.7))) * 43758.5453);
-    float cycle = uTime * (0.08 + 0.06 * seed) + seed * 13.0;
-    float n = floor(cycle);
-    vec2 spot = vec2(fract(sin(dot(cell + n, vec2(12.9898, 78.233))) * 43758.5453), fract(sin(dot(cell - n, vec2(39.35, 11.13))) * 24634.6345));
-    float radius = (0.15 + 0.15 * spot.x) * sin(3.1416 * fract(cycle));
-    float d = length(fract(cellPos) - 0.2 - 0.6 * spot) + (noise - 0.5) * 0.12;
-    float blot = 1.0 - smoothstep(radius * 0.5, radius, d);
-    color = mix(color, foam, blot * smoothstep(0.62, 0.85, h) * step(0.3, seed) * storm * 0.75);
-  }
   // Sillages, anneaux et vague d'étrave : écume découpée par le bruit, qui se défait en s'estompant.
   // Dense juste derrière le bateau, puis en dentelle qui se défait en pâlissant (jamais un aplat blanc).
   // Deux échelles, l'une tournée : le motif ne se répète pas en quadrillage, même par mer plate.
