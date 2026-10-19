@@ -1,4 +1,5 @@
 import type * as THREE from 'three';
+import type { Waterline } from './parts/hullShape';
 import type { Livery, ShipStats } from '../config';
 import type { ShipType } from '../shipTypes';
 import { BrigModel } from './brig/brigModel';
@@ -68,8 +69,8 @@ export interface ShipModel {
   readonly cannons: CannonMount[];
   /** Hauteur au-dessus de la flottaison où afficher la barre de vie (m). */
   readonly barHeight: number;
-  /** Demi-largeur à la flottaison (m), en WATERLINE_SAMPLES points (parts/hullShape.ts) de la poupe à la proue. */
-  readonly waterline: readonly number[];
+  /** Flottaison de la coque (partie mouillée, largeurs de la poupe à la proue : parts/hullShape.ts). */
+  readonly waterline: Waterline;
   /** Endroits où fumée et feu peuvent naître quand le bateau est abîmé (repère du bateau : ponts, bordé). */
   readonly fireSpots: readonly THREE.Vector3[];
   /** Lanternes (repère du bateau), dont les halos brillent la nuit (fx/lanternHalos.ts). */

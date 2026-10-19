@@ -7,6 +7,7 @@ import { isIsland, LAND_LIST, type Islet, type Landmass } from '../world/island'
 import { LANDMARKS } from '../world/landmarks';
 import type { Crate, LootKind } from '../world/loot';
 import type { Wind } from '../world/wind';
+import type { MapFrame } from './mapView';
 import { INK, paintCompass, paintLandmark, paintScale, paintShip } from './mapGlyphs';
 
 /** Ce que la carte montre. Les ennemis sont déjà filtrés : seulement ceux à portée du radar. */
@@ -25,6 +26,9 @@ export interface MapData {
   escorts: readonly Ship[];
   /** Autres alliés hors de ta flotte (pirates, marchands des îles) vus par le radar. */
   pirates: readonly Ship[];
+  /** Zoom (× le cadrage d'ensemble) et centre imposé (null : celui du cadrage d'ensemble), voir MapView. */
+  zoom: number;
+  center: { x: number; z: number } | null;
 }
 
 const COLORS = {
@@ -62,7 +66,7 @@ const HILLS = [[Math.PI - 0.6, 55], [Math.PI, 60], [Math.PI + 0.6, 55], [Math.PI
  * Dessine la carte : nord en haut, ouest à gauche (+X monde = ouest). Le cadrage englobe toutes les îles et la zone
  * radar du joueur, quelle que soit la distance qui les sépare.
  */
-export function paintMap(ctx: CanvasRenderingContext2D, width: number, height: number, data: MapData) {
+export function paintMap(ctx: CanvasRenderingContext2D, width: number, height: number, data: MapData): MapFrame {
   const { leader } = data;
   const around = data.radarRange + 60;
   let minX = leader.position.x - around;
@@ -84,9 +88,9 @@ export function paintMap(ctx: CanvasRenderingContext2D, width: number, height: n
     minZ = Math.min(minZ, e.z - e.r);
     maxZ = Math.max(maxZ, e.z + e.r);
   }
-  const scale = Math.min(width / Math.max(maxX - minX, MIN_SPAN), height / Math.max(maxZ - minZ, MIN_SPAN));
-  const midX = (minX + maxX) / 2;
-  const midZ = (minZ + maxZ) / 2;
+  const scale = Math.min(width / Math.max(maxX - minX, MIN_SPAN), height / Math.max(maxZ - minZ, MIN_SPAN)) * data.zoom;
+  const midX = data.center?.x ?? (minX + maxX) / 2;
+  const midZ = data.center?.z ?? (minZ + maxZ) / 2;
   const toX = (x: number) => width / 2 - (x - midX) * scale;
   const toY = (z: number) => height / 2 - (z - midZ) * scale;
 
@@ -152,6 +156,7 @@ export function paintMap(ctx: CanvasRenderingContext2D, width: number, height: n
   ctx.strokeStyle = INK;
   ctx.lineWidth = 2;
   ctx.strokeRect(1, 1, width - 2, height - 2);
+  return { midX, midZ, scale };
 }
 
 /** Une terre : hauts-fonds, côte ; pour une île à port, la forêt, les collines et (sans port nommé) son nom ; pour un îlot, son nom. */

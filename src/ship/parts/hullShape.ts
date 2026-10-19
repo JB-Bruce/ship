@@ -2,6 +2,20 @@ import * as THREE from 'three';
 
 /** Nombre de points du profil de flottaison d'une coque (le shader de l'eau en dépend). */
 export const WATERLINE_SAMPLES = 8;
+/** Pas (en u) de la recherche de la partie mouillée d'une coque. */
+const WET_STEP = 0.01;
+
+/**
+ * Flottaison d'une coque, là où elle trempe vraiment (quille sous l'eau) : centre et demi-longueur (m, repère du
+ * bateau), et demi-largeur à y = 0 en WATERLINE_SAMPLES points de la poupe à la proue de cette partie.
+ */
+export interface Waterline {
+  readonly center: number;
+  readonly half: number;
+  readonly widths: readonly number[];
+  /** La plus grande des demi-largeurs. */
+  readonly maxWidth: number;
+}
 /**
  * Coque à rentrée mesurée en hauteur (flûte) dont la quille remonte au-dessus de l'eau : hauteur (m) du bas arrondi de
  * la section au-dessus de sa quille, puis du bouchain au-dessus de ce bas.
@@ -174,12 +188,19 @@ export class HullShape {
   }
 
   /**
-   * Demi-largeur de la coque à la ligne de flottaison (y = 0), en `count` points régulièrement répartis
-   * de la poupe (u = -1) à la proue (u = 1). Sert à faire épouser la coque au liseré d'écume du shader de l'eau.
+   * Flottaison de la coque, pour que le liseré d'écume du shader de l'eau épouse la vraie coque : seulement la partie
+   * qui trempe (une voûte ou un avant dont la quille sort de l'eau n'en fait pas partie), avec sa demi-largeur à
+   * y = 0 (même profil que ring()) en `count` points régulièrement répartis.
    */
-  waterlineProfile(count = WATERLINE_SAMPLES): number[] {
-    // Même profil que ring() : la largeur du bordé à y = 0.
-    return Array.from({ length: count }, (_, i) => this.halfWidthAt(this.stationAt(-1 + (2 * i) / (count - 1)), 0));
+  waterlineProfile(count = WATERLINE_SAMPLES): Waterline {
+    let from = -1;
+    let to = 1;
+    while (from < 1 && this.stationAt(from).keel >= 0) from += WET_STEP;
+    while (to > from && this.stationAt(to).keel >= 0) to -= WET_STEP;
+    const zFrom = this.stationAt(from).z;
+    const zTo = this.stationAt(to).z;
+    const widths = Array.from({ length: count }, (_, i) => this.halfWidthAt(this.stationAt(from + ((to - from) * i) / (count - 1)), 0));
+    return { center: (zFrom + zTo) / 2, half: Math.max(0.5, (zTo - zFrom) / 2), widths, maxWidth: Math.max(...widths) };
   }
 
   /** Profil d'une section (bâbord), du plat-bord vers la quille : [demi-largeur, hauteur]. */

@@ -39,6 +39,8 @@ export class Projectiles {
   readonly mesh: THREE.InstancedMesh;
   private readonly balls: Ball[] = [];
   private readonly pool: Ball[] = [];
+  /** Le dernier navire trouvé par hitTest l'a été dans son gréement (pas dans sa coque). */
+  private inRigging = false;
 
   constructor(private readonly capacity = COMBAT.maxBalls) {
     const material = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4, metalness: 0.5, flatShading: true });
@@ -70,7 +72,7 @@ export class Projectiles {
     ships: readonly Ship[],
     waves: Waves,
     effects: Effects,
-    onHit: (ship: Ship, ball: Ball) => void,
+    onHit: (ship: Ship, ball: Ball, rigging: boolean) => void,
     structures: readonly S[] = [],
     onStructureHit: (structure: S, ball: Ball) => void = () => {},
     onBlast: (ship: Ship, ball: Ball, damage: number) => void = () => {},
@@ -90,7 +92,7 @@ export class Projectiles {
 
       const target = this.hitTest(ball, ships);
       if (target) {
-        onHit(target, ball);
+        onHit(target, ball, this.inRigging);
         this.detonate(ball, ships, target, onBlast, effects);
         this.removeAt(i);
         continue;
@@ -142,12 +144,19 @@ export class Projectiles {
     }
   }
 
+  /** Le navire touché (coque, ou gréement : `inRigging`), ou null. */
   private hitTest(ball: Ball, ships: readonly Ship[]): Ship | null {
     for (const ship of ships) {
       if (ship === ball.owner || !ship.alive || !isHostile(ball.owner, ship)) continue;
       for (const t of HIT_SAMPLES) {
         sample.lerpVectors(ball.previous, ball.position, t);
+        this.inRigging = false;
         if (ship.containsPoint(sample.x, sample.y, sample.z)) return ship;
+        // Un obus de mortier passe à travers les voiles : il n'éclate que sur la coque ou dans l'eau.
+        if (!ball.shell && ship.containsRigging(sample.x, sample.y, sample.z)) {
+          this.inRigging = true;
+          return ship;
+        }
       }
     }
     return null;

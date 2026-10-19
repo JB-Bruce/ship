@@ -7,6 +7,7 @@ import { tortuga } from '../world/island';
 import type { Crate } from '../world/loot';
 import type { Wind } from '../world/wind';
 import { paintMap } from './mapPainter';
+import { MapView } from './mapView';
 import { ParchmentMenu } from './parchmentMenu';
 
 /** Touche M : code « KeyM » en QWERTY, « Semicolon » en AZERTY (même touche physique que « ; » en QWERTY). */
@@ -39,6 +40,7 @@ export interface MapSource {
  */
 export class MapMenu extends ParchmentMenu {
   private readonly canvas = document.createElement('canvas');
+  private readonly view: MapView;
 
   constructor(
     parent: HTMLElement,
@@ -63,7 +65,19 @@ export class MapMenu extends ParchmentMenu {
       <span><b class="escort">▲</b> À protéger</span>
       <span><b class="hunt">◌</b> Zone de chasse</span>
       <span><b class="navy">♛</b> Port de la Marine</span>`;
-    this.body.append(this.canvas, legend);
+    const hint = document.createElement('p');
+    hint.className = 'map-hint';
+    hint.textContent = 'Molette : zoom · glisser : déplacer · double-clic ou C : recentrer sur ton navire';
+    this.body.append(this.canvas, hint, legend);
+    this.view = new MapView(this.canvas, () => this.render(), () => this.source.fleet.leader.position);
+    window.addEventListener('keydown', (e) => {
+      if (this.isOpen && e.code === 'KeyC' && !e.repeat) this.view.recenter();
+    });
+  }
+
+  override setOpen(open: boolean) {
+    if (open && !this.isOpen) this.view.reset();
+    super.setOpen(open);
   }
 
   render() {
@@ -91,7 +105,7 @@ export class MapMenu extends ParchmentMenu {
       .map((e) => e.ship)
       .filter((s) => s.alive && (s.distanceTo(leader) <= range || tortuga.sdf(s.position.x, s.position.z) < coverage));
     const source = this.source;
-    paintMap(ctx, width, height, {
+    this.view.frame = paintMap(ctx, width, height, {
       leader,
       allies,
       traders,
@@ -103,6 +117,8 @@ export class MapMenu extends ParchmentMenu {
       zones: source.zones(),
       escorts: source.escorts(),
       pirates: source.pirates().filter((s) => s.alive && s.distanceTo(leader) <= range),
+      zoom: this.view.zoom,
+      center: this.view.center,
     });
   }
 

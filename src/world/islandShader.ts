@@ -46,9 +46,9 @@ let warned = false;
 export function selectIslands(x: number, z: number, list: readonly Landmass[] = LAND_LIST) {
   candidates.length = 0;
   for (const island of list) {
-    const { calmDistance, lagoonWidth, surfWidth } = island.def;
+    const { lagoonWidth, surfWidth } = island.def;
     const near = Math.hypot(island.cx - x, island.cz - z) - island.outerRadius;
-    if (near - Math.max(calmDistance, lagoonWidth, surfWidth) > OCEAN_REACH) continue;
+    if (near - Math.max(island.calmReach, lagoonWidth, surfWidth) > OCEAN_REACH) continue;
     let entry = entries.get(island);
     if (!entry) entries.set(island, (entry = { island, key: 0 }));
     entry.key = near;
@@ -75,7 +75,7 @@ function writeSlot(i: number, island: Landmass) {
   const u = islandUniforms;
   const { def, frame } = island;
   u.uIslandA.value[i].set(island.cx, island.cz, island.outerRadius, def.radius);
-  u.uIslandB.value[i].set(def.calmDistance, def.lagoonWidth, def.surfWidth, def.bay?.depth ?? 0);
+  u.uIslandB.value[i].set(island.calmReach, def.lagoonWidth, def.surfWidth, def.bay?.depth ?? 0);
   u.uIslandC.value[i].set(frame.cos, frame.sin, frame.stretch, island.bayAngle);
   u.uIslandD.value[i].set(def.bay?.width ?? 1, frame.bend, frame.half, 0);
   island.lobes.forEach(([k, amp, phase], j) => u.uIslandLobes.value[i * ISLAND_LOBES + j].set(k, amp, phase));

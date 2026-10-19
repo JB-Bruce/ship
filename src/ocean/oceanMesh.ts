@@ -100,8 +100,8 @@ void main() {
   vec3 V = toCamera / dist;
 
   // Rides : deux couches de la même texture, à deux échelles, qui défilent dans des sens différents.
-  vec4 r1 = texture2D(uRipples, vWorldPos.xz * 0.035 + uTime * vec2(0.012, 0.007));
-  vec4 r2 = texture2D(uRipples, vWorldPos.xz * 0.09 + uTime * vec2(-0.009, 0.015));
+  vec4 r1 = texture2D(uRipples, vWorldPos.xz * ${OCEAN.rippleScales[0].toFixed(3)} + uTime * vec2(0.012, 0.007));
+  vec4 r2 = texture2D(uRipples, vWorldPos.xz * ${OCEAN.rippleScales[1].toFixed(3)} + uTime * vec2(-0.009, 0.015));
   // Détails fins (rides, traces des bateaux, frémissement des bancs, dentelle d'écume) : seulement en deçà de
   // uDetailDistance. Au-delà de ~220 m, ils sont de toute façon effacés ou hors de la carte des sillages.
   bool detailed = dist < uDetailDistance;
@@ -132,7 +132,7 @@ void main() {
   vec3 reflection = skyColor(R);
 
   float h = clamp(vHeight / uMaxHeight * 0.5 + 0.5, 0.0, 1.0);
-  vec3 body = mix(uDeep, uShallow, smoothstep(0.2, 1.0, h));
+  vec3 body = mix(uDeep, uShallow, smoothstep(0.2, 1.0, h) * ${OCEAN.crestTint.toFixed(2)});
   body *= 0.6 + 0.4 * max(dot(N, uSunDir), 0.0);
   // Contre-jour : le soleil traverse les crêtes et les teinte en turquoise.
   vec3 sunFlat = normalize(vec3(uSunDir.x, 0.0, uSunDir.z) + vec3(1e-4, 0.0, 0.0));

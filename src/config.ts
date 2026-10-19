@@ -98,6 +98,16 @@ export interface ShipStats {
 // Les caractéristiques de chaque type de bateau (chaloupe, sloop…) sont dans src/shipTypes.ts.
 
 /**
+ * Ancienneté visible d'un navire de ta flotte, par rang (recrue, vétéran ★, élite ★★, légende ★★★) : usure des voiles
+ * (0 à 1 : toile jaunie, taches, pièces rapiécées) et de la coque (bois assombri et terni, part en moins).
+ */
+export const RANK_LOOKS = {
+  sailWear: [0, 0.4, 0.7, 1],
+  hullDarken: [0, 0.12, 0.2, 0.28],
+  hullFade: [0, 0.15, 0.25, 0.35],
+};
+
+/**
  * Glisse sur la houle (tous les navires, par tous les temps) : la vitesse suit la pente de l'eau sous la coque, lue sur
  * le tangage. En descente (proue basse), le navire glisse et peut dépasser sa vitesse max ; en montée, il perd un peu.
  * L'effet est proportionnel à la pente, entier à `fullAngle` et plafonné au-delà.
@@ -209,6 +219,12 @@ export const AIM = {
   riggingHigh: 0.75,
   /** Hauteur visée sur ce qui n'est pas un navire (ouvrage assiégé), au-dessus de son point de visée (m). */
   structureHeight: 0.6,
+  /** Un boulet qui passe dans le gréement (voiles, mâts) fait cette part de ses dégâts (voir Ship.containsRigging). */
+  riggingDamage: 0.5,
+  /** Gréement : de part et d'autre de l'axe, part de la largeur de la coque (les vergues débordent un peu). */
+  riggingWidth: 0.75,
+  /** Un point visé sur un navire reste au moins à cette hauteur au-dessus de l'eau à cet endroit (m) : jamais sous la vague. */
+  waterClearance: 0.5,
   /** Imprécision (angle et distance) à la portée maximale, en multiple de celle à bout portant ; entre les deux, linéaire. */
   farSpread: 1.5,
 };
@@ -308,6 +324,11 @@ export const LOOT = {
   pickupMargin: 3,
   /** Les caisses coulent au bout de ce temps (s). */
   lifetime: 90,
+  /**
+   * Regroupement : une caisse qui tombe à moins de `radius` m d'une caisse du même genre s'y ajoute (sa durée de vie
+   * repart de zéro). Sa taille grandit avec son contenu : (contenu / `base` du genre)^(1/3), jusqu'à `maxScale`.
+   */
+  merge: { radius: 10, maxScale: 2, base: { gold: 8, wood: 4, rum: 3, spices: 2 } },
   /** Part de l'or perdue quand le joueur coule. */
   deathGoldLoss: 0.25,
 };
@@ -693,6 +714,8 @@ export const ENCOUNTER_ALERT = {
  */
 export const CRIT = {
   chance: { magazine: 0.003, fire: 0.025, rudder: 0.015, rigging: 0.025 },
+  /** Un boulet dans le gréement (voiles, mâts) ne peut abattre qu'une voile, avec cette chance × celle de `chance.rigging`. */
+  riggingHitFactor: 2.5,
   repairTime: { fire: 3, rudder: 5, rigging: 8 },
   /**
    * Gréement touché : une voile tombe, vitesse max réduite de cette fraction par voile abattue (au plus
@@ -1233,9 +1256,22 @@ export interface WaveParams {
   long?: boolean;
 }
 
+/** Carte (M) : zoom au plus (× le cadrage d'ensemble), vitesse de la molette (par unité de défilement). */
+export const MAP_VIEW = { maxZoom: 8, wheelSpeed: 0.0015 };
+
 export const OCEAN = {
   /** Demi-taille de la grille d'eau (m), recentrée sur le joueur. */
   halfSize: 900,
+  /**
+   * Les vagues s'apaisent près d'une île dès `calmDistance` × ce facteur du rivage (LandShapeDef.calmDistance),
+   * progressivement (courbe en S jusqu'au rivage). Garder SDF.far (world/landmass.ts) au-delà du plus grand résultat.
+   */
+  calmReach: 2,
+  /**
+   * Fond marin autour des terres : pente douce sur `shelf` m après le rivage, puis plus raide jusqu'à `maxDepth` (m),
+   * assez profond pour que les creux de la grande houle ne le découvrent jamais.
+   */
+  seabed: { shelf: 20, shelfSlope: 0.15, slope: 0.35, maxDepth: 70 },
   /**
    * Au-delà de cette distance du joueur (m), plus d'eau dessinée (coin de la grille : halfSize × √2) : un navire n'y
    * calcule ni sa flottaison ni l'animation de son gréement (`Ship.far`).
@@ -1269,15 +1305,18 @@ export const OCEAN = {
     { dirX: 1, dirZ: 0.3, steepness: 0.23, wavelength: 300, long: true },
     { dirX: 0.85, dirZ: -0.4, steepness: 0.09, wavelength: 215, long: true },
   ] as WaveParams[],
-  deepColor: 0x0a3d5c,
-  shallowColor: 0x1b7a9a,
+  /** Bleu du large (creux des vagues), et teinte du haut des vagues (part de cette teinte au sommet : `crestTint`). */
+  deepColor: 0x072c42,
+  shallowColor: 0x135a72,
+  crestTint: 0.6,
   /** Lumière turquoise qui traverse les crêtes à contre-jour. */
   scatterColor: 0x3fe0c8,
   foamColor: 0xf4fbff,
   /** Eau peu profonde autour de l'île. */
   lagoonColor: 0x35c9c0,
-  /** Force des petites rides de surface. */
-  rippleStrength: 0.11,
+  /** Force des petites rides de surface, et échelle (répétitions par mètre) de leurs deux couches. */
+  rippleStrength: 0.08,
+  rippleScales: [0.07, 0.18] as const,
 };
 
 /**

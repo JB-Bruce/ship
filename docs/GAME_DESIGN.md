@@ -318,3 +318,14 @@ Chaque navire suit le même schéma : un modèle `ShipModel` + une entrée dans 
 - Gardé : or, bois, places, victoires, météo, formation, chaque navire (type, nom, améliorations, allongements, cale, canons, victoires, pavillons, route commerciale, position, cap, vie, voile ; un navire en attente de réapparition garde son délai), îles (allégeance, améliorations, réserve), vie de Fort-Royal tant qu'il est à la Marine, dernier port, registre, contrats (offres du jour, contrats acceptés et leur avancement, missions spéciales réussies), équipage (officiers, affectations, candidats). On reprend à l'endroit exact.
 - Pas gardé : ennemis en mer (garnison de l'Île Royale comprise), butin flottant, pirates et marchands alliés (ils reviennent d'eux-mêmes), compte à rebours des contre-attaques (il repart au chargement). Les missions en cours (chasse, défense, escorte) recommencent au chargement ; un navire en commerce en pleine traversée repart de là où il était.
 - Charger ou commencer une nouvelle partie recharge la page (les sauvegardes restent). Recharger la page soi-même commence une nouvelle partie.
+
+## Retouches du 2026-10-19
+- **Butin regroupé** : ce qui tombe à moins de 10 m d'une caisse du même genre (or, bois, rhum, épices) s'y ajoute ; la caisse grossit avec son contenu (jusqu'à ×2) et sa durée de vie repart de zéro.
+- **Ancienneté** : à partir de vétéran, voiles patinées (toile jaunie, taches, pièces rapiécées) et coque usée (bois plus sombre et terni), de plus en plus marquées à élite puis légende.
+- **Visée** : les canons ne visent plus la partie immergée de la coque : le point visé tient compte du tangage de la cible et reste au moins 0,5 m au-dessus de l'eau à cet endroit.
+- **Gréement touché** : un boulet qui passe dans les voiles ou les mâts fait la moitié de ses dégâts et peut abattre une voile (2,5 fois plus souvent qu'un coup à la coque) ; les obus de mortier traversent les voiles.
+- **Écume des coques** : le liseré suit la partie de la coque qui trempe vraiment (centre et longueur à la flottaison), surtout sensible sur la flûte, la caraque, la galéasse et le galion.
+- **Îles** : les vagues commencent à s'apaiser deux fois plus loin du rivage, progressivement ; le fond marin plonge plus vite au-delà de la plage (jusqu'à 70 m), pour que les creux de la grande houle ne le découvrent plus.
+- **Carte** : molette pour zoomer vers le curseur (jusqu'à ×8), glisser pour déplacer, double-clic ou C pour recentrer sur ton navire ; cadrage d'ensemble à chaque ouverture.
+- **Eau** : bleu du large plus profond et moins saturé, haut des vagues moins éclairci, rides plus fines et moins marquées (moins de grandes plaques de reflet bleu ciel).
+

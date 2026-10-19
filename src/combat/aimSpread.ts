@@ -1,4 +1,5 @@
 import { AIM } from '../config';
+import type { Waves } from '../ocean/waves';
 import type { Ship } from '../ship/ship';
 import type { CannonTarget } from './cannons';
 
@@ -49,6 +50,17 @@ export function aimSpot(point: AimPoint, target: CannonTarget, out: { x: number;
   const shift = point.along * target.stats.length * 0.5;
   out.x += Math.sin(target.heading) * shift;
   out.z += Math.cos(target.heading) * shift;
+}
+
+/**
+ * Hauteur (y du monde) du point visé, arrivé en (x, z) : celle de la coque à cet endroit (son tangage compris), mais
+ * jamais sous la surface de l'eau à cet endroit (on ne vise pas la partie immergée de la coque).
+ */
+export function aimHeight(point: AimPoint, target: CannonTarget, x: number, z: number, waves: Waves): number {
+  const y = target.position.y + point.height;
+  if (!isShip(target)) return y;
+  const hull = y + Math.sin(target.pitch) * point.along * target.stats.length * 0.5;
+  return Math.max(hull, waves.heightAt(x, z) + AIM.waterClearance);
 }
 
 /** Facteur d'imprécision selon la distance : 1 à bout portant, AIM.farSpread à la portée maximale `range`. */

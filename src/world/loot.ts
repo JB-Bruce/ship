@@ -147,6 +147,7 @@ export class Loot {
         const taken = this.collect(ship, crate.kind, crate.value);
         if (taken <= 0) continue;
         crate.value -= taken;
+        this.resize(crate);
         this.effects.sparkle(m.position, crate.kind === 'wood' ? 'wood' : 'gold');
         if (crate.value > 0) continue;
         this.removeAt(i);
@@ -173,13 +174,34 @@ export class Loot {
     return Math.hypot(ex, ez) < width / 2 + LOOT.pickupMargin;
   }
 
+  /**
+   * Fait tomber du butin vers (x, z) : il rejoint une caisse du même genre toute proche (qui grossit), sinon une
+   * nouvelle caisse apparaît. On évite ainsi des dizaines de petites caisses autour d'une épave.
+   */
   private spawn(kind: LootKind, x: number, z: number, value: number) {
+    const px = x + (Math.random() - 0.5) * 8;
+    const pz = z + (Math.random() - 0.5) * 8;
+    const near = this.crates.find((c) => c.kind === kind && c.age < LOOT.lifetime - 3 && Math.hypot(c.mesh.position.x - px, c.mesh.position.z - pz) < LOOT.merge.radius);
+    if (near) {
+      near.value += value;
+      near.age = 0;
+      this.resize(near);
+      return;
+    }
     const { geometry, materials } = this.models[kind];
     const mesh = new THREE.Mesh(geometry, materials);
-    mesh.position.set(x + (Math.random() - 0.5) * 8, 0, z + (Math.random() - 0.5) * 8);
+    mesh.position.set(px, 0, pz);
     mesh.rotation.y = Math.random() * Math.PI * 2;
     this.scene.add(mesh);
-    this.crates.push({ mesh, kind, value, age: 0, spin: (Math.random() - 0.5) * 0.6 });
+    const crate: Crate = { mesh, kind, value, age: 0, spin: (Math.random() - 0.5) * 0.6 };
+    this.resize(crate);
+    this.crates.push(crate);
+  }
+
+  /** Taille d'une caisse selon son contenu. */
+  private resize(crate: Crate) {
+    const m = LOOT.merge;
+    crate.mesh.scale.setScalar(Math.min(m.maxScale, Math.max(1, Math.cbrt(crate.value / m.base[crate.kind]))));
   }
 
   private removeAt(i: number) {

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, ISLAND_INFO, OCEAN, SKY, WORLD, WORLD_EDGE, type IslandId } from './config';
+import { AIM, BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, ISLAND_INFO, OCEAN, SKY, WORLD, WORLD_EDGE, type IslandId } from './config';
 import { Campaign } from './campaign';
 import { ChaseCamera } from './camera/chaseCamera';
 import { arcOf, cannonStatsOf, findTarget, updateCannons } from './combat/cannons';
@@ -260,14 +260,14 @@ export class Game {
     this.repairStatus = this.campaign.repairAtPort(dt, this.ships, this.fleet.leader);
     this.campaign.update(dt, this.fleet.leader);
     for (const fort of Object.values(this.forts)) fort.update(dt, this.ships, this.projectiles, this.effects, this.wind);
-    updateCannons(dt, this.ships, this.projectiles, this.effects);
+    updateCannons(dt, this.ships, this.projectiles, this.effects, this.waves);
     const besieged = this.campaign.besieged();
     this.projectiles.update(
       dt,
       this.ships,
       this.waves,
       this.effects,
-      (ship, ball) => this.onBallHit(ship, ball),
+      (ship, ball, rigging) => this.onBallHit(ship, ball, rigging),
       besieged,
       (fort, ball) => fort.takeDamage(ball.damage),
       (ship, ball, damage) => this.onShellBlast(ship, ball, damage),
@@ -355,12 +355,13 @@ export class Game {
     this.hud.toast(`Tu prends la barre de ${member.name}`, 2.5);
   }
 
-  private onBallHit(ship: Ship, ball: Ball) {
+  /** `rigging` : le boulet est passé dans les voiles ou les mâts (dégâts réduits, seule une voile peut tomber). */
+  private onBallHit(ship: Ship, ball: Ball, rigging: boolean) {
     // Un obus fait sa propre explosion (Projectiles), et secoue plus fort.
     if (ball.shell) this.shellShake(ship);
     else this.effects.impact(ball.position);
-    this.applyDamage(ship, ball.damage, ball.owner);
-    if (this.criticals.strike(ship) === 'magazine') this.applyDamage(ship, ship.stats.maxHealth * CRIT.magazineDamage, ball.owner);
+    this.applyDamage(ship, ball.damage * (rigging ? AIM.riggingDamage : 1), ball.owner);
+    if (this.criticals.strike(ship, rigging) === 'magazine') this.applyDamage(ship, ship.stats.maxHealth * CRIT.magazineDamage, ball.owner);
   }
 
   /** Souffle d'un obus qui a explosé près d'un navire ennemi (sans coup critique). */

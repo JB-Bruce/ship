@@ -4,6 +4,7 @@ import type { Guns } from '../progression/modifiers';
 import { cylinderBetween } from './parts/sails';
 import { flagMaterialFor, std, WavingFlag } from './parts/common';
 import type { ShipModel } from './shipModel';
+import { applyWear } from './shipWear';
 
 /** Écart entre deux pavillons hissés l'un sous l'autre (fraction de la hauteur d'un pavillon). */
 const FLAG_GAP = 0.2;
@@ -76,6 +77,7 @@ export class ShipDressing {
     if (stars === this.rank) return;
     this.rank = stars;
     this.removeRank();
+    applyWear(this.model.root, stars);
     if (stars <= 0) return;
     const { base, top } = this.model.ensignStaff;
     const mount = this.model.flagMount;

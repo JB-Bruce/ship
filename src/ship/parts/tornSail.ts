@@ -24,6 +24,8 @@ export type SailAxis = 'x' | 'z';
  */
 export class TornSail {
   private readonly tear = { value: 0 };
+  /** Usure des toiles (ancienneté du navire, 0 à 1 : voir RANK_LOOKS) : jaunies, tachées, rapiécées. */
+  private readonly wear = { value: 0 };
   /** Part du gonflement maximal de chaque voile (0 = creux d'origine, 1 = maximum) : celle du vent × le déploiement. */
   private readonly fill = { value: 0 };
   /** Part donnée par le vent (voir setWind), et déploiement des voiles (0 = affalées, 1 = pleine voile). */
@@ -51,6 +53,7 @@ export class TornSail {
     material.onBeforeCompile = (shader) => {
       shader.uniforms.uTear = this.tear;
       shader.uniforms.uTearSeed = seed;
+      shader.uniforms.uWear = this.wear;
       if (emblemOn) Object.assign(shader.uniforms, emblemOn);
       this.addBillow(shader, axis, max, curve);
       shader.vertexShader = shader.vertexShader
@@ -63,6 +66,7 @@ export class TornSail {
 varying vec3 vSailPos;
 uniform float uTear;
 uniform vec2 uTearSeed;
+uniform float uWear;
 ${emblemOn ? EMBLEM_DECLARATIONS : ''}
 float tearHash(vec2 q) {
   return fract(sin(dot(q, vec2(127.1, 311.7))) * 43758.5453);
@@ -84,6 +88,15 @@ float tearNoise(vec3 p) {
           '#include <color_fragment>',
           /* glsl */ `#include <color_fragment>
 ${emblemOn ? EMBLEM_FRAGMENT : ''}
+  if (uWear > 0.0) {
+    // Toile patinée : jaunie et ternie, des taches de sel et de goudron, quelques pièces rapiécées (~1 m).
+    diffuseColor.rgb *= mix(vec3(1.0), vec3(0.86, 0.8, 0.66), uWear);
+    float stain = smoothstep(0.55, 0.75, tearValue(vSailPos.xy * 0.8 + uTearSeed * 1.7 + 5.0));
+    diffuseColor.rgb *= 1.0 - stain * 0.22 * uWear;
+    vec2 cell = floor(vSailPos.xy * 0.9 + uTearSeed);
+    float mend = tearHash(cell);
+    if (mend < 0.12 * uWear) diffuseColor.rgb *= tearHash(cell + 7.0) < 0.5 ? vec3(1.1, 1.06, 0.95) : vec3(0.78, 0.72, 0.62);
+  }
   if (uTear > 0.0) {
     float margin = tearNoise(vSailPos) - (1.0 - uTear);
     if (margin > 0.0) discard;
@@ -94,6 +107,7 @@ ${emblemOn ? EMBLEM_FRAGMENT : ''}
     };
     // Repère des voiles (un coup critique au gréement en fait tomber une).
     material.userData.sail = true;
+    material.userData.wear = this.wear;
     // Même programme pour toutes les voiles trouées (seuls les uniforms changent d'une voile à l'autre).
     material.customProgramCacheKey = () => (emblemOn ? 'torn-sail-emblem' : 'torn-sail');
     this.materials.push(material);

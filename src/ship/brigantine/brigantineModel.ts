@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { Waterline } from '../parts/hullShape';
 import type { Livery, ShipStats } from '../../config';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import { armorFor, cannonMount, fireSpots, riggingMaterial, sternStaff, waterMaskMaterial, WavingFlag } from '../parts/common';
@@ -33,7 +34,7 @@ export class BrigantineModel implements ShipModel {
   readonly root = new THREE.Group();
   readonly cannons: CannonMount[] = [];
   readonly barHeight = 17.5;
-  waterline!: readonly number[];
+  waterline!: Waterline;
   flagMount!: FlagMount;
   ensignStaff!: EnsignStaff;
   fireSpots!: THREE.Vector3[];

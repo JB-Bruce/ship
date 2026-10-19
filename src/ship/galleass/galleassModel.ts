@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { Waterline } from '../parts/hullShape';
 import { GALLEASS_BOW, SAIL_BILLOW, type Livery, type ShipStats } from '../../config';
 import { wrapAngle } from '../../utils/math';
 import { RENDER_ORDER } from '../../utils/renderOrder';
@@ -41,7 +42,7 @@ export class GalleassModel implements ShipModel {
   readonly root = new THREE.Group();
   readonly cannons: CannonMount[] = [];
   readonly barHeight = 22;
-  waterline!: readonly number[];
+  waterline!: Waterline;
   flagMount!: FlagMount;
   ensignStaff!: EnsignStaff;
   fireSpots!: THREE.Vector3[];

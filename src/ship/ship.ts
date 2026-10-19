@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COMBAT, CRIT, DAMAGE, LIVERIES, OARS, RECOIL, REPAIR, SURF, type Faction, type Livery, type ShipStats } from '../config';
+import { AIM, COMBAT, CRIT, DAMAGE, LIVERIES, OARS, RECOIL, REPAIR, SURF, type Faction, type Livery, type ShipStats } from '../config';
 import type { CannonTarget } from '../combat/cannons';
 import type { Waves } from '../ocean/waves';
 import { applyModifiers, factor, noModifiers, standardGuns, type Guns, type StatModifiers } from '../progression/modifiers';
@@ -22,6 +22,8 @@ export interface ShipControls {
 }
 
 const { damp } = THREE.MathUtils;
+/** Haut de la coque touchable au-dessus de la flottaison (m) ; au-dessus commence le gréement. */
+const HULL_TOP = 2.2;
 /** Ordres d'un bateau qui coule : plus personne à la barre. */
 const ADRIFT: ShipControls = { sail: 0, rudder: 0 };
 
@@ -245,7 +247,22 @@ export class Ship {
     const forward = dx * s + dz * c;
     const side = dx * c - dz * s;
     const up = y - this.position.y;
-    return Math.abs(forward) < this.stats.length / 2 && Math.abs(side) < this.stats.width / 2 + 0.15 && up > -1.2 && up < 2.2;
+    return Math.abs(forward) < this.stats.length / 2 && Math.abs(side) < this.stats.width / 2 + 0.15 && up > -1.2 && up < HULL_TOP;
+  }
+
+  /**
+   * Le point est-il dans le gréement (voiles et mâts, au-dessus de la coque de containsPoint) ? Volume approché : sur
+   * la longueur de la coque, AIM.riggingWidth de sa largeur, jusqu'au pavillon du grand mât. Rien pour une barque.
+   */
+  containsRigging(x: number, y: number, z: number): boolean {
+    const top = this.model.flagMount.position.y;
+    if (top < AIM.riggingMinHeight) return false;
+    const dx = x - this.position.x;
+    const dz = z - this.position.z;
+    const s = Math.sin(this.heading);
+    const c = Math.cos(this.heading);
+    const up = y - this.position.y;
+    return up >= HULL_TOP && up < top && Math.abs(dx * s + dz * c) < this.stats.length / 2 && Math.abs(dx * c - dz * s) < this.stats.width * AIM.riggingWidth;
   }
 
   /**

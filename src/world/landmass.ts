@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ISLAND_LOBES, type LandShapeDef } from '../config';
+import { ISLAND_LOBES, OCEAN, type LandShapeDef } from '../config';
 
 const TWO_PI = Math.PI * 2;
 const { clamp } = THREE.MathUtils;
@@ -12,7 +12,7 @@ export const smoothstep = (a: number, b: number, x: number) => {
  * dérivées le long de la côte (rad), distance où s'efface la correction de pente (m), et distance au-delà de son
  * rayon extérieur où une île n'est plus calculée en détail (m).
  */
-export const SDF = { slopeStep: 0.01, slopeFade: 30, far: 200 };
+export const SDF = { slopeStep: 0.01, slopeFade: 30, far: 400 };
 const { slopeStep: SLOPE_STEP, slopeFade: SLOPE_FADE, far: FAR } = SDF;
 /** Décalages d'angle (rad) sur lesquels on moyenne la côte pour adoucir le relief intérieur. */
 const RELIEF_SMOOTHING = [-0.5, -0.25, 0, 0.25, 0.5];
@@ -41,6 +41,8 @@ export class Landmass {
   readonly cz: number;
   /** Rayon au-delà duquel on est sûrement en mer (pour les calculs rapides). */
   readonly outerRadius: number;
+  /** Distance au rivage (m) où les vagues commencent à s'apaiser (0 = jamais) : calmDistance × OCEAN.calmReach. */
+  readonly calmReach: number;
   /** Rayon moyen de l'île le long de son grand axe (m) : étendue de son terrain et de son décor. */
   readonly reach: number;
   /** Ondulations de la côte, complétées jusqu'à ISLAND_LOBES. */
@@ -64,6 +66,7 @@ export class Landmass {
     this.lobes = Array.from({ length: ISLAND_LOBES }, (_, i) => def.lobes[i] ?? NO_LOBE);
     this.outerRadius = (def.radius + def.lobes.reduce((s, l) => s + Math.abs(l[1]), 0)) * spread + Math.abs(this.frame.bend);
     this.reach = def.radius * spread;
+    this.calmReach = def.calmDistance * OCEAN.calmReach;
     const bay = def.bay ?? NO_BAY;
     this.bay = bay;
     this.toShape(Math.sin(bay.angle), Math.cos(bay.angle));
@@ -151,15 +154,20 @@ export class Landmass {
 
   /** Atténuation des vagues : 0 au rivage, 1 au large (même formule que le shader) ; aucune sans `calmDistance`. */
   calmAt(x: number, z: number): number {
-    if (this.def.calmDistance <= 0) return 1;
-    if (Math.hypot(x - this.cx, z - this.cz) > this.outerRadius + this.def.calmDistance + 10) return 1;
-    return smoothstep(0, this.def.calmDistance, this.sdf(x, z));
+    const reach = this.calmReach;
+    if (reach <= 0) return 1;
+    if (Math.hypot(x - this.cx, z - this.cz) > this.outerRadius + reach + 10) return 1;
+    return smoothstep(0, reach, this.sdf(x, z));
   }
 
   /** Altitude du terrain (m) : négative sous l'eau (fond marin), plage au rivage, collines ou falaises à l'intérieur. */
   heightAt(x: number, z: number): number {
     const s = this.sdf(x, z);
-    if (s > 0) return -Math.min(s, 80) * 0.15;
+    if (s > 0) {
+      const b = OCEAN.seabed;
+      const depth = Math.min(s, b.shelf) * b.shelfSlope + Math.max(0, s - b.shelf) * b.slope;
+      return -Math.min(depth, b.maxDepth);
+    }
     // Distance à l'intérieur des terres. Près du rivage, elle est exacte (la plage suit la côte) ;
     // plus loin, on moyenne la côte sur plusieurs angles, sinon le « V » de la crique se prolongerait
     // en ravin étroit et rocheux derrière le village.

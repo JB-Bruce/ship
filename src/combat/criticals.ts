@@ -54,10 +54,12 @@ export class Criticals {
   }
 
   /** Tire un éventuel coup critique sur `ship`. Renvoie lequel, ou null. */
-  strike(ship: Ship): CritKind | null {
+  strike(ship: Ship, rigging = false): CritKind | null {
     if (!ship.alive) return null;
     for (const kind of ORDER) {
-      if (Math.random() >= CRIT.chance[kind]) continue;
+      // Un boulet dans le gréement ne peut qu'abattre une voile, mais plus souvent.
+      if (rigging && kind !== 'rigging') continue;
+      if (Math.random() >= CRIT.chance[kind] * (rigging ? CRIT.riggingHitFactor : 1)) continue;
       const { effects, hud, camera } = this.world;
       if (kind === 'magazine') {
         this.fx.magazine(ship, deckPoint(ship));

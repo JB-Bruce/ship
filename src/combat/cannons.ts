@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { COMBAT, type CannonStats } from '../config';
 import type { Effects } from '../fx/effects';
+import type { Waves } from '../ocean/waves';
 import { isHostile, type Ship } from '../ship/ship';
 import type { CannonMount } from '../ship/shipModel';
 import { moveTowards, wrapAngle } from '../utils/math';
 import { conditions } from '../world/weather';
-import { aimSpot, distanceSpread, newAimPoint, pickAimPoint, type AimPoint } from './aimSpread';
+import { aimHeight, aimSpot, distanceSpread, newAimPoint, pickAimPoint, type AimPoint } from './aimSpread';
 import type { Projectiles } from './projectiles';
 
 /** Vitesse de rotation d'un canon (rad/s) : il pivote, il ne se téléporte pas. */
@@ -55,7 +56,7 @@ const centered = () => Math.random() + Math.random() - 1;
  * et tire dès qu'il est rechargé et bien pointé. Mêmes règles pour tous les camps. Un assiégeant
  * (`Ship.siegeTarget`) bombarde la citadelle quand aucun bateau n'est à portée de ce canon.
  */
-export function updateCannons(dt: number, ships: readonly Ship[], projectiles: Projectiles, effects: Effects) {
+export function updateCannons(dt: number, ships: readonly Ship[], projectiles: Projectiles, effects: Effects, waves: Waves) {
   for (const ship of ships) {
     if (!ship.alive) continue;
     const mounts = ship.model.cannons;
@@ -97,7 +98,7 @@ export function updateCannons(dt: number, ships: readonly Ship[], projectiles: P
       const ready = target !== null && ship.cannonCooldowns[i] === 0 && Math.abs(mount.yaw - desired) < AIM_TOLERANCE;
       if (ready) mount.fireDelay = Math.max(0, mount.fireDelay - dt);
       if (ready && target && mount.fireDelay === 0) {
-        fire(ship, mount, c, target, point.height, projectiles, effects);
+        fire(ship, mount, c, aimHeight(point, target, aim.x, aim.z, waves), projectiles, effects);
         ship.cannonCooldowns[i] = c.reloadTime * (mount.reloadFactor ?? 1) * (0.9 + Math.random() * 0.2);
         mount.fireDelay = Math.random() * COMBAT.acquireDelay;
         pickAimPoint(point, target);
@@ -163,17 +164,17 @@ function yawToward(ship: Ship, mount: CannonMount, c: CannonStats, tx: number, t
   return THREE.MathUtils.clamp(wrapAngle(relative - mount.angle), -limit, limit);
 }
 
-/** Un coup de canon : un boulet par fût (triple canon), sinon un seul ; `height` : hauteur visée sur la cible (m). */
-function fire(ship: Ship, mount: CannonMount, c: CannonStats, target: CannonTarget, height: number, projectiles: Projectiles, effects: Effects) {
+/** Un coup de canon : un boulet par fût (triple canon), sinon un seul ; `aimY` : hauteur visée (y du monde). */
+function fire(ship: Ship, mount: CannonMount, c: CannonStats, aimY: number, projectiles: Projectiles, effects: Effects) {
   ship.model.root.updateMatrixWorld();
-  if (mount.barrels) for (const barrel of mount.barrels) shoot(ship, mount, barrel, c, target, height, projectiles, effects);
-  else shoot(ship, mount, mount.muzzle, c, target, height, projectiles, effects);
+  if (mount.barrels) for (const barrel of mount.barrels) shoot(ship, mount, barrel, c, aimY, projectiles, effects);
+  else shoot(ship, mount, mount.muzzle, c, aimY, projectiles, effects);
   ship.markCombat();
   ship.recoil(mount.angle);
 }
 
-/** Tire un boulet (ou un obus) depuis la bouche `local` (repère du canon) vers le point visé, à `height` m au-dessus de la cible. */
-function shoot(ship: Ship, mount: CannonMount, local: THREE.Vector3, c: CannonStats, target: CannonTarget, height: number, projectiles: Projectiles, effects: Effects) {
+/** Tire un boulet (ou un obus) depuis la bouche `local` (repère du canon) vers le point visé, à la hauteur `aimY`. */
+function shoot(ship: Ship, mount: CannonMount, local: THREE.Vector3, c: CannonStats, aimY: number, projectiles: Projectiles, effects: Effects) {
   mount.object.localToWorld(muzzle.copy(local));
 
   // Imprécision : un léger écart d'angle et de distance (le spread), qui peut faire rater ; il grandit avec la distance.
@@ -186,7 +187,7 @@ function shoot(ship: Ship, mount: CannonMount, local: THREE.Vector3, c: CannonSt
   const speed = (distance / flight) * (1 + centered() * c.rangeError * far);
   // Vitesse verticale pour arriver à la hauteur visée au bout du temps de vol (l'obus tombe plus vite qu'un boulet).
   const gravity = COMBAT.gravity * (c.shell?.gravityFactor ?? 1);
-  const vy = (target.position.y + height - muzzle.y + 0.5 * gravity * flight * flight) / flight;
+  const vy = (aimY - muzzle.y + 0.5 * gravity * flight * flight) / flight;
   velocity.set(Math.sin(angle) * speed, vy, Math.cos(angle) * speed);
 
   projectiles.fire(muzzle, velocity, ship, c.damage, c.shell);
