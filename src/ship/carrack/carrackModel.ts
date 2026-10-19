@@ -212,7 +212,7 @@ export class CarrackModel implements ShipModel {
     );
     this.tornSail = new TornSail(t.sailMaterial, this.livery.sailEmblem);
     this.lanterns = addStatics(this.body, t.statics);
-    this.staysails = new Staysails(this.tornSail, [L.foreMast, L.mainMast, L.mizzenMast]);
+    this.staysails = new Staysails(this.tornSail, [L.foreMast, L.mainMast]);
     this.body.add(this.staysails.group);
 
     this.sails = [];
@@ -272,6 +272,7 @@ export class CarrackModel implements ShipModel {
 
   /** Défait ce qui est propre à cette instance (le gabarit, partagé, reste en cache). */
   private disposeParts() {
+    this.staysails.dispose();
     this.flag.dispose();
     this.tornSail.dispose();
     this.body.clear();

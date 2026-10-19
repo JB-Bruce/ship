@@ -1269,11 +1269,12 @@ export interface WaveParams {
 }
 
 /**
- * Voiles d'étai des trois-mâts (ship/parts/staysails.ts) : l'étai part de la hune du mât arrière (part de la hauteur
- * pied → hune, `stayHigh`) et descend vers le mât avant (`stayLow`) ; la voile en occupe de `tack` à `head` (part de
- * l'étai depuis l'avant) ; point d'écoute à `clewRise` de la hauteur et `clewIn` vers l'avant ; creux ; taille affalée.
+ * Voiles d'étai (ship/parts/staysails.ts) : l'étai part de la hune du mât arrière (part de la hauteur pied → hune,
+ * `stayHigh`) et descend vers le mât avant (`stayLow`) ; la toile pend dessous, à `foreGap` / `aftGap` m des mâts,
+ * jusqu'à `footClearance` m au-dessus du plus haut des deux ponts ; creux, grille, taille carguée (part de la chute),
+ * écart de voilure sous lequel la toile n'est pas redessinée.
  */
-export const STAYSAILS = { stayHigh: 0.95, stayLow: 0.22, tack: 0.14, head: 0.78, clewRise: 0.08, clewIn: 0.12, bulge: 0.35, furled: 0.15 };
+export const STAYSAILS = { stayHigh: 0.98, stayLow: 0.45, foreGap: 1, aftGap: 1.6, footClearance: 2.4, bulge: 0.55, segments: 6, furled: 0.12, step: 0.01 };
 
 export type EmblemId = 'skull' | 'sabres' | 'kraken' | 'serpent' | 'compass' | 'anchor' | 'raven' | 'mermaid';
 

@@ -262,6 +262,7 @@ export class GalleonModel implements ShipModel {
 
   /** Défait ce qui est propre à cette instance (le gabarit, partagé, reste en cache). */
   private disposeParts() {
+    this.staysails.dispose();
     this.flag.dispose();
     this.tornSail.dispose();
     this.body.clear();
