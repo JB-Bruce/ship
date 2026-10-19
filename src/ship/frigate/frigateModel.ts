@@ -202,7 +202,7 @@ export class FrigateModel implements ShipModel {
     );
     this.tornSail = new TornSail(t.sailMaterial, this.livery.sailEmblem);
     this.lanterns = addStatics(this.body, t.statics);
-    this.staysails = new Staysails(this.tornSail, [L.foreMast, L.mainMast]);
+    this.staysails = new Staysails(this.tornSail, [L.foreMast, L.mainMast], true);
     this.body.add(this.staysails.group);
 
     L.squareSails.forEach((s, i) => {

@@ -14,6 +14,8 @@ export interface Ball {
   damage: number;
   /** Obus de mortier (tir en cloche, explosion et souffle), ou null pour un boulet. */
   shell: ShellStats | null;
+  /** Navire dont le boulet a déjà traversé le gréement : il poursuit sa course sans plus pouvoir le toucher. */
+  pierced: Ship | null;
   trailTimer: number;
 }
 
@@ -51,13 +53,14 @@ export class Projectiles {
 
   fire(from: THREE.Vector3, velocity: THREE.Vector3, owner: Combatant, damage: number, shell: ShellStats | null = null) {
     if (this.balls.length >= this.capacity) return;
-    const ball = this.pool.pop() ?? { position: new THREE.Vector3(), previous: new THREE.Vector3(), velocity: new THREE.Vector3(), owner, damage, shell, trailTimer: 0 };
+    const ball = this.pool.pop() ?? { position: new THREE.Vector3(), previous: new THREE.Vector3(), velocity: new THREE.Vector3(), owner, damage, shell, pierced: null, trailTimer: 0 };
     ball.position.copy(from);
     ball.previous.copy(from);
     ball.velocity.copy(velocity);
     ball.owner = owner;
     ball.damage = damage;
     ball.shell = shell;
+    ball.pierced = null;
     ball.trailTimer = 0;
     this.balls.push(ball);
   }
@@ -91,8 +94,14 @@ export class Projectiles {
       }
 
       const target = this.hitTest(ball, ships);
+      if (target && this.inRigging) {
+        // Un boulet troue la toile ou les cordages et continue sa course (jusqu'à l'eau, ou un autre navire).
+        onHit(target, ball, true);
+        ball.pierced = target;
+        continue;
+      }
       if (target) {
-        onHit(target, ball, this.inRigging);
+        onHit(target, ball, false);
         this.detonate(ball, ships, target, onBlast, effects);
         this.removeAt(i);
         continue;
@@ -147,7 +156,7 @@ export class Projectiles {
   /** Le navire touché (coque, ou gréement : `inRigging`), ou null. */
   private hitTest(ball: Ball, ships: readonly Ship[]): Ship | null {
     for (const ship of ships) {
-      if (ship === ball.owner || !ship.alive || !isHostile(ball.owner, ship)) continue;
+      if (ship === ball.owner || ship === ball.pierced || !ship.alive || !isHostile(ball.owner, ship)) continue;
       for (const t of HIT_SAMPLES) {
         sample.lerpVectors(ball.previous, ball.position, t);
         this.inRigging = false;

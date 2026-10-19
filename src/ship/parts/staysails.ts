@@ -3,35 +3,57 @@ import { STAYSAILS } from '../../config';
 import { riggingMaterial } from './common';
 import type { TornSail } from './tornSail';
 
-/** Ce qu'il faut savoir d'un mât (repère du navire) : position, pied, hune. */
+/** Ce qu'il faut savoir d'un mât (repère du navire) : position, pied, hune, tête. */
 export interface StayMast {
   readonly z: number;
   readonly base: number;
   readonly topPlatform: number;
+  readonly top: number;
 }
 
 /** Une voile d'étai et son étai : hauteur de l'étai le long du navire, sommets de la toile. */
 interface StayShape {
-  /** L'étai : de la hune du mât arrière (z, y) au mât avant (z, y). */
+  /** L'étai : du mât arrière (z, y) au mât avant (z, y). */
   aft: THREE.Vector2;
   fore: THREE.Vector2;
   /** Coins de la toile : haut avant et haut arrière (sur l'étai), bas arrière et bas avant. */
   corners: [THREE.Vector3, THREE.Vector3, THREE.Vector3, THREE.Vector3];
 }
 
-function shapeOf(fore: StayMast, aft: StayMast): StayShape {
+/**
+ * Hauteur d'un point d'étai sur un mât : `at` = part du pied à la hune (0 à 1), puis au-delà de 1, part de la hune à
+ * la tête (1,5 = à mi-chemin entre hune et tête).
+ */
+function mastHeight(mast: StayMast, at: number): number {
+  return at <= 1 ? mast.base + (mast.topPlatform - mast.base) * at : mast.topPlatform + (mast.top - mast.topPlatform) * (at - 1);
+}
+
+/** Un étai entre deux mâts, par ses hauteurs (voir mastHeight). Renvoie aussi sa hauteur le long du navire. */
+function stayOf(fore: StayMast, aft: StayMast, aftAt: number, foreAt: number) {
+  const a = new THREE.Vector2(aft.z, mastHeight(aft, aftAt));
+  const f = new THREE.Vector2(fore.z, mastHeight(fore, foreAt));
+  return { a, f, y: (z: number) => f.y + ((z - f.x) / (a.x - f.x)) * (a.y - f.y) };
+}
+
+/**
+ * Voiles d'étai entre deux mâts : une seule, au bas horizontal au-dessus du pont ; ou deux superposées (`double`) :
+ * celle du bas sous un étai moins incliné, celle du haut sous un étai plus haut, son bas le long de l'étai du bas.
+ */
+function shapesOf(fore: StayMast, aft: StayMast, double: boolean): StayShape[] {
   const s = STAYSAILS;
-  const a = new THREE.Vector2(aft.z, aft.base + (aft.topPlatform - aft.base) * s.stayHigh);
-  const f = new THREE.Vector2(fore.z, fore.base + (fore.topPlatform - fore.base) * s.stayLow);
-  const stay = (z: number) => f.y + ((z - f.x) / (a.x - f.x)) * (a.y - f.y);
-  const zFore = f.x - s.foreGap;
-  const zAft = a.x + s.aftGap;
+  const zFore = fore.z - s.foreGap;
+  const zAft = aft.z + s.aftGap;
   const foot = Math.max(fore.base, aft.base) + s.footClearance;
-  return {
-    aft: a,
-    fore: f,
-    corners: [new THREE.Vector3(0, stay(zFore), zFore), new THREE.Vector3(0, stay(zAft), zAft), new THREE.Vector3(0, foot, zAft), new THREE.Vector3(0, foot, zFore)],
-  };
+  const quad = (stay: ReturnType<typeof stayOf>, bottom: (z: number) => number): StayShape => ({
+    aft: stay.a,
+    fore: stay.f,
+    corners: [new THREE.Vector3(0, stay.y(zFore), zFore), new THREE.Vector3(0, stay.y(zAft), zAft), new THREE.Vector3(0, bottom(zAft), zAft), new THREE.Vector3(0, bottom(zFore), zFore)],
+  });
+  if (!double) return [quad(stayOf(fore, aft, s.stayHigh, s.stayLow), () => foot)];
+  const d = s.double;
+  const low = stayOf(fore, aft, d.lowAft, d.lowFore);
+  const high = stayOf(fore, aft, d.highAft, d.highFore);
+  return [quad(low, () => foot), quad(high, (z) => low.y(z) + d.gap)];
 }
 
 /**
@@ -73,7 +95,8 @@ function buildQuad(shape: StayShape) {
 
 /**
  * Voiles d'étai : une entre chaque paire de mâts consécutifs donnés de l'avant vers l'arrière (grand mât → misaine sur
- * la plupart des trois-mâts ; aussi artimon → grand mât sur le galion). Chacune pend sous son étai (dessiné), en toile
+ * la plupart des trois-mâts ; aussi artimon → grand mât sur le galion), deux superposées à l'avant de la frégate et du
+ * galion. Chacune pend sous son étai (dessiné), en toile
  * des voiles trouées du navire (trous, gonflement, usure) ; elle se cargue en remontant vers l'étai et se creuse sous
  * le vent comme les focs. Géométrie propre à chaque navire (sommets déplacés quand la voilure change).
  */
@@ -83,15 +106,17 @@ export class Staysails {
   private amount = -1;
   private side = 0;
 
-  constructor(tornSail: TornSail, masts: readonly StayMast[]) {
+  /** `doubleFore` : deux voiles superposées entre les deux premiers mâts (frégate, galion). */
+  constructor(tornSail: TornSail, masts: readonly StayMast[], doubleFore = false) {
     const stays: number[] = [];
     for (let i = 0; i + 1 < masts.length; i++) {
-      const shape = shapeOf(masts[i], masts[i + 1]);
-      const { geometry, drop, rest } = buildQuad(shape);
-      const mesh = new THREE.Mesh(geometry, tornSail.material(geometry, 'x'));
-      this.sails.push({ mesh, drop, rest });
-      this.group.add(mesh);
-      stays.push(0, shape.aft.y, shape.aft.x, 0, shape.fore.y, shape.fore.x);
+      for (const shape of shapesOf(masts[i], masts[i + 1], doubleFore && i === 0)) {
+        const { geometry, drop, rest } = buildQuad(shape);
+        const mesh = new THREE.Mesh(geometry, tornSail.material(geometry, 'x'));
+        this.sails.push({ mesh, drop, rest });
+        this.group.add(mesh);
+        stays.push(0, shape.aft.y, shape.aft.x, 0, shape.fore.y, shape.fore.x);
+      }
     }
     const rope = new THREE.BufferGeometry();
     rope.setAttribute('position', new THREE.Float32BufferAttribute(stays, 3));

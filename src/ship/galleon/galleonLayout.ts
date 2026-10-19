@@ -3,7 +3,7 @@ import { DECK_CREW } from '../../config';
 import { SHIP_TYPES } from '../../shipTypes';
 import { deckWalks, ropeSpots, type DeckPlan } from '../deckPlan';
 import { HullShape, type Station } from '../parts/hullShape';
-import { hullStretch, purchaseOrder } from '../parts/hullStretch';
+import { balancedMainMast, hullStretch, purchaseOrder } from '../parts/hullStretch';
 import type { LateenSailShape } from '../parts/sails';
 
 /** Longueur du galion de base (m) : les positions écrites en « u de base » s'y rapportent. */
@@ -217,8 +217,8 @@ function createLayout(level: number): GalleonLayout {
   const forecastle = { y: 7.9, from: base(0.611), to: base(0.925) };
   const deckY = { halfDeck: halfDeck.y, forecastle: forecastle.y, waist: DECK_Y };
   const foreMast = { z: at(0.694).z, base: forecastle.y, top: 28.2, topPlatform: 18.8 };
-  const mainMast = { z: at(0.167).z, base: DECK_Y, top: 33.5, topPlatform: 22.5 };
   const mizzenMast = { z: at(-0.5).z, base: quarterdeck.y, top: 26.4, topPlatform: 19.5 };
+  const mainMast = { z: balancedMainMast(at(0.167).z, foreMast.z, mizzenMast.z, level), base: DECK_Y, top: 33.5, topPlatform: 22.5 };
   const bonaventureMast = { z: at(-0.861).z, base: poop.y, top: 21, topPlatform: 18 };
   const stem = hull.stationAt(1);
   const bowTip = new THREE.Vector3(0, BOWSPRIT.tipY, BOWSPRIT.tipZ + bowShift);

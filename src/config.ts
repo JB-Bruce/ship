@@ -1269,12 +1269,31 @@ export interface WaveParams {
 }
 
 /**
+ * Grand mât d'une frégate ou d'un galion allongé (`balancedMainMast`, parts/hullStretch.ts) : part du chemin entre sa
+ * place étirée avec la coque et le milieu entre misaine et artimon (0 = étiré, 1 = au milieu). Sinon, l'artimon recule
+ * avec le château arrière et le grand mât paraît trop en avant.
+ */
+export const EXTENDED_MASTS = { mainBalance: 1 };
+
+/**
  * Voiles d'étai (ship/parts/staysails.ts) : l'étai part de la hune du mât arrière (part de la hauteur pied → hune,
- * `stayHigh`) et descend vers le mât avant (`stayLow`) ; la toile pend dessous, à `foreGap` / `aftGap` m des mâts,
+ * `stayHigh` ; au-delà de 1 : part de la hune à la tête) et descend vers le mât avant (`stayLow`) ; la toile pend dessous, à `foreGap` / `aftGap` m des mâts,
  * jusqu'à `footClearance` m au-dessus du plus haut des deux ponts ; creux, grille, taille carguée (part de la chute),
  * écart de voilure sous lequel la toile n'est pas redessinée.
  */
-export const STAYSAILS = { stayHigh: 0.98, stayLow: 0.45, foreGap: 1, aftGap: 1.6, footClearance: 2.4, bulge: 0.55, segments: 6, furled: 0.12, step: 0.01 };
+export const STAYSAILS = {
+  stayHigh: 0.98,
+  stayLow: 0.45,
+  foreGap: 1,
+  aftGap: 2.6,
+  footClearance: 2.4,
+  /** Deux voiles superposées (avant de la frégate et du galion) : hauteurs des deux étais, écart entre la voile du haut et l'étai du bas (m). */
+  double: { lowAft: 1, lowFore: 0.72, highAft: 1.55, highFore: 1.1, gap: 0.7 },
+  bulge: 0.55,
+  segments: 6,
+  furled: 0.12,
+  step: 0.01,
+};
 
 export type EmblemId = 'skull' | 'sabres' | 'kraken' | 'serpent' | 'compass' | 'anchor' | 'raven' | 'mermaid';
 

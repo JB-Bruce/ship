@@ -202,7 +202,7 @@ export class GalleonModel implements ShipModel {
     );
     this.tornSail = new TornSail(t.sailMaterial, this.livery.sailEmblem);
     this.lanterns = addStatics(this.body, t.statics);
-    this.staysails = new Staysails(this.tornSail, [L.foreMast, L.mainMast, L.mizzenMast]);
+    this.staysails = new Staysails(this.tornSail, [L.foreMast, L.mainMast, L.mizzenMast], true);
     this.body.add(this.staysails.group);
 
     this.sails = [];
