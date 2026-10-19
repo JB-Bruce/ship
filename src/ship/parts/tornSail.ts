@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { DAMAGE, SAIL_BILLOW } from '../../config';
-import { EMBLEM_DECLARATIONS, EMBLEM_FRAGMENT, emblemUniforms } from './sailEmblem';
+import type { EmblemId } from '../../config';
+import { EMBLEM_DECLARATIONS, EMBLEM_FRAGMENT, emblemBox, emblemState, setEmblem } from './sailEmblem';
 
 /** Gonflement maximal d'une voile selon sa hauteur (voir SAIL_BILLOW). */
 function maxBillow(sail: THREE.BufferGeometry): number {
@@ -32,23 +33,32 @@ export class TornSail {
   private windFill = 0;
   private deployment = 1;
   private readonly materials: THREE.Material[] = [];
+  /** Emblème de la voile désignée : la couronne d'une livrée d'élite, ou celui choisi par le joueur (setEmblem). */
+  private readonly emblemUniforms;
 
-  /** `emblem` : la livrée porte un emblème sur sa plus grande voile. */
+  /** `crown` : la livrée porte la couronne de la Marine sur sa plus grande voile. */
   constructor(
     private readonly base: THREE.Material,
-    private readonly emblem = false,
-  ) {}
+    private readonly crown = false,
+  ) {
+    this.emblemUniforms = emblemState(crown);
+  }
+
+  /** Emblème choisi pour la grande voile (null : aucun, ou la couronne d'une livrée d'élite). */
+  setEmblem(id: EmblemId | null) {
+    setEmblem(this.emblemUniforms, id, this.crown);
+  }
 
   /**
    * Un nouveau matériau pour la voile `sail`, avec son propre motif de trous et son gonflement maximal (selon sa
    * hauteur). `axis` : l'axe du creux de la voile dans son repère (voile carrée : 'z' ; foc et voile aurique : 'x').
-   * `emblem` : c'est la voile qui porte l'emblème de la livrée (s'il y en a un). `curve` : multiplie toute sa courbure
+   * `emblem` : c'est la voile qui porte l'emblème (couronne d'une livrée d'élite, ou celui choisi par le joueur). `curve` : multiplie toute sa courbure
    * (creux d'origine et gonflement), 1 = telle que dessinée.
    */
   material(sail: THREE.BufferGeometry, axis: SailAxis, emblem = false, curve = 1): THREE.Material {
     const material = this.base.clone();
     const seed = { value: new THREE.Vector2(Math.random() * 100, Math.random() * 100) };
-    const emblemOn = this.emblem && emblem ? emblemUniforms(sail) : null;
+    const emblemOn = emblem ? { ...this.emblemUniforms, ...emblemBox(sail) } : null;
     const max = maxBillow(sail);
     material.onBeforeCompile = (shader) => {
       shader.uniforms.uTear = this.tear;
@@ -95,7 +105,7 @@ ${emblemOn ? EMBLEM_FRAGMENT : ''}
     diffuseColor.rgb *= 1.0 - stain * 0.22 * uWear;
     vec2 cell = floor(vSailPos.xy * 0.9 + uTearSeed);
     float mend = tearHash(cell);
-    if (mend < 0.12 * uWear) diffuseColor.rgb *= tearHash(cell + 7.0) < 0.5 ? vec3(1.1, 1.06, 0.95) : vec3(0.78, 0.72, 0.62);
+    if (mend < 0.06 * uWear) diffuseColor.rgb *= tearHash(cell + 7.0) < 0.5 ? vec3(1.1, 1.06, 0.95) : vec3(0.78, 0.72, 0.62);
   }
   if (uTear > 0.0) {
     float margin = tearNoise(vSailPos) - (1.0 - uTear);
@@ -108,6 +118,7 @@ ${emblemOn ? EMBLEM_FRAGMENT : ''}
     // Repère des voiles (un coup critique au gréement en fait tomber une).
     material.userData.sail = true;
     material.userData.wear = this.wear;
+    material.userData.tornSail = this;
     // Même programme pour toutes les voiles trouées (seuls les uniforms changent d'une voile à l'autre).
     material.customProgramCacheKey = () => (emblemOn ? 'torn-sail-emblem' : 'torn-sail');
     this.materials.push(material);

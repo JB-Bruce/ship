@@ -69,6 +69,8 @@ export function flagMaterialFor(l: Livery): THREE.Material {
   let m = flagMaterials.get(l);
   if (!m) {
     m = std(0xffffff, { map: buildFlagTexture(l.flag), side: THREE.DoubleSide, roughness: 0.9 });
+    // Repère du pavillon (usé avec l'ancienneté du navire, ship/shipWear.ts).
+    m.userData.flag = true;
     flagMaterials.set(l, m);
   }
   return m;

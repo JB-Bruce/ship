@@ -329,3 +329,10 @@ Chaque navire suit le même schéma : un modèle `ShipModel` + une entrée dans 
 - **Carte** : molette pour zoomer vers le curseur (jusqu'à ×8), glisser pour déplacer, double-clic ou C pour recentrer sur ton navire ; cadrage d'ensemble à chaque ouverture.
 - **Eau** : bleu du large plus profond et moins saturé, haut des vagues moins éclairci, rides plus fines et moins marquées (moins de grandes plaques de reflet bleu ciel).
 
+## Retouches du 2026-10-19 (suite)
+- **Écume des coques** : plus de trait blanc fin le long des grands navires : bande plus large selon la taille de la coque, bord déchiqueté, en paquets ; à l'arrêt, un clapotis bien plus discret.
+- **Coup dans le gréement** : plus d'explosion ni de fumée : des lambeaux de toile qui voltigent et quelques petits éclats. La zone du gréement suit l'envergure des vergues (1,15 × la largeur de la coque de chaque côté) : un tir visé dans les voiles ne rate plus que par l'imprécision normale.
+- **Ancienneté** : en plus du bois assombri, des planches remplacées d'une autre teinte, des fentes, et une bande de sel et de mousse le long de la flottaison, de plus en plus marquées de vétéran à légende ; le pavillon pirate s'effiloche et se troue (un peu à vétéran, plus à élite, déchiré à légende).
+- **Voiles d'étai** : sur les trois-mâts (flûte, corvette, frégate, caraque, galion), une voile triangulaire entre misaine et grand mât, et une entre grand mât et artimon ; elles gonflent, se trouent, s'usent et se réduisent avec la voilure comme les autres.
+- **Emblème de la grande voile** : au Chantier, 8 emblèmes au choix (tête de mort, sabres croisés, kraken, serpent de mer, rose des vents, ancre, corbeau, sirène) : 150 or pour en peindre un, gratuit pour revenir à un emblème déjà payé pour ce navire, ou l'effacer. Il passe et s'écaille avec l'ancienneté. Gardé dans la sauvegarde.
+

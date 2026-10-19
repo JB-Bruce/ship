@@ -214,22 +214,25 @@ float hullFoam(vec2 p, float waterY, float time) {
     // En route : l'écume défile le long de la coque (bruit pris dans le repère du bateau). Le bord extérieur est
     // fondu et irrégulier (pas de ruban à bord net) : l'écume s'éclaircit en s'éloignant de la coque.
     float outer = clamp(-h.w * sign(lateral), 0.0, 1.0);
+    // Une grande coque pousse une bande d'écume plus large (sinon, un trait fin le long d'un galion).
+    float big = clamp(h.y / ${WAKE.foamWidthRef.toFixed(2)}, 1.0, ${WAKE.foamWidthMax.toFixed(2)});
     float flow = texture2D(uRipples, vec2(along + time * (1.5 + 8.0 * h.z), lateral * 2.0 + float(i) * 7.0) * 0.23).a;
-    float spread = (0.2 + 0.18 * (1.0 - u)) * (1.0 + 0.6 * outer);
-    float rough = edge + (flow - 0.5) * spread * 0.8;
-    float band = smoothstep(-0.06, 0.02, edge) * exp(-max(rough, 0.0) / spread);
+    float spread = (0.2 + 0.18 * (1.0 - u)) * (1.0 + 0.6 * outer) * big;
+    float rough = edge + (flow - 0.5) * spread * 1.2;
+    // Bord intérieur fondu sous la coque, bord extérieur déchiqueté : jamais un ruban net.
+    float band = smoothstep(-0.25, 0.05, edge) * exp(-max(rough, 0.0) / spread);
     // Devant l'étrave, l'écume contourne la pointe puis s'éteint en douceur (ni coupure nette, ni traits devant).
     float run = smoothstep(-0.5, 0.2, u) * (1.0 - smoothstep(h.x - 0.2, h.x + 0.5, along));
-    float chunks = 0.4 + 0.6 * smoothstep(0.3, 0.6, flow);
+    float chunks = 0.15 + 0.85 * smoothstep(0.35, 0.7, flow);
     float turn = clamp(1.0 - 0.6 * h.w * sign(lateral), 0.5, 1.4);
     float moving = band * run * chunks * turn * h.z;
 
     // À l'arrêt : un clapotis qui s'éclaircit en s'éloignant de la coque, et qui va et vient par endroits
     // (vagues qui longent la coque, bruit qui dérive) au lieu de s'allumer partout à la fois.
-    float near = smoothstep(-0.05, 0.05, edge) * exp(-max(edge, 0.0) / 0.22);
+    float near = smoothstep(-0.2, 0.05, edge) * exp(-max(edge, 0.0) / (0.3 * big));
     float lap = texture2D(uRipples, vec2(along * 1.3 + time * 0.15, lateral * 1.3 + float(i) * 3.0) * 0.35).a;
     float breath = 0.5 + 0.5 * sin(time * 1.3 + along * 0.9 + sign(lateral) * 1.7 + float(i) * 2.1);
-    float still = near * smoothstep(0.25, 0.65, lap * (0.6 + 0.6 * breath)) * (1.0 - h.z) * ${WAKE.idleFoam.toFixed(2)};
+    float still = near * smoothstep(0.4, 0.8, lap * (0.6 + 0.6 * breath)) * (1.0 - h.z) * ${WAKE.idleFoam.toFixed(2)};
 
     foam = max(foam, max(moving, still) * contact);
   }

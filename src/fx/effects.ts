@@ -136,6 +136,29 @@ export class Effects {
     }
   }
 
+  /**
+   * Boulet dans le gréement : des lambeaux de toile qui voltigent et retombent en tournoyant, et quelques petits
+   * éclats de bois (vergue, cordage) ; ni flash ni fumée, ce n'est pas la coque qui éclate.
+   */
+  riggingHit(p: THREE.Vector3) {
+    for (let i = 0; i < 9; i++) {
+      const s = reset(p.x, p.y, p.z, COLORS.canvas);
+      Object.assign(s, {
+        vx: rand(-3, 3), vy: rand(0.5, 3), vz: rand(-3, 3), life: rand(1.6, 2.6), size: rand(0.18, 0.32), sizeEnd: 0.12,
+        gravity: 3, drag: 1.6, spin: rand(-6, 6), shapeX: 1.4, shapeY: 0.15, shapeZ: 1,
+      });
+      this.lit.spawn(s);
+    }
+    for (let i = 0; i < 4; i++) {
+      const s = reset(p.x, p.y, p.z, i % 2 ? COLORS.wood : COLORS.woodLight);
+      Object.assign(s, {
+        vx: rand(-3, 3), vy: rand(1, 4), vz: rand(-3, 3), life: rand(0.8, 1.2), size: rand(0.05, 0.09), sizeEnd: 0.05,
+        gravity: 12, drag: 0.4, spin: rand(-12, 12), shapeX: 0.6, shapeY: 0.6, shapeZ: rand(2, 3),
+      });
+      this.lit.spawn(s);
+    }
+  }
+
   /** Boulet qui tombe à l'eau : colonne d'eau, gouttes retombantes, anneau d'écume, et sa trace sur l'eau. */
   splash(x: number, y: number, z: number) {
     this.wakes.splash(x, z);

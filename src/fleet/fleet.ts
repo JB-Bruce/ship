@@ -1,6 +1,6 @@
 import type * as THREE from 'three';
 import { AllyAI } from '../ai/allyAI';
-import { ALLY, FLEET, FORMATION_NAMES, LAND, type BossId, type Cost } from '../config';
+import { ALLY, FLEET, FORMATION_NAMES, LAND, type BossId, type Cost, type EmblemId } from '../config';
 import { emptyCargo, type Cargo } from '../progression/goods';
 import { factor, standardGuns, type Guns } from '../progression/modifiers';
 import { noUpgrades, type UpgradeLevels } from '../progression/upgrades';
@@ -50,6 +50,9 @@ export interface FleetMember {
   readonly hiddenTrophies: Set<BossId>;
   /** Route commerciale confiée à ce navire (il a quitté la flotte et navigue seul), ou null. */
   trade: TradeOrder | null;
+  /** Emblème peint sur sa grande voile (null : aucun), et ceux déjà payés pour lui (y revenir est gratuit). */
+  emblem: EmblemId | null;
+  readonly ownedEmblems: Set<EmblemId>;
 }
 
 /**
@@ -110,6 +113,8 @@ export class Fleet {
       trophies: [],
       hiddenTrophies: new Set(),
       trade: null,
+      emblem: null,
+      ownedEmblems: new Set(),
     };
     this.members.push(member);
     this.hand.push(member);

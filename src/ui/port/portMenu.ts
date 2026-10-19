@@ -1,4 +1,4 @@
-import type { BossId, GunType, IslandId } from '../../config';
+import type { BossId, EmblemId, GunType, IslandId } from '../../config';
 import type { Good } from '../../progression/goods';
 import type { IslandUpgradeId } from '../../progression/islandState';
 import type { UpgradeId } from '../../progression/upgrades';
@@ -129,6 +129,9 @@ export class PortMenu extends ParchmentMenu {
         a.assignOfficer(Number(officer), target === 'none' ? null : Number(target));
         break;
       }
+      case 'emblem':
+        a.paintEmblem(arg === 'none' ? null : (arg as EmblemId));
+        break;
       case 'guns': {
         const [battery, type] = arg.split(':');
         a.setGuns(battery as 'main' | 'deck', type as GunType);

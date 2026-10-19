@@ -359,6 +359,7 @@ export class Game {
   private onBallHit(ship: Ship, ball: Ball, rigging: boolean) {
     // Un obus fait sa propre explosion (Projectiles), et secoue plus fort.
     if (ball.shell) this.shellShake(ship);
+    else if (rigging) this.effects.riggingHit(ball.position);
     else this.effects.impact(ball.position);
     this.applyDamage(ship, ball.damage * (rigging ? AIM.riggingDamage : 1), ball.owner);
     if (this.criticals.strike(ship, rigging) === 'magazine') this.applyDamage(ship, ship.stats.maxHealth * CRIT.magazineDamage, ball.owner);

@@ -5,6 +5,7 @@ import { cannonCount, describeLevel, extensionLevels, massSpeedLoss, maxLevel, n
 import { SHIP_TYPES, typeName, UPGRADE_INFO } from '../../shipTypes';
 import { costHtml } from '../parchmentMenu';
 import { extensionIcon } from '../shipIcons';
+import { emblemRow } from './emblemRow';
 import { resourcesHtml, type PortContext } from './portContext';
 
 const MS_TO_KNOTS = 1.944;
@@ -42,6 +43,7 @@ export function shipyardTab(ctx: PortContext): string {
     ${extensionCard(ctx)}
     <h3 class="section">Type de canons</h3>
     ${gunRow(ctx, 'main', secondRow ? (labels?.main ?? 'Batterie') : '')}${secondRow ? gunRow(ctx, 'deck', labels?.deck ?? 'Canons des gaillards') : ''}
+    ${emblemRow(ctx)}
     <div class="footer">
       <span>Longueur <b>${stats.length} m</b></span>
       <span>Masse <b>${shipMass(type, levels)}</b>${penalty > 0 ? ` (−${penalty} % de vitesse)` : ''}</span>

@@ -1,4 +1,4 @@
-import { GUNS, ISLAND_INFO, OFFICERS, type BossId, type GunType, type IslandId, type TradeGood } from '../config';
+import { EMBLEMS, GUNS, ISLAND_INFO, OFFICERS, type EmblemId, type BossId, type GunType, type IslandId, type TradeGood } from '../config';
 import type { Crew } from '../fleet/crew';
 import { officerPrice, type Officer } from '../fleet/officers';
 import { refit } from '../fleet/refit';
@@ -152,6 +152,19 @@ export class Harbor {
     member.guns = { ...member.guns, [battery]: type };
     refit(member, this.crew);
     this.events.say(`${member.name} : ${GUNS.types[type].name.toLowerCase()}${battery === 'deck' ? ' sur les gaillards' : ''}`);
+  }
+
+  /** Peint un emblème sur la grande voile du bateau piloté (null : l'efface) ; gratuit s'il l'a déjà eu. */
+  paintEmblem(id: EmblemId | null) {
+    const member = this.fleet.controlled;
+    if (id === member.emblem) return;
+    if (id && !member.ownedEmblems.has(id)) {
+      if (!this.state.spend({ gold: EMBLEMS.price, wood: 0 })) return;
+      member.ownedEmblems.add(id);
+    }
+    member.emblem = id;
+    refit(member, this.crew);
+    this.events.say(id ? `${member.name} arbore ${EMBLEMS.designs[id].name.toLowerCase()}` : `${member.name} : grande voile sans emblème`);
   }
 
   /** Hisse ou retire le pavillon d'un boss coulé par ce navire. */

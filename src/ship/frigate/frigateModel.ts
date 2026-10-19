@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Staysails } from '../parts/staysails';
 import type { Waterline } from '../parts/hullShape';
 import { SAIL_BILLOW, type Livery, type ShipStats } from '../../config';
 import { wrapAngle } from '../../utils/math';
@@ -43,6 +44,8 @@ export class FrigateModel implements ShipModel {
   private layout!: FrigateLayout;
   /** Tout le navire (le plan courant) ; les drapeaux de rang et les trophées sont posés à côté, sur `root`. */
   private readonly body = new THREE.Group();
+  /** Voiles d'étai entre les mâts (parts/staysails.ts), recréées avec le modèle. */
+  private staysails!: Staysails;
   private tornSail!: TornSail;
   private readonly sails: THREE.Mesh[] = [];
   private readonly yards: THREE.Mesh[] = [];
@@ -153,6 +156,7 @@ export class FrigateModel implements ShipModel {
   }
 
   animate(dt: number) {
+    this.staysails.apply(this.sailAmount, this.leeSide);
     this.flag.update(dt);
     this.spritFlag.update(dt);
     this.spankerRig.rotation.y = damp(this.spankerRig.rotation.y, this.boomTarget, 1.2, dt);
@@ -198,6 +202,8 @@ export class FrigateModel implements ShipModel {
     );
     this.tornSail = new TornSail(t.sailMaterial, this.livery.sailEmblem);
     this.lanterns = addStatics(this.body, t.statics);
+    this.staysails = new Staysails(this.tornSail, [L.foreMast, L.mainMast, L.mizzenMast]);
+    this.body.add(this.staysails.group);
 
     L.squareSails.forEach((s, i) => {
       // La grand-voile (la plus grande) porte l'emblème de la livrée, s'il y en a un.
@@ -255,6 +261,7 @@ export class FrigateModel implements ShipModel {
 
   /** Voiles carrées carguées vers leur vergue (et élargies avec la voilure) ; focs et brigantine réduits. */
   private applySails() {
+    this.staysails.apply(this.sailAmount, this.leeSide);
     const hoisted = 0.1 + 0.9 * this.sailAmount;
     for (const sail of this.sails) sail.scale.set(this.sailWidth, hoisted, 1);
     for (const yard of this.yards) yard.scale.x = this.sailWidth;

@@ -1,5 +1,5 @@
 import type { CampaignSnapshot } from '../campaign';
-import type { BossId, Cost } from '../config';
+import type { BossId, Cost, EmblemId } from '../config';
 import type { Formation } from '../fleet/fleet';
 import type { TradeOrder } from '../fleet/tradeRoutes';
 import type { Cargo } from '../progression/goods';
@@ -33,6 +33,9 @@ export interface MemberSnapshot {
   ownedGuns: string[];
   trophies: BossId[];
   hiddenTrophies: BossId[];
+  /** Emblème de la grande voile et emblèmes payés (absents des sauvegardes d'avant les emblèmes). */
+  emblem?: EmblemId | null;
+  ownedEmblems?: EmblemId[];
   trade: TradeOrder | null;
   /** À flot : position, cap, vie et voile ; sinon null, et `respawnIn` secondes avant sa réapparition. */
   afloat: { x: number; z: number; heading: number; health: number; sail: number } | null;

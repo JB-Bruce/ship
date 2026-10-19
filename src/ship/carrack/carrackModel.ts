@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Staysails } from '../parts/staysails';
 import type { Waterline } from '../parts/hullShape';
 import { SAIL_BILLOW, type Livery, type ShipStats } from '../../config';
 import { wrapAngle } from '../../utils/math';
@@ -50,6 +51,8 @@ export class CarrackModel implements ShipModel {
   private template!: CarrackTemplate;
   /** Tout le navire (le plan courant) ; les drapeaux de rang et les trophées sont posés à côté, sur `root`. */
   private readonly body = new THREE.Group();
+  /** Voiles d'étai entre les mâts (parts/staysails.ts), recréées avec le modèle. */
+  private staysails!: Staysails;
   private tornSail!: TornSail;
   private sails: THREE.Mesh[] = [];
   private yards: THREE.Mesh[] = [];
@@ -162,6 +165,7 @@ export class CarrackModel implements ShipModel {
   }
 
   animate(dt: number) {
+    this.staysails.apply(this.sailAmount, this.leeSide);
     this.flag.update(dt);
     for (const rig of this.lateenRigs) {
       rig.rotation.y = damp(rig.rotation.y, this.yardTarget, 1.1, dt);
@@ -208,6 +212,8 @@ export class CarrackModel implements ShipModel {
     );
     this.tornSail = new TornSail(t.sailMaterial, this.livery.sailEmblem);
     this.lanterns = addStatics(this.body, t.statics);
+    this.staysails = new Staysails(this.tornSail, [L.foreMast, L.mainMast, L.mizzenMast]);
+    this.body.add(this.staysails.group);
 
     this.sails = [];
     this.yards = [];
@@ -278,6 +284,7 @@ export class CarrackModel implements ShipModel {
 
   /** Voiles carrées carguées vers leur vergue (et élargies avec la voilure) ; voiles latines carguées contre la leur. */
   private applySails() {
+    this.staysails.apply(this.sailAmount, this.leeSide);
     const hoisted = 0.1 + 0.9 * this.sailAmount;
     for (const sail of this.sails) sail.scale.set(this.sailWidth, hoisted, 1);
     for (const yard of this.yards) yard.scale.x = this.sailWidth;

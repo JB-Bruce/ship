@@ -1896,3 +1896,19 @@ body {
   opacity: 0;
 }
 
+
+/* Emblèmes de la grande voile (onglet Chantier). */
+.emblem-choices {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.emblem-choice {
+  text-align: center;
+}
+
+.emblem-choice img {
+  display: block;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 4px;
+}

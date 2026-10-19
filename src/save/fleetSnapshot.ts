@@ -25,6 +25,8 @@ export function snapshotMember(m: FleetMember, respawnFactor: number): MemberSna
     ownedGuns: [...m.ownedGuns],
     trophies: [...m.trophies],
     hiddenTrophies: [...m.hiddenTrophies],
+    emblem: m.emblem,
+    ownedEmblems: [...m.ownedEmblems],
     trade: m.trade && { ports: [...m.trade.ports], goods: [...m.trade.goods], leg: m.trade.leg },
     afloat: afloat ? { x: ship.position.x, z: ship.position.z, heading: ship.heading, health: ship.health, sail: ship.controls.sail } : null,
     respawnIn: afloat ? 0 : m.inWorld ? SHIP_TYPES[m.type].respawnTime * respawnFactor : m.respawnIn,
@@ -54,6 +56,8 @@ export function rebuildFleet(fleet: Fleet, saved: SaveData['fleet']) {
       ownedGuns: new Set(s.ownedGuns),
       trophies: [...s.trophies],
       hiddenTrophies: new Set(s.hiddenTrophies),
+      emblem: s.emblem ?? null,
+      ownedEmblems: new Set(s.ownedEmblems ?? []),
       trade: s.trade && { ports: [...s.trade.ports], goods: [...s.trade.goods], leg: s.trade.leg },
     };
     fleet.adopt(member, s.afloat && { x: s.afloat.x, z: s.afloat.z, heading: s.afloat.heading });

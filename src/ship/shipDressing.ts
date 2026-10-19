@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { BOSSES, GUNS, type BossId } from '../config';
+import { BOSSES, GUNS, type BossId, type EmblemId } from '../config';
+import type { TornSail } from './parts/tornSail';
 import type { Guns } from '../progression/modifiers';
 import { cylinderBetween } from './parts/sails';
 import { flagMaterialFor, std, WavingFlag } from './parts/common';
@@ -69,6 +70,7 @@ export class ShipDressing {
   private trophies: WavingFlag[] = [];
   /** Flèche au-dessus du grand mât, quand des pavillons de boss y sont hissés. */
   private pole: THREE.Mesh | null = null;
+  private emblem: EmblemId | null = null;
 
   constructor(private readonly model: ShipModel) {}
 
@@ -114,8 +116,20 @@ export class ShipDressing {
     });
   }
 
-  /** Le modèle a été reconstruit (allongement) : drapeau de rang, trophées et allure des fûts sont reposés. */
+  /** Emblème peint sur la grande voile (null : aucun) : sur la voile désignée par le modèle (voir TornSail). */
+  setEmblem(id: EmblemId | null) {
+    this.emblem = id;
+    let sails: TornSail | null = null;
+    this.model.root.traverse((o) => {
+      const material = (o as THREE.Mesh).material as THREE.Material | undefined;
+      if (!sails && material && !Array.isArray(material) && material.userData?.tornSail) sails = material.userData.tornSail as TornSail;
+    });
+    (sails as TornSail | null)?.setEmblem(id);
+  }
+
+  /** Le modèle a été reconstruit (allongement) : drapeau de rang, trophées, emblème et allure des fûts sont reposés. */
   refresh(guns: Guns) {
+    this.setEmblem(this.emblem);
     const rank = this.rank;
     this.rank = -1;
     this.setRank(rank);

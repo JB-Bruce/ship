@@ -1,4 +1,4 @@
-import type { BossId, GunType, IslandId, TradeGood } from '../../config';
+import type { BossId, EmblemId, GunType, IslandId, TradeGood } from '../../config';
 import type { Crew } from '../../fleet/crew';
 import type { Fleet, FleetMember } from '../../fleet/fleet';
 import { fleetHold } from '../../fleet/holds';
@@ -39,6 +39,7 @@ export interface PortActions {
   assignOfficer(officerId: number, memberId: number | null): void;
   /** Type de canons d'une batterie du navire piloté. */
   setGuns(battery: 'main' | 'deck', type: GunType): void;
+  paintEmblem(id: EmblemId | null): void;
   /** Hisse ou retire le pavillon d'un boss coulé. */
   toggleTrophy(memberId: number, boss: BossId): void;
   /** Confie un navire à une route commerciale entre ce port et `to` (marchandise de l'aller, du retour). */

@@ -262,7 +262,7 @@ export class Ship {
     const s = Math.sin(this.heading);
     const c = Math.cos(this.heading);
     const up = y - this.position.y;
-    return up >= HULL_TOP && up < top && Math.abs(dx * s + dz * c) < this.stats.length / 2 && Math.abs(dx * c - dz * s) < this.stats.width * AIM.riggingWidth;
+    return up >= HULL_TOP && up < top && Math.abs(dx * s + dz * c) < this.stats.length * AIM.riggingLength && Math.abs(dx * c - dz * s) < this.stats.width * AIM.riggingWidth;
   }
 
   /**

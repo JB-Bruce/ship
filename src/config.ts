@@ -105,6 +105,14 @@ export const RANK_LOOKS = {
   sailWear: [0, 0.4, 0.7, 1],
   hullDarken: [0, 0.12, 0.2, 0.28],
   hullFade: [0, 0.15, 0.25, 0.35],
+  /** Planches remplacées (part des planches d'une autre teinte), craquelures (part des planches fendues), sel et mousse à la flottaison (0 à 1). */
+  planks: [0, 0.06, 0.12, 0.2],
+  cracks: [0, 0.08, 0.16, 0.28],
+  grime: [0, 0.35, 0.65, 1],
+  /** Taille d'une planche (m) : hauteur d'un rang, longueur. */
+  plank: { height: 0.32, length: 2.6 },
+  /** Usure du pavillon pirate du grand mât (0 à 1 : bout effiloché, trous). */
+  flagWear: [0, 0.35, 0.65, 1],
 };
 
 /**
@@ -221,8 +229,12 @@ export const AIM = {
   structureHeight: 0.6,
   /** Un boulet qui passe dans le gréement (voiles, mâts) fait cette part de ses dégâts (voir Ship.containsRigging). */
   riggingDamage: 0.5,
-  /** Gréement : de part et d'autre de l'axe, part de la largeur de la coque (les vergues débordent un peu). */
-  riggingWidth: 0.75,
+  /**
+   * Gréement : de part et d'autre de l'axe, part de la largeur de la coque (les vergues débordent bien au-delà du
+   * bordé), et part de la longueur (beaupré et bôme compris).
+   */
+  riggingWidth: 1.15,
+  riggingLength: 0.6,
   /** Un point visé sur un navire reste au moins à cette hauteur au-dessus de l'eau à cet endroit (m) : jamais sous la vague. */
   waterClearance: 0.5,
   /** Imprécision (angle et distance) à la portée maximale, en multiple de celle à bout portant ; entre les deux, linéaire. */
@@ -1256,6 +1268,33 @@ export interface WaveParams {
   long?: boolean;
 }
 
+/**
+ * Voiles d'étai des trois-mâts (ship/parts/staysails.ts) : l'étai part de la hune du mât arrière (part de la hauteur
+ * pied → hune, `stayHigh`) et descend vers le mât avant (`stayLow`) ; la voile en occupe de `tack` à `head` (part de
+ * l'étai depuis l'avant) ; point d'écoute à `clewRise` de la hauteur et `clewIn` vers l'avant ; creux ; taille affalée.
+ */
+export const STAYSAILS = { stayHigh: 0.95, stayLow: 0.22, tack: 0.14, head: 0.78, clewRise: 0.08, clewIn: 0.12, bulge: 0.35, furled: 0.15 };
+
+export type EmblemId = 'skull' | 'sabres' | 'kraken' | 'serpent' | 'compass' | 'anchor' | 'raven' | 'mermaid';
+
+/**
+ * Emblèmes peints sur la grande voile d'un navire de ta flotte (onglet Chantier) : prix pour en peindre un nouveau
+ * (revenir à un emblème déjà payé pour ce navire est gratuit), nom, couleurs principale et seconde du dessin.
+ */
+export const EMBLEMS = {
+  price: 150,
+  designs: {
+    skull: { name: 'Tête de mort', main: 0x1d1714, second: 0xe9dfc7 },
+    sabres: { name: 'Sabres croisés', main: 0x5a1a12, second: 0x2a2622 },
+    kraken: { name: 'Kraken', main: 0x5b1e3a, second: 0xf2d27a },
+    serpent: { name: 'Serpent de mer', main: 0x1f4a3a, second: 0xd8c27a },
+    compass: { name: 'Rose des vents', main: 0x7a1c14, second: 0x1d1714 },
+    anchor: { name: 'Ancre', main: 0x1d2a44, second: 0xb08a3a },
+    raven: { name: 'Corbeau', main: 0x141210, second: 0xc23a22 },
+    mermaid: { name: 'Sirène', main: 0x1e4a5a, second: 0xb8542a },
+  } satisfies Record<EmblemId, { name: string; main: number; second: number }>,
+};
+
 /** Carte (M) : zoom au plus (× le cadrage d'ensemble), vitesse de la molette (par unité de défilement). */
 export const MAP_VIEW = { maxZoom: 8, wheelSpeed: 0.0015 };
 
@@ -1346,7 +1385,10 @@ export const WAKE = {
   maxShips: 12,
   /** Liseré d'écume de la coque : retrait par rapport au plat-bord (fraction de la largeur), et force à l'arrêt. */
   hullHug: 0.93,
-  idleFoam: 0.8,
+  idleFoam: 0.55,
+  /** Largeur du liseré des coques : × (demi-largeur / foamWidthRef), entre 1 et foamWidthMax (grandes coques). */
+  foamWidthRef: 1.75,
+  foamWidthMax: 2.5,
   /**
    * Tirant d'eau d'une coque, en fraction de sa demi-largeur : là où la coque est soulevée (proue levée par une vague,
    * flanc qui roule) de cette hauteur au-dessus de l'eau, elle n'y touche plus et le liseré d'écume s'efface.
