@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { PLAYER } from '../config';
 import type { DeckNav } from '../deckCrew/deckNav';
+import type { MastTop, TopRoute } from '../deckCrew/mastTops';
 import type { Shroud } from '../deckCrew/shrouds';
 import type { DeckFooting } from './deckFooting';
 
@@ -16,24 +17,35 @@ export interface FootInput {
   forward: number;
 }
 
-/** Une escalade en cours : on va du point a au point b (repère du navire), à la part t ∈ [0, max]. */
+/**
+ * Une escalade en cours, le long d'une ligne brisée (repère du navire) : `at` m parcourus depuis le bas, au plus `max`
+ * (un hauban sans hune ne se grimpe qu'en partie).
+ */
 interface Climb {
-  a: THREE.Vector3;
-  b: THREE.Vector3;
-  t: number;
+  points: THREE.Vector3[];
+  length: number;
+  at: number;
   max: number;
-  /** Nœud où l'on reprend pied en redescendant (t = 0), et en haut (t = 1) pour une échelle (sinon -1). */
+  /** Nœud où l'on reprend pied en redescendant (en bas), et en haut pour une échelle (sinon -1). */
   footNode: number;
   topNode: number;
-  /** Hauban : il faut d'abord passer du pont au pied du hauban. */
+  /** Hauban grimpé (ou null : échelle), et la hune où il mène (on y prend pied en haut), ou null. */
   shroud: Shroud | null;
+  top: MastTop | null;
+}
+
+function climbOf(points: THREE.Vector3[], fields: Omit<Climb, 'points' | 'length' | 'at' | 'max'>, share = 1): Climb {
+  let length = 0;
+  for (let i = 1; i < points.length; i++) length += points[i].distanceTo(points[i - 1]);
+  return { points, length, at: 0, max: length * share, ...fields };
 }
 
 /**
  * Le joueur à pied sur le pont de son navire (repère du modèle) : il marche ou court dans la direction voulue, monte
  * les marches, saute (et peut monter sur ce qui est bas), retombe d'un château vers le pont du dessous ; le pavois,
  * les mâts et les cloisons l'arrêtent et il glisse le long d'eux ; il traverse les canons, la roue, la barre franche
- * et les matelots. Sur une échelle ou un hauban, avancer monte et reculer descend.
+ * et les matelots. Sur une échelle ou un hauban, avancer monte et reculer descend. Un hauban qui mène à une hune se
+ * grimpe jusqu'en haut : on prend pied sur la hune, d'où l'on redescend par le hauban ou d'où l'on saute vers le pont.
  */
 export class PlayerBody {
   readonly position = new THREE.Vector3();
@@ -103,12 +115,45 @@ export class PlayerBody {
     this.ladderStart(input);
   }
 
-  /** Monter dans un hauban (depuis le pont, près de son pied). */
+  /** Monter dans un hauban (depuis le pont, près de son pied) : jusque dans sa hune s'il y en a une. */
   startShroud(h: Shroud) {
     const deck = new THREE.Vector3(this.nav.x(h.node), this.nav.y(h.node), this.nav.z(h.node));
     this.position.copy(deck);
-    this.climb = { a: h.foot.clone().setY(h.foot.y + PLAYER.shroudStep), b: h.head.clone(), t: 0, max: PLAYER.shroudReach, footNode: h.node, topNode: -1, shroud: h };
+    const found = this.routeOf(h);
+    if (found) this.climb = climbOf(found.route.points.map((p) => p.clone()), { footNode: h.node, topNode: -1, shroud: h, top: found.top });
+    else this.climb = climbOf([h.foot.clone().setY(h.foot.y + PLAYER.shroudStep), h.head.clone()], { footNode: h.node, topNode: -1, shroud: h, top: null }, PLAYER.shroudReach);
     this.vx = this.vz = this.vy = 0;
+  }
+
+  /** Redescendre d'une hune par l'un de ses haubans : on part d'en haut. */
+  descend(top: MastTop, route: TopRoute) {
+    const c = climbOf(route.points.map((p) => p.clone()), { footNode: route.shroud.node, topNode: -1, shroud: route.shroud, top });
+    c.at = c.length - PLAYER.topStep;
+    this.climb = c;
+    this.vx = this.vz = this.vy = 0;
+    this.pointAt(c, c.at, this.position);
+  }
+
+  /** La hune où l'on se tient debout, ou null. */
+  standingTop(): MastTop | null {
+    if (!this.grounded || this.climb) return null;
+    const p = this.position;
+    for (const top of this.nav.tops) if (Math.abs(top.ground(p.x, p.z) - p.y) < PLAYER.stepUp) return top;
+    return null;
+  }
+
+  private routeOf(h: Shroud): { top: MastTop; route: TopRoute } | null {
+    for (const top of this.nav.tops) for (const route of top.routes) if (route.shroud === h) return { top, route };
+    return null;
+  }
+
+  /** Prendre pied sur une hune, au plus près de (x, z). */
+  private stepOnto(top: MastTop, x: number, z: number) {
+    top.nearest(x, z, this.position);
+    this.safe.copy(this.position);
+    this.vx = this.vz = this.vy = 0;
+    this.grounded = true;
+    this.climb = null;
   }
 
   /** Redescendre tout de suite d'un hauban (ou d'une échelle, par le bas). */
@@ -192,7 +237,7 @@ export class PlayerBody {
       if ((tx * input.moveX + tz * input.moveZ) / len < PLAYER.ladderFacing) continue;
       const a = new THREE.Vector3(fx, nav.y(from), fz);
       const b = new THREE.Vector3(nav.x(to), nav.y(to), nav.z(to));
-      this.climb = { a, b, t: 0, max: 1, footNode: from, topNode: to, shroud: null };
+      this.climb = climbOf([a, b], { footNode: from, topNode: to, shroud: null, top: null });
       this.vx = this.vz = this.vy = 0;
       return;
     }
@@ -200,16 +245,28 @@ export class PlayerBody {
 
   private climbStep(dt: number, input: FootInput) {
     const c = this.climb!;
-    const length = c.a.distanceTo(c.b) || 1;
-    c.t = Math.min(c.max, c.t + (input.forward * PLAYER.climbSpeed * dt) / length);
+    c.at = Math.min(c.max, c.at + input.forward * PLAYER.climbSpeed * (input.run ? PLAYER.climbRun : 1) * dt);
     this.stride += Math.abs(input.forward) * dt * PLAYER.bob.frequency;
-    if (c.t <= 0 && input.forward < 0) return this.leaveClimb();
-    if (c.topNode >= 0 && c.t >= 1) {
+    if (c.at <= 0 && input.forward < 0) return this.leaveClimb();
+    const end = c.points[c.points.length - 1];
+    if (c.at >= c.length && c.top) return this.stepOnto(c.top, end.x, end.z);
+    if (c.at >= c.length && c.topNode >= 0) {
       this.climb = null;
       this.place(this.nav.x(c.topNode), this.nav.y(c.topNode), this.nav.z(c.topNode));
       return;
     }
-    this.position.lerpVectors(c.a, c.b, Math.max(0, c.t));
+    this.pointAt(c, Math.max(0, c.at), this.position);
+  }
+
+  /** Le point à `at` m du bas de l'escalade. */
+  private pointAt(c: Climb, at: number, out: THREE.Vector3) {
+    let left = at;
+    for (let i = 1; i < c.points.length; i++) {
+      const d = c.points[i].distanceTo(c.points[i - 1]);
+      if (left <= d || i === c.points.length - 1) return out.lerpVectors(c.points[i - 1], c.points[i], d > 0 ? Math.min(1, left / d) : 1);
+      left -= d;
+    }
+    return out.copy(c.points[0]);
   }
 }
 

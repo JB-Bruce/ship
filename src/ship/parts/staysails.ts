@@ -98,13 +98,16 @@ function buildQuad(shape: StayShape) {
  * la plupart des trois-mâts ; aussi artimon → grand mât sur le galion), deux superposées à l'avant de la frégate et du
  * galion. Chacune pend sous son étai (dessiné), en toile
  * des voiles trouées du navire (trous, gonflement, usure) ; elle se cargue en remontant vers l'étai et se creuse sous
- * le vent comme les focs. Géométrie propre à chaque navire (sommets déplacés quand la voilure change).
+ * le vent comme les focs. Elles se débloquent une à une avec l'amélioration de voilure (setLevel). Géométrie propre
+ * à chaque navire (sommets déplacés quand la voilure change).
  */
 export class Staysails {
   readonly group = new THREE.Group();
   private readonly sails: { mesh: THREE.Mesh; drop: Float32Array; rest: Float32Array }[] = [];
   private amount = -1;
   private side = 0;
+  /** Les étais dessinés, dans l'ordre des voiles (deux sommets chacun). */
+  private readonly stays: THREE.BufferGeometry;
 
   /** `doubleFore` : deux voiles superposées entre les deux premiers mâts (frégate, galion). */
   constructor(tornSail: TornSail, masts: readonly StayMast[], doubleFore = false) {
@@ -118,9 +121,23 @@ export class Staysails {
         stays.push(0, shape.aft.y, shape.aft.x, 0, shape.fore.y, shape.fore.x);
       }
     }
-    const rope = new THREE.BufferGeometry();
-    rope.setAttribute('position', new THREE.Float32BufferAttribute(stays, 3));
-    this.group.add(new THREE.LineSegments(rope, riggingMaterial));
+    this.stays = new THREE.BufferGeometry();
+    this.stays.setAttribute('position', new THREE.Float32BufferAttribute(stays, 3));
+    this.group.add(new THREE.LineSegments(this.stays, riggingMaterial));
+    this.setLevel(0);
+  }
+
+  /**
+   * Niveau de l'amélioration de voilure : chaque voile d'étai (et son étai) n'apparaît qu'à partir du sien
+   * (STAYSAILS.unlock, dans l'ordre : basse de l'avant, haute de l'avant, entre artimon et grand mât).
+   */
+  setLevel(level: number) {
+    let shown = 0;
+    this.sails.forEach(({ mesh }, i) => {
+      mesh.visible = level >= STAYSAILS.unlock[Math.min(i, STAYSAILS.unlock.length - 1)];
+      if (mesh.visible) shown = i + 1;
+    });
+    this.stays.setDrawRange(0, shown * 2);
   }
 
   /** Voilure (0 = carguées sous l'étai, 1 = pleine voile) et côté sous le vent (+1 bâbord, -1 tribord). */
@@ -142,5 +159,6 @@ export class Staysails {
 
   dispose() {
     for (const { mesh } of this.sails) mesh.geometry.dispose();
+    this.stays.dispose();
   }
 }

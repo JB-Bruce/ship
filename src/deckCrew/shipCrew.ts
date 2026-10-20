@@ -5,9 +5,10 @@ import type { Ship } from '../ship/ship';
 import { CrewActivities, isLeisure } from './crewActivities';
 import { coverNear, markGuns } from './crewSpots';
 import { deckNavOf, type DeckNav } from './deckNav';
+import type { MastTop } from './mastTops';
 import { nodeCount } from './deckPath';
 import { GunPosts } from './gunPosts';
-import { advance, newSailor, type Duty, type Sailor, type ShipMotion } from './sailorMotion';
+import { advance, newSailor, type Duty, type Perch, type Sailor, type ShipMotion } from './sailorMotion';
 import { drawSailor } from './sailorPose';
 import { poseSailor } from './sailorPoses';
 import type { SailorMeshes } from './sailorMeshes';
@@ -18,7 +19,8 @@ const pick = <T>(list: readonly T[]) => list[Math.floor(Math.random() * list.len
 const world = new THREE.Vector3();
 
 /**
- * L'équipage animé d'un navire ponté : barreur, vigie et matelots (DeckPlan.hands). Ils marchent sur le pont réel du
+ * L'équipage animé d'un navire ponté : barreur, vigie (dans la hune du plus grand mât, s'il y en a une : le nid de pie) et
+ * matelots (DeckPlan.hands). Ils marchent sur le pont réel du
  * navire (DeckNav : escaliers, échelles, obstacles) en s'évitant ; au calme, chacun enchaîne des occupations
  * (CrewActivities) ; en combat, ils courent servir les canons à découvert et les autres se mettent à couvert contre le
  * pavois ; quand la voilure change, deux d'entre eux halent les cordages ; après le combat, deux réparent tant que le
@@ -118,7 +120,8 @@ export class ShipCrew {
     this.ropeTimer -= dt;
     if (!ship.alive) {
       // Il sombre : tout le monde saute à l'eau, chacun à son tour.
-      for (const s of this.sailors) if (this.onDeck(s) && s.mode !== 'climb' && Math.random() < dt * 1.5) this.fall(s);
+      // Ceux qui sont dans une hune y restent.
+      for (const s of this.sailors) if (this.onDeck(s) && s.mode !== 'climb' && !this.inTop(s) && Math.random() < dt * 1.5) this.fall(s);
     } else {
       this.manageCount(dt, hit);
       this.assign(combat);
@@ -142,8 +145,9 @@ export class ShipCrew {
     let k = 0;
     for (const s of this.sailors) {
       if (s.mode === 'gone') continue;
-      const spot = s.role === 'helm' ? this.plan.helm : s.role === 'lookout' ? this.plan.lookout : null;
-      Object.assign(s, { mode: 'act', rise: 1, post: -1, shroud: null, group: -1, path: [], wx: 0, wz: 0 });
+      const perch = s.role === 'lookout' ? this.lookoutPerch() : null;
+      const spot = s.role === 'helm' ? this.plan.helm : perch ? perch.top.spots[perch.spot] : s.role === 'lookout' ? this.plan.lookout : null;
+      Object.assign(s, { mode: 'act', rise: 1, post: -1, shroud: null, perch, group: -1, path: [], wx: 0, wz: 0 });
       if (spot) {
         Object.assign(s, { x: spot.x, y: spot.y, z: spot.z, facing: spot.facing, tf: spot.facing, duty: s.role });
         continue;
@@ -153,6 +157,18 @@ export class ShipCrew {
       s.duty = 'idle';
       s.timer = rand(0, DECK_CREW.activities.idle[1]);
     }
+  }
+
+  /** La vigie se tient dans la hune du plus grand mât (le nid de pie), s'il y en a une ; sinon à son poste du pont. */
+  private lookoutPerch(): Perch | null {
+    let top: MastTop | null = null;
+    for (const t of this.nav.tops) if (!top || t.mastHead > top.mastHead) top = t;
+    return top ? { top, spot: 0, route: null } : null;
+  }
+
+  /** Debout dans une hune (la vigie, ou un matelot monté là-haut). */
+  private inTop(s: Sailor): boolean {
+    return s.perch !== null && (s.role === 'lookout' || s.post === 1);
   }
 
   /** Pose le matelot sur un nœud libre près d'un point de sa promenade. */
@@ -181,14 +197,14 @@ export class ShipCrew {
     this.fallTimer -= dt;
     this.returnTimer -= dt;
     if (onDeck > target && (hit || this.fallTimer <= 0)) {
-      const victim = this.sailors.find((s) => s.role === 'hand' && this.onDeck(s) && s.mode !== 'below' && s.mode !== 'climb');
+      const victim = this.sailors.find((s) => s.role === 'hand' && this.onDeck(s) && s.mode !== 'below' && s.mode !== 'climb' && !this.inTop(s));
       if (victim) this.fall(victim);
       this.fallTimer = 0.3;
     } else if (onDeck < target && this.returnTimer <= 0) {
       const back = this.sailors.find((s) => s.role === 'hand' && s.mode === 'gone');
       if (back) {
         this.placeOnWalk(back);
-        Object.assign(back, { tx: back.x, ty: back.y, tz: back.z, mode: 'rise', rise: 0, duty: 'idle', post: -1, leaving: false, spin: 0, shroud: null, group: -1 });
+        Object.assign(back, { tx: back.x, ty: back.y, tz: back.z, mode: 'rise', rise: 0, duty: 'idle', post: -1, leaving: false, spin: 0, shroud: null, perch: null, group: -1 });
       }
       this.returnTimer = DECK_CREW.returnDelay;
     }
@@ -301,7 +317,7 @@ export class ShipCrew {
   private fall(s: Sailor) {
     const side = Math.sign(s.x) || (Math.random() < 0.5 ? 1 : -1);
     if (s.group >= 0) this.activities.release(s);
-    Object.assign(s, { mode: 'fall', duty: 'idle', post: -1, shroud: null, vx: side * rand(1.8, 2.6), vy: rand(2, 3), vz: rand(-0.6, 0.6), spin: 0, rise: 1 });
+    Object.assign(s, { mode: 'fall', duty: 'idle', post: -1, shroud: null, perch: null, vx: side * rand(1.8, 2.6), vy: rand(2, 3), vz: rand(-0.6, 0.6), spin: 0, rise: 1 });
   }
 
   private step(s: Sailor, dt: number) {

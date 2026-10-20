@@ -39,6 +39,7 @@ import { WeatherButtons } from './ui/weatherButtons';
 import { Bosses } from './world/bossEncounter';
 import { DayCycle } from './world/dayCycle';
 import { DayClock } from './ui/dayClock';
+import { LampLights } from './fx/lampLights';
 import { LanternHalos } from './fx/lanternHalos';
 import { setNightGlow } from './ship/parts/nightGlow';
 import { resolveCollisions } from './world/collisions';
@@ -98,6 +99,7 @@ export class Game {
   private readonly lighthouse: Lighthouse;
   /** Halos des fanaux (navires et ports) quand il fait sombre. */
   private readonly halos: LanternHalos;
+  private readonly lamps: LampLights;
   // Butin : ta flotte le range ; un pirate allié le garde pour lui.
   private readonly loot = new Loot(this.scene, this.effects, (ship, kind, value) => (this.pirates.has(ship) ? value : this.campaign.collectLoot(ship, kind, value)));
   private readonly spawner = new EnemySpawner(this.scene, this.ships, (enemy) => {
@@ -145,7 +147,8 @@ export class Game {
     ({ forts: this.forts, lighthouse: this.lighthouse } = islands);
     for (const decor of islands.decor) this.fogCulling.add(decor);
     this.halos = new LanternHalos(islands.lanterns);
-    this.scene.add(this.halos.mesh);
+    this.lamps = new LampLights(islands.lanterns);
+    this.scene.add(this.halos.mesh, this.lamps.group);
 
     // La flotte de la sauvegarde à charger, ou la chaloupe de départ.
     this.saves.start(this.fleet);
@@ -165,7 +168,7 @@ export class Game {
       this.effects.impact(this.weather.strikeShip(ship, this.camera, this.fleet.leader));
       this.applyDamage(ship, ship.stats.maxHealth * WORLD_EDGE.strikeDamage);
     });
-    const applyGraphics = () => applyQuality(this.settings.graphics, { display: this.display, ocean: this.ocean, wakes: this.wakes, weather: this.weather });
+    const applyGraphics = () => applyQuality(this.settings.graphics, { display: this.display, ocean: this.ocean, wakes: this.wakes, weather: this.weather, lamps: this.lamps });
     applyGraphics();
     this.settings.onChange(applyGraphics);
     this.radar = new Radar(container);
@@ -320,6 +323,7 @@ export class Game {
     const dark = this.weather.darkness;
     setNightGlow(dark);
     this.halos.update(this.camera, this.ships, dark, this.dayCycle.night, (this.scene.fog as THREE.Fog).far);
+    this.lamps.update(dt, this.camera, this.ships, dark, (this.scene.fog as THREE.Fog).far);
     this.hud.update(dt, leader, this.state, this.inCombat(), this.fleet);
     this.hud.quests.update(dt, this.campaign.contracts, this.fleet, (c) => this.campaign.missions.status(c), () => this.campaign.navy.objectives());
     this.radar.range = this.campaign.islands.tortuga.radarRange(tortuga.sdf(leader.position.x, leader.position.z)) * this.fleet.radarFactor();

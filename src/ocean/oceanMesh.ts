@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GRAPHICS, OCEAN } from '../config';
+import { LAMP_GLSL, lampUniforms } from '../fx/lampLights';
 import { RENDER_ORDER } from '../utils/renderOrder';
 import { ISLAND_GLSL, islandUniforms, selectIslands } from '../world/islandShader';
 import { SKY_GLSL, skyUniforms } from '../world/sky';
@@ -68,6 +69,7 @@ const fragmentShader = /* glsl */ `
 #include <fog_pars_fragment>
 ${SKY_GLSL}
 ${ISLAND_GLSL}
+${LAMP_GLSL}
 uniform vec3 uLagoon;
 uniform float uTime;
 uniform float uMaxHeight;
@@ -157,6 +159,8 @@ void main() {
   // La nuit, la lune trace son chemin de reflets sur l'eau.
   float moonSpec = max(dot(R, uMoonDir), 0.0);
   color += uMoonColor * (pow(moonSpec, 350.0) * 2.2 + pow(moonSpec, 40.0) * 0.07) * uNight * uClearSky;
+  // Les fanaux proches : une flaque de lumière chaude autour d'eux, et leurs reflets qui dansent vers la caméra.
+  color += lampsOnWater(vWorldPos, N, R);
   // Écume : de la couleur de l'écume, plus sombre la nuit.
   vec3 foam = uFoam * uFoamLight;
 
@@ -202,6 +206,7 @@ export class Ocean {
     ...islandUniforms,
     ...wakeUniforms,
     ...seaStateUniforms,
+    ...lampUniforms,
     uLagoon: { value: new THREE.Color(OCEAN.lagoonColor) },
     uTime: { value: 0 },
     uWaves: { value: [] as THREE.Vector4[] },

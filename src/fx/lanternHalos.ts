@@ -47,8 +47,9 @@ const FIRE_COLOR = new THREE.Color(0xff7a28);
 
 /**
  * Halos des fanaux (navires et ports) quand il fait sombre : un carré face à la caméra par lanterne, en un seul
- * appel de rendu (additif, sans brume : il s'efface selon sa propre distance). Ajouté à la scène dès le départ
- * (précompilé), caché le jour.
+ * appel de rendu (sans brume : il s'efface selon sa propre distance). Là où des halos se recouvrent, seul le plus vif
+ * compte (mélange « max ») : ils ne s'accumulent jamais. La lumière elle-même (ce qu'elle éclaire, ses reflets sur
+ * l'eau) est dans fx/lampLights.ts. Ajouté à la scène dès le départ (précompilé), caché le jour.
  */
 export class LanternHalos {
   readonly mesh: THREE.Mesh;
@@ -81,7 +82,11 @@ export class LanternHalos {
       fragmentShader,
       transparent: true,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      // Le plus vif l'emporte : trois fanaux côte à côte ne s'additionnent pas en une tache aveuglante.
+      blending: THREE.CustomBlending,
+      blendEquation: THREE.MaxEquation,
+      blendSrc: THREE.OneFactor,
+      blendDst: THREE.OneFactor,
     });
     this.mesh = new THREE.Mesh(this.geometry, material);
     this.mesh.frustumCulled = false;

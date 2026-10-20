@@ -6,6 +6,7 @@ import { waterMaskMaterial } from '../ship/parts/common';
 import { ladderRun } from '../ship/parts/deckFittings';
 import { collectTriangles, DeckGrid, LEVELS, LINKS, LINKS_PER_DIR, rasterize } from './deckGrid';
 import { DeckPaths } from './deckPath';
+import { findTops, type MastTop } from './mastTops';
 import { findShrouds, type Shroud } from './shrouds';
 
 /** 8 voisins d'une case : décalages (i, j), les 4 premiers orthogonaux (+x, -x, +z, -z). */
@@ -37,6 +38,8 @@ export class DeckNav {
   /** Échelles : chaque bout mène à l'autre (on y grimpe). */
   readonly ladders = new Map<number, number>();
   readonly shrouds: Shroud[];
+  /** Hunes où l'on monte par les haubans (plate-forme lue dans la géométrie). */
+  readonly tops: MastTop[];
   readonly paths: DeckPaths;
 
   constructor(model: ShipModel, plan: DeckPlan) {
@@ -67,6 +70,7 @@ export class DeckNav {
     for (const s of seeds) this.flood(this.nearestFree(s.x, s.y, s.z));
     this.findEdges();
     this.shrouds = findShrouds(model.root, this);
+    this.tops = findTops(triangles, this.shrouds, Math.max(...ys));
     this.paths = new DeckPaths(this);
   }
 

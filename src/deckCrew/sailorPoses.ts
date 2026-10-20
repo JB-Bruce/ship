@@ -179,7 +179,8 @@ function poseDuty(s: Sailor, p: SailorPose, t: number, m: ShipMotion) {
       p.headYaw = Math.sin(t * 0.25) * 0.25;
       break;
     case 'lookout':
-      // La main en visière, il balaie l'horizon.
+    case 'watch':
+      // La main en visière, il balaie l'horizon (du gaillard d'avant ou du haut d'une hune).
       p.armR = 2.7;
       p.outR = 0.45;
       p.lean += 0.05;

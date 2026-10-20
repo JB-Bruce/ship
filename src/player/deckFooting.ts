@@ -7,7 +7,7 @@ import type { DeckNav } from '../deckCrew/deckNav';
  * du pont, rangée par rangée (entre les nœuds praticables les plus à bâbord et à tribord de chaque rangée), et le
  * haut de ce qui gêne une surface quand il est assez bas. Il peut ainsi monter d'un saut sur un tonneau, une écoutille
  * ou une balustrade, mais jamais sur le plat-bord ni dehors : le pavois le retient toujours, il ne peut pas tomber à
- * l'eau. Calculé une fois par grille.
+ * l'eau. S'y ajoutent les planchers des hunes (DeckNav.tops), d'où l'on saute vers le pont. Calculé une fois par grille.
  */
 export class DeckFooting {
   /** Pour chaque rangée (z), les cases (x) extrêmes du pont praticable ; min > max = rangée sans pont. */
@@ -83,11 +83,25 @@ export class DeckFooting {
   }
 
   /**
-   * Où l'on se tient sous (x, z), pas plus haut que `top` : la plus haute surface de la case sous cette hauteur, si
-   * l'on peut s'y tenir (ou se poser sur ce qui la gêne, quand c'est assez bas) ; -Infinity sinon (pavois, mât,
-   * dehors : on ne peut pas y aller). On ne passe jamais à travers un plancher pour atteindre une surface plus basse.
+   * Où l'on se tient sous (x, z), pas plus haut que `top` : la plus haute surface sous cette hauteur, si l'on peut s'y
+   * tenir (ou se poser sur ce qui la gêne, quand c'est assez bas) ; -Infinity sinon (pavois, mât, dehors : on ne peut
+   * pas y aller). On ne passe jamais à travers un plancher pour atteindre une surface plus basse : ni celui du pont, ni
+   * celui d'une hune (le mât, une vergue au-dessus en font un mur).
    */
   groundBelow(x: number, z: number, top: number): number {
+    let best = this.deckBelow(x, z, top);
+    for (const t of this.nav.tops) {
+      const h = t.platformAt(x, z);
+      if (!(h <= top)) continue;
+      const free = t.ground(x, z);
+      if (free === -Infinity) return -Infinity;
+      best = Math.max(best, free);
+    }
+    return best;
+  }
+
+  /** Comme groundBelow, sur le seul pont (grille du DeckNav). */
+  private deckBelow(x: number, z: number, top: number): number {
     const { grid } = this.nav;
     const i = grid.cellX(x);
     const j = grid.cellZ(z);

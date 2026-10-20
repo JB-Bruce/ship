@@ -24,11 +24,13 @@ export class DeckGrid {
   /** Pour une surface gênée : le haut de ce qui la gêne (pièces solides), où le joueur peut se poser (saut, chute). */
   readonly clutter: Float32Array;
 
+  /** `cell` : côté d'une case (m) ; plus fin pour une hune (DECK_NAV.top.cell). */
   constructor(
     readonly x0: number,
     readonly z0: number,
     readonly nx: number,
     readonly nz: number,
+    readonly cell: number = DECK_NAV.cell,
   ) {
     this.heights = new Float32Array(nx * nz * LEVELS);
     this.counts = new Uint8Array(nx * nz);
@@ -38,20 +40,20 @@ export class DeckGrid {
   }
 
   cellX(x: number) {
-    return Math.floor((x - this.x0) / DECK_NAV.cell);
+    return Math.floor((x - this.x0) / this.cell);
   }
 
   cellZ(z: number) {
-    return Math.floor((z - this.z0) / DECK_NAV.cell);
+    return Math.floor((z - this.z0) / this.cell);
   }
 
   /** Centre d'une case (x, z). */
   centerX(i: number) {
-    return this.x0 + (i + 0.5) * DECK_NAV.cell;
+    return this.x0 + (i + 0.5) * this.cell;
   }
 
   centerZ(j: number) {
-    return this.z0 + (j + 0.5) * DECK_NAV.cell;
+    return this.z0 + (j + 0.5) * this.cell;
   }
 
   /** Ajoute une surface à la hauteur h (fusionnée avec une surface toute proche : la plus haute reste). */
@@ -141,16 +143,16 @@ export function collectTriangles(root: THREE.Object3D, skip: (mesh: THREE.Mesh) 
 
 /**
  * Pose les triangles dans la grille : d'abord les dessus assez plats (surfaces où marcher), puis tout ce qui occupe
- * l'espace sous `headroom` au-dessus d'une surface et monte plus haut qu'une marche la rend impraticable (mât, affût,
+ * l'espace sous `headroom` (DECK_NAV.headroom, moins dans une hune) au-dessus d'une surface et monte plus haut qu'une marche la rend impraticable (mât, affût,
  * cloison, plafond bas). Seuls comptent les ponts entre `low` et `high` (m) : ce qui est tout en dessous (carène)
  * ou tout au-dessus (hunes, vergues) est sauté.
  */
-export function rasterize(grid: DeckGrid, { tris, soft }: ModelTriangles, low: number, high: number) {
+export function rasterize(grid: DeckGrid, { tris, soft }: ModelTriangles, low: number, high: number, headroom: number = DECK_NAV.headroom) {
   const flat = Math.cos(DECK_NAV.maxSlope);
   for (let pass = 0; pass < 2; pass++) {
     // Surfaces : seulement à hauteur de pont. Obstacles : ce qui monte d'une marche au-dessus d'un pont, sous la tête.
     const from = pass === 0 ? low : low + DECK_NAV.stepMax;
-    const to = pass === 0 ? high : high + DECK_NAV.headroom;
+    const to = pass === 0 ? high : high + headroom;
     for (let t = 0; t < tris.length; t += 9) {
       const y0 = tris[t + 1];
       const y1 = tris[t + 4];
@@ -167,7 +169,7 @@ export function rasterize(grid: DeckGrid, { tris, soft }: ModelTriangles, low: n
       const isSoft = soft[t / 9] === 1;
       if (pass === 0) {
         if (Math.abs(normal.y) >= flat && !isSoft) surfaces(grid);
-      } else obstacles(grid, isSoft);
+      } else obstacles(grid, isSoft, headroom);
     }
   }
 }
@@ -222,11 +224,11 @@ function surfaces(grid: DeckGrid) {
   });
 }
 
-function obstacles(grid: DeckGrid, soft: boolean) {
+function obstacles(grid: DeckGrid, soft: boolean, headroom: number) {
   const yMin = Math.min(a.y, b.y, c.y);
   const yMax = Math.max(a.y, b.y, c.y);
   const steep = Math.abs(normal.y) < DECK_NAV.steepNormal;
-  const half = DECK_NAV.cell / 2;
+  const half = grid.cell / 2;
   // Une pièce gêne le passage si elle déborde dans la case (marge : demi-largeur d'un marin, moins un peu).
   eachCell(grid, DECK_NAV.obstaclePad, (i, j, x, z) => {
     let low = yMin;
@@ -242,7 +244,7 @@ function obstacles(grid: DeckGrid, soft: boolean) {
     for (let k = 0; k < grid.counts[cell]; k++) {
       const h = grid.heights[base + k];
       // Plus bas qu'une marche (contremarche, hiloire) : on l'enjambe ; son dessus est une surface à part.
-      if (high > h + DECK_NAV.stepMax && low < h + DECK_NAV.headroom && high > h + DECK_NAV.clearLow) {
+      if (high > h + DECK_NAV.stepMax && low < h + headroom && high > h + DECK_NAV.clearLow) {
         grid.blocked[base + k] = 1;
         if (soft) continue;
         grid.hard[base + k] = 1;

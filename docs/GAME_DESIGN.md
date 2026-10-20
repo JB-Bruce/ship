@@ -252,12 +252,14 @@ Décisions prises avec l'auteur (depuis le 2026-10-06). Les valeurs chiffrées s
   - *Graphismes* : préréglages **Bas / Moyen / Haut / Auto** (Auto au premier lancement : Haut + résolution dynamique) ; changer un réglage à la main affiche « Personnalisé ». Tout s'applique tout de suite et reste d'une partie à l'autre (gardé dans le navigateur).
 - Réglages : résolution (pixels dessinés par pixel d'écran, de ×0,5 à la densité de l'écran, affichés en taille d'image), résolution dynamique, anticrénelage (le rendu redémarre une seconde, sans perdre la partie), limite d'images par seconde (aucune, 60, 30), grille de l'eau (fine, moyenne, légère), eau au loin (détaillée ou simplifiée), sillages (fins ou légers), pluie et vent (30, 60, 100 %), particules (30, 60, 100 %).
 
-| Préréglage | Résolution | Anticrénelage | Grille d'eau | Eau au loin | Sillages | Pluie, vent, particules |
-|---|---|---|---|---|---|---|
-| Bas | ×0,75 | non | légère (128) | simplifiée | légers (512) | 30 % |
-| Moyen | ×1 | non | moyenne (192) | simplifiée | fins (1024) | 60 % |
-| Haut | ×1,5 | oui | fine (256) | détaillée | fins | 100 % |
-| Auto | comme Haut, + résolution dynamique | | | | | |
+| Préréglage | Résolution | Anticrénelage | Grille d'eau | Eau au loin | Sillages | Pluie, vent, particules | Éclairage des fanaux |
+|---|---|---|---|---|---|---|---|
+| Bas | ×0,75 | non | légère (128) | simplifiée | légers (512) | 30 % | 2 |
+| Moyen | ×1 | non | moyenne (192) | simplifiée | fins (1024) | 60 % | 4 |
+| Haut | ×1,5 | oui | fine (256) | détaillée | fins | 100 % | 6 |
+| Auto | comme Haut, + résolution dynamique | | | | | | |
+
+- **Éclairage des fanaux** (2026-10-20) : nombre de lanternes qui éclairent vraiment la scène la nuit (aucune, 2, 4 ou 6) ; chacune coûte un peu sur tout ce qui est éclairé (navires, îles), seulement quand il fait sombre (le jour, ces lumières sont retirées de la scène).
 
 - **Résolution dynamique** : mesure le temps de rendu de chaque image (chronomètres GPU) ; au-delà de 80 % du budget d'une image (60 images/s, ou la limite choisie), l'échelle baisse (jusqu'à 50 %), sous 50 % elle remonte d'un cran par seconde.
 - **Optimisations toujours actives** (sans différence à l'écran) : l'eau noyée dans la brume ne calcule plus rien ; détails fins de l'eau sautés au loin ; distance au rivage calculée seulement près des îles ; écume de tempête calculée seulement en haut des vagues ; liseré d'écume des coques seulement pour les navires proches de la caméra et devant elle ; décor des îles et navires noyés dans la brume pas dessinés ; radar redessiné 30 fois par seconde ; shaders compilés au chargement (pas d'à-coup à la première pluie, au premier éclair) ; puce graphique « haute performance ».
@@ -341,3 +343,16 @@ Chaque navire suit le même schéma : un modèle `ShipModel` + une entrée dans 
 - **Voiles d'étai** : sur les trois-mâts (flûte, corvette, frégate, caraque, galion), une grande voile à quatre côtés pendue sous l'étai qui descend du grand mât vers la misaine, un peu raccourcie côté grand mât ; la frégate et le galion en portent deux superposées à l'avant (celle du bas sous un étai moins incliné, celle du haut sous un étai qui part plus haut sur le grand mât), et le galion une de plus entre artimon et grand mât ; elles gonflent, se trouent, s'usent et se réduisent avec la voilure comme les autres.
 - **Emblème de la grande voile** : au Chantier, 8 emblèmes au choix (tête de mort, sabres croisés, kraken, serpent de mer, rose des vents, ancre, corbeau, sirène) : 150 or pour en peindre un, gratuit pour revenir à un emblème déjà payé pour ce navire, ou l'effacer. Il passe et s'écaille avec l'ancienneté. Gardé dans la sauvegarde.
 - **Grand mât des navires allongés** : sur la frégate et le galion allongés, le grand mât se place à mi-chemin entre misaine et artimon (l'artimon recule avec le château arrière : sans cela, le grand mât paraissait trop en avant). Réglage `EXTENDED_MASTS`.
+
+## Retouches du 2026-10-20 (demandées par le joueur)
+- **Voiles d'étai débloquées par la voilure** : elles n'apparaissent plus d'office ; chaque niveau de l'amélioration de voilure en déploie une : la (basse) de l'avant au niveau 1, la haute de l'avant au niveau 2 (frégate, galion), celle entre artimon et grand mât au niveau 3 (galion). Sur la flûte, la corvette et la caraque, la seule voile d'étai vient au niveau 1. Réglage `STAYSAILS.unlock`.
+- **Hunes** : les plates-formes en haut des bas-mâts sont lues dans le modèle de chaque navire (caravelle, brigantin, chébec, flûte, brick, corvette, caraque, galéasse, frégate, galion ; sauf là où une vergue passe à hauteur de poitrine, et le mât) :
+  - la **vigie** se tient dans la hune du plus grand mât (le nid de pie), la main en visière, et y reste même en combat ; sans hune (sloop, goélette), elle garde son poste à l'avant ;
+  - les **matelots** qui montent dans les haubans vont souvent jusqu'en haut (6 fois sur 10 quand le hauban mène à une hune où il reste une place ; un matelot par hune en plus de la vigie) : ils grimpent le hauban, passent par les gambes jusque sur le plancher et y restent 15 à 40 s à regarder le large avant de redescendre ; en combat, ils redescendent ;
+  - le **joueur** peut aussi monter : E au pied d'un hauban, puis Z (Maj pour grimper plus vite) jusque sur la hune ; il s'y promène (le mât et une vergue basse l'arrêtent), redescend par le hauban (E au bord, du côté d'un hauban, puis S) ou saute : il retombe sur le pont, sans dommage (jamais à l'eau).
+- **Haubans de bâbord** : ils n'étaient pas reconnus (seuls ceux de tribord servaient aux matelots et au joueur) ; corrigé.
+- **Lumière de nuit refaite** : l'ancien halo additif s'accumulait (trois fanaux côte à côte faisaient une tache aveuglante) et n'éclairait rien. Désormais :
+  - les fanaux les plus proches de la caméra (navires, ports, et un incendie à bord, en orange vacillant) **éclairent vraiment** ce qui les entoure : pont, châteaux, poupe, voiles, matelots, plage et quai ; une lampe qui entre ou sort de ce lot s'allume ou s'éteint en douceur ;
+  - sur l'**eau**, chacune des 8 lampes les plus proches pose une flaque de lumière chaude et un chemin de reflets qui danse avec les vagues ;
+  - les **halos** sont plus petits et ne s'additionnent plus : là où plusieurs se recouvrent, seul le plus vif compte ; ils restent visibles de loin ;
+  - nombre de lampes qui éclairent : réglage graphique « Éclairage des fanaux ».

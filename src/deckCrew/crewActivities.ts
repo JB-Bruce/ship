@@ -1,7 +1,8 @@
 import { DECK_CREW } from '../config';
 import type { DeckPlan } from '../ship/deckPlan';
 import type { DeckNav } from './deckNav';
-import type { Duty, Sailor } from './sailorMotion';
+import type { Duty, Perch, Sailor } from './sailorMotion';
+import type { Shroud } from './shrouds';
 import type { SailorWalker } from './sailorWalk';
 
 const { activities: A } = DECK_CREW;
@@ -20,7 +21,8 @@ export interface CrewMoves {
 /**
  * Le temps calme d'un équipage : chaque matelot libre enchaîne des occupations tirées au hasard (selon
  * DECK_CREW.activities) : flâner, s'accouder au pavois, discuter à deux ou trois, laver le pont, lover un cordage,
- * s'asseoir contre le pavois, grimper dans les haubans. Chacune dure un moment, puis il passe à une autre.
+ * s'asseoir contre le pavois, grimper dans les haubans (et souvent jusque dans la hune, regarder le large). Chacune dure
+ * un moment, puis il passe à une autre.
  */
 export class CrewActivities {
   private nextGroup = 0;
@@ -52,8 +54,10 @@ export class CrewActivities {
     if (!s.shroud) return;
     if (s.post === 0) {
       s.shroud = null;
+      s.perch = null;
       s.post = -1;
     } else if (s.post === 1 && s.mode === 'act') this.climbDown(s);
+    else if (s.post === 2 && s.mode === 'act') this.landed(s);
   }
 
   /** Une nouvelle occupation, tirée au hasard selon les poids. */
@@ -158,7 +162,10 @@ export class CrewActivities {
     return true;
   }
 
-  /** Grimper dans un hauban libre : il y va, monte, reste un moment à regarder le large, redescend. */
+  /**
+   * Grimper dans un hauban libre : il y va, monte, reste un moment à regarder le large, redescend. Souvent, si le
+   * hauban mène à une hune où il reste une place, il monte jusque dedans et s'y tient debout.
+   */
   private climbUp(s: Sailor): boolean {
     const nav = this.nav;
     const busy = new Set(this.sailors.map((o) => o.shroud));
@@ -169,35 +176,65 @@ export class CrewActivities {
     this.moves.go(s, nav.x(h.node), nav.y(h.node), nav.z(h.node), (h.side * Math.PI) / 2, 'idle', false);
     s.shroud = h;
     s.post = 0;
-    s.timer = between(A.aloft);
+    s.perch = Math.random() < A.topChance ? this.perchFor(h) : null;
+    s.timer = between(s.perch ? A.topTime : A.aloft);
     return true;
   }
 
-  /** Étapes dans les haubans : post 0 = il y va, 1 = là-haut, 2 = il redescend. */
+  /** Une place libre dans la hune où mène ce hauban (au plus A.topVisitors matelots, en plus de la vigie), ou null. */
+  private perchFor(h: Shroud): Perch | null {
+    for (const top of this.nav.tops) {
+      const route = top.routes.find((r) => r.shroud === h);
+      if (!route) continue;
+      const here = this.sailors.filter((o) => o.perch?.top === top);
+      if (here.filter((o) => o.role === 'hand').length >= A.topVisitors) return null;
+      const spot = top.spots.findIndex((_, i) => !here.some((o) => o.perch!.spot === i));
+      return spot >= 0 ? { top, spot, route } : null;
+    }
+    return null;
+  }
+
+  /** Étapes dans les haubans : post 0 = il y va, 1 = là-haut (dans le hauban ou dans la hune), 2 = il redescend. */
   private aloft(s: Sailor, dt: number) {
     const h = s.shroud!;
     if (s.mode !== 'act') return;
+    const perch = s.perch;
     if (s.post === 0) {
-      const t = rand(A.aloftHeight[0], A.aloftHeight[1]);
-      const up = [h.foot.x, h.foot.y + 0.1, h.foot.z, h.foot.x + (h.head.x - h.foot.x) * t, h.foot.y + (h.head.y - h.foot.y) * t, h.foot.z + (h.head.z - h.foot.z) * t];
-      this.walker.startClimb(s, up, 'act');
-      s.duty = 'aloft';
+      if (perch?.route) {
+        // Par le hauban jusque sous la hune, puis par les gambes jusque sur le plancher, à sa place.
+        const spot = perch.top.spots[perch.spot];
+        this.walker.startClimb(s, [...perch.route.points.flatMap((p) => [p.x, p.y, p.z]), spot.x, spot.y, spot.z], 'act');
+        s.duty = 'watch';
+      } else {
+        const t = rand(A.aloftHeight[0], A.aloftHeight[1]);
+        const up = [h.foot.x, h.foot.y + 0.1, h.foot.z, h.foot.x + (h.head.x - h.foot.x) * t, h.foot.y + (h.head.y - h.foot.y) * t, h.foot.z + (h.head.z - h.foot.z) * t];
+        this.walker.startClimb(s, up, 'act');
+        s.duty = 'aloft';
+      }
       s.post = 1;
     } else if (s.post === 1) {
+      if (perch) s.tf = perch.top.spots[perch.spot].facing;
       s.timer -= dt;
       if (s.timer <= 0) this.climbDown(s);
-    } else {
-      s.shroud = null;
-      s.post = -1;
-      s.duty = 'idle';
-      s.timer = between(A.afterChat);
-    }
+    } else this.landed(s);
   }
 
+  /** Redescendu sur le pont : il est de nouveau libre. */
+  private landed(s: Sailor) {
+    s.shroud = null;
+    s.perch = null;
+    s.post = -1;
+    s.duty = 'idle';
+    s.timer = between(A.afterChat);
+  }
+
+  /** Il redescend par où il est monté, jusqu'au pont. */
   private climbDown(s: Sailor) {
     const h = s.shroud!;
     const nav = this.nav;
-    this.walker.startClimb(s, [h.foot.x, h.foot.y + 0.1, h.foot.z, nav.x(h.node), nav.y(h.node), nav.z(h.node)], 'act');
+    const route = s.perch?.route;
+    const down = route ? [...route.points].reverse().flatMap((p) => [p.x, p.y, p.z]) : [h.foot.x, h.foot.y + 0.1, h.foot.z];
+    this.walker.startClimb(s, [...down, nav.x(h.node), nav.y(h.node), nav.z(h.node)], 'act');
     s.post = 2;
   }
 

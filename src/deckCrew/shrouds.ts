@@ -35,7 +35,8 @@ export function findShrouds(root: THREE.Object3D, nav: DeckNav): Shroud[] {
       const [foot, head] = p.y < q.y ? [p, q] : [q, p];
       const side = foot.x > 0 ? 1 : -1;
       if (head.y - foot.y < DECK_NAV.shroudRise || Math.abs(foot.x) < widest * DECK_NAV.shroudReach) continue;
-      if (Math.sign(head.x) === -side || Math.abs(head.x) > Math.abs(foot.x) - DECK_NAV.shroudInward) continue;
+      // La tête rentre vers l'axe sans passer de l'autre bord (à un arrondi près : elle est souvent pile sur l'axe).
+      if (side * head.x < -DECK_NAV.shroudAxis || Math.abs(head.x) > Math.abs(foot.x) - DECK_NAV.shroudInward) continue;
       const node = nav.nearestWalkable(foot.x - side * DECK_NAV.shroudStand, foot.y - DECK_NAV.shroudFootAbove, foot.z);
       if (node < 0) continue;
       const key = `${side}:${Math.round(head.z / DECK_NAV.shroudGroup)}`;

@@ -429,6 +429,10 @@ export const DECK_CREW = {
     coil: [8, 16] as const,
     aloft: [8, 18] as const,
     aloftHeight: [0.25, 0.5] as const,
+    /** Montée jusque dans la hune : chance (quand le hauban y mène), temps passé là-haut (s), matelots par hune en plus de la vigie. */
+    topChance: 0.6,
+    topTime: [15, 40] as const,
+    topVisitors: 1,
     strollRange: 6,
     railRange: 8,
     chatRange: 6,
@@ -498,9 +502,39 @@ export const DECK_NAV = {
   shroudRise: 4,
   shroudReach: 0.7,
   shroudInward: 0.4,
+  /** Tolérance (m) sur la tête d'un hauban qui passerait de l'autre côté de l'axe. */
+  shroudAxis: 0.05,
   shroudStand: 0.45,
   shroudFootAbove: 0.9,
   shroudGroup: 1.5,
+  /**
+   * Hunes (deckCrew/mastTops.ts), cherchées autour de la tête des haubans de chaque mât : grille fine (`cell`, m),
+   * têtes d'un même mât à moins de `sameMast` m, recherche à `reach` m de l'axe (plus `rake` en long, mâts inclinés),
+   * plancher entre `minAbove` m au-dessus du plus haut poste du pont et `above` m au-dessus de la tête des haubans,
+   * d'au moins `minArea` m². Montée : jusqu'à `futtockDrop` m sous le plancher par le hauban, puis vers son bord
+   * (`rimInset` m en deçà) ; départ `footLift` m au-dessus du pied du hauban. Places où se tenir : à `spotInset` m du
+   * bord, dans la direction `angle` (rad, depuis la proue vers bâbord), le regard vers `facing`.
+   */
+  top: {
+    cell: 0.1,
+    sameMast: 1.5,
+    reach: 1.5,
+    rake: 2,
+    minAbove: 3,
+    above: 1,
+    minArea: 0.25,
+    /** Hauteur libre au-dessus du plancher d'une hune (m) : on s'y baisse sous une vergue. */
+    headroom: 1.1,
+    futtockDrop: 0.9,
+    rimInset: 0.12,
+    footLift: 0.1,
+    spotInset: 0.25,
+    spots: [
+      { angle: 2.2, facing: 1 },
+      { angle: -2.2, facing: -1 },
+      { angle: Math.PI, facing: Math.PI },
+    ],
+  },
 };
 
 /**
@@ -1399,6 +1433,11 @@ export const STAYSAILS = {
   /** Deux voiles superposées (avant de la frégate et du galion) : hauteurs des deux étais, écart entre la voile du haut et l'étai du bas (m). */
   double: { lowAft: 1, lowFore: 0.72, highAft: 1.55, highFore: 1.1, gap: 0.7 },
   bulge: 0.55,
+  /**
+   * Niveau de voilure qui fait apparaître chaque voile d'étai, dans l'ordre : la (basse) de l'avant, la haute de
+   * l'avant (frégate, galion), celle entre artimon et grand mât (galion).
+   */
+  unlock: [1, 2, 3],
   segments: 6,
   furled: 0.12,
   step: 0.01,
@@ -1595,15 +1634,44 @@ export const DAY_NIGHT = {
   /**
    * Halos des fanaux : taille (m, grandit avec la distance pour rester lisible de loin), décroissance de la lueur en
    * cloche (plus grand = plus resserrée), éclat la nuit et part de cet éclat de jour (brouillard, pluie), portée (m),
-   * nombre max.
+   * nombre max. Ils ne s'additionnent pas : là où plusieurs se recouvrent, seul le plus vif compte.
    */
-  haloSize: 2.6,
-  haloGrowth: 0.012,
+  haloSize: 1.3,
+  haloGrowth: 0.022,
   haloFalloff: 3.5,
-  haloIntensity: 1,
+  haloIntensity: 0.8,
   haloDaylight: 0.35,
   haloRange: 320,
   maxHalos: 160,
+  /**
+   * Lumière des fanaux (fx/lampLights.ts) : les plus proches de la caméra éclairent vraiment, par des lumières
+   * ponctuelles de la scène (leur nombre est un réglage graphique) : portée (m), décroissance, éclat (candela) ; et
+   * l'eau, jusqu'à `water` lampes : éclat, flaque de lumière (force, rayon m), chemin de reflets (éclat net, halo, rayon
+   * m). Sélection autour de la caméra (m) ; part du bord de la sélection et de la portée où une lampe s'efface ;
+   * scintillement (part de l'éclat). Incendie : couleur, éclat (× un fanal), scintillement, priorité (compte comme
+   * autant de fois plus proche).
+   */
+  lamps: {
+    distance: 16,
+    decay: 1.5,
+    intensity: 9,
+    /** Teinte de la lumière : celle du fanal, mêlée de blanc dans cette part (moins orange sur les voiles proches). */
+    whiten: 0.35,
+    water: 8,
+    waterIntensity: 1,
+    waterPool: 0.12,
+    poolRadius: 4,
+    glint: 0.7,
+    glintHalo: 0.01,
+    glintRadius: 22,
+    range: 140,
+    fade: 0.25,
+    flicker: 0.06,
+    fireColor: 0xff7a28,
+    fire: 4,
+    fireFlicker: 0.3,
+    firePriority: 3,
+  },
   /** La nuit, la Marine patrouille moins : rencontres ordinaires plus rares (délai × ce facteur en pleine nuit). */
   encounterSlowdown: 2.5,
 };
@@ -1911,7 +1979,8 @@ export const HELM_VIEW = { eyeHeight: 1.8, behindWheel: 0.35, startPitch: -0.15,
  * marge dans la grille), marche et course (m/s), accélération au sol et en l'air (/s), saut (m/s ; ~0,8 m de haut avec
  * la gravité), gravité (m/s²), marche franchie en montant et en descendant sans tomber, surface où l'on se pose en
  * l'air au-dessus des pieds, lissage des marches ; échelles (distance où l'on y monte, direction du regard nécessaire,
- * vitesse d'escalade m/s) ; haubans (part de la longueur où l'on monte, marche au pied, distance où E y fait grimper) ;
+ * vitesse d'escalade m/s) ; haubans (part de la longueur où l'on monte quand il ne mène à aucune hune, marche au pied,
+ * distance où E y fait grimper) ; hune (distance du haut d'un hauban où E fait redescendre, départ sous le bord, m) ;
  * barre (distance où E la reprend, recul en la quittant, place laissée au barreur) ; balancement de la tête (hauteur m,
  * rythme par mètre, vitesse sous laquelle il ne se voit pas) ; emprise du pont (marge sous le pont le plus bas et
  * au-dessus du plus haut, m ; rangées voisines, devant et derrière, dont une rangée prend aussi l'emprise commune : cloisons).
@@ -1932,9 +2001,13 @@ export const PLAYER = {
   ladderReach: 0.7,
   ladderFacing: 0.5,
   climbSpeed: 1.2,
+  /** Escalade avec Maj enfoncée : vitesse × ce facteur. */
+  climbRun: 1.8,
   shroudReach: 0.6,
   shroudStep: 0.1,
   shroudRange: 1.2,
+  topReach: 0.7,
+  topStep: 0.3,
   helmReach: 1.3,
   leaveBack: 0.8,
   helmClear: 0.7,
@@ -1971,14 +2044,16 @@ export interface GraphicsSettings {
   /** Part de la pluie et des filets de vent dessinés, et des particules (embruns, fumée, éclats) émises (0..1). */
   weatherDensity: number;
   particleDensity: number;
+  /** Fanaux qui éclairent vraiment la scène la nuit (lumières ponctuelles ; l'eau reçoit leur lueur dans tous les cas). */
+  lampLights: number;
 }
 
 export const GRAPHICS = {
   presets: {
-    low: { resolution: 0.75, dynamicResolution: false, antialias: false, fpsLimit: 0, oceanGrid: 128, farWater: 'simple', wakeResolution: 512, weatherDensity: 0.3, particleDensity: 0.3 },
-    medium: { resolution: 1, dynamicResolution: false, antialias: false, fpsLimit: 0, oceanGrid: 192, farWater: 'simple', wakeResolution: 1024, weatherDensity: 0.6, particleDensity: 0.6 },
-    high: { resolution: 1.5, dynamicResolution: false, antialias: true, fpsLimit: 0, oceanGrid: 256, farWater: 'detailed', wakeResolution: 1024, weatherDensity: 1, particleDensity: 1 },
-    auto: { resolution: 1.5, dynamicResolution: true, antialias: true, fpsLimit: 0, oceanGrid: 256, farWater: 'detailed', wakeResolution: 1024, weatherDensity: 1, particleDensity: 1 },
+    low: { resolution: 0.75, dynamicResolution: false, antialias: false, fpsLimit: 0, oceanGrid: 128, farWater: 'simple', wakeResolution: 512, weatherDensity: 0.3, particleDensity: 0.3, lampLights: 2 },
+    medium: { resolution: 1, dynamicResolution: false, antialias: false, fpsLimit: 0, oceanGrid: 192, farWater: 'simple', wakeResolution: 1024, weatherDensity: 0.6, particleDensity: 0.6, lampLights: 4 },
+    high: { resolution: 1.5, dynamicResolution: false, antialias: true, fpsLimit: 0, oceanGrid: 256, farWater: 'detailed', wakeResolution: 1024, weatherDensity: 1, particleDensity: 1, lampLights: 6 },
+    auto: { resolution: 1.5, dynamicResolution: true, antialias: true, fpsLimit: 0, oceanGrid: 256, farWater: 'detailed', wakeResolution: 1024, weatherDensity: 1, particleDensity: 1, lampLights: 6 },
   } as Record<QualityPreset, GraphicsSettings>,
   /** Préréglage du premier lancement. */
   defaultPreset: 'auto' as QualityPreset,
@@ -1989,6 +2064,7 @@ export const GRAPHICS = {
     oceanGrid: [128, 192, 256],
     wakeResolution: [512, 1024],
     density: [0.3, 0.6, 1],
+    lampLights: [0, 2, 4, 6],
   },
   /** Eau au loin : distance (m) au-delà de laquelle le shader de l'eau saute rides, sillages et dentelle d'écume. */
   detailDistance: { detailed: 240, simple: 110 },

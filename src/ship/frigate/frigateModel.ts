@@ -59,6 +59,8 @@ export class FrigateModel implements ShipModel {
   private armor: THREE.Mesh | null = null;
   private sailAmount = 0;
   private sailWidth = 1;
+  /** Niveau de voilure : les voiles d'étai se débloquent avec lui. */
+  private sailLevel = 0;
   /** Côté sous le vent (+1 bâbord, -1 tribord) : focs et brigantine se creusent de ce côté. */
   private leeSide = 1;
   private boomTarget = 0;
@@ -94,6 +96,8 @@ export class FrigateModel implements ShipModel {
 
   setSailLevel(level: number) {
     this.sailWidth = 1 + SAIL_GROWTH * level;
+    this.sailLevel = level;
+    this.staysails.setLevel(level);
     this.applySails();
   }
 
@@ -202,6 +206,7 @@ export class FrigateModel implements ShipModel {
     this.lanterns = addStatics(this.body, t.statics);
     this.staysails = new Staysails(this.tornSail, [L.foreMast, L.mainMast], true);
     this.body.add(this.staysails.group);
+    this.staysails.setLevel(this.sailLevel);
 
     L.squareSails.forEach((s, i) => {
       // La grand-voile (la plus grande) porte l'emblème de la livrée, s'il y en a un.

@@ -1,12 +1,21 @@
 import type * as THREE from 'three';
+import type { MastTop, TopRoute } from './mastTops';
 import { restPose, type SailorPose } from './sailorPose';
 import type { Shroud } from './shrouds';
 
 /**
  * Ce que fait un marin : barre, vigie, flânerie (`idle`, `look` accoudé au pavois), canons, à couvert, cordages,
- * réparation, discussion, lavage du pont, cordages qu'on love, assis, et là-haut dans les haubans (`aloft`).
+ * réparation, discussion, lavage du pont, cordages qu'on love, assis, là-haut dans les haubans (`aloft`) ou debout
+ * dans une hune à regarder le large (`watch`).
  */
-export type Duty = 'helm' | 'lookout' | 'idle' | 'look' | 'gun' | 'brace' | 'rope' | 'repair' | 'chat' | 'swab' | 'coil' | 'sit' | 'aloft';
+export type Duty = 'helm' | 'lookout' | 'idle' | 'look' | 'gun' | 'brace' | 'rope' | 'repair' | 'chat' | 'swab' | 'coil' | 'sit' | 'aloft' | 'watch';
+
+/** Une place dans une hune : la hune, la place (index de MastTop.spots), la montée prise (null : il y est posé). */
+export interface Perch {
+  top: MastTop;
+  spot: number;
+  route: TopRoute | null;
+}
 /**
  * Où il en est : à son poste, en chemin sur le pont, en train de grimper (échelle, hauban), descendu sous le pont ou
  * en train d'en remonter, tombé à l'eau, absent.
@@ -55,8 +64,9 @@ export interface Sailor {
   climb: number[];
   climbStep: number;
   climbThen: 'path' | 'act';
-  /** Hauban où il grimpe, ou null. */
+  /** Hauban où il grimpe, ou null ; place dans une hune (il y monte, y est ou en redescend), ou null. */
   shroud: Shroud | null;
+  perch: Perch | null;
   /** Groupe de discussion (-1 = aucun). */
   group: number;
   /** Cycle de marche. */
@@ -81,7 +91,7 @@ export function newSailor(role: Sailor['role'], shirt: THREE.Color, hat: Sailor[
     role, shirt, hat, seed: Math.random(), pace, pose: restPose(),
     x: 0, y: 0, z: 0, facing: 0, walk: 0, mode: 'act', duty: role === 'hand' ? 'idle' : role,
     tx: 0, ty: 0, tz: 0, tf: 0, run: false, timer: 0, beat: 0, path: [], step: 0, wx: 0, wz: 0, stuck: 0, retries: 0,
-    climb: [], climbStep: 0, climbThen: 'act', shroud: null, group: -1,
+    climb: [], climbStep: 0, climbThen: 'act', shroud: null, perch: null, group: -1,
     phase: 0, rise: 1, leaving: false, post: -1, recoil: 0, vx: 0, vy: 0, vz: 0, spin: 0,
   };
 }

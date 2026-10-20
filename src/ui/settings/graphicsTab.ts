@@ -41,6 +41,7 @@ export function graphicsTab(ctx: SettingsContext): string {
     row(g, 'wakeResolution', 'Sillages', 'Netteté des traînées d’écume derrière les navires.', o.wakeResolution.map((r) => ({ value: r, label: r >= 1024 ? 'Fins' : 'Légers' }))),
     row(g, 'weatherDensity', 'Pluie et vent', 'Part des gouttes de pluie et des filets de vent dessinés.', o.density.map((d) => ({ value: d, label: percent(d) }))),
     row(g, 'particleDensity', 'Particules', 'Embruns, fumée, flammes, éclats de bois…', o.density.map((d) => ({ value: d, label: percent(d) }))),
+    row(g, 'lampLights', 'Éclairage des fanaux', 'La nuit, les lanternes les plus proches éclairent vraiment ponts, voiles et matelots. Chacune coûte un peu sur tout ce qui est éclairé ; l’eau reçoit leur lueur dans tous les cas.', o.lampLights.map((n) => ({ value: n, label: n ? `${n}` : 'Aucun' }))),
   ].join('');
   return `
     <p class="subtitle">Les réglages s’appliquent tout de suite et sont gardés pour les prochaines parties.</p>

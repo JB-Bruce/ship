@@ -3,6 +3,7 @@ import { PLAYER } from '../config';
 import type { FirstPersonView } from '../camera/firstPersonView';
 import type { DeckCrew } from '../deckCrew/deckCrew';
 import { deckNavOf, type DeckNav } from '../deckCrew/deckNav';
+import type { MastTop, TopRoute } from '../deckCrew/mastTops';
 import type { Shroud } from '../deckCrew/shrouds';
 import type { DeckPlan } from '../ship/deckPlan';
 import type { Ship } from '../ship/ship';
@@ -21,7 +22,8 @@ const JUMP = 'Space';
 /**
  * Le joueur peut quitter la barre (E) et se promener sur le pont de son navire, à la première personne : Z/Q/S/D
  * pour marcher (dans la direction du regard), Maj pour courir, Espace pour sauter ; escaliers et échelles se prennent en
- * marchant, E près d'un hauban y fait grimper (Z monte, S descend), E devant la roue reprend la barre. Pendant ce
+ * marchant, E près d'un hauban y fait grimper (Z monte, S descend) : jusque dans la hune s'il y en a une, d'où E au
+ * bord fait redescendre par le hauban (ou l'on saute vers le pont) ; E devant la roue reprend la barre. Pendant ce
  * temps, un matelot tient la barre (cap droit, même voilure). Seulement sur un navire ponté (qui a un plan de pont).
  * Le navire coule, change (autre barre prise) ou est reconstruit : retour à la barre.
  */
@@ -58,12 +60,17 @@ export class OnFoot {
     return this.body !== null;
   }
 
-  /** E : quitter la barre ; à pied, reprendre la barre devant la roue, grimper dans un hauban ou en redescendre. */
+  /**
+   * E : quitter la barre ; à pied, reprendre la barre devant la roue, grimper dans un hauban ou en redescendre (aussi
+   * depuis la hune, au bord, du côté d'un hauban).
+   */
   interact(leader: Ship) {
     const body = this.body;
     if (!body) return this.leaveHelm(leader);
     if (body.climb?.shroud) return body.leaveClimb();
     if (body.climb) return;
+    const down = this.nearTopRoute();
+    if (down) return body.descend(down.top, down.route);
     if (this.nearHelm()) return this.takeHelm();
     const shroud = this.nearShroud();
     if (shroud) body.startShroud(shroud);
@@ -81,6 +88,7 @@ export class OnFoot {
     if (!body) return leader.alive && leader.model.deckPlan ? 'Quitter la barre' : null;
     if (body.climb?.shroud) return 'Redescendre du hauban';
     if (body.climb) return null;
+    if (this.nearTopRoute()) return 'Redescendre par le hauban';
     if (this.nearHelm()) return 'Prendre la barre';
     return this.nearShroud() ? 'Grimper au hauban' : null;
   }
@@ -156,6 +164,24 @@ export class OnFoot {
     const helm = this.plan?.helm;
     const p = this.body?.position;
     return !!helm && !!p && Math.hypot(p.x - helm.x, p.z - helm.z) < PLAYER.helmReach && Math.abs(p.y - helm.y) < PLAYER.stepUp;
+  }
+
+  /** Debout dans une hune, au bord, du côté d'un hauban : la montée par où redescendre. */
+  private nearTopRoute(): { top: MastTop; route: TopRoute } | null {
+    const top = this.body?.standingTop();
+    if (!top) return null;
+    const p = this.body!.position;
+    let best: TopRoute | null = null;
+    let bestD: number = PLAYER.topReach;
+    for (const route of top.routes) {
+      const rim = route.points[route.points.length - 1];
+      const d = Math.hypot(p.x - rim.x, p.z - rim.z);
+      if (d < bestD) {
+        best = route;
+        bestD = d;
+      }
+    }
+    return best ? { top, route: best } : null;
   }
 
   private nearShroud(): Shroud | null {

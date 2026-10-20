@@ -64,6 +64,8 @@ export class FluytModel implements ShipModel {
   private armor: THREE.Mesh | null = null;
   private sailAmount = 0;
   private sailWidth = 1;
+  /** Niveau de voilure : les voiles d'étai se débloquent avec lui. */
+  private sailLevel = 0;
   /** Côté sous le vent : +1 bâbord, -1 tribord. */
   private leeSide = 1;
   private yardTarget = 0;
@@ -99,6 +101,8 @@ export class FluytModel implements ShipModel {
 
   setSailLevel(level: number) {
     this.sailWidth = 1 + SAIL_GROWTH * level;
+    this.sailLevel = level;
+    this.staysails.setLevel(level);
     this.applySails();
   }
 
@@ -197,6 +201,7 @@ export class FluytModel implements ShipModel {
     this.lanterns = addStatics(this.body, t.statics);
     this.staysails = new Staysails(this.tornSail, [L.foreMast, L.mainMast]);
     this.body.add(this.staysails.group);
+    this.staysails.setLevel(this.sailLevel);
 
     this.sails = [];
     this.yards = [];
