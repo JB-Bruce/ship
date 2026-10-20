@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { AIM, BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, ISLAND_INFO, OCEAN, SKY, WORLD, WORLD_EDGE, type IslandId } from './config';
+import { AIM, BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, HELM_VIEW, ISLAND_INFO, OCEAN, SKY, WORLD, WORLD_EDGE, type IslandId } from './config';
 import { Campaign } from './campaign';
 import { ChaseCamera } from './camera/chaseCamera';
 import { arcOf, cannonStatsOf, findTarget, updateCannons } from './combat/cannons';
@@ -64,7 +64,7 @@ export class Game {
   private readonly settings = new Settings();
   private readonly display: Display;
   private readonly scene = new THREE.Scene();
-  private readonly camera = new THREE.PerspectiveCamera(CAMERA.fov, innerWidth / innerHeight, 0.5, 1000);
+  private readonly camera = new THREE.PerspectiveCamera(CAMERA.fov, innerWidth / innerHeight, HELM_VIEW.chaseNear, 1000);
   /** Houle, puis clapot et houle de fond (nuls tant que la météo ne les lève pas : elle règle leur raideur). */
   private readonly waves = new Waves([...OCEAN.waves, ...[...OCEAN.chopWaves, ...OCEAN.groundSwell].map((w) => ({ ...w, steepness: 0 }))]);
   private readonly wind = new Wind();
@@ -212,6 +212,8 @@ export class Game {
         this.toggleFishing();
       } else if (e.code === 'KeyR') {
         this.betrayal.toggle();
+      } else if (e.code === 'KeyV' && !ParchmentMenu.anyOpen()) {
+        this.chaseCamera.helm.toggle();
       }
     });
     addEventListener('resize', () => this.resize());
@@ -283,7 +285,10 @@ export class Game {
     const leader = this.fleet.leader;
     this.ocean.update(leader.position);
     this.wakes.update(this.display.renderer, this.camera, dt, leader.position, this.ships, this.loot.crates, this.schools.list);
+    // Un menu ouvert rend le curseur (vue du barreur).
+    if (paused) this.chaseCamera.helm.release();
     this.chaseCamera.update(elapsed, leader, this.waves);
+    this.deckCrew.hiddenHelm = this.chaseCamera.helm.active ? leader : null;
     this.weather.update(dt, this.camera, this.wind, this.ships, leader);
     this.edgeStorm.update(dt, this.ships);
     this.fogCulling.update(this.camera, (this.scene.fog as THREE.Fog).far, this.ships);

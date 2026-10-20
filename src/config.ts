@@ -372,8 +372,72 @@ export const DECK_CREW = {
   handsPerExtension: { schooner: 1, brigantine: 2, xebec: 1, fluyt: 2, brig: 2, corvette: 3, carrack: 3, galleass: 3, frigate: 3, galleon: 3 },
   walkSpeed: 1.1,
   runSpeed: 3,
-  /** Pause d'un matelot entre deux promenades (s). */
-  idle: [3, 9] as const,
+  /**
+   * Marche (deckCrew/sailorWalk.ts) : allure propre de chacun (× la vitesse), rotation (rad/s), distances d'arrivée et
+   * de passage d'un nœud, rayon où il ralentit avant d'arriver (m) ; autres marins : écart de hauteur au-delà duquel ils
+   * sont sur un autre pont, espace personnel (m), force de l'écart, × pour un marin arrêté, pas de côté face à quelqu'un
+   * qui vient en sens inverse ; accélération (/s) ; distance à sa cible où il peut quitter le pont praticable (poste
+   * contre le pavois, derrière un canon) ; vitesse sous laquelle il piétine, après combien de temps il cherche un autre
+   * chemin (s), et combien de fois avant d'abandonner ; lissage de la hauteur des marches, et de combien il vise au-dessus (ou au-dessous) de ses pieds
+   * quand le prochain nœud est plus haut (m) ; vitesse sous laquelle il ne tourne plus ; foulée ; escalade (m/s,
+   * rythme des bras) ; place laissée autour d'un canon (m) ; distance où il cherche un abri en combat (m).
+   */
+  walk: {
+    pace: [0.85, 1.15] as const,
+    turnRate: 5,
+    arrive: 0.06,
+    waypoint: 0.3,
+    slowRadius: 0.8,
+    otherDeck: 0.6,
+    personal: 0.6,
+    separation: 1.6,
+    standingFactor: 1.5,
+    keepRight: 0.6,
+    accel: 6,
+    finalReach: 1.3,
+    stuckSpeed: 0.25,
+    stuckTime: 0.8,
+    maxRetries: 3,
+    stepSmooth: 14,
+    climbHint: 0.36,
+    turnMinSpeed: 0.15,
+    stride: 5.5,
+    climbSpeed: 0.8,
+    climbStride: 7,
+    gunClearance: 0.55,
+    coverRange: 9,
+  },
+  /**
+   * Temps calme (deckCrew/crewActivities.ts) : poids de chaque occupation (flâner, s'accouder, discuter, laver le pont,
+   * lover un cordage, s'asseoir, grimper aux haubans), durées (s) : pause après quelques pas, accoudé, assis,
+   * discussion, pause après une discussion ou une descente, lavage (et pas entre deux places), cordage, là-haut ;
+   * hauteur atteinte dans le hauban (part de sa longueur) ; portées (m) : flânerie, pavois, partenaires de discussion,
+   * rayon du cercle, déplacement du laveur ; essais de tirage ; laveurs et marins dans les haubans au plus ; place
+   * qu'un marin occupe (m) ; chance de rester sur le pont de sa promenade d'attache.
+   */
+  activities: {
+    weights: { stroll: 30, rail: 18, chat: 16, swab: 9, coil: 8, sit: 11, shroud: 8 },
+    idle: [3, 8] as const,
+    look: [8, 18] as const,
+    sit: [15, 35] as const,
+    chat: [8, 20] as const,
+    afterChat: [1, 3] as const,
+    swab: [15, 30] as const,
+    swabShift: [3, 5] as const,
+    coil: [8, 16] as const,
+    aloft: [8, 18] as const,
+    aloftHeight: [0.25, 0.5] as const,
+    strollRange: 6,
+    railRange: 8,
+    chatRange: 6,
+    chatRadius: 0.7,
+    swabStep: 1,
+    tries: 10,
+    maxSwabbers: 2,
+    maxAloft: 2,
+    spotClearance: 0.6,
+    homeBias: 0.6,
+  },
   /** Un navire est en combat s'il a tiré ou été touché depuis moins de ce temps (s), ou si un ennemi est à moins de combatRange (m). */
   combatCalm: 10,
   combatRange: 220,
@@ -392,6 +456,47 @@ export const DECK_CREW = {
   /** Chemises : pirates (blanc, rouge, brun), marine royale (blanc, bleu) ; chance de porter le tricorne plutôt que le bandana. */
   shirts: { player: [0xe8e2d0, 0x9b2d20, 0x6b5a3a], ally: [0xe8e2d0, 0x9b2d20, 0x6b5a3a], enemy: [0xe8e2d0, 0x2c4466] },
   tricorn: { player: 0.3, ally: 0.3, enemy: 0.85 },
+};
+
+/**
+ * Navigation de l'équipage sur le pont (deckCrew/deckNav.ts), tirée de la géométrie du modèle : taille d'une case (m),
+ * pente au plus d'une surface où marcher (rad), écart sous lequel deux surfaces d'une case se confondent, marge des
+ * surfaces et des obstacles autour d'un triangle (m), normale sous laquelle un triangle est une paroi ; place libre
+ * au-dessus d'une surface (de `clearLow` à `headroom`) ; marche franchissable au plus (m) ; partie de pont minimale
+ * (nœuds) ; recherche d'un nœud proche (cases, écart de hauteur) ; surcoût d'un nœud au bord ; nœuds explorés au plus
+ * par recherche de chemin ; part de la demi-largeur au-delà de laquelle un bord est un pavois où s'accouder.
+ * Haubans (lus dans le gréement) : montée minimale, part de la demi-largeur du pied, rentrée minimale vers l'axe,
+ * écart du nœud où l'on s'en approche, hauteur du pied au-dessus du pont, regroupement par mât (m).
+ */
+export const DECK_NAV = {
+  cell: 0.25,
+  /** Pas de pont sous cette hauteur (m) : dessous de coque, quille. */
+  minHeight: 0.5,
+  /** Marge autour des hauteurs des postes du plan de pont (m) : en deçà et au-delà, pas de pont (carène, hunes). */
+  deckMargin: 2.5,
+  maxSlope: 0.45,
+  merge: 0.12,
+  surfacePad: 0.02,
+  obstaclePad: 0.15,
+  steepNormal: 0.2,
+  clearLow: 0.14,
+  headroom: 1.55,
+  stepMax: 0.42,
+  minPart: 24,
+  snapCells: 6,
+  snapHeight: 1.2,
+  edgeCost: 2,
+  maxExpand: 6000,
+  railShare: 0.55,
+  /** Échelle : écart des nœuds où l'on y monte (m) et coût de la montée (en cases). */
+  ladderStand: 0.3,
+  ladderCost: 12,
+  shroudRise: 4,
+  shroudReach: 0.7,
+  shroudInward: 0.4,
+  shroudStand: 0.45,
+  shroudFootAbove: 0.9,
+  shroudGroup: 1.5,
 };
 
 /**
@@ -1781,6 +1886,14 @@ export const CAMERA = {
   clickSlop: 6,
   clickTime: 400,
 };
+
+/**
+ * Vue du barreur (touche V, camera/helmView.ts) : hauteur de l'œil au-dessus des pieds du barreur et recul derrière
+ * son poste (m), assez pour voir par-dessus la roue, regard un peu baissé au départ (rad) ; sur une barque sans plan de pont, œil à `boatEye` m, à `boatStern` de la longueur vers l'arrière ;
+ * rad par pixel de souris, regard levé ou baissé au plus (rad) ; plan proche de la caméra dans cette vue et dans la vue
+ * habituelle (m).
+ */
+export const HELM_VIEW = { eyeHeight: 1.8, behindWheel: 0.35, startPitch: -0.15, boatEye: 1.1, boatStern: 0.3, sensitivity: 0.0025, maxPitch: 1.3, near: 0.1, chaseNear: 0.5 };
 
 export const WORLD = {
   fogNear: 140,

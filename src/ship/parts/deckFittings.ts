@@ -65,14 +65,16 @@ export function addCastleStairs(batch: GeometryBatch, p: Palette, x: number, z: 
 /** Échelles raides des châteaux : inclinaison (rad, depuis la verticale), largeur, écart des barreaux (m). */
 const LADDER = { lean: 0.35, width: 0.55, rung: 0.32 };
 
+/** Distance du pied d'une échelle de hauteur `rise` à sa cloison (m). */
+export const ladderRun = (rise: number) => rise * Math.tan(LADDER.lean) + 0.1;
+
 /**
  * Échelle raide contre une cloison, du pont `from` au pont `to`, en (x, z) au pied de la cloison ; `facing` = 1 si
  * l'on monte vers l'arrière (cloison d'un château arrière), -1 vers l'avant.
  */
 export function addLadder(batch: GeometryBatch, p: Palette, x: number, z: number, from: number, to: number, facing: 1 | -1) {
   const rise = to - from;
-  const run = rise * Math.tan(LADDER.lean);
-  const foot = (dx: number) => new THREE.Vector3(x + dx, from, z + facing * (run + 0.1));
+  const foot = (dx: number) => new THREE.Vector3(x + dx, from, z + facing * ladderRun(rise));
   const head = (dx: number) => new THREE.Vector3(x + dx, to + 0.5, z + facing * 0.05 - facing * Math.tan(LADDER.lean) * 0.5);
   for (const dx of [-LADDER.width / 2, LADDER.width / 2]) batch.add(p.wood, cylinderBetween(foot(dx), head(dx), 0.045, 0.045, 4), new THREE.Matrix4());
   for (let y = LADDER.rung; y < rise; y += LADDER.rung) {

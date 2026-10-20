@@ -13,6 +13,11 @@ export class GunPosts {
   private readonly cooldowns: number[] = [];
   private cooldownsOf: readonly number[] | null = null;
 
+  /** Oublie les postes (pont reconstruit) : ils seront recalculés au prochain `sync`. */
+  reset() {
+    this.postsOf = null;
+  }
+
   /** Recalcule les postes quand les canons du modèle changent. Renvoie true s'ils ont changé. */
   sync(model: ShipModel, plan: DeckPlan): boolean {
     const key = model.cannons[0]?.object ?? null;

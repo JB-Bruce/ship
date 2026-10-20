@@ -77,6 +77,9 @@ const TRIPLES: readonly number[] = [0.8, -0.8];
 const BOW_PIECES = { xs: [1.15, -1.15], back: 0.85 };
 /** Éperon : pied sur l'étrave à cette hauteur, pointe (hauteur, avancée au-delà de la face avant), pied de sa jambe de force sur l'étrave (m). */
 const SPUR = { y: 1.6, tipY: 1.95, reach: 3, brace: 0.3 };
+/** Échelles des châteaux (écart de l'axe, m). */
+export const LADDER_X = { stern: 1.5, fore: 1.6 };
+
 /** Haubans : pieds sur le plat-bord, derrière le mât, écartés de `spacing`, à `clearance` m au moins des sabords du pont. */
 const SHROUD_FEET = { first: 0.4, spacing: 0.5, count: 3, clearance: 0.45 };
 
@@ -194,6 +197,10 @@ function createLayout(level: number): GalleassLayout {
     lookout: { x: 0, y: forecastle.y, z: at(0.8).z, facing: 0 },
     walks: [...deckWalks(DECK_Y, [1.2, -1.2], sternFront + 1.6, foreBack - 1.6), ...deckWalks(sternDeck.y, [0.8], at(-0.95).z, sternFront - 0.4)],
     ropes: ropeSpots(DECK_Y, [foreMast.z, mainMast.z, mizzenMast.z], widthAt(DECK_Y)),
+    ladders: [1, -1].flatMap((side) => [
+      { x: side * LADDER_X.stern, z: sternFront, from: DECK_Y, to: sternDeck.y, facing: 1 as const },
+      { x: side * LADDER_X.fore, z: foreBack, from: DECK_Y, to: forecastle.y, facing: -1 as const },
+    ]),
     // Les pièces du château avant tirent vers l'avant, par-dessus sa balustrade : personne derrière elles.
     isOpenGun: (mount) => mount.calibre === 'deck' && mount.angle !== 0,
   };

@@ -4,7 +4,7 @@ import { sideTf, std } from '../parts/common';
 import { addLadder, bulkhead } from '../parts/deckFittings';
 import { addLantern, type Palette } from '../parts/props';
 import { cylinderBetween } from '../parts/sails';
-import { DECK_Y, TRIPLE_Y, WALES, type GalleassLayout } from './galleassLayout';
+import { DECK_Y, LADDER_X, TRIPLE_Y, WALES, type GalleassLayout } from './galleassLayout';
 
 /** Bordé, le même pour tous les camps ; préceintes en bois sombre. */
 export const HULL_WOOD = std(0x7a4e2c);
@@ -14,7 +14,6 @@ const PAVISE = { spacing: 0.8, width: 0.52, height: 0.5, below: 0.36, portCleara
 /** Balustrades des châteaux : hauteur, écart des balustres, place laissée aux échelles et aux pièces du château avant (m). */
 const BALUSTRADE = { height: 0.55, spacing: 0.5, clearance: 0.45 };
 /** Échelles des châteaux (écart de l'axe, m). */
-const LADDER_X = { stern: 1.5, fore: 1.6 };
 /**
  * Tendelet du château de poupe, en bandes de toile aux couleurs du camp et claires : arceau entre ces sections (u de
  * base) sur des montants, retrait des bords par rapport au bordé, flèche de l'arceau (part du rayon), nombre de bandes.
@@ -85,13 +84,12 @@ export function addCastles(batch: GeometryBatch, p: Palette, L: GalleassLayout) 
   const sf = bulkhead(batch, p, hull, sternFront, DECK_Y, sternDeck.y, 1);
   sf(0, DECK_Y + 0.75, 0.85, 1.45, p.dark);
   for (const x of [-1.25, 1.25]) sf(x, DECK_Y + 1.35, 0.4, 0.34, p.window);
-  for (const side of [1, -1]) addLadder(batch, p, side * LADDER_X.stern, sternFront.z, DECK_Y, sternDeck.y, 1);
+  for (const l of L.deck.ladders ?? []) addLadder(batch, p, l.x, l.z, l.from, l.to, l.facing);
 
   const foreBack = L.station(forecastle.from);
   const fb = bulkhead(batch, p, hull, foreBack, DECK_Y, forecastle.y, -1);
   fb(0, DECK_Y + 0.75, 0.85, 1.45, p.dark);
   for (const x of [-1.15, 1.15]) fb(x, DECK_Y + 1.5, 0.38, 0.34, p.window);
-  for (const side of [1, -1]) addLadder(batch, p, side * LADDER_X.fore, foreBack.z, DECK_Y, forecastle.y, -1);
 
   // Balustrades : flancs des châteaux, poupe, bord avant du château de poupe et bord arrière du château avant (passage
   // aux échelles), face avant du château avant (les pièces légères tirent par-dessus le plat-bord, entre les balustres).

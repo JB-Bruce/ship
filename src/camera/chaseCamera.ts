@@ -3,6 +3,7 @@ import { CAMERA, SURF } from '../config';
 import type { Waves } from '../ocean/waves';
 import type { Ship } from '../ship/ship';
 import { wrapAngle } from '../utils/math';
+import { HelmView } from './helmView';
 
 const { clamp, damp } = THREE.MathUtils;
 /** Écart de champ de vision (degrés) en deçà duquel on ne recalcule pas la projection. */
@@ -10,9 +11,11 @@ const FOV_EPSILON = 0.01;
 
 /**
  * Caméra arrière qui suit le cap du bateau. Glisser la souris tourne autour, la molette zoome,
- * et la caméra revient seule derrière le bateau quand on lâche la souris.
+ * et la caméra revient seule derrière le bateau quand on lâche la souris. La vue du barreur (`helm`, touche V) la
+ * remplace à la première personne ; secousses et champ de vision s'appliquent aux deux.
  */
 export class ChaseCamera {
+  readonly helm: HelmView;
   private yawOffset = 0;
   private pitch = CAMERA.pitch;
   private distance = CAMERA.distance;
@@ -36,13 +39,21 @@ export class ChaseCamera {
     /** Clic gauche dans la vue (appui court, sans glisser), en coordonnées de la fenêtre. */
     onClick: (x: number, y: number) => void = () => {},
   ) {
+    this.helm = new HelmView(camera, dom);
     dom.addEventListener('pointerdown', (e) => {
+      // Vue du barreur : un clic reprend la souris ; souris capturée, un clic vise le centre de l'écran.
+      if (this.helm.active) {
+        if (!this.helm.locked) this.helm.capture();
+        else if (e.button === 0) onClick(innerWidth / 2, innerHeight / 2);
+        return;
+      }
       this.dragging = true;
       this.pressMoved = 0;
       this.pressTime = performance.now();
       dom.setPointerCapture(e.pointerId);
     });
     dom.addEventListener('pointerup', (e) => {
+      if (!this.dragging) return;
       this.dragging = false;
       dom.releasePointerCapture(e.pointerId);
       if (e.button === 0 && this.pressMoved <= CAMERA.clickSlop && performance.now() - this.pressTime <= CAMERA.clickTime) onClick(e.clientX, e.clientY);
@@ -58,6 +69,7 @@ export class ChaseCamera {
       'wheel',
       (e) => {
         e.preventDefault();
+        if (this.helm.active) return;
         this.distance = clamp(this.distance * (1 + e.deltaY * 0.001), CAMERA.minDistance, CAMERA.maxDistance);
       },
       { passive: false },
@@ -76,6 +88,15 @@ export class ChaseCamera {
   }
 
   update(dt: number, ship: Ship, waves: Waves) {
+    if (this.helm.active) {
+      this.helm.place(ship);
+      this.initialized = false;
+    } else this.orbit(dt, ship, waves);
+    this.lens(dt, ship);
+  }
+
+  /** Vue habituelle : derrière le bateau, à la distance et sous l'angle choisis à la souris. */
+  private orbit(dt: number, ship: Ship, waves: Waves) {
     const p = ship.position;
     // Un grand navire est cadré de plus loin et de plus haut (racine : la différence reste modérée).
     const size = Math.sqrt(ship.stats.length / CAMERA.referenceLength);
@@ -111,7 +132,11 @@ export class ChaseCamera {
     );
     cam.y = Math.max(cam.y, waves.heightAt(cam.x, cam.z) + 1.5);
     this.camera.lookAt(this.target);
+  }
 
+  /** Champ de vision (glisse, zoom passager) et secousse. */
+  private lens(dt: number, ship: Ship) {
+    const cam = this.camera.position;
     // Champ de vision : un peu plus large en glisse sur la pente d'une vague, resserré par un zoom passager.
     this.surfFov = damp(this.surfFov, SURF.fovGain * ship.surfAmount, SURF.fovResponse, dt);
     let zoom = 0;

@@ -1,29 +1,40 @@
 import * as THREE from 'three';
 import { DECK_CREW } from '../config';
 import type { DeckPlan, DeckSpot } from '../ship/deckPlan';
-import { GunPosts } from './gunPosts';
 import type { Ship } from '../ship/ship';
-import { advance, newSailor, poseSailor, type Duty, type Sailor, type ShipMotion } from './sailorMotion';
+import { CrewActivities, isLeisure } from './crewActivities';
+import { coverNear, markGuns } from './crewSpots';
+import { deckNavOf, type DeckNav } from './deckNav';
+import { nodeCount } from './deckPath';
+import { GunPosts } from './gunPosts';
+import { advance, newSailor, type Duty, type Sailor, type ShipMotion } from './sailorMotion';
 import { drawSailor } from './sailorPose';
+import { poseSailor } from './sailorPoses';
 import type { SailorMeshes } from './sailorMeshes';
+import { SailorWalker } from './sailorWalk';
 
-/** Écart de hauteur au-delà duquel un marin change de pont en passant par en dessous (m). */
-const OTHER_DECK = 0.3;
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
 const pick = <T>(list: readonly T[]) => list[Math.floor(Math.random() * list.length)];
 const world = new THREE.Vector3();
 
 /**
- * L'équipage animé d'un navire ponté : barreur, vigie et matelots (DeckPlan.hands). Les matelots flânent sur leur
- * pont ; en combat, ils servent les canons à découvert ; quand la voilure change, deux d'entre eux halent les cordages ;
- * après le combat, deux réparent tant que le navire est abîmé. Moins le navire a de vie, moins il reste de matelots sur
- * le pont : les autres tombent à l'eau sous les coups, et remontent quand il se répare. Quand il sombre, tous sautent.
+ * L'équipage animé d'un navire ponté : barreur, vigie et matelots (DeckPlan.hands). Ils marchent sur le pont réel du
+ * navire (DeckNav : escaliers, échelles, obstacles) en s'évitant ; au calme, chacun enchaîne des occupations
+ * (CrewActivities) ; en combat, ils courent servir les canons à découvert et les autres se mettent à couvert contre le
+ * pavois ; quand la voilure change, deux d'entre eux halent les cordages ; après le combat, deux réparent tant que le
+ * navire est abîmé. Moins le navire a de vie, moins il reste de matelots sur le pont : les autres tombent à l'eau sous
+ * les coups, et remontent quand il se répare. Quand il sombre, tous sautent.
  */
 export class ShipCrew {
   readonly sailors: Sailor[] = [];
   /** Image où le navire a été vu pour la dernière fois (le système oublie les équipages des navires disparus). */
   lastSeen = 0;
   private plan: DeckPlan;
+  private nav: DeckNav;
+  private walker: SailorWalker;
+  private activities: CrewActivities;
+  /** Nœuds occupés par les affûts (on les contourne). */
+  private avoid: Uint8Array;
   private readonly guns = new GunPosts();
   private lastHealth: number;
   private lastSail: number;
@@ -39,6 +50,10 @@ export class ShipCrew {
     private readonly splash: (x: number, y: number, z: number) => void,
   ) {
     this.plan = ship.model.deckPlan!;
+    this.nav = deckNavOf(ship.model, this.plan);
+    this.walker = new SailorWalker(this.nav);
+    this.activities = this.newActivities();
+    this.avoid = new Uint8Array(nodeCount(this.nav));
     this.lastHealth = ship.health;
     this.lastSail = ship.controls.sail;
     this.motion = { time: 0, pitch: 0, roll: 0, rudder: 0, reloading: (cannon) => (ship.cannonCooldowns[cannon] ?? 0) > 0.5 };
@@ -48,10 +63,15 @@ export class ShipCrew {
     this.layout();
   }
 
-  /** Un marin aux couleurs de son camp (chemise, coiffe). */
+  private newActivities() {
+    return new CrewActivities(this.nav, this.walker, this.plan, this.sailors, { go: (s, x, y, z, f, duty, run) => this.go(s, x, y, z, f, duty, run) });
+  }
+
+  /** Un marin aux couleurs de son camp (chemise, coiffe), à son pas. */
   private hire(role: Sailor['role'], hat?: Sailor['hat']): Sailor {
     const faction = this.ship.crewColors;
-    return newSailor(role, new THREE.Color(pick(DECK_CREW.shirts[faction])), hat ?? (Math.random() < DECK_CREW.tricorn[faction] ? 'tricorn' : 'bandana'));
+    const hatOf = hat ?? (Math.random() < DECK_CREW.tricorn[faction] ? 'tricorn' : 'bandana');
+    return newSailor(role, new THREE.Color(pick(DECK_CREW.shirts[faction])), hatOf, rand(DECK_CREW.walk.pace[0], DECK_CREW.walk.pace[1]));
   }
 
   /** Autant de matelots que le pont en prévoit : un navire allongé en embarque de nouveaux. */
@@ -68,14 +88,22 @@ export class ShipCrew {
     this.motion.pitch = ship.pitch;
     this.motion.roll = ship.roll;
     this.motion.rudder = ship.controls.rudder;
-    // Le navire a été reconstruit (allongement) : de nouveaux matelots embarquent, chacun retrouve sa place.
+    // Le navire a été reconstruit (allongement) : nouveau pont, de nouveaux matelots embarquent, chacun retrouve sa place.
     if (ship.model.deckPlan && ship.model.deckPlan !== this.plan) {
       this.plan = ship.model.deckPlan;
+      this.nav = deckNavOf(ship.model, this.plan);
+      this.walker = new SailorWalker(this.nav);
+      this.activities = this.newActivities();
+      this.avoid = new Uint8Array(nodeCount(this.nav));
+      this.guns.reset();
       this.staff();
       this.layout();
     }
     // Canons refaits : les canonniers reprennent leur poste au prochain combat.
-    if (this.guns.sync(ship.model, this.plan)) for (const s of this.sailors) if (s.duty === 'gun') s.duty = 'idle';
+    if (this.guns.sync(ship.model, this.plan)) {
+      markGuns(this.nav, ship.model.cannons, this.avoid);
+      for (const s of this.sailors) if (s.duty === 'gun') s.duty = 'idle';
+    }
     this.guns.detectShots(ship.cannonCooldowns, this.onShot);
     const hit = ship.health < this.lastHealth - 0.01;
     this.lastHealth = ship.health;
@@ -88,45 +116,51 @@ export class ShipCrew {
     this.ropeTimer -= dt;
     if (!ship.alive) {
       // Il sombre : tout le monde saute à l'eau, chacun à son tour.
-      for (const s of this.sailors) if (this.onDeck(s) && Math.random() < dt * 1.5) this.fall(s);
+      for (const s of this.sailors) if (this.onDeck(s) && s.mode !== 'climb' && Math.random() < dt * 1.5) this.fall(s);
     } else {
       this.manageCount(dt, hit);
       this.assign(combat);
+      if (!combat) this.activities.update(dt);
     }
     for (const s of this.sailors) this.step(s, dt);
   }
 
-  draw(meshes: SailorMeshes) {
+  /** `noHelm` : le barreur n'est pas dessiné (la caméra est à sa place). */
+  draw(meshes: SailorMeshes, noHelm = false) {
     const matrix = this.ship.model.root.matrixWorld;
     for (const s of this.sailors) {
-      if (s.mode === 'gone' || s.rise <= 0.02) continue;
+      if (s.mode === 'gone' || s.rise <= 0.02 || (noHelm && s.role === 'helm')) continue;
       poseSailor(s, this.motion);
       drawSailor(meshes, matrix, s.pose, s.shirt, s.hat);
     }
   }
 
-  /** Barreur et vigie à leur poste, matelots répartis sur les promenades. */
+  /** Barreur et vigie à leur poste, matelots répartis sur le pont (chacun près de sa promenade d'attache). */
   private layout() {
     let k = 0;
     for (const s of this.sailors) {
       if (s.mode === 'gone') continue;
       const spot = s.role === 'helm' ? this.plan.helm : s.role === 'lookout' ? this.plan.lookout : null;
-      s.mode = 'act';
-      s.rise = 1;
-      s.post = -1;
+      Object.assign(s, { mode: 'act', rise: 1, post: -1, shroud: null, group: -1, path: [], wx: 0, wz: 0 });
       if (spot) {
-        Object.assign(s, { x: spot.x, y: spot.y, z: spot.z, facing: spot.facing, duty: s.role });
+        Object.assign(s, { x: spot.x, y: spot.y, z: spot.z, facing: spot.facing, tf: spot.facing, duty: s.role });
         continue;
       }
       s.walk = k++ % Math.max(1, this.plan.walks.length);
-      this.toWalkPoint(s);
-      s.x = s.tx;
-      s.y = s.ty;
-      s.z = s.tz;
-      s.facing = rand(-Math.PI, Math.PI);
+      this.placeOnWalk(s);
       s.duty = 'idle';
-      s.timer = rand(0, DECK_CREW.idle[1]);
+      s.timer = rand(0, DECK_CREW.activities.idle[1]);
     }
+  }
+
+  /** Pose le matelot sur un nœud libre près d'un point de sa promenade. */
+  private placeOnWalk(s: Sailor) {
+    const w = this.plan.walks[s.walk];
+    const t = Math.random();
+    const node = w ? this.nav.nearestWalkable(w.ax + (w.bx - w.ax) * t, w.y, w.az + (w.bz - w.az) * t) : -1;
+    if (node >= 0) Object.assign(s, { x: this.nav.x(node), y: this.nav.y(node), z: this.nav.z(node) });
+    else if (w) Object.assign(s, { x: w.ax, y: w.y, z: w.az });
+    s.facing = s.tf = rand(-Math.PI, Math.PI);
   }
 
   /** Une pièce vient de tirer : le navire est en combat, et son canonnier recule. */
@@ -145,14 +179,14 @@ export class ShipCrew {
     this.fallTimer -= dt;
     this.returnTimer -= dt;
     if (onDeck > target && (hit || this.fallTimer <= 0)) {
-      const victim = this.sailors.find((s) => s.role === 'hand' && this.onDeck(s) && s.mode !== 'below');
+      const victim = this.sailors.find((s) => s.role === 'hand' && this.onDeck(s) && s.mode !== 'below' && s.mode !== 'climb');
       if (victim) this.fall(victim);
       this.fallTimer = 0.3;
     } else if (onDeck < target && this.returnTimer <= 0) {
       const back = this.sailors.find((s) => s.role === 'hand' && s.mode === 'gone');
       if (back) {
-        this.toWalkPoint(back);
-        Object.assign(back, { x: back.tx, y: back.ty, z: back.tz, mode: 'rise', rise: 0, duty: 'idle', post: -1, leaving: false, spin: 0 });
+        this.placeOnWalk(back);
+        Object.assign(back, { tx: back.x, ty: back.y, tz: back.z, mode: 'rise', rise: 0, duty: 'idle', post: -1, leaving: false, spin: 0, shroud: null, group: -1 });
       }
       this.returnTimer = DECK_CREW.returnDelay;
     }
@@ -164,19 +198,17 @@ export class ShipCrew {
     const repairing = !combat && ship.health < ship.stats.maxHealth - 1;
     for (const s of this.sailors) {
       if (s.role !== 'hand' || !this.onDeck(s)) continue;
-      // Fin d'une tâche : retour à la promenade.
+      // Fin d'une tâche : retour au temps calme.
       const over =
         ((s.duty === 'gun' || s.duty === 'brace') && !combat) || (s.duty === 'rope' && (combat || this.ropeTimer <= 0)) || (s.duty === 'repair' && !repairing);
       if (over) this.toIdle(s);
+      // En combat, ceux qui sont dans les haubans redescendent, les groupes se défont.
+      if (combat && (s.shroud || s.group >= 0)) this.activities.release(s);
     }
     if (combat) {
       for (const g of this.guns.posts) if (!this.manned('gun', g.cannon)) this.send(g.spot, 'gun', g.cannon, true);
-      // Les autres se mettent à couvert là où ils sont, tournés vers le large.
-      for (const s of this.sailors) {
-        if (s.role !== 'hand' || (s.duty !== 'idle' && s.duty !== 'look') || s.mode !== 'act') continue;
-        s.duty = 'brace';
-        s.facing = (Math.sign(s.x) || 1) * (Math.PI / 2);
-      }
+      // Les autres courent se mettre à couvert contre le pavois le plus proche, tournés vers le large.
+      for (const s of this.sailors) if (s.role === 'hand' && this.free(s) && s.duty !== 'brace' && s.mode === 'act') this.takeCover(s);
     } else if (this.ropeTimer > 0) {
       const ropes = this.plan.ropes;
       for (let i = 0; i < ropes.length && this.count('rope') < DECK_CREW.ropeHands; i++) if (!this.manned('rope', i)) this.send(ropes[i], 'rope', i, true);
@@ -184,11 +216,30 @@ export class ShipCrew {
       let busy = this.count('repair');
       for (const s of this.sailors) {
         if (busy >= DECK_CREW.repairHands) break;
-        if (s.role !== 'hand' || s.duty !== 'idle' || s.mode !== 'act' || !this.onDeck(s)) continue;
-        this.toWalkPoint(s);
-        this.go(s, 'repair', -1, false);
+        if (s.role !== 'hand' || !isLeisure(s) || s.mode !== 'act' || !this.onDeck(s)) continue;
+        this.activities.release(s);
+        this.activities.stroll(s);
+        s.duty = 'repair';
         busy++;
       }
+    }
+  }
+
+  /** Libre pour une tâche : au temps calme (pas dans les haubans) ou à couvert. */
+  private free(s: Sailor) {
+    return this.onDeck(s) && (isLeisure(s) || s.duty === 'brace');
+  }
+
+  /** Court se mettre à couvert contre le pavois le plus proche (une place par matelot), tourné vers le large. */
+  private takeCover(s: Sailor) {
+    const nav = this.nav;
+    const taken = (node: number) => this.sailors.some((o) => o !== s && o.duty === 'brace' && Math.hypot(o.tx - nav.x(node), o.tz - nav.z(node)) < DECK_CREW.activities.spotClearance);
+    const best = coverNear(nav, s.x, s.y, s.z, taken);
+    const side = best >= 0 ? Math.sign(nav.x(best)) || 1 : Math.sign(s.x) || 1;
+    if (best >= 0) this.go(s, nav.x(best), nav.y(best), nav.z(best), (side * Math.PI) / 2, 'brace', true);
+    else {
+      s.duty = 'brace';
+      s.tf = (side * Math.PI) / 2;
     }
   }
 
@@ -209,7 +260,7 @@ export class ShipCrew {
     let best: Sailor | null = null;
     let bestDistance = Infinity;
     for (const s of this.sailors) {
-      if (s.role !== 'hand' || !this.onDeck(s) || (s.duty !== 'idle' && s.duty !== 'look' && s.duty !== 'brace')) continue;
+      if (s.role !== 'hand' || !this.free(s) || (s.mode !== 'act' && s.mode !== 'move')) continue;
       const d = Math.hypot(s.x - spot.x, (s.y - spot.y) * 4, s.z - spot.z);
       if (d < bestDistance) {
         best = s;
@@ -217,35 +268,27 @@ export class ShipCrew {
       }
     }
     if (!best) return;
-    Object.assign(best, { tx: spot.x, ty: spot.y, tz: spot.z, tf: spot.facing });
-    this.go(best, duty, post, run);
+    this.activities.release(best);
+    this.go(best, spot.x, spot.y, spot.z, spot.facing, duty, run);
+    best.post = post;
   }
 
-  /** Vers la cible (tx, ty, tz) : à pied sur le même pont, sinon par en dessous. */
-  private go(s: Sailor, duty: Duty, post: number, run: boolean) {
+  /** Vers (x, y, z) par le pont ; faute de chemin (autre partie du pont), par en dessous. */
+  private go(s: Sailor, x: number, y: number, z: number, facing: number, duty: Duty, run: boolean) {
     s.duty = duty;
-    s.post = post;
-    s.run = run;
-    s.mode = Math.abs(s.ty - s.y) > OTHER_DECK ? 'below' : 'move';
+    s.post = -1;
+    if (this.walker.goTo(s, x, y, z, facing, run, this.avoid)) return;
+    if (Math.hypot(s.x - x, s.z - z) < 0.3 && Math.abs(s.y - y) < 0.3) {
+      s.mode = 'act';
+      return;
+    }
+    s.mode = 'below';
   }
 
   private toIdle(s: Sailor) {
     s.post = -1;
     s.recoil = 0;
-    this.toWalkPoint(s);
-    this.go(s, 'idle', -1, false);
-    s.timer = rand(DECK_CREW.idle[0], DECK_CREW.idle[1]);
-  }
-
-  /** Un point au hasard sur sa promenade, comme cible. */
-  private toWalkPoint(s: Sailor) {
-    const w = this.plan.walks[s.walk];
-    if (!w) return;
-    const t = Math.random();
-    s.tx = w.ax + (w.bx - w.ax) * t;
-    s.ty = w.y;
-    s.tz = w.az + (w.bz - w.az) * t;
-    s.tf = Math.sign(s.tx) * (Math.PI / 2) || rand(-Math.PI, Math.PI);
+    this.activities.stroll(s);
   }
 
   private onDeck(s: Sailor): boolean {
@@ -255,7 +298,8 @@ export class ShipCrew {
   /** Projeté par-dessus bord, du côté où il se trouve. */
   private fall(s: Sailor) {
     const side = Math.sign(s.x) || (Math.random() < 0.5 ? 1 : -1);
-    Object.assign(s, { mode: 'fall', duty: 'idle', post: -1, vx: side * rand(1.8, 2.6), vy: rand(2, 3), vz: rand(-0.6, 0.6), spin: 0, rise: 1 });
+    if (s.group >= 0) this.activities.release(s);
+    Object.assign(s, { mode: 'fall', duty: 'idle', post: -1, shroud: null, vx: side * rand(1.8, 2.6), vy: rand(2, 3), vz: rand(-0.6, 0.6), spin: 0, rise: 1 });
   }
 
   private step(s: Sailor, dt: number) {
@@ -264,26 +308,6 @@ export class ShipCrew {
       world.set(s.x, 0, s.z).applyMatrix4(this.ship.model.root.matrixWorld);
       this.splash(world.x, world.y, world.z);
     }
-    if (s.mode !== 'act') return;
-    if (s.duty === 'idle' || s.duty === 'look') this.wander(s, dt);
-    else if (s.duty === 'gun' || s.duty === 'rope') s.facing = s.tf;
-  }
-
-  /** Flânerie : promenade, regard vers la mer contre le pavois, ou simple pause. */
-  private wander(s: Sailor, dt: number) {
-    s.timer -= dt;
-    if (s.timer > 0) return;
-    s.timer = rand(DECK_CREW.idle[0], DECK_CREW.idle[1]);
-    const roll = Math.random();
-    if (roll < 0.55) {
-      this.toWalkPoint(s);
-      this.go(s, 'idle', -1, false);
-    } else if (roll < 0.85) {
-      s.duty = 'look';
-      s.facing = (Math.sign(s.x) || 1) * (Math.PI / 2);
-    } else {
-      s.duty = 'idle';
-      s.facing = rand(-Math.PI, Math.PI);
-    }
+    if (s.role === 'hand') this.walker.step(s, dt, this.sailors, this.avoid);
   }
 }
