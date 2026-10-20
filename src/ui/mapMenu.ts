@@ -1,11 +1,14 @@
+import type { IslandId } from '../config';
 import type { Fleet } from '../fleet/fleet';
 import type { Ship } from '../ship/ship';
 import type { MapZone } from '../missions/mission';
+import type { MapDiscovery } from '../progression/mapDiscovery';
 import type { Enemy } from '../world/enemySpawner';
 import type { FishSchool } from '../world/fishSchools';
 import { tortuga } from '../world/island';
 import type { Crate } from '../world/loot';
 import type { Wind } from '../world/wind';
+import { MapFog } from './mapFog';
 import { paintMap } from './mapPainter';
 import { MapView } from './mapView';
 import { ParchmentMenu } from './parchmentMenu';
@@ -32,15 +35,25 @@ export interface MapSource {
   escorts(): readonly Ship[];
   /** Autres alliés en mer (pirates, marchands des îles). */
   pirates(): readonly Ship[];
+  /** Ce que la carte a découvert. */
+  readonly discovery: MapDiscovery;
+  /** Ports où toucher une prime ou que vise un contrat suivi. */
+  objectivePorts(): readonly IslandId[];
 }
 
+/** Texte sous la carte : commandes, puis part de la mer découverte. */
+const HINT = 'Molette : zoom · glisser : déplacer · double-clic ou C : recentrer sur ton navire';
+
 /**
- * Carte (M) : l'île et ses lieux, ta flotte, les ennemis repérés par le radar, le butin et le vent.
- * Elle est dessinée à l'ouverture : le jeu est en pause tant qu'elle est affichée.
+ * Carte (M) : l'île et ses lieux, ta flotte, les ennemis repérés par le radar, le butin et le vent, là où la mer est
+ * découverte (ailleurs, un parchemin vierge : mapFog.ts). Elle est dessinée à l'ouverture : le jeu est en pause tant
+ * qu'elle est affichée.
  */
 export class MapMenu extends ParchmentMenu {
   private readonly canvas = document.createElement('canvas');
+  private readonly hint = document.createElement('p');
   private readonly view: MapView;
+  private readonly fog: MapFog;
 
   constructor(
     parent: HTMLElement,
@@ -64,11 +77,11 @@ export class MapMenu extends ParchmentMenu {
       <span><b class="pirate">▲</b> Alliés</span>
       <span><b class="escort">▲</b> À protéger</span>
       <span><b class="hunt">◌</b> Zone de chasse</span>
-      <span><b class="navy">♛</b> Port de la Marine</span>`;
-    const hint = document.createElement('p');
-    hint.className = 'map-hint';
-    hint.textContent = 'Molette : zoom · glisser : déplacer · double-clic ou C : recentrer sur ton navire';
-    this.body.append(this.canvas, hint, legend);
+      <span><b class="navy">♛</b> Port de la Marine</span>
+      <span><b class="unknown">▒</b> Mer inconnue</span>`;
+    this.hint.className = 'map-hint';
+    this.body.append(this.canvas, this.hint, legend);
+    this.fog = new MapFog(source.discovery);
     this.view = new MapView(this.canvas, () => this.render(), () => this.source.fleet.leader.position);
     window.addEventListener('keydown', (e) => {
       if (this.isOpen && e.code === 'KeyC' && !e.repeat) this.view.recenter();
@@ -105,6 +118,8 @@ export class MapMenu extends ParchmentMenu {
       .map((e) => e.ship)
       .filter((s) => s.alive && (s.distanceTo(leader) <= range || tortuga.sdf(s.position.x, s.position.z) < coverage));
     const source = this.source;
+    const discovery = source.discovery;
+    this.hint.textContent = `${HINT} · mer découverte : ${Math.round(discovery.share * 100)} %`;
     this.view.frame = paintMap(ctx, width, height, {
       leader,
       allies,
@@ -119,6 +134,9 @@ export class MapMenu extends ParchmentMenu {
       pirates: source.pirates().filter((s) => s.alive && s.distanceTo(leader) <= range),
       zoom: this.view.zoom,
       center: this.view.center,
+      fog: this.fog,
+      known: discovery.bounds(),
+      objectivePorts: source.objectivePorts(),
     });
   }
 

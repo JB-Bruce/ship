@@ -1738,6 +1738,10 @@ body {
   color: #a3231a;
 }
 
+.map-legend .unknown {
+  color: #9a6a36;
+}
+
 .map-legend .hunt {
   color: #b3261c;
 }

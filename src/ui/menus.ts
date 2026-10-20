@@ -59,6 +59,8 @@ export function createMenus(w: MenuWorld): PortMenu {
     zones: () => campaign.missions.zones(),
     escorts: () => campaign.escorts(),
     pirates: () => [...w.pirates.pirates.map((p) => p.ship), ...campaign.merchants.ships],
+    discovery: campaign.discovery,
+    objectivePorts: () => contracts.active.map((c) => c.claimAt),
   });
   new SettingsMenu(container, { settings: w.settings, display: w.display, saves: w.saves, clock: w.dayCycle });
   return portMenu;

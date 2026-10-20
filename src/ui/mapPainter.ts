@@ -1,12 +1,13 @@
 import type { MapZone } from '../missions/mission';
 import type { Ship } from '../ship/ship';
 import type { FishSchool } from '../world/fishSchools';
-import { ISLAND_INFO, WORLD_EDGE } from '../config';
+import { ISLAND_INFO, WORLD_EDGE, type IslandId } from '../config';
 import { harbors } from '../world/harbors';
 import { isIsland, LAND_LIST, type Islet, type Landmass } from '../world/island';
 import { LANDMARKS } from '../world/landmarks';
 import type { Crate, LootKind } from '../world/loot';
 import type { Wind } from '../world/wind';
+import type { MapFog } from './mapFog';
 import type { MapFrame } from './mapView';
 import { INK, paintCompass, paintLandmark, paintScale, paintShip } from './mapGlyphs';
 
@@ -29,6 +30,11 @@ export interface MapData {
   /** Zoom (× le cadrage d'ensemble) et centre imposé (null : celui du cadrage d'ensemble), voir MapView. */
   zoom: number;
   center: { x: number; z: number } | null;
+  /** Lavis de la mer inconnue, et emprise de ce qui est découvert (m), que le cadrage d'ensemble englobe. */
+  fog: MapFog;
+  known: { minX: number; maxX: number; minZ: number; maxZ: number } | null;
+  /** Ports où toucher une prime ou que vise un contrat suivi : dessinés par-dessus la brume, comme les zones et les escortes. */
+  objectivePorts: readonly IslandId[];
 }
 
 const COLORS = {
@@ -53,8 +59,8 @@ const CRATE_COLORS: Record<LootKind, string> = { gold: '#d9a514', wood: '#8a5a2b
 /** Pas possibles du quadrillage (m) : on prend le premier qui laisse assez d'espace entre deux lignes. */
 const GRID_STEPS = [100, 250, 500, 1000, 2500, 5000];
 const MIN_GRID_PX = 70;
-/** Marge autour des îles et autour de la zone radar du joueur (m). */
-const ISLAND_MARGIN = 160;
+/** Marge autour de ce qui est découvert et de la zone radar du joueur (m). */
+const KNOWN_MARGIN = 160;
 /** Étendue minimale montrée (m) : la carte ne zoome pas plus que ça. */
 const MIN_SPAN = 900;
 /** Points de la côte d'une terre ronde (× l'étirement pour une terre allongée). */
@@ -63,8 +69,9 @@ const COAST_STEPS = 180;
 const HILLS = [[Math.PI - 0.6, 55], [Math.PI, 60], [Math.PI + 0.6, 55], [Math.PI / 2 + 0.3, 50], [(3 * Math.PI) / 2 - 0.3, 50]] as const;
 
 /**
- * Dessine la carte : nord en haut, ouest à gauche (+X monde = ouest). Le cadrage englobe toutes les îles et la zone
- * radar du joueur, quelle que soit la distance qui les sépare.
+ * Dessine la carte : nord en haut, ouest à gauche (+X monde = ouest). Le cadrage englobe tout ce qui est découvert, la
+ * zone radar du joueur et ses objectifs, quelle que soit la distance qui les sépare. La mer inconnue est couverte d'un
+ * lavis de parchemin vierge (mapFog.ts) qui cache tout, sauf les objectifs, dessinés par-dessus.
  */
 export function paintMap(ctx: CanvasRenderingContext2D, width: number, height: number, data: MapData): MapFrame {
   const { leader } = data;
@@ -73,15 +80,19 @@ export function paintMap(ctx: CanvasRenderingContext2D, width: number, height: n
   let maxX = leader.position.x + around;
   let minZ = leader.position.z - around;
   let maxZ = leader.position.z + around;
-  for (const island of LAND_LIST) {
-    const reach = island.outerRadius + ISLAND_MARGIN;
-    minX = Math.min(minX, island.cx - reach);
-    maxX = Math.max(maxX, island.cx + reach);
-    minZ = Math.min(minZ, island.cz - reach);
-    maxZ = Math.max(maxZ, island.cz + reach);
+  if (data.known) {
+    minX = Math.min(minX, data.known.minX - KNOWN_MARGIN);
+    maxX = Math.max(maxX, data.known.maxX + KNOWN_MARGIN);
+    minZ = Math.min(minZ, data.known.minZ - KNOWN_MARGIN);
+    maxZ = Math.max(maxZ, data.known.maxZ + KNOWN_MARGIN);
   }
-  // Les zones de mission et les navires escortés restent dans le cadre.
-  const extras = [...data.zones.map((z) => ({ x: z.x, z: z.z, r: z.radius + 40 })), ...data.escorts.map((e) => ({ x: e.position.x, z: e.position.z, r: 60 }))];
+  // Les zones de mission, les navires escortés et les ports des contrats restent dans le cadre.
+  const ports = LANDMARKS.filter((l) => l.kind === 'port' && data.objectivePorts.includes(l.island));
+  const extras = [
+    ...data.zones.map((z) => ({ x: z.x, z: z.z, r: z.radius + 40 })),
+    ...data.escorts.map((e) => ({ x: e.position.x, z: e.position.z, r: 60 })),
+    ...ports.map((p) => ({ x: p.x, z: p.z, r: 60 })),
+  ];
   for (const e of extras) {
     minX = Math.min(minX, e.x - e.r);
     maxX = Math.max(maxX, e.x + e.r);
@@ -118,15 +129,8 @@ export function paintMap(ctx: CanvasRenderingContext2D, width: number, height: n
   for (const land of LAND_LIST) paintIsland(ctx, land, toX, toY, scale);
   paintStormEdge(ctx, toX, toY, scale);
   // Une seule écriture par île : le nom de son port (sinon celui de l'île, voir paintIsland). Port de la Marine en rouge.
-  for (const l of LANDMARKS) paintLandmark(ctx, l.kind, l.kind === 'port' ? l.name : null, toX(l.x), toY(l.z), !harbors.isOpen(l.island));
-
-  // Zone couverte par le radar : ce que tu « vois » autour de toi.
-  ctx.strokeStyle = COLORS.radar;
-  ctx.setLineDash([6, 5]);
-  ctx.beginPath();
-  ctx.arc(toX(leader.position.x), toY(leader.position.z), data.radarRange * scale, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  // Les ports des contrats sont dessinés plus loin, par-dessus la brume.
+  for (const l of LANDMARKS) if (!ports.includes(l)) paintLandmark(ctx, l.kind, l.kind === 'port' ? l.name : null, toX(l.x), toY(l.z), !harbors.isOpen(l.island));
 
   for (const { mesh, kind } of data.crates) {
     ctx.fillStyle = CRATE_COLORS[kind];
@@ -141,8 +145,20 @@ export function paintMap(ctx: CanvasRenderingContext2D, width: number, height: n
   for (const ship of data.allies) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 7, COLORS.ally);
   for (const ship of data.traders) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 7, COLORS.trader);
   for (const ship of data.pirates) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 7, COLORS.pirate);
+
+  // La mer inconnue cache tout ce qui précède ; tes objectifs restent visibles par-dessus.
+  data.fog.paint(ctx, width, height, { midX, midZ, scale });
+  for (const l of ports) paintLandmark(ctx, l.kind, l.name, toX(l.x), toY(l.z), !harbors.isOpen(l.island));
   for (const ship of data.escorts) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 8, COLORS.escort);
   for (const zone of data.zones) paintZone(ctx, zone, toX, toY, scale);
+  // Zone couverte par le radar : ce que tu « vois » autour de toi (et découvres).
+  ctx.strokeStyle = COLORS.radar;
+  ctx.lineWidth = 1.6;
+  ctx.setLineDash([6, 5]);
+  ctx.beginPath();
+  ctx.arc(toX(leader.position.x), toY(leader.position.z), data.radarRange * scale, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
   const px = toX(leader.position.x);
   const py = toY(leader.position.z);
   ctx.fillStyle = 'rgba(255, 245, 220, 0.8)';

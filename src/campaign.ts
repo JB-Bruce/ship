@@ -12,8 +12,10 @@ import { Contracts, fleetLevel, type Contract, type ContractOptions, type Contra
 import { Harbor } from './progression/harbor';
 import { IslandState, type IslandSnapshot } from './progression/islandState';
 import { Ledger, type LedgerSnapshot } from './progression/ledger';
+import { MapDiscovery } from './progression/mapDiscovery';
 import { NavyIslands } from './progression/navyIslands';
 import { repairAtPort } from './progression/portRepair';
+import { visitedIslands } from './save/visitedIslands';
 import type { PlayerState } from './progression/playerState';
 import type { Combatant, Ship } from './ship/ship';
 import { SHIP_TYPES } from './shipTypes';
@@ -22,7 +24,7 @@ import type { EnemySpawner } from './world/enemySpawner';
 import type { Fort } from './world/fort';
 import { harbors } from './world/harbors';
 import { MerchantTraffic } from './world/merchantTraffic';
-import { ISLAND_LIST, islandById, type Island } from './world/island';
+import { ISLAND_LIST, islandById, tortuga, type Island } from './world/island';
 import type { Lighthouse } from './world/lighthouse';
 import type { LootKind } from './world/loot';
 
@@ -39,6 +41,8 @@ export interface CampaignSnapshot {
   routes: RunnerSnapshot[];
   /** Vie des forts de la Marine encore debout (part du maximum), par île qu'elle tient. */
   navyForts?: Partial<Record<IslandId, number>>;
+  /** Ce que la carte a découvert (voir mapDiscovery.ts) ; absent d'une sauvegarde d'avant la brume de la carte. */
+  discovery?: string;
 }
 
 /**
@@ -60,6 +64,8 @@ export class Campaign {
   readonly merchants: MerchantTraffic;
   /** Îles de la Marine (l'Île Royale) : fort, garnison, prise, contre-attaques. */
   readonly navy: NavyIslands;
+  /** Ce que la carte connaît : au départ, la Tortue et ses abords. */
+  readonly discovery = new MapDiscovery();
   /** Dernier port où la flotte a fait escale : elle y réapparaît si elle sombre tout entière. */
   lastPort: IslandId = 'tortuga';
   private fullWarning = 0;
@@ -107,6 +113,7 @@ export class Campaign {
       this.applyIsland(this.islands[island.id]);
     }
     this.crew.newDay();
+    this.discovery.revealLand(tortuga);
   }
 
   /** Une île de la Marine prise, ou reprise par elle : son fort, sa taverne, et ce qui partait vers son port. */
@@ -127,7 +134,7 @@ export class Campaign {
   snapshot(): CampaignSnapshot {
     const islands = Object.fromEntries(ISLAND_LIST.map((i) => [i.id, this.islands[i.id].snapshot()])) as Record<IslandId, IslandSnapshot>;
     const { lastPort, ledger, contracts, crew, routes, navy } = this;
-    return { islands, lastPort, ledger: ledger.snapshot(), contracts: contracts.snapshot(), crew: crew.snapshot(), routes: routes.snapshot(), navyForts: navy.snapshot() };
+    return { islands, lastPort, ledger: ledger.snapshot(), contracts: contracts.snapshot(), crew: crew.snapshot(), routes: routes.snapshot(), navyForts: navy.snapshot(), discovery: this.discovery.snapshot() };
   }
 
   /** Reprend une sauvegarde, la flotte déjà rétablie. Les missions en cours (chasse, défense, escorte) recommencent. */
@@ -143,6 +150,8 @@ export class Campaign {
     this.contracts.restore(s.contracts);
     this.crew.restore(s.crew);
     this.routes.restore(s.routes);
+    // Ancienne sauvegarde (ou grille illisible) : la carte connaît les îles déjà visitées.
+    if (!s.discovery || !this.discovery.restore(s.discovery)) for (const id of visitedIslands(s)) this.discovery.revealLand(islandById(id));
     for (const c of this.contracts.active) {
       if ((c.kind === 'hunt' || c.kind === 'defend' || c.kind === 'escort') && !this.contracts.isDone(c)) this.missions.start(c);
     }
