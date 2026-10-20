@@ -8,11 +8,12 @@ const look = new THREE.Quaternion();
 const euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
 /**
- * Vue à la première personne, à la place du barreur du bateau piloté (touche V) : la souris capturée tourne la tête
- * librement ; le regard reste où on l'a laissé et suit le roulis et le tangage du pont. Échap rend le curseur (un clic
- * dans la vue le reprend). Sur un navire sans plan de pont (barques), l'œil est à l'arrière, sur l'axe.
+ * Vue à la première personne : à la place du barreur du bateau piloté (V bascule avec la vue de loin), ou par les
+ * yeux du joueur qui se promène sur le pont (on/onFoot). La souris capturée tourne la tête librement ; le regard reste
+ * où on l'a laissé et suit le roulis et le tangage du pont. Échap rend le curseur (un clic dans la vue le reprend). Sur
+ * un navire sans plan de pont (barques), l'œil du barreur est à l'arrière, sur l'axe.
  */
-export class HelmView {
+export class FirstPersonView {
   active = false;
   /** Tête tournée vers bâbord (rad), et levée (rad). */
   private yaw = 0;
@@ -34,14 +35,20 @@ export class HelmView {
     return this.active && document.pointerLockElement === this.dom;
   }
 
-  /** Entre dans la vue du barreur (regard vers la proue, souris capturée) ou en sort. */
-  toggle() {
-    this.active = !this.active;
+  /** Regard tourné vers bâbord depuis la proue (rad) : la direction où l'on marche. */
+  get heading(): number {
+    return this.yaw;
+  }
+
+  /** Entre dans la vue à la première personne (regard vers la proue, souris capturée) ou en sort. */
+  setActive(active: boolean) {
+    if (active === this.active) return;
+    this.active = active;
     this.yaw = 0;
     this.pitch = HELM_VIEW.startPitch;
-    this.camera.near = this.active ? HELM_VIEW.near : HELM_VIEW.chaseNear;
+    this.camera.near = active ? HELM_VIEW.near : HELM_VIEW.chaseNear;
     this.camera.updateProjectionMatrix();
-    if (this.active) this.capture();
+    if (active) this.capture();
     else this.release();
   }
 
@@ -56,12 +63,16 @@ export class HelmView {
     if (document.pointerLockElement === this.dom) document.exitPointerLock();
   }
 
-  /** Place la caméra à l'œil du barreur de `ship`, dans le repère du navire (assiette comprise). */
-  place(ship: Ship) {
+  /**
+   * Place la caméra dans le repère de `ship` (assiette comprise) : à `foot` (les yeux du joueur à pied, repère du
+   * navire), sinon à l'œil du barreur.
+   */
+  place(ship: Ship, foot: THREE.Vector3 | null = null) {
     const root = ship.model.root;
     root.updateMatrixWorld();
     const helm = ship.model.deckPlan?.helm;
-    if (helm) eye.set(helm.x, helm.y + HELM_VIEW.eyeHeight, helm.z - HELM_VIEW.behindWheel);
+    if (foot) eye.copy(foot);
+    else if (helm) eye.set(helm.x, helm.y + HELM_VIEW.eyeHeight, helm.z - HELM_VIEW.behindWheel);
     else eye.set(0, HELM_VIEW.boatEye, -ship.stats.length * HELM_VIEW.boatStern);
     eye.applyMatrix4(root.matrixWorld);
     this.camera.position.copy(eye);

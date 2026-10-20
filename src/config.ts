@@ -406,6 +406,8 @@ export const DECK_CREW = {
     climbStride: 7,
     gunClearance: 0.55,
     coverRange: 9,
+    /** Espace laissé au joueur à pied (× l'espace personnel). */
+    playerRoom: 1.3,
   },
   /**
    * Temps calme (deckCrew/crewActivities.ts) : poids de chaque occupation (flâner, s'accouder, discuter, laver le pont,
@@ -1888,12 +1890,57 @@ export const CAMERA = {
 };
 
 /**
- * Vue du barreur (touche V, camera/helmView.ts) : hauteur de l'œil au-dessus des pieds du barreur et recul derrière
+ * Roue de barre des navires pontés : angle (rad) pour la barre toute (elle tourne du côté où l'on vire : barre à
+ * bâbord, le haut de la roue part vers bâbord).
+ */
+export const HELM_WHEEL = { turns: 1.3 };
+
+/**
+ * Vue du barreur (première personne à la barre, camera/firstPersonView.ts) : hauteur de l'œil au-dessus des pieds du barreur et recul derrière
  * son poste (m), assez pour voir par-dessus la roue, regard un peu baissé au départ (rad) ; sur une barque sans plan de pont, œil à `boatEye` m, à `boatStern` de la longueur vers l'arrière ;
  * rad par pixel de souris, regard levé ou baissé au plus (rad) ; plan proche de la caméra dans cette vue et dans la vue
  * habituelle (m).
  */
 export const HELM_VIEW = { eyeHeight: 1.8, behindWheel: 0.35, startPitch: -0.15, boatEye: 1.1, boatStern: 0.3, sensitivity: 0.0025, maxPitch: 1.3, near: 0.1, chaseNear: 0.5 };
+
+/**
+ * Le joueur à pied sur son pont (player/) : hauteur des yeux (m), rayon du corps, marche et course (m/s), accélération
+ * au sol et en l'air (/s), saut (m/s ; ~0,8 m de haut avec la gravité), gravité (m/s²), marche franchie en montant et en
+ * descendant sans tomber, surface où l'on se pose en l'air au-dessus des pieds, lissage des marches ; matelots (rayon,
+ * écart de hauteur où on les heurte) ; échelles (distance où l'on y monte, direction du regard nécessaire, vitesse
+ * d'escalade m/s) ; haubans (part de la longueur où l'on monte, marche au pied, distance où E y fait grimper) ; barre
+ * (distance où E la reprend, recul en la quittant, place laissée au barreur) ; place laissée autour des canons ; balancement de la tête (hauteur
+ * m, rythme par mètre, vitesse sous laquelle il ne se voit pas) ; emprise du pont (marge sous le pont le plus bas et
+ * au-dessus du plus haut, m).
+ */
+export const PLAYER = {
+  eyeHeight: 1.55,
+  radius: 0.08,
+  walkSpeed: 2.2,
+  runSpeed: 4.4,
+  accel: 12,
+  airAccel: 3,
+  jumpSpeed: 4,
+  gravity: 9.8,
+  stepUp: 0.42,
+  stepDown: 0.45,
+  airStep: 0.25,
+  stepSmooth: 16,
+  sailorRadius: 0.25,
+  sailorHeight: 0.8,
+  ladderReach: 0.7,
+  ladderFacing: 0.5,
+  climbSpeed: 1.2,
+  shroudReach: 0.6,
+  shroudStep: 0.1,
+  shroudRange: 1.2,
+  helmReach: 1.3,
+  leaveBack: 0.8,
+  helmClear: 0.7,
+  gunClearance: 0.45,
+  bob: { height: 0.035, frequency: 5.5, minSpeed: 0.3 },
+  footing: { below: 0.3, above: 1.5 },
+};
 
 export const WORLD = {
   fogNear: 140,

@@ -29,6 +29,8 @@ export class ShipCrew {
   readonly sailors: Sailor[] = [];
   /** Image où le navire a été vu pour la dernière fois (le système oublie les équipages des navires disparus). */
   lastSeen = 0;
+  /** Le joueur à pied sur ce pont (repère du navire), dont les marins s'écartent ; null s'il n'y est pas. */
+  player: THREE.Vector3 | null = null;
   private plan: DeckPlan;
   private nav: DeckNav;
   private walker: SailorWalker;
@@ -308,6 +310,6 @@ export class ShipCrew {
       world.set(s.x, 0, s.z).applyMatrix4(this.ship.model.root.matrixWorld);
       this.splash(world.x, world.y, world.z);
     }
-    if (s.role === 'hand') this.walker.step(s, dt, this.sailors, this.avoid);
+    if (s.role === 'hand') this.walker.step(s, dt, this.sailors, this.avoid, this.player);
   }
 }

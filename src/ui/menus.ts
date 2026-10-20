@@ -45,7 +45,7 @@ export function createMenus(w: MenuWorld): PortMenu {
   const portMenu = new PortMenu(container, portContext, {
     inRange: () => campaign.portInRange(fleet.leader) !== null,
     onOpen: () => harbor.visit(campaign.islands[campaign.portInRange(fleet.leader)!.id]),
-    refused: (code) => w.hud.toast(code === 'Tab' ? 'Le chantier naval est au port : approche-toi du quai (E).' : 'Approche-toi du quai pour faire escale.', 2.5),
+    refused: (code) => w.hud.toast(code === 'Tab' ? 'Approche-toi du quai pour faire escale (Tab).' : 'Approche-toi du quai pour faire escale.', 2.5),
   });
   new FleetMenu(container, fleet, (member) => w.takeHelm(member));
   new MapMenu(container, {

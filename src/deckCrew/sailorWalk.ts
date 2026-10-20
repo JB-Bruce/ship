@@ -4,6 +4,13 @@ import { turnToward, type Sailor } from './sailorMotion';
 
 const { walk } = DECK_CREW;
 
+/** Un point du repère du navire. */
+interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
 /** Le marin est-il sur le pont, debout et visible des autres (pour s'écarter de lui) ? */
 const present = (o: Sailor) => o.mode === 'act' || o.mode === 'move';
 
@@ -50,14 +57,14 @@ export class SailorWalker {
     s.wx = s.wz = 0;
   }
 
-  /** Un pas de marche ou d'escalade. `crew` : tout l'équipage (pour s'écarter des autres). */
-  step(s: Sailor, dt: number, crew: readonly Sailor[], avoid: Uint8Array | null) {
+  /** Un pas de marche ou d'escalade. `crew` : tout l'équipage (pour s'écarter des autres) ; `player` : le joueur à pied. */
+  step(s: Sailor, dt: number, crew: readonly Sailor[], avoid: Uint8Array | null, player: Vec3 | null = null) {
     if (s.mode === 'climb') this.climbStep(s, dt);
-    else if (s.mode === 'move') this.walkStep(s, dt, crew, avoid);
+    else if (s.mode === 'move') this.walkStep(s, dt, crew, avoid, player);
     else if (s.mode === 'act') s.facing = turnToward(s.facing, s.tf, walk.turnRate * dt);
   }
 
-  private walkStep(s: Sailor, dt: number, crew: readonly Sailor[], avoid: Uint8Array | null) {
+  private walkStep(s: Sailor, dt: number, crew: readonly Sailor[], avoid: Uint8Array | null, player: Vec3 | null) {
     const nav = this.nav;
     const last = s.step >= s.path.length;
     const node = last ? -1 : s.path[s.step];
@@ -94,6 +101,18 @@ export class SailorWalker {
       if (o.mode === 'move' && o.wx * s.wx + o.wz * s.wz < 0) {
         ax += (dz / d) * -walk.keepRight;
         az += (dx / d) * walk.keepRight;
+      }
+    }
+    // Le joueur à pied : un marin arrêté, qu'on contourne un peu plus largement.
+    if (player && Math.abs(player.y - s.y) <= walk.otherDeck) {
+      const ox = s.x - player.x;
+      const oz = s.z - player.z;
+      const od = Math.hypot(ox, oz);
+      const room = walk.personal * walk.playerRoom;
+      if (od < room && od > 1e-4) {
+        const push = ((room - od) / room) * walk.separation * walk.standingFactor;
+        ax += (ox / od) * push;
+        az += (oz / od) * push;
       }
     }
     const k = Math.min(1, walk.accel * dt);

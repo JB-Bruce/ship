@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Waterline } from '../parts/hullShape';
-import { SAIL_BILLOW, type Livery, type ShipStats } from '../../config';
+import { SAIL_BILLOW, type Livery, type ShipStats, HELM_WHEEL } from '../../config';
 import { wrapAngle } from '../../utils/math';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import type { DeckPlan } from '../deckPlan';
@@ -13,8 +13,6 @@ import { alongMast, BOW_PLATFORM, DECK_Y, OAR, POOP, RAKE, xebecLayout, type Xeb
 import { FLAG, xebecTemplateFor, type XebecTemplate } from './xebecTemplate';
 
 const RUDDER_MAX_ANGLE = 0.55;
-/** Tours de la roue de gouvernail barre à fond (rad). */
-const WHEEL_TURNS = 2.6;
 /** Élargissement des voiles carrées et allongement des vergues latines par niveau de voilure. */
 const SAIL_GROWTH = 0.06;
 const GUN_INSET = 0.62;
@@ -108,7 +106,7 @@ export class XebecModel implements ShipModel {
 
   setRudder(rudder: number) {
     this.rudder.rotation.y = -rudder * RUDDER_MAX_ANGLE;
-    this.wheel.rotation.z = rudder * WHEEL_TURNS;
+    this.wheel.rotation.z = -rudder * HELM_WHEEL.turns;
   }
 
   setOars(out: number) {

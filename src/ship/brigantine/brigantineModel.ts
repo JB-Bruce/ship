@@ -1,3 +1,4 @@
+import { HELM_WHEEL } from '../../config';
 import * as THREE from 'three';
 import type { Waterline } from '../parts/hullShape';
 import type { Livery, ShipStats } from '../../config';
@@ -11,8 +12,6 @@ import { brigantineLayout, DECK_Y, MAIN_COURSE, type BrigantineLayout } from './
 import { brigantineTemplateFor, type BrigantineTemplate } from './brigantineTemplate';
 
 const RUDDER_MAX_ANGLE = 0.5;
-/** Tours de roue pour un coup de barre complet (rad). */
-const WHEEL_TURNS = 2.6;
 /**
  * Élargissement des voiles carrées par niveau de voilure (en largeur seulement), jusqu'au niveau SAIL_WIDE_LEVELS ; au-delà
  * (niveaux du brigantin allongé), la toile est surtout mieux taillée : elle ne s'élargit presque plus.
@@ -94,7 +93,7 @@ export class BrigantineModel implements ShipModel {
   /** Le safran suit la barre, et la roue tourne avec. */
   setRudder(rudder: number) {
     this.rudder.rotation.y = -rudder * RUDDER_MAX_ANGLE;
-    this.wheel.rotation.z = rudder * WHEEL_TURNS;
+    this.wheel.rotation.z = -rudder * HELM_WHEEL.turns;
   }
 
   setWind(relativeDirection: number, strength: number) {

@@ -37,7 +37,7 @@ export interface PortAccess {
 }
 
 /**
- * Panneau du port où la flotte fait escale (E, ou Tab pour aller droit au chantier), seulement près d'un quai :
+ * Panneau du port où la flotte fait escale (Tab), seulement près d'un quai :
  * l'île et son allégeance (et son rachat), le marché, le chantier naval, les navires, les améliorations de l'île (si
  * elle t'appartient), la taverne et le registre.
  */
@@ -49,7 +49,7 @@ export class PortMenu extends ParchmentMenu {
     private readonly ctx: PortContext,
     private readonly access: PortAccess,
   ) {
-    super(parent, ctx.island.info.portName, 'E ou Échap pour reprendre la mer', ['KeyE', 'Tab']);
+    super(parent, ctx.island.info.portName, 'Tab ou Échap pour reprendre la mer', ['Tab']);
     this.body.parentElement!.classList.add('port-sheet');
   }
 
@@ -63,7 +63,7 @@ export class PortMenu extends ParchmentMenu {
 
   protected toggle(code: string) {
     if (this.isOpen) this.setOpen(false);
-    else if (this.access.inRange()) this.openOn(code === 'Tab' ? 'shipyard' : this.tab);
+    else if (this.access.inRange()) this.openOn(this.tab);
     else this.access.refused(code);
   }
 

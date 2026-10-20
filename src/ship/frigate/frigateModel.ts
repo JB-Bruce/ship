@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Staysails } from '../parts/staysails';
 import type { Waterline } from '../parts/hullShape';
-import { SAIL_BILLOW, type Livery, type ShipStats } from '../../config';
+import { SAIL_BILLOW, type Livery, type ShipStats, HELM_WHEEL } from '../../config';
 import { wrapAngle } from '../../utils/math';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import { armorFor, cannonMount, fireSpots, mastheadStaff, riggingMaterial, waterMaskMaterial, WavingFlag } from '../parts/common';
@@ -14,8 +14,6 @@ import { frigateTemplateFor, type FrigateTemplate } from './frigateTemplate';
 
 const { damp } = THREE.MathUtils;
 const RUDDER_MAX_ANGLE = 0.5;
-/** Tours de roue pour un coup de barre complet (rad). */
-const WHEEL_TURNS = 2.6;
 /** Élargissement des voiles carrées par niveau de voilure (en largeur seulement). */
 const SAIL_GROWTH = 0.08;
 /** Bouche des canons : fût de batterie (pivot au sabord), canon sur affût des gaillards. */
@@ -102,7 +100,7 @@ export class FrigateModel implements ShipModel {
   /** Le safran suit la barre, et la roue tourne avec. */
   setRudder(rudder: number) {
     this.rudder.rotation.y = -rudder * RUDDER_MAX_ANGLE;
-    this.wheel.rotation.z = rudder * WHEEL_TURNS;
+    this.wheel.rotation.z = -rudder * HELM_WHEEL.turns;
   }
 
   /** La bôme de brigantine part du côté où va le vent : presque dans l'axe au près, très ouverte au vent arrière. */

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SAIL_BILLOW, type Livery, type ShipStats } from '../../config';
+import { SAIL_BILLOW, type Livery, type ShipStats, HELM_WHEEL } from '../../config';
 import { wrapAngle } from '../../utils/math';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import { armorFor, cannonMount, fireSpots, mastheadStaff, riggingMaterial, waterMaskMaterial, WavingFlag } from '../parts/common';
@@ -27,8 +27,6 @@ import {
 import { CHASE_GUN_SCALE, caravelTemplateFor, type CaravelTemplate } from './caravelTemplate';
 
 const RUDDER_MAX_ANGLE = 0.55;
-/** Tours de la roue de gouvernail barre à fond (rad). */
-const WHEEL_TURNS = 2.6;
 /** Élargissement des voiles carrées par niveau de voilure (en largeur seulement). */
 const SAIL_GROWTH = 0.08;
 /** Retrait des affûts par rapport au bordé : la bouche des fûts sort par les sabords. */
@@ -141,7 +139,7 @@ export class CaravelModel implements ShipModel {
 
   setRudder(rudder: number) {
     this.rudder.rotation.y = -rudder * RUDDER_MAX_ANGLE;
-    this.wheel.rotation.z = rudder * WHEEL_TURNS;
+    this.wheel.rotation.z = -rudder * HELM_WHEEL.turns;
   }
 
   /** La vergue latine pivote du côté où va le vent : presque dans l'axe au près, très ouverte au vent arrière. */

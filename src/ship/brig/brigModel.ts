@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Waterline } from '../parts/hullShape';
-import { SAIL_BILLOW, type Livery, type ShipStats } from '../../config';
+import { SAIL_BILLOW, type Livery, type ShipStats, HELM_WHEEL } from '../../config';
 import { wrapAngle } from '../../utils/math';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import type { DeckPlan } from '../deckPlan';
@@ -13,8 +13,6 @@ import { alongMast, brigLayout, DECK_Y, RAKE, type BrigLayout, type BrigMast } f
 import { brigTemplateFor, type BrigTemplate } from './brigTemplate';
 
 const RUDDER_MAX_ANGLE = 0.5;
-/** Tours de la roue de gouvernail barre à fond (rad). */
-const WHEEL_TURNS = 2.6;
 /** Élargissement des voiles carrées par niveau de voilure (en largeur seulement). */
 const SAIL_GROWTH = 0.06;
 /** Allongement de la bôme et de la brigantine par niveau de voilure. */
@@ -101,7 +99,7 @@ export class BrigModel implements ShipModel {
   /** Le safran suit la barre, et la roue tourne avec. */
   setRudder(rudder: number) {
     this.rudder.rotation.y = -rudder * RUDDER_MAX_ANGLE;
-    this.wheel.rotation.z = rudder * WHEEL_TURNS;
+    this.wheel.rotation.z = -rudder * HELM_WHEEL.turns;
   }
 
   /** La bôme part du côté où va le vent : presque dans l'axe au près, très ouverte au vent arrière. */

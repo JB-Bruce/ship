@@ -20,7 +20,7 @@ export class FleetMenu extends ParchmentMenu {
     private readonly fleet: Fleet,
     private readonly onTakeHelm: (member: FleetMember) => void,
   ) {
-    super(parent, 'Ta flotte', 'T ou Échap pour reprendre la mer · achats, ventes et améliorations : au port (E)', 'KeyT');
+    super(parent, 'Ta flotte', 'T ou Échap pour reprendre la mer · achats, ventes et améliorations : au port (Tab)', 'KeyT');
   }
 
   render() {

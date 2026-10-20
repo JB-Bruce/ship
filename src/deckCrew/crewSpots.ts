@@ -2,10 +2,9 @@ import { DECK_CREW, DECK_NAV } from '../config';
 import type { CannonMount } from '../ship/shipModel';
 import type { DeckNav } from './deckNav';
 
-/** Marque dans `avoid` les nœuds autour de chaque pièce (affût, culasse) : on les contourne en marchant. */
-export function markGuns(nav: DeckNav, cannons: readonly CannonMount[], avoid: Uint8Array) {
+/** Marque dans `avoid` les nœuds à moins de `r` m de chaque pièce (affût, culasse) : on les contourne en marchant. */
+export function markGuns(nav: DeckNav, cannons: readonly CannonMount[], avoid: Uint8Array, r: number = DECK_CREW.walk.gunClearance) {
   avoid.fill(0);
-  const r = DECK_CREW.walk.gunClearance;
   for (const mount of cannons) {
     const p = mount.object.position;
     for (let dz = -r; dz <= r; dz += DECK_NAV.cell) {

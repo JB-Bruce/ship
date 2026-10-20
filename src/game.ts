@@ -16,6 +16,7 @@ import { KeyboardController } from './input/keyboardController';
 import { Ocean } from './ocean/oceanMesh';
 import { WakeMap } from './ocean/wakeMap';
 import { Waves } from './ocean/waves';
+import { OnFoot } from './player/onFoot';
 import { PlayerState } from './progression/playerState';
 import { Display } from './render/display';
 import { SaveManager } from './save/saveManager';
@@ -112,6 +113,8 @@ export class Game {
   private readonly campaign: Campaign;
   private readonly controller: KeyboardController;
   private readonly chaseCamera: ChaseCamera;
+  /** Le joueur peut quitter la barre et se promener sur le pont. */
+  private readonly onFoot: OnFoot;
   private readonly bossSinking: BossSinking;
   private readonly hud: Hud;
   private readonly radar: Radar;
@@ -150,6 +153,9 @@ export class Game {
     this.chaseCamera = new ChaseCamera(this.camera, this.display.viewport, (x, y) => this.betrayal.click(x, y, this.camera));
     this.bossSinking = new BossSinking(this.effects, this.chaseCamera);
     this.hud = new Hud(container);
+    // On commence la partie à la barre, à la première personne.
+    this.chaseCamera.firstPerson.setActive(true);
+    this.onFoot = new OnFoot(this.chaseCamera.firstPerson, this.deckCrew, (text) => this.hud.toast(text, 2));
     const hazards = weatherHazards(this.chaseCamera, this.effects, this.fleet, this.hud, (ship, damage) => this.applyDamage(ship, damage));
     this.weather = new Weather(this.scene, this.waves, this.ambient, this.sun, this.dayCycle, hazards);
     this.edgeStorm = new EdgeStorm((ship) => {
@@ -191,7 +197,12 @@ export class Game {
     this.dayClock = new DayClock(container, this.dayCycle);
     this.fpsCounter = new FpsCounter(container, this.settings, this.display);
     this.betrayal = new BetrayalPicker(this.display.viewport, new Betrayal(pirates, campaign.merchants, spawner), hud, radar);
-    this.prompts = new ActionPrompts(container, () => this.portMenu.openOn(), () => this.toggleFishing(), () => this.betrayal.toggle());
+    this.prompts = new ActionPrompts(container, {
+      helm: () => this.onFoot.interact(this.fleet.leader),
+      port: () => this.portMenu.openOn(),
+      fish: () => this.toggleFishing(),
+      betray: () => this.betrayal.toggle(),
+    });
     if (new URLSearchParams(location.search).has('debug')) {
       this.debugUpdate = setupDebug(this.waves, this.fleet.leader);
       // Accès console pour inspecter / faire avancer la simulation pendant les tests.
@@ -213,7 +224,9 @@ export class Game {
       } else if (e.code === 'KeyR') {
         this.betrayal.toggle();
       } else if (e.code === 'KeyV' && !ParchmentMenu.anyOpen()) {
-        this.chaseCamera.helm.toggle();
+        this.onFoot.toggleView();
+      } else if (e.code === 'KeyE' && !ParchmentMenu.anyOpen()) {
+        this.onFoot.interact(this.fleet.leader);
       }
     });
     addEventListener('resize', () => this.resize());
@@ -242,7 +255,8 @@ export class Game {
 
     this.waves.time += dt;
     this.wind.update(dt);
-    this.controller.enabled = !paused;
+    // À pied, un matelot tient la barre : cap droit, même voilure.
+    this.controller.enabled = !paused && !this.onFoot.walking;
     this.controller.update(dt);
     this.spawner.update(dt, this.fleet.leader);
     this.bosses.update(dt, this.weather, this.fleet.leader, this.fleet.anyAlive());
@@ -285,10 +299,12 @@ export class Game {
     const leader = this.fleet.leader;
     this.ocean.update(leader.position);
     this.wakes.update(this.display.renderer, this.camera, dt, leader.position, this.ships, this.loot.crates, this.schools.list);
-    // Un menu ouvert rend le curseur (vue du barreur).
-    if (paused) this.chaseCamera.helm.release();
-    this.chaseCamera.update(elapsed, leader, this.waves);
-    this.deckCrew.hiddenHelm = this.chaseCamera.helm.active ? leader : null;
+    // Un menu ouvert rend le curseur (première personne).
+    const view = this.chaseCamera.firstPerson;
+    if (paused) view.release();
+    this.onFoot.update(dt, leader);
+    this.chaseCamera.update(elapsed, leader, this.waves, this.onFoot.footEye());
+    this.deckCrew.hiddenHelm = view.active && !this.onFoot.walking ? leader : null;
     this.weather.update(dt, this.camera, this.wind, this.ships, leader);
     this.edgeStorm.update(dt, this.ships);
     this.fogCulling.update(this.camera, (this.scene.fog as THREE.Fog).far, this.ships);
@@ -324,14 +340,17 @@ export class Game {
     return { ships: this.fleet.hand.length, best: this.fleet.strongest };
   }
 
-  /** Commandes proposées à l'écran : escale près du quai, pêche près d'un banc, trahison d'un allié à portée. */
+  /** Commandes proposées à l'écran : barre (la quitter, la reprendre, haubans), escale près du quai, pêche près d'un banc, trahison d'un allié à portée. */
   private updatePrompts() {
     const fishing = this.fishing.school !== null;
     const school = fishing ? null : this.fishing.schoolInRange(this.schools);
     const fish = fishing ? 'Arrêter la pêche' : school ? 'Pêcher' : null;
     const port = this.campaign.portInRange(this.fleet.leader);
-    const status = this.betrayal.status ?? this.fishing.status() ?? this.repairStatus ?? this.campaign.navy.status(this.fleet.leader);
-    this.prompts.update(port ? this.campaign.islands[port.id].info.portName : null, fish, this.betrayal.prompt, status);
+    const view = this.chaseCamera.firstPerson;
+    const look = view.active && !view.locked ? 'Clique dans la vue pour regarder autour de toi' : null;
+    const status = this.betrayal.status ?? this.fishing.status() ?? this.repairStatus ?? this.campaign.navy.status(this.fleet.leader) ?? look;
+    const helm = ParchmentMenu.anyOpen() ? null : this.onFoot.prompt(this.fleet.leader);
+    this.prompts.update({ helm, port: port ? this.campaign.islands[port.id].info.portName : null, fish, betray: this.betrayal.prompt }, status);
   }
 
   private toggleFishing() {

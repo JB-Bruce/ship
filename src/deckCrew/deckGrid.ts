@@ -16,6 +16,8 @@ export class DeckGrid {
   readonly heights: Float32Array;
   readonly counts: Uint8Array;
   readonly blocked: Uint8Array;
+  /** Pour une surface gênée : le haut de ce qui la gêne (plafonné à `headroom` au-dessus d'elle), où l'on peut se poser d'un saut. */
+  readonly clutter: Float32Array;
 
   constructor(
     readonly x0: number,
@@ -26,6 +28,7 @@ export class DeckGrid {
     this.heights = new Float32Array(nx * nz * LEVELS);
     this.counts = new Uint8Array(nx * nz);
     this.blocked = new Uint8Array(nx * nz * LEVELS);
+    this.clutter = new Float32Array(nx * nz * LEVELS);
   }
 
   cellX(x: number) {
@@ -209,7 +212,10 @@ function obstacles(grid: DeckGrid) {
     for (let k = 0; k < grid.counts[cell]; k++) {
       const h = grid.heights[base + k];
       // Plus bas qu'une marche (contremarche, hiloire) : on l'enjambe ; son dessus est une surface à part.
-      if (high > h + DECK_NAV.stepMax && low < h + DECK_NAV.headroom && high > h + DECK_NAV.clearLow) grid.blocked[base + k] = 1;
+      if (high > h + DECK_NAV.stepMax && low < h + DECK_NAV.headroom && high > h + DECK_NAV.clearLow) {
+        grid.blocked[base + k] = 1;
+        grid.clutter[base + k] = Math.max(grid.clutter[base + k], Math.min(high, h + DECK_NAV.headroom));
+      }
     }
   });
 }

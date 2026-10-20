@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Waterline } from '../parts/hullShape';
-import { GALLEASS_BOW, SAIL_BILLOW, type Livery, type ShipStats } from '../../config';
+import { GALLEASS_BOW, SAIL_BILLOW, type Livery, type ShipStats, HELM_WHEEL } from '../../config';
 import { wrapAngle } from '../../utils/math';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import type { DeckPlan } from '../deckPlan';
@@ -14,8 +14,6 @@ import { galleassTemplateFor, TRIPLE_MUZZLES, type GalleassTemplate } from './ga
 
 const { damp } = THREE.MathUtils;
 const RUDDER_MAX_ANGLE = 0.45;
-/** Tours de roue pour un coup de barre complet (rad). */
-const WHEEL_TURNS = 2.6;
 /** Allongement des voiles latines (le long de leur vergue) par niveau de voilure. */
 const SAIL_GROWTH = 0.05;
 /** Grand-voile (index dans lateens) : la plus grande voile, qui porte l'emblème de la livrée. */
@@ -108,7 +106,7 @@ export class GalleassModel implements ShipModel {
   /** Le safran suit la barre, et la roue tourne avec. */
   setRudder(rudder: number) {
     this.rudder.rotation.y = -rudder * RUDDER_MAX_ANGLE;
-    this.wheel.rotation.z = rudder * WHEEL_TURNS;
+    this.wheel.rotation.z = -rudder * HELM_WHEEL.turns;
   }
 
   setOars(out: number) {
