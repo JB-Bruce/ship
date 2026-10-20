@@ -1,4 +1,4 @@
-import { DECK_NAV, PLAYER } from '../config';
+import { PLAYER } from '../config';
 import { LEVELS } from '../deckCrew/deckGrid';
 import type { DeckNav } from '../deckCrew/deckNav';
 
@@ -15,6 +15,8 @@ export class DeckFooting {
   private readonly rowMax: Int32Array;
   /** Hauteurs entre lesquelles il y a du pont (m). */
   private readonly low: number;
+  /** Le pont le plus bas (m). */
+  readonly lowest: number;
   private readonly high: number;
 
   constructor(readonly nav: DeckNav) {
@@ -34,14 +36,40 @@ export class DeckFooting {
         high = Math.max(high, nav.y(n));
       }
     }
+    this.lowest = low;
     this.low = low - PLAYER.footing.below;
     this.high = high + PLAYER.footing.above;
+    // Une cloison en travers du pont n'a pas (ou presque pas) de nœud praticable sur sa rangée : une rangée prend aussi
+    // l'emprise commune à ses voisines de devant et de derrière (on passe au-dessus de la cloison en tombant d'un
+    // château), jamais plus large que l'une d'elles (là où la coque s'affine, on ne monte pas sur le plat-bord).
+    const min = this.rowMin.slice();
+    const max = this.rowMax.slice();
+    const r = PLAYER.footing.rows;
+    for (let j = 0; j < nz; j++) {
+      let beforeMin = nx;
+      let beforeMax = -1;
+      let afterMin = nx;
+      let afterMax = -1;
+      for (let k = Math.max(0, j - r); k < j; k++) {
+        beforeMin = Math.min(beforeMin, min[k]);
+        beforeMax = Math.max(beforeMax, max[k]);
+      }
+      for (let k = j + 1; k <= Math.min(nz - 1, j + r); k++) {
+        afterMin = Math.min(afterMin, min[k]);
+        afterMax = Math.max(afterMax, max[k]);
+      }
+      const lo = Math.max(beforeMin, afterMin);
+      const hi = Math.min(beforeMax, afterMax);
+      if (lo > hi) continue;
+      this.rowMin[j] = Math.min(this.rowMin[j], lo);
+      this.rowMax[j] = Math.max(this.rowMax[j], hi);
+    }
   }
 
-  /** Peut-on se tenir sur ce nœud ? (`blocked` : nœuds pris par les affûts.) */
-  standable(node: number, blocked: Uint8Array | null): boolean {
+  /** Peut-on se tenir sur ce nœud ? (On traverse les pièces marquées : roue, barre franche ; les canons ne sont pas dans la grille.) */
+  standable(node: number): boolean {
     const { grid } = this.nav;
-    if (grid.blocked[node] || (blocked && blocked[node])) return false;
+    if (grid.hard[node]) return false;
     return this.nav.part[node] >= 0 || this.inDeck(node, grid.heights[node]);
   }
 
@@ -59,7 +87,7 @@ export class DeckFooting {
    * l'on peut s'y tenir (ou se poser sur ce qui la gêne, quand c'est assez bas) ; -Infinity sinon (pavois, mât,
    * dehors : on ne peut pas y aller). On ne passe jamais à travers un plancher pour atteindre une surface plus basse.
    */
-  groundBelow(x: number, z: number, top: number, blocked: Uint8Array | null): number {
+  groundBelow(x: number, z: number, top: number): number {
     const { grid } = this.nav;
     const i = grid.cellX(x);
     const j = grid.cellZ(z);
@@ -72,18 +100,16 @@ export class DeckFooting {
     }
     if (node < 0) return -Infinity;
     const h = grid.heights[node];
-    if (this.standable(node, blocked)) return h;
-    if (!grid.blocked[node] || (blocked && blocked[node])) return -Infinity;
-    // Sur ce qui gêne : on peut s'y poser d'un saut (bord d'un caisson, d'une écoutille, d'un tonneau), pas en haut
-    // d'un mât ni d'une cloison, et jamais hors de l'emprise du pont (plat-bord).
+    if (this.standable(node)) return h;
+    if (!grid.hard[node]) return -Infinity;
+    // Sur ce qui gêne, quand on est assez haut : on s'y pose d'un saut (caisson, écoutille, tonneau), et l'on passe
+    // au-dessus du haut d'une cloison en sautant ou en tombant d'un château ; jamais hors de l'emprise du pont (plat-bord).
     const t = grid.clutter[node];
-    return t <= top && t < h + DECK_NAV.headroom - CLUTTER_EPSILON && this.inDeck(node, t) ? t : -Infinity;
+    return t <= top && this.inDeck(node, t) ? t : -Infinity;
   }
 }
 
 const cache = new WeakMap<DeckNav, DeckFooting>();
-/** Un obstacle qui monte jusqu'au plafond de la place libre (mât, cloison) : on ne se pose pas dessus. */
-const CLUTTER_EPSILON = 0.01;
 
 /** Les appuis du joueur sur la grille d'un pont (calculés à la première visite). */
 export function footingOf(nav: DeckNav): DeckFooting {

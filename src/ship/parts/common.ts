@@ -77,6 +77,15 @@ export function flagMaterialFor(l: Livery): THREE.Material {
 }
 
 /** Safran + mèche + barre franche, autour de l'axe du gouvernail (origine sur le tableau arrière). */
+/**
+ * Pièce que le joueur à pied traverse (roue de barre, barre franche) : sa géométrie est marquée, et la grille du pont
+ * (deckCrew/deckGrid.ts) ne la compte que comme un obstacle pour les matelots.
+ */
+export function passThrough(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
+  geometry.userData.passThrough = true;
+  return geometry;
+}
+
 export function buildRudderGeometry(scale = 1): THREE.BufferGeometry {
   const batch = new GeometryBatch();
   const key = new THREE.MeshBasicMaterial();
@@ -85,7 +94,8 @@ export function buildRudderGeometry(scale = 1): THREE.BufferGeometry {
   batch.add(key, new THREE.BoxGeometry(0.06, 0.06, 1.0), tf(0, 0.45, 0.45));
   const geometry = batch.build()[0].geometry;
   geometry.scale(scale, scale, scale);
-  return geometry;
+  // Safran et barre franche : sur les petits navires, le joueur traverse la barre.
+  return passThrough(geometry);
 }
 
 /**

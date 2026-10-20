@@ -2,9 +2,7 @@ import * as THREE from 'three';
 import { PLAYER } from '../config';
 import type { FirstPersonView } from '../camera/firstPersonView';
 import type { DeckCrew } from '../deckCrew/deckCrew';
-import { markGuns } from '../deckCrew/crewSpots';
 import { deckNavOf, type DeckNav } from '../deckCrew/deckNav';
-import { nodeCount } from '../deckCrew/deckPath';
 import type { Shroud } from '../deckCrew/shrouds';
 import type { DeckPlan } from '../ship/deckPlan';
 import type { Ship } from '../ship/ship';
@@ -32,9 +30,6 @@ export class OnFoot {
   private ship: Ship | null = null;
   private plan: DeckPlan | null = null;
   private nav: DeckNav | null = null;
-  /** Nœuds pris par les affûts du navire, et les canons d'après lesquels ils ont été marqués. */
-  private guns: Uint8Array | null = null;
-  private gunsOf: unknown = null;
   private readonly held = new Set<string>();
   private jumpQueued = false;
   private readonly eyePoint = new THREE.Vector3();
@@ -109,9 +104,8 @@ export class OnFoot {
       this.body!.place(p.x, p.y, p.z);
     }
     const body = this.body!;
-    this.syncGuns(ship);
     this.readInput();
-    body.update(dt, this.input, this.crew.sailorsOf(ship), this.guns);
+    body.update(dt, this.input);
     this.input.jump = false;
     this.crew.player = { ship, position: body.position };
   }
@@ -139,16 +133,6 @@ export class OnFoot {
     this.plan = plan;
     this.nav = nav;
     this.body = new PlayerBody(nav, footingOf(nav));
-    this.guns = new Uint8Array(nodeCount(nav));
-    this.gunsOf = null;
-  }
-
-  /** Les affûts se contournent : marqués de nouveau quand les canons changent. */
-  private syncGuns(ship: Ship) {
-    const key = ship.model.cannons[0]?.object ?? null;
-    if (key === this.gunsOf) return;
-    this.gunsOf = key;
-    markGuns(this.nav!, ship.model.cannons, this.guns!, PLAYER.gunClearance);
   }
 
   private readInput() {

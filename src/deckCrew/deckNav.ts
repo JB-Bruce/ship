@@ -41,14 +41,15 @@ export class DeckNav {
 
   constructor(model: ShipModel, plan: DeckPlan) {
     const cannons = new Set(model.cannons.map((m) => m.object));
-    const tris = collectTriangles(model.root, (mesh) => skipMesh(mesh, cannons));
+    const triangles = collectTriangles(model.root, (mesh) => skipMesh(mesh, cannons));
+    const tris = triangles.tris;
     const box = new THREE.Box3();
     for (let i = 0; i < tris.length; i += 3) box.expandByPoint(new THREE.Vector3(tris[i], tris[i + 1], tris[i + 2]));
     const cell = DECK_NAV.cell;
     const grid = new DeckGrid(box.min.x - cell, box.min.z - cell, Math.ceil((box.max.x - box.min.x) / cell) + 2, Math.ceil((box.max.z - box.min.z) / cell) + 2);
     // Les ponts sont entre le plus bas et le plus haut des postes du plan (avec de la marge : châteaux, marches).
     const ys = [plan.helm.y, ...plan.ropes.map((r) => r.y), ...plan.walks.map((w) => w.y), ...(plan.ladders ?? []).flatMap((l) => [l.from, l.to])];
-    rasterize(grid, tris, Math.min(...ys) - DECK_NAV.deckMargin, Math.max(...ys) + DECK_NAV.deckMargin);
+    rasterize(grid, triangles, Math.min(...ys) - DECK_NAV.deckMargin, Math.max(...ys) + DECK_NAV.deckMargin);
     this.grid = grid;
     const total = grid.nx * grid.nz * LEVELS;
     this.links = new Int32Array(total * LINKS).fill(-1);

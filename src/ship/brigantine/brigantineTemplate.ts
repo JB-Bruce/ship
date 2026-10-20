@@ -2,7 +2,7 @@ import { WATER_MASK } from '../../config';
 import * as THREE from 'three';
 import type { Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
-import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } from '../parts/common';
+import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, passThrough, std } from '../parts/common';
 import { addBarrel, addCrate, addLantern, addRopeCoil, buildCarriageGunGeometry, type Palette } from '../parts/props';
 import { buildSquareSail, buildTriangleSail, cylinderBetween } from '../parts/sails';
 import { DECK_Y, type BrigantineLayout } from './brigantineLayout';
@@ -138,7 +138,7 @@ function buildTemplate(L: BrigantineLayout, livery: Livery): BrigantineTemplate 
   };
 }
 
-/** Roue de gouvernail (dans le plan XY, elle tourne autour de Z). */
+/** Roue de gouvernail (dans le plan XY, elle tourne autour de Z) ; le joueur à pied la traverse. */
 function buildWheel(): THREE.BufferGeometry {
   const batch = new GeometryBatch();
   const key = new THREE.MeshBasicMaterial();
@@ -147,7 +147,7 @@ function buildWheel(): THREE.BufferGeometry {
   for (let i = 0; i < 8; i++) {
     batch.add(key, new THREE.BoxGeometry(0.035, 1.3, 0.035), tf(0, 0, 0, 0, 0, (i * Math.PI) / 8));
   }
-  return batch.build()[0].geometry;
+  return passThrough(batch.build()[0].geometry);
 }
 
 /** Haubans des deux mâts, étais (mât de misaine → beaupré, grand mât → misaine), sous-barbe. */

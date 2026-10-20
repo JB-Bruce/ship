@@ -16,7 +16,12 @@ export class DeckGrid {
   readonly heights: Float32Array;
   readonly counts: Uint8Array;
   readonly blocked: Uint8Array;
-  /** Pour une surface gênée : le haut de ce qui la gêne (plafonné à `headroom` au-dessus d'elle), où l'on peut se poser d'un saut. */
+  /**
+   * Surface gênée par une pièce solide (pas seulement par une pièce qu'on traverse : roue, barre franche) : le joueur à
+   * pied ne s'y tient pas. Les matelots, eux, contournent tout ce qui gêne (`blocked`).
+   */
+  readonly hard: Uint8Array;
+  /** Pour une surface gênée : le haut de ce qui la gêne (pièces solides), où le joueur peut se poser (saut, chute). */
   readonly clutter: Float32Array;
 
   constructor(
@@ -28,6 +33,7 @@ export class DeckGrid {
     this.heights = new Float32Array(nx * nz * LEVELS);
     this.counts = new Uint8Array(nx * nz);
     this.blocked = new Uint8Array(nx * nz * LEVELS);
+    this.hard = new Uint8Array(nx * nz * LEVELS);
     this.clutter = new Float32Array(nx * nz * LEVELS);
   }
 
@@ -87,28 +93,50 @@ export function visibleParts(root: THREE.Object3D, visit: (object: THREE.Object3
   walk(root);
 }
 
-/** Les triangles d'un modèle, dans le repère de sa racine : de quoi marcher (dessus plats) et ce qui gêne. */
-export function collectTriangles(root: THREE.Object3D, skip: (mesh: THREE.Mesh) => boolean): Float32Array {
+/** Les triangles d'un modèle (repère de sa racine), et pour chacun s'il fait partie d'une pièce qu'on traverse. */
+export interface ModelTriangles {
+  tris: Float32Array;
+  soft: Uint8Array;
+}
+
+/**
+ * Les triangles d'un modèle, dans le repère de sa racine : de quoi marcher (dessus plats) et ce qui gêne. Sont
+ * « traversables » (`soft`) les pièces dont la géométrie porte `userData.passThrough` (roue de barre, barre franche)
+ * et ce qui tient entièrement dans leur boîte prolongée jusqu'au pont (colonne de la roue).
+ */
+export function collectTriangles(root: THREE.Object3D, skip: (mesh: THREE.Mesh) => boolean): ModelTriangles {
   root.updateMatrixWorld(true);
   const inverse = root.matrixWorld.clone().invert();
   const local = new THREE.Matrix4();
-  const out: number[] = [];
+  const meshes: THREE.Mesh[] = [];
+  const boxes: THREE.Box3[] = [];
   visibleParts(root, (object) => {
     const mesh = object as THREE.Mesh;
-    if (!mesh.isMesh || (mesh as unknown as THREE.InstancedMesh).isInstancedMesh || skip(mesh)) return;
-    const position = mesh.geometry.attributes.position as THREE.BufferAttribute | undefined;
-    if (!position) return;
+    if (!mesh.isMesh || (mesh as unknown as THREE.InstancedMesh).isInstancedMesh || skip(mesh) || !mesh.geometry.attributes.position) return;
+    meshes.push(mesh);
+    if (!mesh.geometry.userData.passThrough) return;
+    mesh.geometry.computeBoundingBox();
+    const box = mesh.geometry.boundingBox!.clone().applyMatrix4(local.multiplyMatrices(inverse, mesh.matrixWorld));
+    box.min.y -= DECK_NAV.passThrough.below;
+    boxes.push(box.expandByVector(new THREE.Vector3(DECK_NAV.passThrough.margin, 0, DECK_NAV.passThrough.margin)));
+  });
+  const out: number[] = [];
+  const soft: number[] = [];
+  for (const mesh of meshes) {
+    const position = mesh.geometry.attributes.position as THREE.BufferAttribute;
     local.multiplyMatrices(inverse, mesh.matrixWorld);
     const index = mesh.geometry.index;
     const count = index ? index.count : position.count;
+    const tagged = !!mesh.geometry.userData.passThrough;
     for (let i = 0; i + 2 < count; i += 3) {
       for (const [v, k] of [[a, 0], [b, 1], [c, 2]] as const) {
         v.fromBufferAttribute(position, index ? index.getX(i + k) : i + k).applyMatrix4(local);
         out.push(v.x, v.y, v.z);
       }
+      soft.push(tagged || boxes.some((box) => box.containsPoint(a) && box.containsPoint(b) && box.containsPoint(c)) ? 1 : 0);
     }
-  });
-  return Float32Array.from(out);
+  }
+  return { tris: Float32Array.from(out), soft: Uint8Array.from(soft) };
 }
 
 /**
@@ -117,7 +145,7 @@ export function collectTriangles(root: THREE.Object3D, skip: (mesh: THREE.Mesh) 
  * cloison, plafond bas). Seuls comptent les ponts entre `low` et `high` (m) : ce qui est tout en dessous (carène)
  * ou tout au-dessus (hunes, vergues) est sauté.
  */
-export function rasterize(grid: DeckGrid, tris: Float32Array, low: number, high: number) {
+export function rasterize(grid: DeckGrid, { tris, soft }: ModelTriangles, low: number, high: number) {
   const flat = Math.cos(DECK_NAV.maxSlope);
   for (let pass = 0; pass < 2; pass++) {
     // Surfaces : seulement à hauteur de pont. Obstacles : ce qui monte d'une marche au-dessus d'un pont, sous la tête.
@@ -135,9 +163,11 @@ export function rasterize(grid: DeckGrid, tris: Float32Array, low: number, high:
       const length = normal.length();
       if (length < 1e-9) continue;
       normal.divideScalar(length);
+      // On ne marche pas sur ce qu'on traverse (roue) : ce n'est qu'un obstacle pour les matelots.
+      const isSoft = soft[t / 9] === 1;
       if (pass === 0) {
-        if (Math.abs(normal.y) >= flat) surfaces(grid);
-      } else obstacles(grid);
+        if (Math.abs(normal.y) >= flat && !isSoft) surfaces(grid);
+      } else obstacles(grid, isSoft);
     }
   }
 }
@@ -192,7 +222,7 @@ function surfaces(grid: DeckGrid) {
   });
 }
 
-function obstacles(grid: DeckGrid) {
+function obstacles(grid: DeckGrid, soft: boolean) {
   const yMin = Math.min(a.y, b.y, c.y);
   const yMax = Math.max(a.y, b.y, c.y);
   const steep = Math.abs(normal.y) < DECK_NAV.steepNormal;
@@ -214,7 +244,9 @@ function obstacles(grid: DeckGrid) {
       // Plus bas qu'une marche (contremarche, hiloire) : on l'enjambe ; son dessus est une surface à part.
       if (high > h + DECK_NAV.stepMax && low < h + DECK_NAV.headroom && high > h + DECK_NAV.clearLow) {
         grid.blocked[base + k] = 1;
-        grid.clutter[base + k] = Math.max(grid.clutter[base + k], Math.min(high, h + DECK_NAV.headroom));
+        if (soft) continue;
+        grid.hard[base + k] = 1;
+        grid.clutter[base + k] = Math.max(grid.clutter[base + k], high);
       }
     }
   });

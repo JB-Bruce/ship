@@ -155,6 +155,9 @@ export class Game {
     this.hud = new Hud(container);
     // On commence la partie à la barre, à la première personne.
     this.chaseCamera.firstPerson.setActive(true);
+    // Échap souris capturée : le menu s'ouvre dans le même appui ; refermé, on reprend la souris.
+    this.chaseCamera.firstPerson.onEscape = () => ParchmentMenu.pressEscape();
+    ParchmentMenu.onAllClosed = () => this.chaseCamera.firstPerson.capture();
     this.onFoot = new OnFoot(this.chaseCamera.firstPerson, this.deckCrew, (text) => this.hud.toast(text, 2));
     const hazards = weatherHazards(this.chaseCamera, this.effects, this.fleet, this.hud, (ship, damage) => this.applyDamage(ship, damage));
     this.weather = new Weather(this.scene, this.waves, this.ambient, this.sun, this.dayCycle, hazards);

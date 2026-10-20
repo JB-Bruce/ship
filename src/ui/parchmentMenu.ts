@@ -3,6 +3,9 @@
  * un seul menu ouvert à la fois. Tant qu'un menu est ouvert, le jeu est en pause. Échap ferme le menu ouvert ; si
  * aucun ne l'est, il ouvre le menu « Échap » (les paramètres).
  */
+/** Écart (ms) sous lequel deux Échap sont le même appui. */
+const ESCAPE_TWIN = 250;
+
 export abstract class ParchmentMenu {
   private static readonly all: ParchmentMenu[] = [];
   /** Menu ouvert par Échap quand aucun autre ne l'est. */
@@ -10,6 +13,10 @@ export abstract class ParchmentMenu {
   private static escapeListening = false;
   /** Consulté par Échap quand aucun menu n'est ouvert, avant d'ouvrir le menu Échap : true = Échap consommé (visée annulée…). */
   static escapeHandler: (() => boolean) | null = null;
+  /** Appelé quand le dernier menu ouvert se ferme (la vue à la première personne reprend la souris). */
+  static onAllClosed: () => void = () => {};
+  /** Heure du dernier Échap traité (ms) : un même appui peut arriver deux fois (touche, et souris rendue par le navigateur). */
+  private static lastEscape = -Infinity;
   isOpen = false;
   protected readonly body: HTMLElement;
   private readonly root: HTMLElement;
@@ -63,17 +70,37 @@ export abstract class ParchmentMenu {
     window.addEventListener('keydown', (e) => {
       if (e.code !== 'Escape' || e.repeat) return;
       e.preventDefault();
+      if (ParchmentMenu.sameEscape()) return;
       const open = ParchmentMenu.all.find((m) => m.isOpen);
       if (open) open.setOpen(false);
       else if (!ParchmentMenu.escapeHandler?.()) ParchmentMenu.escapeMenu?.setOpen(true);
     });
   }
 
+  /**
+   * Échap pressé alors que la souris était capturée : le navigateur rend le curseur sans transmettre la touche. Fait
+   * comme Échap quand aucun menu n'est ouvert (visée annulée, sinon menu Échap), dans le même appui.
+   */
+  static pressEscape() {
+    if (ParchmentMenu.sameEscape() || ParchmentMenu.anyOpen()) return;
+    if (!ParchmentMenu.escapeHandler?.()) ParchmentMenu.escapeMenu?.setOpen(true);
+  }
+
+  /** Cet Échap vient-il d'être traité (même appui reçu deux fois) ? Sinon, il est noté. */
+  private static sameEscape(): boolean {
+    const now = performance.now();
+    if (now - ParchmentMenu.lastEscape < ESCAPE_TWIN) return true;
+    ParchmentMenu.lastEscape = now;
+    return false;
+  }
+
   setOpen(open: boolean) {
     if (open) for (const other of ParchmentMenu.all) if (other !== this) other.setOpen(false);
+    const closing = this.isOpen && !open;
     this.isOpen = open;
     this.root.classList.toggle('on', open);
     if (open) this.render();
+    if (closing && !ParchmentMenu.anyOpen()) ParchmentMenu.onAllClosed();
   }
 
   /** Touche du menu pressée (`code` : laquelle, s'il y en a plusieurs) : ouvre ou ferme le menu. */

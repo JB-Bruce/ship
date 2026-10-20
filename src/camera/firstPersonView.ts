@@ -10,7 +10,8 @@ const euler = new THREE.Euler(0, 0, 0, 'YXZ');
 /**
  * Vue à la première personne : à la place du barreur du bateau piloté (V bascule avec la vue de loin), ou par les
  * yeux du joueur qui se promène sur le pont (on/onFoot). La souris capturée tourne la tête librement ; le regard reste
- * où on l'a laissé et suit le roulis et le tangage du pont. Échap rend le curseur (un clic dans la vue le reprend). Sur
+ * où on l'a laissé et suit le roulis et le tangage du pont. Échap rend le curseur et ouvre le menu (refermé, il reprend la
+ * souris ; sinon un clic dans la vue la reprend). Sur
  * un navire sans plan de pont (barques), l'œil du barreur est à l'arrière, sur l'axe.
  */
 export class FirstPersonView {
@@ -18,6 +19,11 @@ export class FirstPersonView {
   /** Tête tournée vers bâbord (rad), et levée (rad). */
   private yaw = 0;
   private pitch = 0;
+  /** La souris était capturée, et c'est nous qui la rendons (menu ouvert) : pas un Échap du joueur. */
+  private wasLocked = false;
+  private releasing = false;
+  /** Échap pressé souris capturée : le navigateur rend le curseur sans transmettre la touche ; on ouvre le menu tout de suite. */
+  onEscape: () => void = () => {};
 
   constructor(
     private readonly camera: THREE.PerspectiveCamera,
@@ -25,8 +31,16 @@ export class FirstPersonView {
   ) {
     document.addEventListener('mousemove', (e) => {
       if (!this.locked) return;
+      // Un saut énorme d'un seul coup est un raté du navigateur (capture qui démarre), pas un geste.
+      if (Math.abs(e.movementX) > HELM_VIEW.maxMouseStep || Math.abs(e.movementY) > HELM_VIEW.maxMouseStep) return;
       this.yaw -= e.movementX * HELM_VIEW.sensitivity;
       this.pitch = THREE.MathUtils.clamp(this.pitch - e.movementY * HELM_VIEW.sensitivity, -HELM_VIEW.maxPitch, HELM_VIEW.maxPitch);
+    });
+    document.addEventListener('pointerlockchange', () => {
+      const locked = document.pointerLockElement === this.dom;
+      if (this.wasLocked && !locked && !this.releasing && this.active) this.onEscape();
+      this.wasLocked = locked;
+      this.releasing = false;
     });
   }
 
@@ -52,15 +66,23 @@ export class FirstPersonView {
     else this.release();
   }
 
-  /** Capture la souris (il faut un geste du joueur : touche ou clic). */
+  /**
+   * Capture la souris (il faut un geste du joueur : touche ou clic). En mouvement brut si le navigateur le permet : le
+   * curseur caché ne bute jamais contre le bord de la fenêtre, la tête tourne sans limite.
+   */
   capture() {
     if (!this.active || this.locked) return;
     // Refusé hors d'un geste du joueur : sans conséquence, un clic la reprendra.
-    this.dom.requestPointerLock()?.catch?.(() => {});
+    const raw = this.dom.requestPointerLock({ unadjustedMovement: true }) as Promise<void> | undefined;
+    raw?.catch?.((error: DOMException) => {
+      if (error?.name === 'NotSupportedError') (this.dom.requestPointerLock() as Promise<void> | undefined)?.catch?.(() => {});
+    });
   }
 
   release() {
-    if (document.pointerLockElement === this.dom) document.exitPointerLock();
+    if (document.pointerLockElement !== this.dom) return;
+    this.releasing = true;
+    document.exitPointerLock();
   }
 
   /**

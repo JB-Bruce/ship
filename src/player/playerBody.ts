@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { PLAYER } from '../config';
 import type { DeckNav } from '../deckCrew/deckNav';
-import type { Sailor } from '../deckCrew/sailorMotion';
 import type { Shroud } from '../deckCrew/shrouds';
 import type { DeckFooting } from './deckFooting';
 
@@ -33,11 +32,13 @@ interface Climb {
 /**
  * Le joueur à pied sur le pont de son navire (repère du modèle) : il marche ou court dans la direction voulue, monte
  * les marches, saute (et peut monter sur ce qui est bas), retombe d'un château vers le pont du dessous ; le pavois,
- * les mâts, les cloisons et les affûts l'arrêtent, il glisse le long d'eux, et il écarte les matelots. Sur une échelle
- * ou un hauban, avancer monte et reculer descend.
+ * les mâts et les cloisons l'arrêtent et il glisse le long d'eux ; il traverse les canons, la roue, la barre franche
+ * et les matelots. Sur une échelle ou un hauban, avancer monte et reculer descend.
  */
 export class PlayerBody {
   readonly position = new THREE.Vector3();
+  /** Dernier endroit où il se tenait debout. */
+  private readonly safe = new THREE.Vector3();
   private vx = 0;
   private vz = 0;
   private vy = 0;
@@ -66,19 +67,20 @@ export class PlayerBody {
         if (d >= bestD || (clear && Math.hypot(nav.x(n) - clear.x, nav.z(n) - clear.z) < clear.r)) continue;
         this.position.set(nav.x(n), nav.y(n), nav.z(n));
         this.grounded = true;
-        if (!this.fits(nav.x(n), nav.z(n), null)) continue;
+        if (!this.fits(nav.x(n), nav.z(n))) continue;
         best = n;
         bestD = d;
       }
     }
     if (best >= 0) this.position.set(nav.x(best), nav.y(best), nav.z(best));
     else this.position.set(x, y, z);
+    this.safe.copy(this.position);
     this.vx = this.vz = this.vy = 0;
     this.grounded = true;
     this.climb = null;
   }
 
-  update(dt: number, input: FootInput, sailors: readonly Sailor[], guns: Uint8Array | null) {
+  update(dt: number, input: FootInput) {
     if (this.climb) return this.climbStep(dt, input);
     const p = this.position;
     const speed = input.run ? PLAYER.runSpeed : PLAYER.walkSpeed;
@@ -93,11 +95,10 @@ export class PlayerBody {
     // Pas de côté puis de face : contre un obstacle, on glisse le long de lui.
     const x0 = p.x;
     const z0 = p.z;
-    if (this.canEnter(p.x + this.vx * dt, p.z, guns)) p.x += this.vx * dt;
-    if (this.canEnter(p.x, p.z + this.vz * dt, guns)) p.z += this.vz * dt;
-    this.avoidSailors(sailors, guns);
+    if (this.canEnter(p.x + this.vx * dt, p.z)) p.x += this.vx * dt;
+    if (this.canEnter(p.x, p.z + this.vz * dt)) p.z += this.vz * dt;
     this.speed = Math.hypot(p.x - x0, p.z - z0) / Math.max(dt, 1e-4);
-    this.vertical(dt, guns);
+    this.vertical(dt);
     if (this.grounded) this.stride += this.speed * dt * PLAYER.bob.frequency;
     this.ladderStart(input);
   }
@@ -128,17 +129,17 @@ export class PlayerBody {
    * Peut-on aller en (x, z) à la hauteur actuelle des pieds ? Le corps a une petite largeur ; déjà coincé (poussé
    * contre un obstacle), on peut toujours s'en dégager tant que le centre reste sur le pont.
    */
-  private canEnter(x: number, z: number, guns: Uint8Array | null): boolean {
-    if (this.fits(x, z, guns)) return true;
+  private canEnter(x: number, z: number): boolean {
+    if (this.fits(x, z)) return true;
     const p = this.position;
-    return !this.fits(p.x, p.z, guns) && this.footing.groundBelow(x, z, this.top(), guns) !== -Infinity;
+    return !this.fits(p.x, p.z) && this.footing.groundBelow(x, z, this.top()) !== -Infinity;
   }
 
   /** Le corps tient-il en (x, z) : le centre et quatre points autour ont où se tenir ? */
-  private fits(x: number, z: number, guns: Uint8Array | null): boolean {
+  private fits(x: number, z: number): boolean {
     const top = this.top();
     const r = PLAYER.radius;
-    for (const [dx, dz] of PROBES) if (this.footing.groundBelow(x + dx * r, z + dz * r, top, guns) === -Infinity) return false;
+    for (const [dx, dz] of PROBES) if (this.footing.groundBelow(x + dx * r, z + dz * r, top) === -Infinity) return false;
     return true;
   }
 
@@ -148,12 +149,15 @@ export class PlayerBody {
   }
 
   /** Marches, sauts et chutes : la plus haute surface sous les pieds. */
-  private vertical(dt: number, guns: Uint8Array | null) {
+  private vertical(dt: number) {
     const p = this.position;
-    const ground = this.footing.groundBelow(p.x, p.z, this.top(), guns);
+    const ground = this.footing.groundBelow(p.x, p.z, this.top());
     if (this.grounded) {
-      if (ground !== -Infinity && ground >= p.y - PLAYER.stepDown) {
+      // Rien de connu sous les pieds (coincé dans un obstacle) : on ne passe pas à travers le plancher, on s'en dégage.
+      if (ground === -Infinity) return;
+      if (ground >= p.y - PLAYER.stepDown) {
         p.y += (ground - p.y) * Math.min(1, PLAYER.stepSmooth * dt);
+        this.safe.copy(p);
         return;
       }
       // Le pied ne trouve plus rien : il tombe (bord d'un château, haut d'un escalier sauté).
@@ -166,22 +170,9 @@ export class PlayerBody {
       p.y = ground;
       this.vy = 0;
       this.grounded = true;
-    }
-  }
-
-  /** Les matelots ne se traversent pas : on est repoussé hors de leur place (s'il reste du pont où se tenir). */
-  private avoidSailors(sailors: readonly Sailor[], guns: Uint8Array | null) {
-    const p = this.position;
-    const reach = PLAYER.radius + PLAYER.sailorRadius;
-    for (const s of sailors) {
-      if ((s.mode !== 'act' && s.mode !== 'move') || Math.abs(s.y - p.y) > PLAYER.sailorHeight) continue;
-      const dx = p.x - s.x;
-      const dz = p.z - s.z;
-      const d = Math.hypot(dx, dz);
-      if (d >= reach || d < 1e-4) continue;
-      const nx = s.x + (dx / d) * reach;
-      const nz = s.z + (dz / d) * reach;
-      if (this.canEnter(nx, nz, guns)) p.set(nx, p.y, nz);
+    } else if (p.y < this.footing.lowest - PLAYER.lostFall) {
+      // Tombé sous tous les ponts (ne devrait pas arriver) : retour au dernier endroit sûr.
+      this.place(this.safe.x, this.safe.y, this.safe.z);
     }
   }
 

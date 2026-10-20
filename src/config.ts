@@ -472,6 +472,8 @@ export const DECK_CREW = {
  */
 export const DECK_NAV = {
   cell: 0.25,
+  /** Pièces traversées par le joueur (roue, barre franche) : leur boîte, élargie de `margin` et prolongée de `below` vers le pont, emporte ce qui tient dedans (colonne de la roue). */
+  passThrough: { margin: 0.15, below: 1.3 },
   /** Pas de pont sous cette hauteur (m) : dessous de coque, quille. */
   minHeight: 0.5,
   /** Marge autour des hauteurs des postes du plan de pont (m) : en deçà et au-delà, pas de pont (carène, hunes). */
@@ -1896,26 +1898,27 @@ export const CAMERA = {
 export const HELM_WHEEL = { turns: 1.3 };
 
 /**
- * Vue du barreur (première personne à la barre, camera/firstPersonView.ts) : hauteur de l'œil au-dessus des pieds du barreur et recul derrière
- * son poste (m), assez pour voir par-dessus la roue, regard un peu baissé au départ (rad) ; sur une barque sans plan de pont, œil à `boatEye` m, à `boatStern` de la longueur vers l'arrière ;
- * rad par pixel de souris, regard levé ou baissé au plus (rad) ; plan proche de la caméra dans cette vue et dans la vue
- * habituelle (m).
+ * Première personne (camera/firstPersonView.ts) : hauteur de l'œil du barreur au-dessus de ses pieds et recul derrière
+ * son poste (m), assez pour voir par-dessus la roue ; regard un peu baissé au départ (rad) ; sur une barque sans plan de
+ * pont, œil à `boatEye` m, à `boatStern` de la longueur vers l'arrière ; rad par pixel de souris ; regard levé ou baissé
+ * au plus (rad) ; mouvement de souris au-delà duquel un événement est un raté du navigateur (px) ; plan proche de la
+ * caméra dans cette vue et dans la vue de loin (m).
  */
-export const HELM_VIEW = { eyeHeight: 1.8, behindWheel: 0.35, startPitch: -0.15, boatEye: 1.1, boatStern: 0.3, sensitivity: 0.0025, maxPitch: 1.3, near: 0.1, chaseNear: 0.5 };
+export const HELM_VIEW = { eyeHeight: 1.8, behindWheel: 0.35, startPitch: -0.15, boatEye: 1.1, boatStern: 0.3, sensitivity: 0.0025, maxPitch: 1.3, maxMouseStep: 400, near: 0.06, chaseNear: 0.5 };
 
 /**
- * Le joueur à pied sur son pont (player/) : hauteur des yeux (m), rayon du corps, marche et course (m/s), accélération
- * au sol et en l'air (/s), saut (m/s ; ~0,8 m de haut avec la gravité), gravité (m/s²), marche franchie en montant et en
- * descendant sans tomber, surface où l'on se pose en l'air au-dessus des pieds, lissage des marches ; matelots (rayon,
- * écart de hauteur où on les heurte) ; échelles (distance où l'on y monte, direction du regard nécessaire, vitesse
- * d'escalade m/s) ; haubans (part de la longueur où l'on monte, marche au pied, distance où E y fait grimper) ; barre
- * (distance où E la reprend, recul en la quittant, place laissée au barreur) ; place laissée autour des canons ; balancement de la tête (hauteur
- * m, rythme par mètre, vitesse sous laquelle il ne se voit pas) ; emprise du pont (marge sous le pont le plus bas et
- * au-dessus du plus haut, m).
+ * Le joueur à pied sur son pont (player/) : hauteur des yeux (m), rayon du corps (petit : les obstacles ont déjà leur
+ * marge dans la grille), marche et course (m/s), accélération au sol et en l'air (/s), saut (m/s ; ~0,8 m de haut avec
+ * la gravité), gravité (m/s²), marche franchie en montant et en descendant sans tomber, surface où l'on se pose en
+ * l'air au-dessus des pieds, lissage des marches ; échelles (distance où l'on y monte, direction du regard nécessaire,
+ * vitesse d'escalade m/s) ; haubans (part de la longueur où l'on monte, marche au pied, distance où E y fait grimper) ;
+ * barre (distance où E la reprend, recul en la quittant, place laissée au barreur) ; balancement de la tête (hauteur m,
+ * rythme par mètre, vitesse sous laquelle il ne se voit pas) ; emprise du pont (marge sous le pont le plus bas et
+ * au-dessus du plus haut, m ; rangées voisines, devant et derrière, dont une rangée prend aussi l'emprise commune : cloisons).
  */
 export const PLAYER = {
   eyeHeight: 1.55,
-  radius: 0.08,
+  radius: 0.05,
   walkSpeed: 2.2,
   runSpeed: 4.4,
   accel: 12,
@@ -1926,8 +1929,6 @@ export const PLAYER = {
   stepDown: 0.45,
   airStep: 0.25,
   stepSmooth: 16,
-  sailorRadius: 0.25,
-  sailorHeight: 0.8,
   ladderReach: 0.7,
   ladderFacing: 0.5,
   climbSpeed: 1.2,
@@ -1937,9 +1938,10 @@ export const PLAYER = {
   helmReach: 1.3,
   leaveBack: 0.8,
   helmClear: 0.7,
-  gunClearance: 0.45,
   bob: { height: 0.035, frequency: 5.5, minSpeed: 0.3 },
-  footing: { below: 0.3, above: 1.5 },
+  footing: { below: 0.3, above: 1, rows: 2 },
+  /** Chute sous le pont le plus bas (m) au-delà de laquelle on revient au dernier endroit sûr. */
+  lostFall: 2,
 };
 
 export const WORLD = {
