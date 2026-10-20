@@ -1,7 +1,7 @@
 import { CONTRACTS, ISLAND_INFO, SPECIAL_CONTRACTS, type BossId, type Cost, type IslandId } from '../config';
 import type { ShipType } from '../shipTypes';
 import { harbors } from '../world/harbors';
-import { createOffer, offerKey, specialOffer } from './contractOffers';
+import { createOffer, offerKey, specialOffer, withTypeTokens } from './contractOffers';
 import type { Good } from './goods';
 import { shipThreat } from './missionThreat';
 
@@ -120,8 +120,9 @@ export class Contracts {
   }
 
   restore(s: ContractsSnapshot) {
-    for (const id of Object.keys(this.offers) as IslandId[]) this.offers[id] = s.offers[id] ?? [];
-    this.active.splice(0, this.active.length, ...s.active);
+    // Les noms de types des anciennes sauvegardes passent en noms à trous (cachés tant que le type est inconnu).
+    for (const id of Object.keys(this.offers) as IslandId[]) this.offers[id] = (s.offers[id] ?? []).map(withTypeTokens);
+    this.active.splice(0, this.active.length, ...s.active.map(withTypeTokens));
     this.dayLeft = s.dayLeft;
     this.specialsDone.clear();
     for (const id of s.specialsDone) this.specialsDone.add(id);

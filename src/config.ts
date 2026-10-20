@@ -345,6 +345,47 @@ export const LOOT = {
   deathGoldLoss: 0.25,
 };
 
+/**
+ * Plans de navires (progression/blueprints.ts, world/planScrolls.ts) : pour construire un type, il faut réunir les bouts
+ * de son plan (le chantier naval de l'île reste exigé en plus). Un navire coulé par ta flotte dont le type t'est encore
+ * inconnu lâche parfois un bout de plan : un rouleau de parchemin qui flotte parmi le butin, à ramasser en passant dessus.
+ * Tant que son plan n'est pas complet, le nom du type reste caché partout (« Navire inconnu »).
+ */
+export const BLUEPRINTS = {
+  /**
+   * Bouts de plan à réunir pour chaque type. Un type absent de cette table est connu d'office : la chaloupe (le navire
+   * de départ) et la barque (jamais à vendre). Les types de ta flotte au départ ou au chargement sont connus aussi.
+   */
+  fragments: { sloop: 2, caravel: 2, schooner: 2, brigantine: 3, xebec: 3, fluyt: 4, brig: 4, corvette: 4, carrack: 5, galleass: 5, frigate: 5, galleon: 6 } as Partial<Record<ShipType, number>>,
+  /**
+   * Chance qu'un navire coulé par ta flotte lâche un bout de son plan (un boss n'en lâche jamais), sauf si les bouts
+   * gagnés et ceux qui flottent déjà suffisent à compléter le plan.
+   */
+  dropChance: 0.5,
+  eliteDropChance: 1,
+  /**
+   * Le rouleau flotte ce temps (s) avant de couler (les caisses : LOOT.lifetime), en s'enfonçant pendant les `sinkTime`
+   * dernières secondes ; pas plus de `maxScrolls` à la fois.
+   */
+  lifetime: 150,
+  sinkTime: 3,
+  maxScrolls: 12,
+  /** Distance au hasard autour de l'épave où il remonte (m). */
+  scatter: 4,
+  /**
+   * Rouleau de parchemin : longueur et rayon (m) avant `scale`, couleurs du papier, des bords roulés, du ruban et du
+   * sceau, et une légère lueur propre pour qu'on le repère sur l'eau (de nuit aussi).
+   */
+  model: { length: 1.1, radius: 0.16, scale: 1.6, paper: 0xf3e6c4, rim: 0xd9c08a, ribbon: 0xb3261c, seal: 0xd9a514, glow: 0x2e2410 },
+  /** Flottaison : enfoncement sous la surface (m), roulis (rad) et sa vitesse, rotation sur l'eau (rad/s, au hasard ±). */
+  float: { depth: 0.08, roll: 0.14, rollSpeed: 1.3, spin: 0.5 },
+  /** Couleurs sur la carte (parchemin) et sur le radar (fond sombre). */
+  mapColor: '#9b2f7f',
+  radarColor: '#ff86d6',
+  /** Durée du grand message quand un plan est complet (s). */
+  unlockMessageTime: 5,
+};
+
 export interface Cost {
   gold: number;
   wood: number;
@@ -1034,8 +1075,9 @@ export const BOSSES: Record<BossId, BossDef> = {
   widow: {
     name: 'La Veuve Noire',
     feminine: true,
-    rumor: 'la corvette noire qui rôde par grosse tempête',
-    trophy: 'Arraché à la corvette noire au cœur de la tempête',
+    // Noms de types à trous (progression/blueprints.ts : `revealTypes`) : cachés tant que leur plan est incomplet.
+    rumor: '{le:corvette} aux voiles noires qui rôde par grosse tempête',
+    trophy: 'Arraché {au:corvette} aux voiles noires, au cœur de la tempête',
     type: 'corvette',
     livery: WIDOW_LIVERY,
     weather: 'tempest',
@@ -1057,8 +1099,8 @@ export const BOSSES: Record<BossId, BossDef> = {
   spectre: {
     name: 'Le Spectre',
     feminine: false,
-    rumor: 'le brigantin fantôme qui hante le brouillard',
-    trophy: 'Arraché au brigantin fantôme, au fond du brouillard',
+    rumor: '{le:brigantine} aux voiles en lambeaux qui hante le brouillard',
+    trophy: 'Arraché {au:brigantine} aux voiles en lambeaux, au fond du brouillard',
     type: 'brigantine',
     livery: SPECTRE_LIVERY,
     weather: 'fog',
@@ -1223,7 +1265,11 @@ export interface SpecialContractDef {
   readonly boss?: BossId;
 }
 
-/** Missions spéciales de chaque île, dans l'ordre : CONTRACTS.specialsShown à la fois, la suivante après une réussite. */
+/**
+ * Missions spéciales de chaque île, dans l'ordre : CONTRACTS.specialsShown à la fois, la suivante après une réussite.
+ * Les noms de types y sont à trous (« {t:sloop} », voir `typeToken` de progression/blueprints.ts) : ils restent
+ * « navire inconnu » tant que leur plan n'est pas complet.
+ */
 export const SPECIAL_CONTRACTS: Record<IslandId, readonly SpecialContractDef[]> = {
   tortuga: [
     {
@@ -1233,7 +1279,7 @@ export const SPECIAL_CONTRACTS: Record<IslandId, readonly SpecialContractDef[]> 
       title: 'Le lieutenant Morrow',
       captain: 'Lieutenant Morrow',
       squadron: ['sloop', 'longboat'],
-      description: 'Le lieutenant Morrow (sloop d’élite) et son escorte traquent les pêcheurs de la Tortue. Leur zone sera marquée sur ta carte (M). Coule son navire.',
+      description: 'Le lieutenant Morrow ({t:sloop} d’élite) et son escorte traquent les pêcheurs de la Tortue. Leur zone sera marquée sur ta carte (M). Coule son navire.',
     },
     {
       id: 'banquet',
@@ -1251,7 +1297,7 @@ export const SPECIAL_CONTRACTS: Record<IslandId, readonly SpecialContractDef[]> 
       title: 'Commodore Vane',
       captain: 'Commodore Vane',
       squadron: ['brigantine', 'sloop', 'sloop'],
-      description: 'Le commodore Vane (brigantin d’élite) et deux sloops patrouillent au large. Leur zone sera marquée sur ta carte (M). Coule son navire.',
+      description: 'Le commodore Vane ({t:brigantine} d’élite) et deux {ts:sloop} patrouillent au large. Leur zone sera marquée sur ta carte (M). Coule son navire.',
     },
     {
       id: 'crownFleet',
@@ -1261,7 +1307,7 @@ export const SPECIAL_CONTRACTS: Record<IslandId, readonly SpecialContractDef[]> 
       squadron: ['brigantine', 'brigantine', 'sloop', 'sloop', 'sloop', 'longboat'],
       description: 'Six navires de la Marine marchent sur la Tortue. Ils attaqueront le fort 40 s après ton accord : coule-les tous avant qu’il ne tombe. Prime versée sur-le-champ.',
     },
-    { id: 'widowBounty', kind: 'sinkBoss', stars: 5, boss: 'widow', title: 'Prime sur La Veuve Noire', description: 'Coule La Veuve Noire, la corvette noire qui rôde par grosse tempête.' },
+    { id: 'widowBounty', kind: 'sinkBoss', stars: 5, boss: 'widow', title: 'Prime sur La Veuve Noire', description: 'Coule La Veuve Noire, {le:corvette} aux voiles noires qui rôde par grosse tempête.' },
   ],
   sabre: [
     {
@@ -1280,7 +1326,7 @@ export const SPECIAL_CONTRACTS: Record<IslandId, readonly SpecialContractDef[]> 
       title: 'Capitaine Rackham',
       captain: 'Capitaine Rackham',
       squadron: ['brigantine', 'sloop'],
-      description: 'Le capitaine Rackham (brigantin d’élite), chasseur de pirates, rôde avec un sloop. Leur zone sera marquée sur ta carte (M). Coule son navire.',
+      description: 'Le capitaine Rackham ({t:brigantine} d’élite), chasseur de pirates, rôde avec {un:sloop}. Leur zone sera marquée sur ta carte (M). Coule son navire.',
     },
     {
       id: 'fortuneAtRisk',
@@ -1297,9 +1343,9 @@ export const SPECIAL_CONTRACTS: Record<IslandId, readonly SpecialContractDef[]> 
       stars: 4,
       title: 'Le siège de Port-Sabre',
       squadron: ['corvette', 'brigantine', 'sloop', 'sloop', 'sloop', 'longboat'],
-      description: 'Une escadre de six navires, une corvette en tête, assiégera la citadelle 40 s après ton accord. Coule-la avant que les remparts ne tombent. Prime versée sur-le-champ.',
+      description: 'Une escadre de six navires, {un:corvette} en tête, assiégera la citadelle 40 s après ton accord. Coule-la avant que les remparts ne tombent. Prime versée sur-le-champ.',
     },
-    { id: 'spectreBounty', kind: 'sinkBoss', stars: 5, boss: 'spectre', title: 'Prime sur Le Spectre', description: 'Coule Le Spectre, le brigantin fantôme qui hante le brouillard.' },
+    { id: 'spectreBounty', kind: 'sinkBoss', stars: 5, boss: 'spectre', title: 'Prime sur Le Spectre', description: 'Coule Le Spectre, {le:brigantine} aux voiles en lambeaux qui hante le brouillard.' },
   ],
   royale: [],
   dauphin: [],

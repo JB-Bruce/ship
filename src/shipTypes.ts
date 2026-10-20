@@ -335,7 +335,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
   },
   brig: {
     name: 'Brick',
-    description: 'Chasseur de la Marine : pont ras, deux mâts carrés très hauts, grande brigantine et trois focs. Tous ses canons, légers et vite rechargés, sont sur le pont. Plus rapide et plus maniable que la corvette, moins solide.',
+    description: 'Chasseur de la Marine : pont ras, deux mâts carrés très hauts, grande brigantine et trois focs. Tous ses canons, légers et vite rechargés, sont sur le pont. Plus rapide et plus maniable que {le:corvette}, moins solide.',
     armament: 'broadside',
     rank: 5,
     threat: 5,

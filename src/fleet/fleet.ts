@@ -199,8 +199,11 @@ export class Fleet {
     return this.hand.some((m) => m.inWorld && m.ship.alive);
   }
 
-  /** `crates` : le butin qui flotte, que les suiveurs vont ramasser quand il est proche et qu'ils ne se battent pas. */
-  update(dt: number, crates: readonly Crate[]) {
+  /**
+   * `crates` : le butin qui flotte, que les suiveurs vont ramasser quand il est proche et qu'ils ne se battent pas ;
+   * `scrolls` : les rouleaux de plan de navire, qu'ils vont chercher de même.
+   */
+  update(dt: number, crates: readonly Crate[], scrolls: readonly THREE.Vector3[] = []) {
     for (const m of this.members) {
       if (!m.inWorld) {
         m.respawnIn -= dt;
@@ -221,12 +224,12 @@ export class Fleet {
         continue;
       }
       const slot = this.slotPosition(m, dt);
-      m.ai.update(this.anchor, slot.x, slot.z, this.ships, this.pickupFor(m, crates));
+      m.ai.update(this.anchor, slot.x, slot.z, this.ships, this.pickupFor(m, crates, scrolls));
     }
   }
 
   /** Le butin le plus proche d'un suiveur, à moins de ALLY.lootRange de lui et pas trop loin de ce qu'il accompagne, ou null. */
-  private pickupFor(member: FleetMember, crates: readonly Crate[]): THREE.Vector3 | null {
+  private pickupFor(member: FleetMember, crates: readonly Crate[], scrolls: readonly THREE.Vector3[]): THREE.Vector3 | null {
     let best: THREE.Vector3 | null = null;
     let bestDistance = ALLY.lootRange;
     const ship = member.ship;
@@ -235,6 +238,12 @@ export class Fleet {
       const p = mesh.position;
       // Rhum et épices : seulement s'il reste de la place dans sa cale.
       if ((kind === 'rum' || kind === 'spices') && freeSpace(member) === 0) continue;
+      const d = Math.hypot(p.x - ship.position.x, p.z - ship.position.z);
+      if (d >= bestDistance || Math.hypot(p.x - anchor.position.x, p.z - anchor.position.z) > ALLY.leash) continue;
+      best = p;
+      bestDistance = d;
+    }
+    for (const p of scrolls) {
       const d = Math.hypot(p.x - ship.position.x, p.z - ship.position.z);
       if (d >= bestDistance || Math.hypot(p.x - anchor.position.x, p.z - anchor.position.z) > ALLY.leash) continue;
       best = p;

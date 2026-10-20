@@ -1,5 +1,6 @@
 import { CONTRACTS, ISLAND_INFO, type IslandId } from '../../config';
 import { fleetStock } from '../../fleet/holds';
+import { revealTypes } from '../../progression/blueprints';
 import { missionTag, starsText, type Contract, type Contracts } from '../../progression/contracts';
 import type { Fleet } from '../../fleet/fleet';
 import { costHtml } from '../parchmentMenu';
@@ -62,8 +63,8 @@ function offerCard(c: Contract, full: boolean): string {
   return `
     <div class="upgrade-card compact${c.special ? ' special' : ''}">
       <div class="body">
-        <h2>${tag}${c.title} <span class="stars" title="Difficulté">${starsText(c.stars)}</span>${missionTag(c)}</h2>
-        <p>${c.description}</p>
+        <h2>${tag}${revealTypes(c.title)} <span class="stars" title="Difficulté">${starsText(c.stars)}</span>${missionTag(c)}</h2>
+        <p>${revealTypes(c.description)}</p>
         <p class="effect">Prime : ${reward(c)}</p>
       </div>
       <div class="buy"><button data-action="accept" data-arg="${c.id}"${full ? ' disabled' : ''}>${full ? 'Trop de contrats' : 'Accepter'}</button></div>
@@ -81,8 +82,8 @@ function activeCard(ctx: PortContext, c: Contract): string {
   return `
     <div class="upgrade-card compact${c.special ? ' special' : ''}">
       <div class="body">
-        <h2>${tag}${c.title} <span class="stars" title="Difficulté">${starsText(c.stars)}</span>${missionTag(c)}</h2>
-        <p>${c.description}</p>
+        <h2>${tag}${revealTypes(c.title)} <span class="stars" title="Difficulté">${starsText(c.stars)}</span>${missionTag(c)}</h2>
+        <p>${revealTypes(c.description)}</p>
         <div class="ship-health contract"><div style="width:${(count / c.target) * 100}%"></div></div>
         <p class="effect">${progress} · prime : ${reward(c)}</p>
       </div>

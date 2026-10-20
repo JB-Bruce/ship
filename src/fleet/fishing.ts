@@ -55,7 +55,7 @@ export class Fishing {
     const afloat = this.fleet.hand.filter((m) => m.inWorld && m.ship.alive && SHIP_TYPES[m.type].canFish);
     const fishers = afloat.filter((m) => freeSpace(m) > 0);
     if (!fishers.length) {
-      this.events.say(afloat.length ? 'Les cales de tes pêcheurs sont pleines.' : 'Aucun navire de ta flotte ne sait pêcher (chaloupes et sloops).');
+      this.events.say(afloat.length ? 'Les cales de tes pêcheurs sont pleines.' : 'Aucun navire de ta flotte ne sait pêcher (une chaloupe, par exemple).');
       return;
     }
     this.school = school;

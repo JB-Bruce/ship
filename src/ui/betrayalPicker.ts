@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { BETRAYAL } from '../config';
 import type { Ship } from '../ship/ship';
-import { SHIP_TYPES, typeName } from '../shipTypes';
+import { labelFeminine, shipTypeLabel } from '../progression/blueprints';
 import type { Betrayal } from '../world/betrayal';
 import type { Hud } from './hud';
 import { ParchmentMenu } from './parchmentMenu';
@@ -71,9 +71,10 @@ export class BetrayalPicker {
     const wasPirate = this.betrayal.isPirate(target);
     const enemy = this.betrayal.betray(target);
     if (!enemy) return;
-    const { feminine } = SHIP_TYPES[enemy.ship.type];
+    // Le nom d'un type encore inconnu reste caché (« ce navire inconnu »).
+    const feminine = labelFeminine(enemy.ship.type);
     const kind = wasPirate ? 'pirate' : feminine ? 'marchande' : 'marchand';
-    const type = typeName(enemy.ship.type, enemy.ship.extension).toLowerCase();
+    const type = shipTypeLabel(enemy.ship.type, enemy.ship.extension).toLowerCase();
     this.hud.toast(`${feminine ? 'Cette' : 'Ce'} ${type} ${kind} passe à l'ennemi !`, BETRAYAL.toastSeconds, 'danger');
     this.radar.ping(enemy.ship, BETRAYAL.toastSeconds);
   }

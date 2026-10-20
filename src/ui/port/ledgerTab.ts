@@ -1,4 +1,5 @@
 import { BOSS_IDS, BOSSES } from '../../config';
+import { blueprints, revealTypes } from '../../progression/blueprints';
 import { SHIP_TYPES, type ShipType } from '../../shipTypes';
 import { resourcesHtml, type PortContext } from './portContext';
 
@@ -7,13 +8,18 @@ const ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', '
 /** Onglet Registre : les exploits de ta flotte depuis le début de la partie, et tes trophées. */
 export function ledgerTab(ctx: PortContext): string {
   const l = ctx.ledger;
-  const sunk = ORDER.map((t) => `<div><span>${SHIP_TYPES[t].name}</span><b>${l.sunk[t] ?? 0}</b></div>`).join('');
+  // Les types dont le plan est incomplet restent inconnus : ils sont comptés ensemble, à la fin.
+  const known = ORDER.filter((t) => blueprints.isUnlocked(t));
+  const unknown = ORDER.filter((t) => !blueprints.isUnlocked(t)).reduce((n, t) => n + (l.sunk[t] ?? 0), 0);
+  const sunk =
+    known.map((t) => `<div><span>${SHIP_TYPES[t].name}</span><b>${l.sunk[t] ?? 0}</b></div>`).join('') +
+    (known.length < ORDER.length ? `<div><span>Navires inconnus</span><b>${unknown}</b></div>` : '');
   // Un trophée par boss : son pavillon s'il a été pris, sinon ce qu'en disent les tavernes.
   const trophy = BOSS_IDS.map((id) => {
     const b = BOSSES[id];
     const n = l.bossFlags[id] ?? 0;
-    if (!n) return `<div class="trophy unknown"><span class="flag">?</span><div><b>${b.name}</b><p>Les tavernes évoquent ${b.rumor}.</p></div></div>`;
-    return `<div class="trophy ${id}"><span class="flag">☠</span><div><b>Pavillon de ${b.name}</b><p>${b.trophy}${n > 1 ? ` (${n} fois)` : ''}.</p></div></div>`;
+    if (!n) return `<div class="trophy unknown"><span class="flag">?</span><div><b>${b.name}</b><p>Les tavernes évoquent ${revealTypes(b.rumor)}.</p></div></div>`;
+    return `<div class="trophy ${id}"><span class="flag">☠</span><div><b>Pavillon de ${b.name}</b><p>${revealTypes(b.trophy)}${n > 1 ? ` (${n} fois)` : ''}.</p></div></div>`;
   }).join('');
   return `
     <p class="subtitle">Le registre de bord de ta flotte.</p>

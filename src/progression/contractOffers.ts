@@ -1,5 +1,6 @@
-import { CONTRACTS, ISLAND_INFO, type Cost, type IslandId, type SpecialContractDef } from '../config';
-import { SHIP_TYPES, sizeRank, type ShipType } from '../shipTypes';
+import { CONTRACTS, ISLAND_INFO, SPECIAL_CONTRACTS, type Cost, type IslandId, type SpecialContractDef } from '../config';
+import { sizeRank, type ShipType } from '../shipTypes';
+import { tokenizeTypeNames, typeToken } from './blueprints';
 import type { Contract, ContractKind, ContractOptions } from './contracts';
 import { GOODS, goodText, type Good } from './goods';
 import { averageThreat, rangeThreat, shipThreat, squadronThreat, starsForThreat, targetThreat } from './missionThreat';
@@ -10,8 +11,11 @@ export type Offer = Omit<Contract, 'id' | 'progress'>;
 
 const randInt = ([min, max]: readonly [number, number]) => min + Math.floor(Math.random() * (max - min + 1));
 const pick = <T>(list: readonly T[]): T => list[Math.floor(Math.random() * list.length)];
-/** Pluriel d'un type de navire (« sloops », « corvettes »). */
-const plural = (type: ShipType) => `${SHIP_TYPES[type].name.toLowerCase()}s`;
+/**
+ * Pluriel d'un type de navire (« sloops », « corvettes »). Les textes des contrats gardent les noms de types à trous
+ * (`typeToken`) : ils restent « navires inconnus » tant que leur plan n'est pas complet (`revealTypes` à l'affichage).
+ */
+const plural = (type: ShipType) => typeToken('ts', type);
 /** Prime d'un contrat de base `gold` / `wood`, multipliée selon ses étoiles. */
 const rewardFor = (gold: number, wood: number, stars: number): Cost => {
   const f = CONTRACTS.starReward[stars - 1];
@@ -79,7 +83,7 @@ export function createOffer(island: IslandId, options: ContractOptions, stars: n
       const h = CONTRACTS.hunt;
       const name = pick(h.names);
       const i = stars - 1;
-      const ship = SHIP_TYPES[h.captain[i]].name.toLowerCase();
+      const ship = typeToken('t', h.captain[i]);
       const s = starsForThreat(drawnSquadronThreat(h.captain[i], average(h.escorts[i]), h.escortMin[i]));
       const text = `${name} (${ship} d'élite) et son escorte rôdent dans une zone marquée sur ta carte (M). Coule son navire.`;
       return { ...offer('hunt', `Tête mise à prix : ${name}`, text, 1, rewardFor(h.gold, h.wood, s)), stars: s, captain: name };
@@ -99,7 +103,7 @@ export function createOffer(island: IslandId, options: ContractOptions, stars: n
       const ambushes = e.ambushes[i];
       const s = starsForThreat(ambushes ? ambushes * drawnSquadronThreat(e.ambushLeader[i], e.ambushSize[i] - 1, e.ambushMin[i]) : 0);
       const danger = ambushes ? ` On craint ${ambushes > 1 ? 'des embuscades' : 'une embuscade'} en route.` : '';
-      const text = `Un sloop marchand quitte ${info.shortName} pour ${ISLAND_INFO[to].shortName}. Protège-le jusqu'au port.${danger} Prime versée à l'arrivée.`;
+      const text = `${typeToken('Un', 'sloop')} marchand quitte ${info.shortName} pour ${ISLAND_INFO[to].shortName}. Protège-le jusqu'au port.${danger} Prime versée à l'arrivée.`;
       return { ...offer('escort', 'Escorter un marchand', text, 1, rewardFor(e.gold, e.wood, s), to), stars: s };
     }
     default: {
@@ -147,6 +151,16 @@ export function specialOffer(island: IslandId, def: SpecialContractDef): Offer {
     case 'sinkBoss':
       return { ...base, reward: { ...CONTRACTS.sinkBoss[def.boss ?? 'widow'] }, boss: def.boss };
   }
+}
+
+/**
+ * Contrat d'une ancienne sauvegarde (v3 et avant), aux noms de types écrits en clair : une mission spéciale reprend les
+ * textes de sa fiche (SPECIAL_CONTRACTS), les autres passent leurs noms de types en noms à trous (`tokenizeTypeNames`).
+ */
+export function withTypeTokens(c: Contract): Contract {
+  const def = c.special ? Object.values(SPECIAL_CONTRACTS).flat().find((d) => d.id === c.special) : undefined;
+  if (def) return { ...c, title: def.title, description: def.description };
+  return { ...c, title: tokenizeTypeNames(c.title), description: tokenizeTypeNames(c.description) };
 }
 
 /**

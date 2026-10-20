@@ -84,6 +84,20 @@ function paintCrown(ctx: CanvasRenderingContext2D, x: number, y: number) {
 }
 
 /** Navire vu de dessus : une flèche orientée selon son cap (nord en haut, ouest à gauche). */
+/** Losange plein de la couleur courante, cerné de clair (rouleau de plan de navire : carte et radar). */
+export function paintDiamond(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+  ctx.strokeStyle = 'rgba(255, 245, 220, 0.9)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, y - size);
+  ctx.lineTo(x + size * 0.75, y);
+  ctx.lineTo(x, y + size);
+  ctx.lineTo(x - size * 0.75, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
+
 export function paintShip(ctx: CanvasRenderingContext2D, x: number, y: number, heading: number, size: number, color: string) {
   const dx = -Math.sin(heading);
   const dy = -Math.cos(heading);

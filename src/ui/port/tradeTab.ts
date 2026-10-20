@@ -9,13 +9,13 @@ const NAMES: Record<TradeGood, string> = { wood: 'Bois', fish: 'Poisson', rum: '
 const NOTES: Record<IslandId, Record<TradeGood, string>> = {
   tortuga: {
     wood: 'Réserve commune : sert aux navires et aux améliorations.',
-    fish: 'Pêché par tes chaloupes et tes sloops.',
+    fish: 'Pêché par tes chaloupes et tes autres navires de pêche.',
     rum: 'Produit sur l’île. Port-Sabre le paie bien plus cher.',
     spices: 'Venues de Port-Sabre, ou des cales des navires coulés.',
   },
   sabre: {
     wood: 'Rare sur ce rocher : cher à l’achat, bien payé à la vente.',
-    fish: 'Pêché par tes chaloupes et tes sloops.',
+    fish: 'Pêché par tes chaloupes et tes autres navires de pêche.',
     rum: 'Les Frères du Sabre en raffolent. Achète-le à la Tortue.',
     spices: 'Écoulées par les contrebandiers. La Tortue les rachète plus cher.',
   },

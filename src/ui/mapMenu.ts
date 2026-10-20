@@ -21,6 +21,8 @@ export interface MapSource {
   readonly wind: Wind;
   enemies(): readonly Enemy[];
   crates(): readonly Crate[];
+  /** Rouleaux de plan de navire qui flottent. */
+  scrolls(): readonly { x: number; z: number }[];
   schools(): readonly FishSchool[];
   /** Portée du radar du bateau piloté (m). */
   radarRange(): number;
@@ -59,6 +61,7 @@ export class MapMenu extends ParchmentMenu {
       <span><b class="gold">■</b> Or</span>
       <span><b class="wood">■</b> Bois</span>
       <span><b class="rum">■</b> Rhum, épices</span>
+      <span><b class="plan">◆</b> Plan de navire</span>
       <span><b class="fish">≋</b> Banc de poissons</span>
       <span><b class="zone">◌</b> Portée du radar</span>
       <span><b class="pirate">▲</b> Alliés</span>
@@ -111,6 +114,7 @@ export class MapMenu extends ParchmentMenu {
       traders,
       enemies,
       crates: source.crates(),
+      scrolls: source.scrolls(),
       schools: source.schools(),
       wind: source.wind,
       radarRange: range,
