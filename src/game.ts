@@ -33,6 +33,7 @@ import { HealthBars } from './ui/healthBars';
 import { Hud } from './ui/hud';
 import { EncounterAlerts } from './ui/encounterAlerts';
 import { createMenus } from './ui/menus';
+import { OrderWheel } from './ui/orderWheel';
 import { ParchmentMenu } from './ui/parchmentMenu';
 import type { PortMenu } from './ui/port/portMenu';
 import { Radar } from './ui/radar';
@@ -271,7 +272,8 @@ export class Game {
     // Menu ouvert = jeu en pause : la simulation est figée, l'affichage continue.
     const paused = ParchmentMenu.anyOpen();
     const elapsed = this.lastTime ? THREE.MathUtils.clamp((timeMs - this.lastTime) / 1000, 0, 0.05) : 0;
-    const dt = paused ? 0 : elapsed;
+    // Roue d'ordres ouverte (T maintenu) : le jeu tourne au ralenti.
+    const dt = paused ? 0 : elapsed * OrderWheel.timeScale();
     this.lastTime = timeMs;
 
     this.waves.time += dt;

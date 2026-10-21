@@ -13,9 +13,10 @@ import type { PlanScrolls } from '../world/planScrolls';
 import type { Wind } from '../world/wind';
 import type { ChaseCamera } from '../camera/chaseCamera';
 import { CabinMenu } from './cabin/cabinMenu';
-import { FleetMenu } from './fleetMenu';
 import type { Hud } from './hud';
+import { shipTypeLabel } from '../progression/blueprints';
 import { MapMenu } from './mapMenu';
+import { OrderWheel } from './orderWheel';
 import { PortMenu } from './port/portMenu';
 import type { Radar } from './radar';
 import { SettingsMenu } from './settings/settingsMenu';
@@ -88,7 +89,7 @@ export function createMenus(w: MenuWorld): PortMenu {
   const tavern = new TavernMenu(container, portContext, () => portMenu.openOn());
   const market = new MarketMenu(container, portContext, () => portMenu.openOn());
   const harbormaster = new HarbormasterMenu(container, portContext, () => portMenu.openOn());
-  new CabinMenu(container, {
+  const cabin = new CabinMenu(container, {
     state: w.state,
     fleet,
     crew: campaign.crew,
@@ -106,7 +107,33 @@ export function createMenus(w: MenuWorld): PortMenu {
     missionStatus: (c) => campaign.missions.status(c),
     known,
   });
-  new FleetMenu(container, fleet, (member) => w.takeHelm(member));
+  const afloat = () => fleet.hand.filter((m) => m.inWorld && m.ship.alive);
+  // Barre de la roue : le navire à flot qui suit le bateau piloté dans l'ordre de la flotte (on boucle).
+  const nextHelm = () => {
+    const ships = afloat();
+    const i = ships.indexOf(fleet.controlled);
+    return ships.length > 1 ? ships[(i + 1) % ships.length] : null;
+  };
+  new OrderWheel(container, {
+    formation: () => fleet.formation,
+    setFormation: (f) => (fleet.formation = f),
+    escorting: () => fleet.guarded !== null,
+    canAttack: () => fleet.orders.candidate(fleet.leader) !== null,
+    attack: () => {
+      const target = fleet.orders.attackNearest(fleet.leader);
+      return target ? shipTypeLabel(target.type) : null;
+    },
+    followers: () => afloat().filter((m) => m !== fleet.controlled).length,
+    rally: () => fleet.orders.rally(),
+    nextHelm: () => nextHelm()?.name ?? null,
+    takeNextHelm: () => {
+      const next = nextHelm();
+      if (next) w.takeHelm(next);
+    },
+    openCabin: () => cabin.openOn('fleet'),
+    say: (text, tone) => w.hud.toast(text, 2.5, tone),
+    freezeLook: (on) => (w.chaseCamera.firstPerson.frozen = on),
+  });
   new MapMenu(container, {
     fleet,
     wind: w.wind,

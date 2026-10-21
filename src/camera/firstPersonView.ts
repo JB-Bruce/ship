@@ -22,6 +22,8 @@ export class FirstPersonView {
   /** La souris était capturée, et c'est nous qui la rendons (menu ouvert) : pas un Échap du joueur. */
   private wasLocked = false;
   private releasing = false;
+  /** Regard figé (roue d'ordres ouverte : la souris sert à viser un ordre). */
+  frozen = false;
   /** Échap pressé souris capturée : le navigateur rend le curseur sans transmettre la touche ; on ouvre le menu tout de suite. */
   onEscape: () => void = () => {};
 
@@ -30,7 +32,8 @@ export class FirstPersonView {
     private readonly dom: HTMLElement,
   ) {
     document.addEventListener('mousemove', (e) => {
-      if (!this.locked) return;
+      // Roue d'ordres ouverte : la souris vise un ordre, le regard ne bouge plus.
+      if (!this.locked || this.frozen) return;
       // Un saut énorme d'un seul coup est un raté du navigateur (capture qui démarre), pas un geste.
       if (Math.abs(e.movementX) > HELM_VIEW.maxMouseStep || Math.abs(e.movementY) > HELM_VIEW.maxMouseStep) return;
       this.yaw -= e.movementX * HELM_VIEW.sensitivity;

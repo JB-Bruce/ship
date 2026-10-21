@@ -1,5 +1,6 @@
 import { ALLY, BROADSIDE, SAIL } from '../config';
 import type { CannonTarget } from '../combat/cannons';
+import type { FleetOrders } from '../fleet/fleetOrders';
 import { isHostile, type Ship } from '../ship/ship';
 import { bearingTo, broadside, firingRange, nearest, steerTo } from './steering';
 
@@ -9,7 +10,8 @@ const AVOID_RANGE = 45;
 /**
  * Pilote d'un bateau de la flotte que le joueur ne commande pas : il tient sa place dans la formation,
  * la quitte pour attaquer les ennemis proches, puis revient (sans trop s'éloigner du bateau piloté). Plus d'ennemi à
- * portée et le bateau piloté devant un fort de la Marine : il vient le bombarder avec lui.
+ * portée et le bateau piloté devant un fort de la Marine : il vient le bombarder avec lui. Les ordres de la roue passent
+ * avant : « Attaquer » le lance sur la cible désignée, « Rallier » le ramène à sa place sans combattre.
  */
 export class AllyAI {
   state: 'follow' | 'engage' = 'follow';
@@ -20,18 +22,19 @@ export class AllyAI {
   /**
    * `leader` : le bateau piloté par le joueur. `slotX`, `slotZ` : la place à tenir dans la formation.
    * `ships` : tous les bateaux (les ennemis y sont repérés par leur camp). `pickup` : butin proche à aller
-   * ramasser hors combat (choisi par la flotte), ou null.
+   * ramasser hors combat (choisi par la flotte), ou null. `orders` : les ordres de la roue (T).
    */
-  update(leader: Ship, slotX: number, slotZ: number, ships: readonly Ship[], pickup: { x: number; z: number } | null = null) {
+  update(leader: Ship, slotX: number, slotZ: number, ships: readonly Ship[], pickup: { x: number; z: number } | null = null, orders?: FleetOrders) {
     const ship = this.ship;
-    const target = ship.distanceTo(leader) < ALLY.leash ? nearest(ship, ships, ALLY.engageRadius) : null;
+    const rallying = orders?.rallying ?? false;
+    const target = orders?.attack ?? (!rallying && ship.distanceTo(leader) < ALLY.leash ? nearest(ship, ships, ALLY.engageRadius) : null);
     this.state = target ? 'engage' : 'follow';
     if (target) {
       this.side = broadside(ship, target, this.side, SAIL.half);
       this.avoidFriends(ships);
       return;
     }
-    const fort = this.fortUnderFire(leader);
+    const fort = rallying ? null : this.fortUnderFire(leader);
     if (fort) {
       // Par le travers, à la distance tenue au combat, comptée depuis les murs.
       this.state = 'engage';
@@ -39,7 +42,7 @@ export class AllyAI {
       this.avoidFriends(ships);
       return;
     }
-    if (pickup) {
+    if (pickup && !rallying) {
       steerTo(ship, bearingTo(ship, pickup.x, pickup.z), SAIL.half);
       this.avoidFriends(ships);
       return;

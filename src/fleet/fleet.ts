@@ -1,5 +1,6 @@
 import type * as THREE from 'three';
 import { AllyAI } from '../ai/allyAI';
+import { FleetOrders } from './fleetOrders';
 import { ALLY, FLEET, FORMATION_NAMES, LAND, type BossId, type Cost, type EmblemId } from '../config';
 import { emptyCargo, type Cargo } from '../progression/goods';
 import { factor, standardGuns, type Guns } from '../progression/modifiers';
@@ -75,12 +76,16 @@ export class Fleet {
   respawnFactor = 1;
   /** Navire à protéger (escorte en cours), ou null : les suiveurs l'entourent au lieu de suivre le bateau piloté. */
   guarded: Ship | null = null;
+  /** Ordres donnés depuis la roue (T) : attaque d'une cible, ralliement. */
+  readonly orders: FleetOrders;
   private nextId = 1;
 
   constructor(
     private readonly scene: THREE.Scene,
     private readonly ships: Ship[],
-  ) {}
+  ) {
+    this.orders = new FleetOrders(ships);
+  }
 
   get leader(): Ship {
     return this.controlled.ship;
@@ -204,6 +209,7 @@ export class Fleet {
    * `scrolls` : les rouleaux de plan de navire, qu'ils vont chercher de même.
    */
   update(dt: number, crates: readonly Crate[], scrolls: readonly THREE.Vector3[] = []) {
+    this.orders.update(dt, this.leader);
     for (const m of this.members) {
       if (!m.inWorld) {
         m.respawnIn -= dt;
@@ -224,7 +230,7 @@ export class Fleet {
         continue;
       }
       const slot = this.slotPosition(m, dt);
-      m.ai.update(this.anchor, slot.x, slot.z, this.ships, this.pickupFor(m, crates, scrolls));
+      m.ai.update(this.anchor, slot.x, slot.z, this.ships, this.pickupFor(m, crates, scrolls), this.orders);
     }
   }
 

@@ -13,7 +13,7 @@ const CONTROLS: readonly [string, string][] = [
   ['Z Q S D · Maj · Espace (à pied)', 'Marcher · courir · sauter'],
   ['Tab', 'Cabine du capitaine (navire, équipage, flotte, journal)'],
   ['P (près d’un quai)', 'Port'],
-  ['T', 'Flotte'],
+  ['T (maintenu)', 'Roue d’ordres de la flotte'],
   ['M', 'Carte'],
   ['F (près d’un banc)', 'Pêcher'],
   ['R puis clic (allié proche)', 'Trahir un pirate ou un marchand allié'],

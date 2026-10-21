@@ -733,6 +733,15 @@ export const FORMATION_NAMES = {
 };
 
 /** Comportement des bateaux de la flotte que le joueur ne pilote pas. */
+/**
+ * Roue d'ordres (maintenir T, `ui/orderWheel.ts`) et ordres de flotte (`fleet/fleetOrders.ts`) : le jeu tourne à `slow`
+ * pendant que la roue est ouverte ; la souris vise un ordre au-delà de `deadzone` px de mouvement (vecteur borné à
+ * `reach` px). « Attaquer » : l'ennemi le plus proche du bateau piloté à moins de `attackRange` m, poursuivi tant qu'il
+ * reste à moins de `attackLeash` m du bateau piloté. « Rallier » : les suiveurs rompent le combat et reprennent leur
+ * place pendant `rallyTime` s.
+ */
+export const ORDERS = { slow: 0.25, deadzone: 28, reach: 120, attackRange: 450, attackLeash: 650, rallyTime: 20 };
+
 export const ALLY = {
   /** Ils attaquent les ennemis à moins de cette distance d'eux (m)… */
   engageRadius: 160,

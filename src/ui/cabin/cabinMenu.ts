@@ -50,6 +50,12 @@ export class CabinMenu extends ParchmentMenu {
     this.body.parentElement!.classList.add('cabin-sheet-frame');
   }
 
+  /** Ouvre la Cabine sur une page (roue d'ordres : page Flotte). */
+  openOn(page: CabinPage) {
+    this.view.page = page;
+    this.setOpen(true);
+  }
+
   setOpen(open: boolean) {
     // À chaque ouverture, la Cabine montre le navire que tu pilotes.
     if (open && !this.isOpen) {
