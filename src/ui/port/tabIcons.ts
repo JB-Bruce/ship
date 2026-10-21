@@ -6,7 +6,6 @@ export const TAB_ICONS: Record<PortTab, string> = {
   trade: `<svg viewBox="0 0 48 48"><path d="M24 6v34M14 42h20M7 12h34"/><path d="M7 12L2 26h10zM41 12l-5 14h10z"/><path d="M2 26a5 4 0 0 0 10 0M36 26a5 4 0 0 0 10 0"/></svg>`,
   routes: `<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="19"/><path d="M24 7l4 17-4 17-4-17zM7 24l17-4 17 4-17 4z"/></svg>`,
   shipyard: `<svg viewBox="0 0 48 48"><path d="M4 16c4 15 12 22 20 22s16-7 20-22"/><path d="M12 30V13M24 38V10M36 30V13M3 44h42M10 44l4-6M38 44l-4-6"/></svg>`,
-  crew: `<svg viewBox="0 0 48 48"><path d="M3 30c8 0 12-14 21-14s13 14 21 14c-6 6-36 6-42 0z"/><path d="M16 21c2-6 14-6 16 0"/><path d="M14 38c2 4 18 4 20 0"/></svg>`,
   upgrades: `<svg viewBox="0 0 48 48"><path d="M12 44V20h24v24M10 20h28M12 20v-5h5v5M21 20v-5h6v5M31 20v-5h5v5"/><path d="M24 15V3l11 4-11 4M20 44v-8a4 4 0 0 1 8 0v8"/></svg>`,
   tavern: `<svg viewBox="0 0 48 48"><path d="M10 16h22v26H10z"/><path d="M32 21h5a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4h-5"/><path d="M8 16c0-6 6-8 10-6 3-4 11-4 13 1 4 0 4 5 1 5"/><path d="M16 22v14M26 22v14"/></svg>`,
 };

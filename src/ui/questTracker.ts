@@ -3,7 +3,7 @@ import type { Fleet } from '../fleet/fleet';
 import { revealTypes } from '../progression/blueprints';
 import { MISSION_TYPES, missionType, starsText, type Contract, type Contracts } from '../progression/contracts';
 import type { Objective } from '../progression/navyIsland';
-import { contractProgress } from './port/tavernTab';
+import { contractProgress } from './contractProgress';
 
 /** Intervalle de rafraîchissement (s) : inutile de refaire la liste à chaque image. */
 const REFRESH = 0.3;

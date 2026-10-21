@@ -4,10 +4,9 @@ import type { ShowcaseFocus, ShowcaseView } from '../../camera/showcaseView';
 import { maxLevel, type UpgradeId } from '../../progression/upgrades';
 import type { ShipType } from '../../shipTypes';
 import { UPGRADE_INFO } from '../../shipTypes';
-import { flyCoins, glow, riseText, settleBars, shake } from '../kit/feedback';
+import { playFx, type MenuFx } from '../kit/feedback';
 import { cofferHtml, pipsHtml, tip } from '../kit/kit';
-import { hideTip } from '../kit/tooltip';
-import { ParchmentMenu } from '../parchmentMenu';
+import { PlaceMenu } from '../port/placeMenu';
 import type { PortContext } from '../port/portContext';
 import { shipAnchors, type ShipAnchors, type ShipPart } from './shipAnchors';
 import { shipShop } from './shipShop';
@@ -33,14 +32,10 @@ const OVERVIEW_HEIGHT = 0.45;
 const SHIP_SHIFT = 0.25;
 const SPOT_GAP = 6;
 
-/** Effets à jouer après le prochain rendu. */
-interface PendingFx {
+/** Effets à jouer après le prochain rendu : ceux du socle, plus la pastille gagnée et sa barre d'avant. */
+interface PendingFx extends MenuFx {
   fresh?: UpgradeId;
   before?: number;
-  coinsFrom?: string;
-  rise?: { at: string; text: string; tone: 'good' | 'bad' | 'info' };
-  shake?: string;
-  glow?: string;
 }
 
 const screen = new THREE.Vector3();
@@ -51,7 +46,7 @@ const screen = new THREE.Vector3();
  * approche : améliorations (avant / après), allongement (coque), types de canons, emblème. Le navire change sous les yeux
  * à l'achat. En haut, « Acheter un navire » (vente, places de flotte). Échap revient au panneau du port.
  */
-export class ShipyardMenu extends ParchmentMenu {
+export class ShipyardMenu extends PlaceMenu {
   private tab: 'upgrades' | 'shop' = 'upgrades';
   private part: ShipPart | null = null;
   private anchors: ShipAnchors | null = null;
@@ -64,7 +59,7 @@ export class ShipyardMenu extends ParchmentMenu {
     parent: HTMLElement,
     private readonly world: ShipyardWorld,
   ) {
-    super(parent, 'Chantier', 'Échap : retour au port', []);
+    super(parent, 'Chantier', () => world.back());
     const frame = this.body.parentElement!;
     frame.classList.add('yard-frame');
     frame.parentElement!.classList.add('yard-root');
@@ -81,30 +76,21 @@ export class ShipyardMenu extends ParchmentMenu {
     window.addEventListener('pointerup', () => (last = null));
   }
 
-  setOpen(open: boolean) {
-    const closing = this.isOpen && !open;
-    if (open && !this.isOpen) {
-      this.tab = 'upgrades';
-      this.part = null;
-      this.focus = null;
-    }
-    super.setOpen(open);
-    if (open) {
-      // L'interface de navigation (bandeaux, radar, commandes) s'efface derrière le Chantier.
-      document.body.classList.add('yard-open');
-      this.loop();
-    }
-    if (!closing) return;
-    hideTip();
+  protected opened() {
+    this.tab = 'upgrades';
+    this.part = null;
+    this.focus = null;
+    // L'interface de navigation (bandeaux, radar, commandes) s'efface derrière le Chantier.
+    document.body.classList.add('yard-open');
+    this.loop();
+  }
+
+  protected closed() {
     cancelAnimationFrame(this.frame);
     this.world.camera.clearViewOffset();
     document.body.classList.remove('yard-open');
     this.world.showcase.close();
     this.world.setTurning(false);
-    // Fermé par Échap (aucun autre menu ne s'ouvre à sa place) : retour au panneau du port.
-    queueMicrotask(() => {
-      if (!ParchmentMenu.anyOpen()) this.world.back();
-    });
   }
 
   render() {
@@ -226,17 +212,7 @@ export class ShipyardMenu extends ParchmentMenu {
   private play() {
     const fx = this.fx;
     this.fx = {};
-    const find = (s?: string) => (s ? this.body.querySelector(s) : null);
-    if (fx.before !== undefined) settleBars(this.body);
-    const from = find(fx.coinsFrom);
-    const coffer = this.body.querySelector('[data-coffer-gold]');
-    if (from && coffer) flyCoins(from, coffer);
-    const rise = fx.rise && find(fx.rise.at);
-    if (rise && fx.rise) riseText(rise, fx.rise.text, fx.rise.tone);
-    const shaken = find(fx.shake);
-    if (shaken) shake(shaken);
-    const shining = find(fx.glow);
-    if (shining) glow(shining);
+    playFx(this.body, { ...fx, bars: fx.before !== undefined });
   }
 
   protected onAction(action: string, arg: string) {
@@ -260,46 +236,46 @@ export class ShipyardMenu extends ParchmentMenu {
         const before = gaugeRatio(m, id) ?? undefined;
         a.buyUpgrade(id);
         const at = `[data-upgrade="${id}"]`;
-        this.fx = m.levels[id] > level ? { fresh: id, before, coinsFrom: `[data-row="${id}"]`, rise: { at: '.yard-panel h2', text: `${UPGRADE_INFO[id].name} : niveau ${m.levels[id]} !`, tone: 'good' }, glow: `[data-part="${this.part}"]` } : { shake: at };
+        this.fx = m.levels[id] > level ? { fresh: id, before, spend: `[data-row="${id}"]`, rise: { at: '.yard-panel h2', text: `${UPGRADE_INFO[id].name} : niveau ${m.levels[id]} !`, tone: 'good' }, glow: `[data-part="${this.part}"]` } : { shake: at };
         break;
       }
       case 'extend': {
         const ext = m.levels.extension;
         a.extendShip();
-        this.fx = m.levels.extension > ext ? { coinsFrom: '.yard-extension', rise: { at: '.yard-panel h2', text: 'Navire allongé !', tone: 'good' } } : { shake: '[data-extend]' };
+        this.fx = m.levels.extension > ext ? { spend: '.yard-extension', rise: { at: '.yard-panel h2', text: 'Navire allongé !', tone: 'good' } } : { shake: '[data-extend]' };
         break;
       }
       case 'guns': {
         const [battery, type] = arg.split(':') as ['main' | 'deck', GunType];
         a.setGuns(battery, type);
         const ok = m.guns[battery] === type;
-        this.fx = ok ? { glow: `[data-gun="${battery}-${type}"]`, ...(ctx.state.gold < gold ? { coinsFrom: `[data-gun="${battery}-${type}"]` } : {}) } : { shake: `[data-gun="${battery}-${type}"]` };
+        this.fx = ok ? { glow: `[data-gun="${battery}-${type}"]`, ...(ctx.state.gold < gold ? { spend: `[data-gun="${battery}-${type}"]` } : {}) } : { shake: `[data-gun="${battery}-${type}"]` };
         break;
       }
       case 'emblem': {
         const id = arg === 'none' ? null : (arg as EmblemId);
         a.paintEmblem(id);
         const ok = m.emblem === id;
-        this.fx = ok ? { glow: id ? `[data-emblem="${id}"]` : '.yard-emblems', ...(ctx.state.gold < gold ? { coinsFrom: `[data-emblem="${id}"]` } : {}) } : { shake: `[data-emblem="${id}"]` };
+        this.fx = ok ? { glow: id ? `[data-emblem="${id}"]` : '.yard-emblems', ...(ctx.state.gold < gold ? { spend: `[data-emblem="${id}"]` } : {}) } : { shake: `[data-emblem="${id}"]` };
         break;
       }
       case 'buy': {
         const count = ctx.fleet.members.length;
         a.buyShip(arg as ShipType);
-        this.fx = ctx.fleet.members.length > count ? { coinsFrom: '.yard-fleet', rise: { at: '.yard-fleet h2', text: 'Nouveau navire !', tone: 'good' } } : { shake: `[data-buy="${arg}"]` };
+        this.fx = ctx.fleet.members.length > count ? { spend: '.yard-fleet', rise: { at: '.yard-fleet h2', text: 'Nouveau navire !', tone: 'good' } } : { shake: `[data-buy="${arg}"]` };
         break;
       }
       case 'sell': {
         const member = ctx.fleet.members.find((x) => String(x.id) === arg);
         if (!member) break;
         a.sellShip(member);
-        if (ctx.state.gold > gold) this.fx = { rise: { at: '.yard-fleet h2', text: `+${ctx.state.gold - gold} or`, tone: 'good' } };
+        if (ctx.state.gold > gold) this.fx = { earn: `.yard-fleet`, rise: { at: '.yard-fleet h2', text: `+${ctx.state.gold - gold} or`, tone: 'good' } };
         break;
       }
       case 'slot': {
         const slots = ctx.state.slots;
         a.buySlot();
-        this.fx = ctx.state.slots > slots ? { coinsFrom: '[data-slot]', rise: { at: '.yard-fleet h2', text: 'Une place de plus', tone: 'good' } } : { shake: '[data-slot]' };
+        this.fx = ctx.state.slots > slots ? { spend: '[data-slot]', rise: { at: '.yard-fleet h2', text: 'Une place de plus', tone: 'good' } } : { shake: '[data-slot]' };
         break;
       }
     }

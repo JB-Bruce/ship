@@ -77,3 +77,35 @@ export function settleBars(root: Element) {
   // Une image plus tard : le navigateur a posé l'ancienne largeur, la transition joue.
   requestAnimationFrame(() => requestAnimationFrame(() => bars.forEach((b) => (b.style.width = b.dataset.to!))));
 }
+
+/** Effets à jouer après le prochain rendu d'un menu (sélecteurs dans ce menu). */
+export interface MenuFx {
+  /** Des barres ont été dessinées à leur ancienne valeur : elles glissent. */
+  bars?: boolean;
+  /** On paie : des pièces partent du coffre vers cet élément. */
+  spend?: string;
+  /** On gagne : des pièces partent de cet élément vers le coffre. */
+  earn?: string;
+  /** Un texte s'élève au-dessus de cet élément. */
+  rise?: { at: string; text: string; tone: 'good' | 'bad' | 'info' };
+  /** Cet élément tremble (refusé) ou luit (réussi). */
+  shake?: string;
+  glow?: string;
+}
+
+/** Joue les effets d'un menu sur ses éléments tout juste dessinés (coffre : `[data-coffer-gold]`). */
+export function playFx(root: Element, fx: MenuFx) {
+  const find = (selector?: string) => (selector ? root.querySelector(selector) : null);
+  const coffer = root.querySelector('[data-coffer-gold]');
+  if (fx.bars) settleBars(root);
+  const spent = find(fx.spend);
+  if (spent && coffer) flyCoins(coffer, spent);
+  const earned = find(fx.earn);
+  if (earned && coffer) flyCoins(earned, coffer);
+  const rise = fx.rise && find(fx.rise.at);
+  if (rise && fx.rise) riseText(rise, fx.rise.text, fx.rise.tone);
+  const shaken = find(fx.shake);
+  if (shaken) shake(shaken);
+  const shining = find(fx.glow);
+  if (shining) glow(shining);
+}

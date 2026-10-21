@@ -3,7 +3,7 @@ import type { Good } from '../../progression/goods';
 import type { BossId, IslandId } from '../../config';
 import { UPGRADE_INFO } from '../../shipTypes';
 import type { UpgradeId } from '../../progression/upgrades';
-import { flyCoins, glow, riseText, settleBars, shake } from '../kit/feedback';
+import { playFx, type MenuFx } from '../kit/feedback';
 import { cofferHtml } from '../kit/kit';
 import { hideTip } from '../kit/tooltip';
 import { ParchmentMenu } from '../parchmentMenu';
@@ -22,21 +22,14 @@ const PAGES: { id: CabinPage; name: string; icon: string }[] = [
   { id: 'log', name: 'Journal', icon: 'M5 3h11l3 3v15H5z M8 8h8 M8 12h8 M8 16h5' },
 ];
 
-/** Effets à jouer après le prochain rendu (sur les éléments tout juste dessinés). */
-interface PendingFx {
+/** Effets à jouer après le prochain rendu : ceux du socle, plus la pastille et l'officier qui viennent de changer. */
+interface PendingFx extends MenuFx {
   /** Amélioration qui vient d'être achetée : sa pastille se remplit d'un coup de tampon. */
   fresh?: UpgradeId;
   /** Parts des barres avant le changement : elles glissent jusqu'aux nouvelles. */
   before?: Record<string, number>;
   /** Officier qui vient de changer de poste. */
   officer?: number;
-  /** Des pièces partent de cet élément vers le coffre. */
-  coinsFrom?: string;
-  /** Un texte s'élève au-dessus de cet élément. */
-  rise?: { at: string; text: string; tone: 'good' | 'bad' | 'info' };
-  /** Cet élément tremble (refusé) ou luit (réussi). */
-  shake?: string;
-  glow?: string;
 }
 
 /**
@@ -96,17 +89,7 @@ export class CabinMenu extends ParchmentMenu {
   private play() {
     const fx = this.fx;
     this.fx = {};
-    const find = (selector?: string) => (selector ? this.body.querySelector(selector) : null);
-    if (fx.before) settleBars(this.body);
-    const from = find(fx.coinsFrom);
-    const coffer = this.body.querySelector('[data-coffer-gold]');
-    if (from && coffer) flyCoins(from, coffer);
-    const rise = fx.rise && find(fx.rise.at);
-    if (rise && fx.rise) riseText(rise, fx.rise.text, fx.rise.tone);
-    const shaken = find(fx.shake);
-    if (shaken) shake(shaken);
-    const shining = find(fx.glow);
-    if (shining) glow(shining);
+    playFx(this.body, { ...fx, bars: !!fx.before });
   }
 
   protected onAction(action: string, arg: string) {
@@ -163,7 +146,7 @@ export class CabinMenu extends ParchmentMenu {
     const before = statRatios(m);
     this.ctx.actions.buyUpgrade(id);
     const at = `[data-upgrade="${id}"]`;
-    if (m.levels[id] > level) this.fx = { fresh: id, before, coinsFrom: at, rise: { at: '.cabin-ship-card', text: `${UPGRADE_INFO[id].name} : niveau ${m.levels[id]} !`, tone: 'good' } };
+    if (m.levels[id] > level) this.fx = { fresh: id, before, spend: at, rise: { at: '.cabin-ship-card', text: `${UPGRADE_INFO[id].name} : niveau ${m.levels[id]} !`, tone: 'good' } };
     else this.fx = { shake: at };
   }
 

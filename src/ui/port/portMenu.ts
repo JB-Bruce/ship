@@ -1,26 +1,21 @@
-import type { BossId, EmblemId, GunType, IslandId } from '../../config';
+import type { IslandId } from '../../config';
 import type { Good } from '../../progression/goods';
 import type { IslandUpgradeId } from '../../progression/islandState';
-import type { UpgradeId } from '../../progression/upgrades';
-import type { ShipType } from '../../shipTypes';
 import { ParchmentMenu } from '../parchmentMenu';
-import { crewTab } from './crewTab';
 import { islandTab, islandUpgradesTab } from './islandTab';
-import type { PortContext, PortTab, TradeGood } from './portContext';
+import type { PlaceTab, PortContext, PortTab, TradeGood } from './portContext';
 import { pickRoute, routesTab } from './routesTab';
 import { TAB_ICONS } from './tabIcons';
-import { tavernTab } from './tavernTab';
 import { tradeTab } from './tradeTab';
 
-/** Onglets du panneau ; le Chantier (`render` null) ouvre sa propre vue, autour du navire en 3D. */
+/** Onglets du panneau ; le Chantier et la Taverne (`render` null) ouvrent leur propre vue (`PlaceMenu`). */
 const TABS: { id: PortTab; name: string; render: ((ctx: PortContext) => string) | null }[] = [
   { id: 'island', name: 'Île', render: islandTab },
   { id: 'trade', name: 'Marché', render: tradeTab },
   { id: 'routes', name: 'Routes', render: routesTab },
   { id: 'shipyard', name: 'Chantier', render: null },
-  { id: 'crew', name: 'Équipage', render: crewTab },
   { id: 'upgrades', name: 'Améliorations', render: islandUpgradesTab },
-  { id: 'tavern', name: 'Taverne', render: tavernTab },
+  { id: 'tavern', name: 'Taverne', render: null },
 ];
 
 export interface PortAccess {
@@ -30,14 +25,15 @@ export interface PortAccess {
   onOpen(): void;
   /** Touche pressée loin du port. */
   refused(code: string): void;
-  /** Ouvre le Chantier (vue autour du navire). */
-  openShipyard(): void;
+  /** Ouvre un lieu du port qui a sa propre vue (Chantier autour du navire, Taverne). */
+  openPlace(place: PlaceTab): void;
 }
 
 /**
  * Panneau du port où la flotte fait escale (P), seulement près d'un quai :
- * l'île et son allégeance (et son rachat), le marché, les routes, les améliorations de l'île (si elle t'appartient), la
- * taverne, et le Chantier (sa propre vue : `ShipyardMenu`). Le registre est dans le Journal de la Cabine (Tab).
+ * l'île et son allégeance (et son rachat), le marché, les routes, les améliorations de l'île (si elle t'appartient), et
+ * deux lieux à part : le Chantier (`ShipyardMenu`) et la Taverne (`TavernMenu`). Le registre et les affectations des
+ * officiers sont dans la Cabine (Tab).
  */
 export class PortMenu extends ParchmentMenu {
   private tab: PortTab = 'island';
@@ -77,30 +73,18 @@ export class PortMenu extends ParchmentMenu {
 
   protected onAction(action: string, arg: string) {
     const a = this.ctx.actions;
-    const member = this.ctx.fleet.members.find((m) => String(m.id) === arg);
     switch (action) {
       case 'tab':
-        if (arg === 'shipyard') this.access.openShipyard();
+        if (arg === 'shipyard' || arg === 'tavern') this.access.openPlace(arg);
         else this.tab = arg as PortTab;
-        break;
-      case 'upgrade':
-        a.buyUpgrade(arg as UpgradeId);
-        break;
-      case 'extend':
-        a.extendShip();
         break;
       case 'buy':
       case 'sell': {
-        // Marché : « marchandise:quantité » ; chantier : un type de navire.
+        // Marché : « marchandise:quantité ».
         const [good, amount] = arg.split(':');
-        if (amount !== undefined) a.trade(good as TradeGood, action, Number(amount));
-        else if (action === 'buy') a.buyShip(arg as ShipType);
-        else if (member) a.sellShip(member);
+        a.trade(good as TradeGood, action, Number(amount));
         break;
       }
-      case 'slot':
-        a.buySlot();
-        break;
       case 'buy-island':
         a.buyIsland();
         break;
@@ -110,32 +94,6 @@ export class PortMenu extends ParchmentMenu {
       case 'island-upgrade':
         a.buyIslandUpgrade(arg as IslandUpgradeId);
         break;
-      case 'accept':
-        a.acceptContract(Number(arg));
-        break;
-      case 'abandon':
-        a.abandonContract(Number(arg));
-        break;
-      case 'claim':
-        a.claimContract(Number(arg));
-        break;
-      case 'recruit':
-        a.recruit(Number(arg));
-        break;
-      case 'assign': {
-        // « officier:navire », ou « officier:none » pour le débarquer.
-        const [officer, target] = arg.split(':');
-        a.assignOfficer(Number(officer), target === 'none' ? null : Number(target));
-        break;
-      }
-      case 'emblem':
-        a.paintEmblem(arg === 'none' ? null : (arg as EmblemId));
-        break;
-      case 'guns': {
-        const [battery, type] = arg.split(':');
-        a.setGuns(battery as 'main' | 'deck', type as GunType);
-        break;
-      }
       case 'route-pick':
         pickRoute(arg);
         break;
@@ -149,11 +107,6 @@ export class PortMenu extends ParchmentMenu {
       case 'route-recall':
         a.recallRoute(Number(arg));
         break;
-      case 'trophy': {
-        const [ship, boss] = arg.split(':');
-        a.toggleTrophy(Number(ship), boss as BossId);
-        break;
-      }
     }
   }
 }

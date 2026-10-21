@@ -19,6 +19,7 @@ import { PortMenu } from './port/portMenu';
 import type { Radar } from './radar';
 import { SettingsMenu } from './settings/settingsMenu';
 import { ShipyardMenu } from './shipyard/shipyardMenu';
+import { TavernMenu } from './tavern/tavernMenu';
 import type { DayCycle } from '../world/dayCycle';
 
 /** Ce que les menus parchemin lisent du jeu. */
@@ -54,8 +55,8 @@ export function createMenus(w: MenuWorld): PortMenu {
     inRange,
     onOpen: () => harbor.visit(campaign.islands[campaign.portInRange(fleet.leader)!.id]),
     refused: () => w.hud.toast('Approche-toi du quai pour faire escale (P).', 2.5),
-    openShipyard: () => {
-      if (inRange()) shipyard.setOpen(true);
+    openPlace: (place) => {
+      if (inRange()) (place === 'shipyard' ? shipyard : tavern).setOpen(true);
     },
   });
   const camera = w.chaseCamera;
@@ -66,6 +67,7 @@ export function createMenus(w: MenuWorld): PortMenu {
     setTurning: (on) => (camera.showcaseTurning = on),
     back: () => portMenu.openOn(),
   });
+  const tavern = new TavernMenu(container, portContext, () => portMenu.openOn());
   new CabinMenu(container, {
     state: w.state,
     fleet,

@@ -3,7 +3,7 @@ import { blueprints, revealTypes, shipTypeLabel } from '../../progression/bluepr
 import { MISSION_TYPES, missionType, type Contract } from '../../progression/contracts';
 import { SHIP_SIZE_ORDER } from '../../shipTypes';
 import { gaugeHtml, pipsHtml, starsHtml, tip } from '../kit/kit';
-import { contractProgress } from '../port/tavernTab';
+import { contractProgress } from '../contractProgress';
 import { SHIP_ICONS } from '../shipIcons';
 import type { CabinContext, CabinView } from './cabinContext';
 

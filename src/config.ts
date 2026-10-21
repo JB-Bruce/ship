@@ -2149,6 +2149,9 @@ export const LIGHTNING = {
   mastHeight: 0.7,
 };
 
+/** Taverne : l'affiche arrachée s'envole vers tes contrats en `tear` ms, en tournant de `tearTilt` degrés. */
+export const TAVERN_FX = { tear: 420, tearTilt: 9 };
+
 /**
  * Vue « vitrine » du Chantier (`camera/showcaseView.ts`) : glisse vers la partie choisie (`glide`, 1/s), rotation lente
  * de la vue d'ensemble (`spin`, rad/s), souris (`sensitivity`, rad/px ; hauteur ± `pitchRange`), bornes de hauteur
