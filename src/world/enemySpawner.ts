@@ -25,6 +25,8 @@ export interface Enemy {
   name: string | null;
   /** Coulé par un allié hors de ta flotte (pirate) : ne compte pas dans tes victoires. */
   uncounted?: boolean;
+  /** Porteur de plans (chasse aux plans) : coulé, il lâche à coup sûr un bout de son plan, quel que soit le coup fatal. */
+  carriesPlan?: boolean;
 }
 
 /** Du plus petit au plus gros : un chef de flottille est pris un cran au-dessus de ses suiveurs. */
@@ -96,7 +98,7 @@ export class EnemySpawner {
   }
 
   /** Ce que les contrats de la taverne peuvent demander : les types qui apparaissent, et si les élites sont là. */
-  contractOptions(): Omit<ContractOptions, 'level'> {
+  contractOptions(): Omit<ContractOptions, 'level' | 'best'> {
     const weights = this.stage().weights as Partial<Record<ShipType, number>>;
     return { types: SIZE_ORDER.filter((t) => (weights[t] ?? 0) > 0), elites: this.kills >= ENEMIES.elite.fromKills };
   }
@@ -154,12 +156,13 @@ export class EnemySpawner {
   }
 
   /**
-   * Escadre d'une mission (chasse, siège, embuscade) : `types[0]` est le chef, d'élite (nommé ou non), les autres le
-   * suivent en V, autour de (x, z). Elle ne disparaît pas quand le joueur s'éloigne. `ai` : comportement commun.
+   * Escadre d'une mission (chasse, siège, embuscade, bataille) : `types[0]` est le chef, d'élite (nommé ou non) sauf
+   * `eliteLeader` faux (chasse aux plans), les autres le suivent en V, autour de (x, z). Elle ne disparaît pas quand le
+   * joueur s'éloigne. `ai` : comportement commun.
    */
-  spawnSquadron(types: readonly ShipType[], x: number, z: number, heading: number, name: string | null, ai: EnemyAIOptions): Enemy[] {
+  spawnSquadron(types: readonly ShipType[], x: number, z: number, heading: number, name: string | null, ai: EnemyAIOptions, eliteLeader = true): Enemy[] {
     const size = types.length;
-    const leader = this.add(types[0], x, z, heading, true, null, null, ai);
+    const leader = this.add(types[0], x, z, heading, eliteLeader, null, null, ai);
     const group: EnemyGroup = { leader: leader.ship, alerted: false };
     leader.ai = new EnemyAI(leader.ship, group, null, ai);
     leader.persistent = true;

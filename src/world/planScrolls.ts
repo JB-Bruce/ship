@@ -113,14 +113,15 @@ export class PlanScrolls {
   /**
    * Un ennemi vient de recevoir le coup fatal. Coulé par ta flotte (`byFleet`), d'un type encore inconnu, il lâchera un
    * bout de son plan une fois sur deux (une élite toujours, un boss jamais), sauf si les bouts gagnés et ceux qui flottent
-   * déjà suffisent à compléter ce plan.
+   * déjà suffisent à compléter ce plan. Le porteur de plans d'une chasse aux plans le lâche toujours, qui que ce soit qui
+   * l'ait coulé.
    */
   claim(enemy: Enemy | undefined, byFleet: boolean) {
-    if (!enemy || !byFleet || enemy.boss || this.pending.has(enemy.ship)) return;
+    if (!enemy || !(byFleet || enemy.carriesPlan) || enemy.boss || this.pending.has(enemy.ship)) return;
     const type = enemy.ship.type;
     if (blueprints.isUnlocked(type) || blueprints.count(type) + this.inFlight(type) >= blueprints.needed(type)) return;
     if (this.scrolls.length + this.pending.size >= BLUEPRINTS.maxScrolls) return;
-    if (Math.random() >= (enemy.elite ? BLUEPRINTS.eliteDropChance : BLUEPRINTS.dropChance)) return;
+    if (!enemy.carriesPlan && Math.random() >= (enemy.elite ? BLUEPRINTS.eliteDropChance : BLUEPRINTS.dropChance)) return;
     this.pending.set(enemy.ship, type);
   }
 

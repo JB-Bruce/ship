@@ -192,7 +192,15 @@ export class Game {
     this.healthBars = new HealthBars(container);
     this.bossBar = new ObjectiveBar(container, 'boss');
     this.siegeBar = new ObjectiveBar(container, 'siege');
-    const world = { scene: this.scene, ships: this.ships, spawner: this.spawner, forts: this.forts, wreckLoot: (ship: Ship) => this.wreckLoot(ship) };
+    const world = {
+      scene: this.scene,
+      ships: this.ships,
+      spawner: this.spawner,
+      forts: this.forts,
+      leader: () => this.fleet.leader,
+      wreckLoot: (ship: Ship) => this.wreckLoot(ship),
+      adoptPirate: (ship: Ship) => this.pirates.adopt(ship),
+    };
     this.campaign = new Campaign(this.state, this.fleet, this.hud, world, this.lighthouse, this.spawner);
     this.fishing = new Fishing(this.fleet, { caught: () => this.campaign.fishCaught(), say: (text) => this.hud.toast(text, 2.5) });
     this.bosses = new Bosses(this.spawner, {

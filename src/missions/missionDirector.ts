@@ -2,6 +2,7 @@ import { CONTRACTS, ISLAND_INFO } from '../config';
 import type { Contract } from '../progression/contracts';
 import type { Ship } from '../ship/ship';
 import type { Fort } from '../world/fort';
+import { BattleMission } from './battleMission';
 import { EscortMission } from './escortMission';
 import { HuntMission } from './huntMission';
 import type { MapZone, Mission, MissionWorld } from './mission';
@@ -14,8 +15,8 @@ export interface MissionEvents {
 }
 
 /**
- * Directeur des missions : quand un contrat de chasse, de défense ou d'escorte est accepté, il fait apparaître ce
- * qu'il faut en mer et suit la mission jusqu'à sa réussite ou son échec (ou son abandon).
+ * Directeur des missions : quand un contrat de chasse, de chasse aux plans, de défense, d'escorte ou d'aide au combat est
+ * accepté, il fait apparaître ce qu'il faut en mer et suit la mission jusqu'à sa réussite ou son échec (ou son abandon).
  */
 export class MissionDirector {
   private readonly running = new Map<Contract, Mission>();
@@ -31,6 +32,14 @@ export class MissionDirector {
       case 'hunt':
         this.running.set(contract, new HuntMission(this.world, contract));
         this.events.say(`${contract.captain} est signalé au large : sa zone est marquée sur ta carte.`);
+        break;
+      case 'planHunt':
+        this.running.set(contract, new HuntMission(this.world, contract));
+        this.events.say('Le porteur de plans est signalé au large : sa zone est marquée sur ta carte.');
+        break;
+      case 'battle':
+        this.running.set(contract, new BattleMission(this.world, contract, () => this.events.say('⚔ L’armada pirate lève l’ancre : cap sur l’escadre de la Marine !', true)));
+        this.events.say(`L’armada pirate t’attend au large de ${ISLAND_INFO[contract.from].shortName} : son rendez-vous est marqué sur ta carte.`);
         break;
       case 'defend': {
         const place = ISLAND_INFO[contract.from].shortName;
@@ -71,10 +80,7 @@ export class MissionDirector {
   /** Zones à marquer sur la carte. */
   zones(): MapZone[] {
     const zones: MapZone[] = [];
-    for (const mission of this.running.values()) {
-      const zone = mission.zone();
-      if (zone) zones.push(zone);
-    }
+    for (const mission of this.running.values()) zones.push(...mission.zones());
     return zones;
   }
 
@@ -82,6 +88,13 @@ export class MissionDirector {
   escorts(): Ship[] {
     const ships: Ship[] = [];
     for (const mission of this.running.values()) if (mission instanceof EscortMission) ships.push(mission.ship);
+    return ships;
+  }
+
+  /** Pirates des armadas d'une aide au combat, pour la carte. */
+  allies(): Ship[] {
+    const ships: Ship[] = [];
+    for (const mission of this.running.values()) if (mission instanceof BattleMission) ships.push(...mission.ships);
     return ships;
   }
 

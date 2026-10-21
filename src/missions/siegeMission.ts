@@ -75,8 +75,8 @@ export class SiegeMission implements Mission {
     return `${this.noun} ${Math.round((this.fort.health / this.fort.maxHealth) * 100)} % · ${left} assaillant${left > 1 ? 's' : ''}`;
   }
 
-  zone(): MapZone | null {
-    return null;
+  zones(): readonly MapZone[] {
+    return [];
   }
 
   /** Fin du siège : les survivants repartent, le fort est remis en état. */

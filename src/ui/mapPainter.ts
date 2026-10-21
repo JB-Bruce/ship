@@ -240,9 +240,9 @@ function paintIsland(ctx: CanvasRenderingContext2D, island: Landmass, toX: (x: n
   ctx.fillText(ISLAND_INFO[island.id].name, nameX, name);
 }
 
-/** Zone de chasse : un cercle rouge pointillé et le nom du capitaine. */
+/** Zone de mission : un cercle pointillé (rouge, ou bleu pour un rendez-vous avec des pirates) et son nom. */
 function paintZone(ctx: CanvasRenderingContext2D, zone: MapZone, toX: (x: number) => number, toY: (z: number) => number, scale: number) {
-  ctx.strokeStyle = ctx.fillStyle = COLORS.hunt;
+  ctx.strokeStyle = ctx.fillStyle = zone.ally ? COLORS.pirate : COLORS.hunt;
   ctx.lineWidth = 2;
   ctx.setLineDash([7, 5]);
   ctx.beginPath();

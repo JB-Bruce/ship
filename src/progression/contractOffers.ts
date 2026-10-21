@@ -1,6 +1,6 @@
 import { CONTRACTS, ISLAND_INFO, SPECIAL_CONTRACTS, type Cost, type IslandId, type SpecialContractDef } from '../config';
-import { sizeRank, type ShipType } from '../shipTypes';
-import { tokenizeTypeNames, typeToken } from './blueprints';
+import { SHIP_SIZE_ORDER, sizeRank, type ShipType } from '../shipTypes';
+import { blueprints, tokenizeTypeNames, typeToken } from './blueprints';
 import type { Contract, ContractKind, ContractOptions } from './contracts';
 import { GOODS, goodText, type Good } from './goods';
 import { averageThreat, rangeThreat, shipThreat, squadronThreat, starsForThreat, targetThreat } from './missionThreat';
@@ -27,13 +27,17 @@ const average = ([min, max]: readonly [number, number]) => (min + max) / 2;
 const drawnSquadronThreat = (leader: ShipType, followers: number, min: ShipType) =>
   shipThreat(leader) * CONTRACTS.eliteThreat + followers * rangeThreat(min, leader);
 
+/** Types que vise une chasse aux plans : plan incomplet, au plus un rang au-dessus de ton plus gros navire. */
+const planTargets = (best: ShipType) => SHIP_SIZE_ORDER.filter((t) => !blueprints.isUnlocked(t) && sizeRank(t) <= sizeRank(best) + 1);
+
 /** Genre d'une offre, pour ne pas en proposer deux pareilles : les livraisons se distinguent par leur marchandise. */
 export const offerKey = (c: Offer): string => (c.kind === 'deliver' ? `deliver-${c.good}` : c.kind);
 
 /**
  * Nouvelle offre du jour pour la taverne d'une île pirate, d'un genre qui n'est ni déjà proposé ici ni déjà accepté
  * (`taken`) : couler des navires de la Marine, livrer du poisson, chasse à un capitaine, défense du port, escorte d'un
- * marchand, et les convois de son marché. La chasse à un type de navire reste toujours possible (elle varie par le type).
+ * marchand, chasse aux plans (s'il reste un plan à portée), aide au combat d'une armada pirate, et les convois de son
+ * marché. La chasse à un type de navire reste toujours possible (elle varie par le type).
  * `stars` (tiré autour du niveau de ta flotte) choisit le palier des tables ; pour un combat, les étoiles affichées et la
  * prime viennent ensuite de la menace réelle (missionThreat.ts).
  */
@@ -50,7 +54,8 @@ export function createOffer(island: IslandId, options: ContractOptions, stars: n
     claimAt,
   });
   const convoys = convoyRoutes(island);
-  const kinds = ['sink', 'deliver-fish', 'hunt', 'defend', 'escort', ...(options.elites ? ['sinkElite'] : []), ...convoys.map((c) => `deliver-${c.good}`)];
+  const plans = planTargets(options.best);
+  const kinds = ['sink', 'deliver-fish', 'hunt', 'defend', 'escort', 'battle', ...(plans.length ? ['planHunt'] : []), ...(options.elites ? ['sinkElite'] : []), ...convoys.map((c) => `deliver-${c.good}`)];
   const kind = pick([...kinds.filter((k) => !taken.has(k)), 'sinkType']);
   const info = ISLAND_INFO[island];
 
@@ -87,6 +92,21 @@ export function createOffer(island: IslandId, options: ContractOptions, stars: n
       const s = starsForThreat(drawnSquadronThreat(h.captain[i], average(h.escorts[i]), h.escortMin[i]));
       const text = `${name} (${ship} d'élite) et son escorte rôdent dans une zone marquée sur ta carte (M). Coule son navire.`;
       return { ...offer('hunt', `Tête mise à prix : ${name}`, text, 1, rewardFor(h.gold, h.wood, s)), stars: s, captain: name };
+    }
+    case 'planHunt': {
+      const type = pick(plans);
+      const s = starsForThreat(shipThreat(type));
+      const text = `${typeToken('Un', type)} de la Marine porte les plans de sa construction et croise seul dans une zone marquée sur ta carte (M). Coule-le : un bout de son plan est garanti.`;
+      return { ...offer('planHunt', 'Chasse aux plans', text, 1, rewardFor(CONTRACTS.planHunt.gold, CONTRACTS.planHunt.wood, s)), stars: s, shipType: type };
+    }
+    case 'battle': {
+      const b = CONTRACTS.battle;
+      const i = stars - 1;
+      const enemy = drawnSquadronThreat(b.enemyLeader[i], b.enemies[i] - 1, b.enemyMin[i]);
+      const allies = shipThreat(b.allyLeader[i]) + (b.allies[i] - 1) * rangeThreat(b.allyMin[i], b.allyLeader[i]);
+      const s = starsForThreat(enemy - allies * b.allyShare);
+      const text = `Une armada pirate de ${b.allies[i]} navires part affronter une escadre de ${b.enemies[i]} navires de la Marine au large de ${info.shortName}. Rejoins-la au rendez-vous marqué sur ta carte (M) et aide-la à vaincre. Prime versée sur-le-champ, seulement si les pirates l'emportent.`;
+      return { ...offer('battle', 'Aide au combat', text, 1, rewardFor(b.gold, b.wood, s)), stars: s };
     }
     case 'defend': {
       const d = CONTRACTS.defend;

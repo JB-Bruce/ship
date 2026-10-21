@@ -1904,6 +1904,8 @@ body {
 .tag.mission.bounty { background: #2b2118; }
 .tag.mission.defense { background: #4a5a2a; }
 .tag.mission.escort { background: #2a4a6a; }
+.tag.mission.plans { background: #6a2a5a; }
+.tag.mission.battle { background: #1f4f7a; }
 .tag.mission.convoy { background: #6a4a2a; }
 .tag.mission.delivery { background: #2a5a5a; }
 

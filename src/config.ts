@@ -1241,6 +1241,47 @@ export const CONTRACTS = {
     /** Distance devant le marchand où surgit une embuscade (m). */
     ambushDistance: 320,
   },
+  /**
+   * Chasse aux plans : un seul navire de la Marine, jamais d'élite, d'un type dont ton plan n'est pas complet et au plus
+   * un rang au-dessus de ton plus gros navire, croise dans une zone de la carte (celle de la chasse : `hunt.distance`,
+   * `hunt.radius`). Coulé, il lâche à coup sûr un bout de son plan ; la prime (× les étoiles de sa menace) se touche à
+   * la taverne.
+   */
+  planHunt: { gold: 120, wood: 30 },
+  /**
+   * Aide au combat : une armada pirate attend au rendez-vous, au large de l'île qui offre le contrat ; quand ton navire
+   * piloté arrive à moins de `joinRadius` m (ou qu'elle est attaquée), elle met le cap sur une escadre de la Marine
+   * qui croise plus loin, et la bataille commence. Prime versée sur-le-champ, seulement si les pirates l'emportent :
+   * toute l'escadre coulée avec au moins un des leurs à flot. Par étoile : nombre et types de chaque armada (le chef
+   * d'abord) ; autant de navires des deux côtés, mais le chef de la Marine est d'élite : seuls, les pirates perdent de
+   * peu (un navire de plus les écraserait).
+   */
+  battle: {
+    gold: 260,
+    wood: 70,
+    allies: [2, 2, 3, 3, 4],
+    allyLeader: ['sloop', 'sloop', 'brigantine', 'brigantine', 'corvette'] as const,
+    allyMin: ['longboat', 'longboat', 'sloop', 'sloop', 'sloop'] as const,
+    enemies: [2, 2, 3, 3, 4],
+    enemyLeader: ['sloop', 'sloop', 'brigantine', 'brigantine', 'corvette'] as const,
+    enemyMin: ['longboat', 'longboat', 'sloop', 'sloop', 'sloop'] as const,
+    /** Part de la menace ennemie que les pirates retiennent (étoiles du contrat : menace ennemie − cette part de la leur). */
+    allyShare: 0.35,
+    /** Rendez-vous : distance à l'île qui offre le contrat (m) ; rayon du cercle sur la carte, et où ton arrivée lance l'armada (m). */
+    rendezvous: [380, 520] as const,
+    joinRadius: 110,
+    /** Escadre de la Marine : distance au rendez-vous (m), et rayon de sa zone de patrouille (m). */
+    enemyDistance: [600, 750] as const,
+    enemyRadius: 150,
+    /**
+     * Les pirates engagent un ennemi à moins de cette distance (m) ; sinon ils vont vers l'escadre, en V derrière leur
+     * chef, qui porte cette part de sa toile (ses suiveurs, plus, pour le rattraper).
+     */
+    engageRange: 260,
+    cruiseSail: 0.8,
+    /** Ils jettent l'ancre à moins de cette distance de leur place au rendez-vous (m). */
+    holdRadius: 15,
+  },
 };
 
 /**

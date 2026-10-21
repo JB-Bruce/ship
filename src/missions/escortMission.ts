@@ -66,8 +66,8 @@ export class EscortMission implements Mission {
     return `${MERCHANT.name} : vie ${health} % · ${Math.round(this.ai.remaining)} m de ${this.destination}`;
   }
 
-  zone(): MapZone | null {
-    return null;
+  zones(): readonly MapZone[] {
+    return [];
   }
 
   /** Une escadre surgit devant le marchand, un peu sur le côté, cap sur lui. */

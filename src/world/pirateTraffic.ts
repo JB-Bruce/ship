@@ -54,6 +54,17 @@ export class PirateTraffic {
     return true;
   }
 
+  /**
+   * Un pirate d'une mission (armada d'une aide au combat), déjà en mer, rejoint les autres : il met le cap sur le port
+   * le plus proche, puis va de port en port. Coulé ou en train de couler, il laisse son épave comme eux.
+   */
+  adopt(ship: Ship) {
+    if (this.has(ship)) return;
+    const ai = new PirateAI(ship, harbors.open()[0]);
+    if (ship.alive) ai.headForPort(this.ships);
+    this.pirates.push({ ship, ai });
+  }
+
   update(dt: number, crates: readonly Crate[], schools: readonly FishSchool[], leader: Ship) {
     for (let i = this.pirates.length - 1; i >= 0; i--) {
       const { ship, ai } = this.pirates[i];

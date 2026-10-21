@@ -5,7 +5,10 @@ import { createOffer, offerKey, specialOffer, withTypeTokens } from './contractO
 import type { Good } from './goods';
 import { shipThreat } from './missionThreat';
 
-export type ContractKind = 'sink' | 'sinkType' | 'sinkElite' | 'deliver' | 'sinkBoss' | 'hunt' | 'defend' | 'escort';
+export type ContractKind = 'sink' | 'sinkType' | 'sinkElite' | 'deliver' | 'sinkBoss' | 'hunt' | 'planHunt' | 'defend' | 'escort' | 'battle';
+
+/** Les contrats suivis par le directeur des missions (il fait apparaître ce qu'il faut en mer). */
+export const MISSION_KINDS: readonly ContractKind[] = ['hunt', 'planHunt', 'defend', 'escort', 'battle'];
 
 export interface Contract {
   readonly id: number;
@@ -50,17 +53,21 @@ export interface ContractOptions {
   elites: boolean;
   /** Niveau de ta flotte (1 à 5) : les étoiles des offres se tirent autour. */
   level: number;
+  /** Ton plus gros navire (la chasse aux plans vise au plus un rang au-dessus). */
+  best: ShipType;
 }
 
 /** Genre de mission affiché sur les contrats (offres, contrats en cours, suivi à l'écran). */
-export type MissionType = 'combat' | 'hunt' | 'bounty' | 'defense' | 'escort' | 'convoy' | 'delivery';
+export type MissionType = 'combat' | 'hunt' | 'plans' | 'bounty' | 'defense' | 'escort' | 'battle' | 'convoy' | 'delivery';
 
 export const MISSION_TYPES: Record<MissionType, { name: string; icon: string }> = {
   combat: { name: 'Combat', icon: '⚔' },
   hunt: { name: 'Chasse', icon: '🎯' },
+  plans: { name: 'Plans', icon: '📜' },
   bounty: { name: 'Prime', icon: '☠' },
   defense: { name: 'Défense', icon: '🏰' },
   escort: { name: 'Escorte', icon: '⛵' },
+  battle: { name: 'Renfort', icon: '⚓' },
   convoy: { name: 'Convoi', icon: '📦' },
   delivery: { name: 'Livraison', icon: '🐟' },
 };
@@ -68,9 +75,11 @@ export const MISSION_TYPES: Record<MissionType, { name: string; icon: string }> 
 export function missionType(c: Contract): MissionType {
   switch (c.kind) {
     case 'hunt': return 'hunt';
+    case 'planHunt': return 'plans';
     case 'sinkBoss': return 'bounty';
     case 'defend': return 'defense';
     case 'escort': return 'escort';
+    case 'battle': return 'battle';
     case 'deliver': return c.good === 'fish' ? 'delivery' : 'convoy';
     default: return 'combat';
   }

@@ -80,6 +80,12 @@ export class PirateAI {
     this.stay = rand(PIRATES.stay);
   }
 
+  /** En pleine mer (pirate repris d'une armada de mission) : il met le cap sur le port ouvert le plus proche. */
+  headForPort(ships: readonly Ship[]) {
+    this.port = this.nearestPort();
+    this.sailTo(this.port, ships);
+  }
+
   /** Le pirate quitte la mer (coulé) : sa place au mouillage se libère. */
   dispose() {
     releaseMooring(this.ship);

@@ -9,7 +9,7 @@ import type { Fleet, FleetMember } from './fleet/fleet';
 import { loseCargo, store } from './fleet/holds';
 import { MissionDirector } from './missions/missionDirector';
 import type { MissionWorld } from './missions/mission';
-import { Contracts, fleetLevel, type Contract, type ContractOptions, type ContractsSnapshot } from './progression/contracts';
+import { Contracts, fleetLevel, MISSION_KINDS, type Contract, type ContractOptions, type ContractsSnapshot } from './progression/contracts';
 import { Harbor } from './progression/harbor';
 import { IslandState, type IslandSnapshot } from './progression/islandState';
 import { Ledger, type LedgerSnapshot } from './progression/ledger';
@@ -158,13 +158,13 @@ export class Campaign {
     if (!s.discovery || !this.discovery.restore(s.discovery)) for (const id of visitedIslands(s)) this.discovery.revealLand(islandById(id));
     blueprints.restore(s.blueprints, this.fleet.members.map((m) => m.type));
     for (const c of this.contracts.active) {
-      if ((c.kind === 'hunt' || c.kind === 'defend' || c.kind === 'escort') && !this.contracts.isDone(c)) this.missions.start(c);
+      if (MISSION_KINDS.includes(c.kind) && !this.contracts.isDone(c)) this.missions.start(c);
     }
   }
 
   /** Ce que les contrats peuvent demander, et le niveau de ta flotte (étoiles des offres). */
   private contractOptions(): ContractOptions {
-    return { ...this.spawner.contractOptions(), level: fleetLevel(this.fleet.members.map((m) => m.type)) };
+    return { ...this.spawner.contractOptions(), level: fleetLevel(this.fleet.members.map((m) => m.type)), best: this.fleet.strongest };
   }
 
   /** Les îles produisent même quand tu es au large ; le port où se trouve le bateau piloté devient l'escale. */
@@ -240,9 +240,9 @@ export class Campaign {
     if (trophy && boss) this.hud.notifications.kill(`☠ Le pavillon de ${BOSSES[boss].name} flotte sous celui de ${member.name}`);
   }
 
-  /** Mission réussie : défense et escorte sont payées sur-le-champ, la chasse se paie à la taverne. */
+  /** Mission réussie : défense, escorte et aide au combat sont payées sur-le-champ, les chasses à la taverne. */
   private missionSucceeded(c: Contract) {
-    if (c.kind === 'hunt') {
+    if (c.kind === 'hunt' || c.kind === 'planHunt') {
       c.progress = c.target;
       this.hud.notifications.kill(`✔ Contrat rempli : ${revealTypes(c.title)} (prime à ${ISLAND_INFO[c.claimAt].portName})`);
       return;
@@ -252,7 +252,7 @@ export class Campaign {
     if (officer) this.hud.notifications.kill(`★ ${officer.name} (${OFFICERS.roles[officer.role].name.toLowerCase()}) rejoint ton équipage`);
     const info = ISLAND_INFO[c.from];
     const place = info.shortName.charAt(0).toUpperCase() + info.shortName.slice(1);
-    const thanks = c.kind === 'defend' ? `${place} a tenu ! ${info.holders} te remercient` : 'Le marchand est arrivé à bon port';
+    const thanks = c.kind === 'defend' ? `${place} a tenu ! ${info.holders} te remercient` : c.kind === 'battle' ? 'Victoire ! Les pirates te remercient' : 'Le marchand est arrivé à bon port';
     this.hud.toast(`${thanks} : +${c.reward.gold} or${c.reward.wood ? `, +${c.reward.wood} bois` : ''}`, 4, 'good');
   }
 
