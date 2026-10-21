@@ -327,6 +327,8 @@ export class Game {
     this.hud.update(dt, leader, this.state, this.inCombat(), this.fleet);
     this.hud.quests.update(dt, this.campaign.contracts, this.fleet, (c) => this.campaign.missions.status(c), () => this.campaign.navy.objectives());
     this.radar.range = this.campaign.islands.tortuga.radarRange(tortuga.sdf(leader.position.x, leader.position.z)) * this.fleet.radarFactor();
+    // Ce que le radar balaie est découvert sur la carte, pour toujours.
+    this.campaign.discovery.update(leader.position.x, leader.position.z, this.radar.range);
     this.encounters.update(this.spawner.enemies, leader);
     this.radar.update(dt, leader, this.spawner.enemies, this.wind, this.ships, this.schools.list, this.campaign.escorts(), this.fleet.traders);
     this.betrayal.update(this.camera, leader, (this.scene.fog as THREE.Fog).far);

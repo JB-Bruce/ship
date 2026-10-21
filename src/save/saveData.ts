@@ -14,7 +14,7 @@ import type { WeatherKind } from '../world/weather';
  * à la Marine avec son fort intact.
  * v3 : vie de tous les navires doublée ; la vie à flot d'une sauvegarde plus ancienne est doublée au chargement.
  */
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 /** Facteur appliqué au chargement à la vie à flot d'une sauvegarde de cette version. */
 export const healthScaleOf = (version: number) => (version < 3 ? 2 : 1);
 /** Marque des fichiers de sauvegarde du jeu (pour refuser un fichier qui n'en est pas une). */

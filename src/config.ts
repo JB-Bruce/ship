@@ -1466,6 +1466,45 @@ export const EMBLEMS = {
 /** Carte (M) : zoom au plus (× le cadrage d'ensemble), vitesse de la molette (par unité de défilement). */
 export const MAP_VIEW = { maxZoom: 8, wheelSpeed: 0.0015 };
 
+/**
+ * Brume de découverte de la carte (M) : la carte ne montre que ce que le radar du bateau piloté a balayé
+ * (`progression/mapDiscovery.ts`), le reste est un lavis de parchemin vierge (`ui/mapFog.ts`), sauf tes objectifs.
+ * La grille couvre le cercle du bord du monde et sa tempête (WORLD_EDGE.radius + band) plus `margin` m, en cases de
+ * `cell` m. Une nouvelle découverte se fait quand le bateau a bougé de `step` m, ou que la portée du radar a changé
+ * d'autant. Au départ d'une partie, on connaît la Tortue et `startMargin` m autour de sa côte (de même pour chaque île
+ * déjà visitée d'une ancienne sauvegarde).
+ */
+export const MAP_FOG = {
+  cell: 25,
+  margin: 200,
+  step: 25,
+  startMargin: 300,
+  /**
+   * Lavis (`ui/fogMask.ts`) : texel du masque (m) ; la limite est floutée (écart type, en cases), puis rendue
+   * irrégulière par un bruit (`wobble` : amplitude, en part du champ flouté ; `noise` : [longueur d'onde (m), poids] de
+   * chaque octave). `soft` : largeur du fondu de part et d'autre de la limite ; `rim` : largeur du bord assombri, côté
+   * inconnu (le pigment s'y accumule), `rimStrength` sa force (0 à 1). Ces trois largeurs sont en part du champ
+   * flouté (près de la limite, 0,1 ≈ 10 m). Garder `wobble` + `rim` et `wobble` + `soft` sous 0,5.
+   */
+  texel: 10,
+  blur: 1.6,
+  wobble: 0.27,
+  noise: [[240, 0.55], [100, 0.3], [44, 0.15]] as const,
+  soft: 0.09,
+  rim: 0.22,
+  rimStrength: 0.65,
+  /**
+   * Couleurs du parchemin vierge (RVB) : fond, taches (longueur d'onde `stainScale` m, force `stainStrength`, effacées
+   * sur les `stainFade` derniers m de la grille, au-delà de laquelle le parchemin est uni) et bord.
+   */
+  paper: [239, 223, 184] as const,
+  stain: [221, 195, 146] as const,
+  stainScale: 1000,
+  stainStrength: 0.45,
+  stainFade: 400,
+  rimColor: [128, 86, 42] as const,
+};
+
 export const OCEAN = {
   /** Demi-taille de la grille d'eau (m), recentrée sur le joueur. */
   halfSize: 900,
