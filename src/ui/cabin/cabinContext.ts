@@ -1,4 +1,4 @@
-import type { IslandId } from '../../config';
+import type { BossId, IslandId } from '../../config';
 import type { Crew } from '../../fleet/crew';
 import type { Fleet, FleetMember } from '../../fleet/fleet';
 import type { TradeRoutes } from '../../fleet/tradeRoutes';
@@ -19,6 +19,8 @@ export interface CabinActions {
   assignOfficer(officerId: number, memberId: number | null): void;
   takeHelm(member: FleetMember): void;
   abandonContract(id: number): void;
+  /** Hisse ou retire le pavillon d'un boss coulé par ce navire. */
+  toggleTrophy(memberId: number, boss: BossId): void;
 }
 
 /** Ce que la Cabine lit du jeu. */

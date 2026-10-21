@@ -2149,6 +2149,29 @@ export const LIGHTNING = {
   mastHeight: 0.7,
 };
 
+/**
+ * Vue « vitrine » du Chantier (`camera/showcaseView.ts`) : glisse vers la partie choisie (`glide`, 1/s), rotation lente
+ * de la vue d'ensemble (`spin`, rad/s), souris (`sensitivity`, rad/px ; hauteur ± `pitchRange`), bornes de hauteur
+ * du regard (rad) et de la caméra au-dessus de l'eau (m). `views` : d'où regarder chaque partie (cap relatif au navire,
+ * hauteur, distance en longueurs de navire).
+ */
+export const SHOWCASE = {
+  glide: 3.5,
+  spin: 0.12,
+  sensitivity: 0.006,
+  pitchRange: 0.5,
+  minPitch: 0.04,
+  maxPitch: 1.25,
+  minHeight: 1.2,
+  views: {
+    overview: { yaw: 2.3, pitch: 0.32, distance: 1.55 },
+    sails: { yaw: 1.9, pitch: 0.18, distance: 1.25 },
+    cannons: { yaw: 1.57, pitch: 0.12, distance: 0.62 },
+    hull: { yaw: 1.2, pitch: 0.1, distance: 0.95 },
+    hold: { yaw: 2.6, pitch: 0.85, distance: 0.75 },
+  },
+};
+
 export const CAMERA = {
   fov: 55,
   distance: 18,

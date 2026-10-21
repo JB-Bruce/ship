@@ -1,6 +1,6 @@
 import type { Formation } from '../../fleet/fleet';
 import type { Good } from '../../progression/goods';
-import type { IslandId } from '../../config';
+import type { BossId, IslandId } from '../../config';
 import { UPGRADE_INFO } from '../../shipTypes';
 import type { UpgradeId } from '../../progression/upgrades';
 import { flyCoins, glow, riseText, settleBars, shake } from '../kit/feedback';
@@ -137,6 +137,12 @@ export class CabinMenu extends ParchmentMenu {
         ctx.fleet.formation = arg as Formation;
         this.fx.glow = `.cabin-formation.on`;
         break;
+      case 'trophy': {
+        const [ship, boss] = arg.split(':');
+        ctx.actions.toggleTrophy(Number(ship), boss as BossId);
+        this.fx.glow = `[data-arg="${arg}"]`;
+        break;
+      }
       case 'abandon': {
         const id = Number(arg);
         if (view.confirmAbandon === id) {

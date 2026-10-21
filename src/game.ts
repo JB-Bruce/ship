@@ -213,7 +213,7 @@ export class Game {
     if (loaded) this.hud.toast(`Partie chargée : « ${loaded} »`, 3, 'good');
 
     const { state, fleet, campaign, hud, wind, spawner, loot, planScrolls, schools, radar, pirates, settings, display, saves, dayCycle } = this;
-    this.portMenu = createMenus({ container, state, fleet, campaign, hud, wind, spawner, loot, planScrolls, schools, radar, pirates, settings, display, saves, dayCycle, takeHelm: (m) => this.takeHelm(m) });
+    this.portMenu = createMenus({ container, state, fleet, campaign, hud, wind, spawner, loot, planScrolls, schools, radar, pirates, settings, display, saves, dayCycle, chaseCamera: this.chaseCamera, takeHelm: (m) => this.takeHelm(m) });
     this.weatherButtons = new WeatherButtons(container, this.weather);
     this.dayClock = new DayClock(container, this.dayCycle);
     this.fpsCounter = new FpsCounter(container, this.settings, this.display);
@@ -326,7 +326,8 @@ export class Game {
     if (paused) view.release();
     this.onFoot.update(dt, leader);
     this.chaseCamera.update(elapsed, leader, this.waves, this.onFoot.footEye());
-    this.deckCrew.hiddenHelm = view.active && !this.onFoot.walking ? leader : null;
+    // Au Chantier, la vitrine montre le navire de l'extérieur : le barreur reste visible.
+    this.deckCrew.hiddenHelm = view.active && !this.onFoot.walking && !this.chaseCamera.showcase.active ? leader : null;
     this.weather.update(dt, this.camera, this.wind, this.ships, leader);
     this.edgeStorm.update(dt, this.ships);
     this.fogCulling.update(this.camera, (this.scene.fog as THREE.Fog).far, this.ships);

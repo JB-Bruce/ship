@@ -8,18 +8,16 @@ import { crewTab } from './crewTab';
 import { islandTab, islandUpgradesTab } from './islandTab';
 import type { PortContext, PortTab, TradeGood } from './portContext';
 import { pickRoute, routesTab } from './routesTab';
-import { shipsTab } from './shipsTab';
-import { shipyardTab } from './shipyardTab';
 import { TAB_ICONS } from './tabIcons';
 import { tavernTab } from './tavernTab';
 import { tradeTab } from './tradeTab';
 
-const TABS: { id: PortTab; name: string; render: (ctx: PortContext) => string }[] = [
+/** Onglets du panneau ; le Chantier (`render` null) ouvre sa propre vue, autour du navire en 3D. */
+const TABS: { id: PortTab; name: string; render: ((ctx: PortContext) => string) | null }[] = [
   { id: 'island', name: 'Île', render: islandTab },
   { id: 'trade', name: 'Marché', render: tradeTab },
   { id: 'routes', name: 'Routes', render: routesTab },
-  { id: 'shipyard', name: 'Chantier', render: shipyardTab },
-  { id: 'ships', name: 'Navires', render: shipsTab },
+  { id: 'shipyard', name: 'Chantier', render: null },
   { id: 'crew', name: 'Équipage', render: crewTab },
   { id: 'upgrades', name: 'Améliorations', render: islandUpgradesTab },
   { id: 'tavern', name: 'Taverne', render: tavernTab },
@@ -32,12 +30,14 @@ export interface PortAccess {
   onOpen(): void;
   /** Touche pressée loin du port. */
   refused(code: string): void;
+  /** Ouvre le Chantier (vue autour du navire). */
+  openShipyard(): void;
 }
 
 /**
  * Panneau du port où la flotte fait escale (P), seulement près d'un quai :
- * l'île et son allégeance (et son rachat), le marché, le chantier naval, les navires, les améliorations de l'île (si
- * elle t'appartient) et la taverne. Le registre est dans le Journal de la Cabine (Tab).
+ * l'île et son allégeance (et son rachat), le marché, les routes, les améliorations de l'île (si elle t'appartient), la
+ * taverne, et le Chantier (sa propre vue : `ShipyardMenu`). Le registre est dans le Journal de la Cabine (Tab).
  */
 export class PortMenu extends ParchmentMenu {
   private tab: PortTab = 'island';
@@ -71,8 +71,8 @@ export class PortMenu extends ParchmentMenu {
     const bar = tabs
       .map((t) => `<button class="choice${t.id === this.tab ? ' on' : ''}" data-action="tab" data-arg="${t.id}">${TAB_ICONS[t.id]}${t.name}</button>`)
       .join('');
-    const current = tabs.find((t) => t.id === this.tab) ?? tabs[0];
-    this.body.innerHTML = `<div class="choices port-tabs">${bar}</div>${current.render(this.ctx)}`;
+    const current = tabs.find((t) => t.id === this.tab && t.render) ?? tabs[0];
+    this.body.innerHTML = `<div class="choices port-tabs">${bar}</div>${current.render!(this.ctx)}`;
   }
 
   protected onAction(action: string, arg: string) {
@@ -80,7 +80,8 @@ export class PortMenu extends ParchmentMenu {
     const member = this.ctx.fleet.members.find((m) => String(m.id) === arg);
     switch (action) {
       case 'tab':
-        this.tab = arg as PortTab;
+        if (arg === 'shipyard') this.access.openShipyard();
+        else this.tab = arg as PortTab;
         break;
       case 'upgrade':
         a.buyUpgrade(arg as UpgradeId);

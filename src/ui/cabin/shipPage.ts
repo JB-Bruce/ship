@@ -1,3 +1,4 @@
+import { BOSSES, RANKS } from '../../config';
 import type { FleetMember } from '../../fleet/fleet';
 import { capacityOf } from '../../fleet/holds';
 import { rankName, rankOf } from '../../fleet/officers';
@@ -5,7 +6,7 @@ import { cannonCount, deriveStats, describeLevel, holdCapacity, maxLevel, maxLev
 import type { ShipStats } from '../../config';
 import { SHIP_SIZE_ORDER, SHIP_TYPES, typeName, UPGRADE_INFO } from '../../shipTypes';
 import { gaugeHtml, pipsHtml, priceHtml, statBarHtml, tip } from '../kit/kit';
-import { UPGRADE_ICONS } from '../port/shipyardTab';
+import { UPGRADE_ICONS } from '../upgradeIcons';
 import { shipIcon } from '../shipIcons';
 import { viewedMember, type CabinContext, type CabinView } from './cabinContext';
 
@@ -69,6 +70,15 @@ export function shipPage(ctx: CabinContext, view: CabinView, fx: ShipPageFx): st
   const afloat = m.inWorld && ship.alive;
   const status = m.trade ? 'En route commerciale' : !m.inWorld ? `Coulé : de retour dans ${Math.ceil(m.respawnIn)} s` : !ship.alive ? 'En train de couler…' : atHelm ? 'Tu es à la barre' : 'Suit la flotte';
   const helm = !atHelm && afloat && !m.trade ? `<button class="kit-btn" data-action="helm" data-arg="${m.id}">Prendre la barre</button>` : '';
+  const next = RANKS.levels[stars + 1];
+  const rankTip = `${rankName(stars)}${next ? ` · ${next.name} à ${next.kills} victoires` : ''}`;
+  // Pavillons des boss coulés par ce navire, hissés sous son pavillon ou retirés.
+  const trophies = m.trophies
+    .map((id) => {
+      const shown = !m.hiddenTrophies.has(id);
+      return `<button class="cabin-trophy${shown ? ' on' : ''}" data-action="trophy" data-arg="${m.id}:${id}"${tip(`Pavillon de ${BOSSES[id].name} : ${shown ? 'hissé (clic pour le retirer)' : 'retiré (clic pour le hisser)'}`)}>☠</button>`;
+    })
+    .join('');
   const bars = LINES.map((line, i) => {
     const v = line.value(ship.stats, capacityOf(m));
     return statBarHtml(line.label, line.text(v), v / t[i], undefined, fx.before?.[line.label]);
@@ -101,7 +111,7 @@ export function shipPage(ctx: CabinContext, view: CabinView, fx: ShipPageFx): st
         <div class="cabin-card cabin-ship-card">
           <div class="cabin-ship-icon">${shipIcon(m.type, m.levels)}</div>
           <div class="cabin-ship-title"><span class="cabin-name">${m.name}</span><span>${typeName(m.type, m.levels.extension)}</span></div>
-          <div class="cabin-ship-meta"><span${tip(`${m.kills} navires coulés`)}>☠ ${m.kills}</span>${stars ? `<span class="kit-stars"${tip(rankName(stars))}>${'★'.repeat(stars)}</span>` : ''}<span>${status}</span></div>
+          <div class="cabin-ship-meta"><span${tip(`${m.kills} navires coulés`)}>☠ ${m.kills}</span>${stars ? `<span class="kit-stars"${tip(rankTip)}>${'★'.repeat(stars)}</span>` : `<span${tip(rankTip)}>${rankName(stars)}</span>`}<span>${status}</span>${trophies}</div>
           <div class="cabin-life"><span>Vie</span>${gaugeHtml(afloat ? ship.health / ship.stats.maxHealth : 0)}<b>${afloat ? Math.ceil(ship.health) : 0} / ${ship.stats.maxHealth}</b></div>
           ${helm}
         </div>

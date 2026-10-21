@@ -117,6 +117,8 @@ ${emblemOn ? EMBLEM_FRAGMENT : ''}
     };
     // Repère des voiles (un coup critique au gréement en fait tomber une).
     material.userData.sail = true;
+    // La voile qui porte l'emblème (le Chantier y pose son point « Emblème »).
+    material.userData.emblemSail = !!emblemOn;
     material.userData.wear = this.wear;
     material.userData.tornSail = this;
     // Même programme pour toutes les voiles trouées (seuls les uniforms changent d'une voile à l'autre).

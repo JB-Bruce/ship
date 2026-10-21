@@ -610,3 +610,20 @@
   background: #141210;
   color: #e9dfc7;
 }
+
+.cabin-trophy {
+  width: 28px;
+  height: 22px;
+  border-radius: 3px;
+  border: 2px dashed #8a7550;
+  background: transparent;
+  color: #8a7550;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.cabin-trophy.on {
+  border: 2px solid #141210;
+  background: #141210;
+  color: #e9dfc7;
+}

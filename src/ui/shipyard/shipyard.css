@@ -1,0 +1,416 @@
+/* Chantier : le navire en 3D au centre (la scène du jeu, vue vitrine), des points sur ses parties, un panneau à droite. */
+
+/* Pendant le Chantier, l'interface de navigation s'efface (seuls la scène et les menus restent). */
+body.yard-open #app > :not(.upgrade-menu):not(.viewport) {
+  visibility: hidden;
+}
+
+.upgrade-menu.yard-root {
+  background: radial-gradient(ellipse at 38% 55%, transparent 45%, rgba(10, 8, 6, 0.55) 100%);
+  backdrop-filter: none;
+}
+.parchment.yard-frame {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  max-height: none;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: #2a1d12;
+}
+.parchment.yard-frame > h1,
+.parchment.yard-frame > .hint {
+  display: none;
+}
+.parchment.yard-frame > .menu-body {
+  position: absolute;
+  inset: 0;
+}
+
+.yard-top {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 22px;
+  background: rgba(20, 12, 6, 0.72);
+  border-bottom: 3px solid #1f140a;
+  color: #f1dfb4;
+}
+.yard-title {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 32px;
+  white-space: nowrap;
+}
+.yard-tabs {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+}
+.yard-tab {
+  font: 700 17px 'IM Fell English', Georgia, serif;
+  padding: 6px 14px;
+  border-radius: 18px;
+  border: 2px solid #6a5032;
+  background: rgba(0, 0, 0, 0.25);
+  color: #e4d3ad;
+  cursor: pointer;
+}
+.yard-tab.on {
+  background: #c9a24a;
+  border-color: #f1dfb4;
+  color: #2a1d12;
+}
+.yard-top .kit-coffer {
+  color: #f1dfb4;
+}
+.yard-back {
+  color: #f1dfb4;
+  border-color: #8a7550;
+}
+
+.yard-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  cursor: grab;
+}
+.yard-stage:active {
+  cursor: grabbing;
+}
+.yard-spots {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+@keyframes yard-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(241, 223, 180, 0.8);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgba(241, 223, 180, 0);
+  }
+}
+.yard-spot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: auto;
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 3px solid #8a7550;
+  background: rgba(42, 29, 18, 0.88);
+  color: #f1dfb4;
+  font: 700 16px 'IM Fell English', Georgia, serif;
+  white-space: nowrap;
+  cursor: pointer;
+  animation: yard-ring 1.6s ease-out infinite;
+}
+.yard-spot:hover {
+  border-color: #f1dfb4;
+}
+.yard-spot.on {
+  background: #c9a24a;
+  border-color: #f1dfb4;
+  color: #2a1d12;
+}
+.yard-spot small {
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.yard-panel {
+  position: absolute;
+  right: 18px;
+  top: 76px;
+  bottom: 18px;
+  z-index: 3;
+  width: 400px;
+  overflow: auto;
+  padding: 16px 18px;
+  border-radius: 8px;
+  background: #efe2c4;
+  box-shadow: inset 0 0 30px rgba(120, 80, 30, 0.35), 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.yard-panel.wide {
+  width: min(900px, calc(100vw - 60px));
+}
+.yard-panel h2 {
+  margin: 0 0 8px;
+  font-family: 'Pirata One', Georgia, serif;
+  font-weight: 400;
+  font-size: 30px;
+}
+.yard-close {
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid #8a7550;
+  background: #f7eed8;
+  color: #5a3b22;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.yard-hint {
+  position: absolute;
+  left: 22px;
+  bottom: 18px;
+  z-index: 2;
+  padding: 6px 12px;
+  border-radius: 14px;
+  background: rgba(20, 12, 6, 0.6);
+  color: #e4d3ad;
+  font-size: 15px;
+  pointer-events: none;
+}
+
+.yard-next {
+  display: block;
+  color: #6a5032;
+  font-size: 15px;
+}
+.yard-next.ext {
+  color: #2f6f73;
+}
+.yard-up {
+  color: #3f7a3a;
+}
+.yard-row-icon svg,
+.yard-member-icon svg,
+.yard-shop-icon svg {
+  fill: none;
+  stroke: #4a2e14;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.yard-row-icon .solid,
+.yard-member-icon .solid,
+.yard-shop-icon .solid {
+  fill: #4a2e14;
+}
+.yard-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px dashed #b49a6a;
+}
+.yard-row-icon svg {
+  width: 40px;
+  height: 40px;
+}
+.yard-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.yard-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 17px;
+}
+.yard-locked {
+  padding: 0 6px;
+  border-radius: 8px;
+  background: #2f6f73;
+  color: #f7eed8;
+  font-size: 13px;
+}
+.yard-buy {
+  background: #e9d79d;
+  border-color: #c9a24a;
+  color: #2a1d12;
+  padding: 6px 10px;
+}
+.yard-done {
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: #3f7a3a;
+  color: #f7eed8;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.yard-done.locked {
+  background: #8a7550;
+}
+.yard-free {
+  color: #3f7a3a;
+  font-weight: 700;
+}
+.yard-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0;
+}
+.yard-sub-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 17px;
+}
+.yard-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.yard-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: 6px;
+  border: 2px solid #c9b48a;
+  background: #f7eed8;
+  font: 15px 'IM Fell English', Georgia, serif;
+  color: #2a1d12;
+  cursor: pointer;
+}
+.yard-choice.on,
+.yard-emblem.on {
+  border-color: #c9a24a;
+  background: #efe0b0;
+}
+.yard-emblems {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.yard-emblem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 2px;
+  border-radius: 6px;
+  border: 2px solid #c9b48a;
+  background: #f7eed8;
+  font: 13px 'IM Fell English', Georgia, serif;
+  cursor: pointer;
+}
+.yard-emblem img {
+  width: 52px;
+  height: 52px;
+}
+.yard-parts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.yard-part {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #c9b48a;
+  background: #f7eed8;
+  font: 17px 'IM Fell English', Georgia, serif;
+  color: #2a1d12;
+  cursor: pointer;
+}
+.yard-part:hover {
+  border-color: #c9a24a;
+}
+
+/* Acheter un navire. */
+.yard-market {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 18px;
+}
+.yard-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.yard-head span {
+  color: #6a5032;
+  font-size: 15px;
+}
+.yard-fleet {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.yard-member {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #c9b48a;
+  background: #f7eed8;
+  font-size: 15px;
+}
+.yard-member.here {
+  border: 2px solid #c9a24a;
+}
+.yard-member-icon svg {
+  width: 36px;
+  height: 36px;
+}
+.yard-member-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.yard-shops {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+.yard-shop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 6px 8px;
+  font-size: 15px;
+  border-radius: 6px;
+  border: 1px solid #c9b48a;
+  background: #f7eed8;
+  text-align: center;
+}
+.yard-shop-icon svg {
+  width: 42px;
+  height: 42px;
+}
+.yard-shop .yard-next {
+  font-size: 13px;
+}
+.yard-shop .kit-pip {
+  width: 10px;
+  height: 10px;
+}
+.yard-shop.unknown {
+  background: #e4d3ad;
+}
+.yard-shop.unknown .yard-shop-icon svg {
+  stroke: #b49a6a;
+}
+.yard-shop.unknown .kit-pip.on {
+  background: #9b2f7f;
+}
