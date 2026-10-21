@@ -1,8 +1,12 @@
-import { ALLEGIANCE_NAMES } from '../../config';
+import { ALLEGIANCE_NAMES, ISLAND_INFO } from '../../config';
+import type { FleetMember } from '../../fleet/fleet';
+import type { Good } from '../../progression/goods';
 import { ISLAND_UPGRADE_INFO, type IslandUpgradeId } from '../../progression/islandState';
+import { isExtended } from '../../progression/upgrades';
+import { typeName } from '../../shipTypes';
 import { costHtml } from '../parchmentMenu';
+import { shipIcon } from '../shipIcons';
 import { islandInSentence, resourcesHtml, type PortContext } from './portContext';
-import { traderCard } from './routesTab';
 
 const ICONS: Record<IslandUpgradeId, string> = {
   fort: `<svg viewBox="0 0 48 48"><path d="M8 44V16h6v-6h6v6h8v-6h6v6h6v28z"/><path d="M20 44v-9a4 4 0 0 1 8 0v9M14 24h4M30 24h4"/></svg>`,
@@ -42,10 +46,37 @@ function moorings(ctx: PortContext): string {
   const { island, routes } = ctx;
   if (!island.owned) return '';
   const homed = routes.homedAt(island.id);
-  const list = homed.length ? homed.map((m) => traderCard(ctx, m)).join('') : '<p class="effect">Aucun navire en commerce n’a son emplacement ici : envoie-en un depuis l’onglet Routes.</p>';
+  const list = homed.length ? homed.map((m) => traderCard(ctx, m)).join('') : '<p class="effect">Aucun navire en commerce n’a son emplacement ici : envoie-en un depuis le Comptoir.</p>';
   return `
     <h3 class="section">Mouillage <span class="count">${homed.length} / ${island.tradeSlots} emplacements</span></h3>
     <div class="list">${list}</div>`;
+}
+
+const LABELS: Record<Good, string> = { fish: 'Poisson', rum: 'Rhum', spices: 'Épices' };
+
+/** Un navire en commerce : sa route, où il en est, et sa reprise (seulement au port de son île, s'il reste une place). */
+function traderCard(ctx: PortContext, m: FleetMember): string {
+  const order = m.trade!;
+  const [a, b] = order.ports;
+  const goods = (g: Good | null) => (g ? LABELS[g].toLowerCase() : 'à vide');
+  const estimate = ctx.routes.estimate(m, order.ports, order.goods);
+  return `
+    <div class="upgrade-card compact">
+      <div class="icon">${shipIcon(m.type, m.levels)}</div>
+      <div class="body">
+        <h2>${m.name} <span class="tag${isExtended(m.levels) ? ' extended' : ''}">${typeName(m.type, m.levels.extension)}</span></h2>
+        <p>${ISLAND_INFO[a].shortName} ⇄ ${ISLAND_INFO[b].shortName} · aller : ${goods(order.goods[0])} · retour : ${goods(order.goods[1])}</p>
+        <p class="effect">${ctx.routes.status(m)} · environ ${estimate} or par aller-retour</p>
+      </div>
+      <div class="buy">${recallButton(ctx, m)}</div>
+    </div>`;
+}
+
+function recallButton(ctx: PortContext, m: FleetMember): string {
+  const home = m.trade!.ports[0];
+  if (home !== ctx.island.id) return `<span class="done">À reprendre à ${ISLAND_INFO[home].shortName}</span>`;
+  const full = !ctx.routes.fleetHasRoom;
+  return `<button class="secondary" data-action="route-recall" data-arg="${m.id}"${full ? ' disabled' : ''}>${full ? 'Flotte pleine' : 'Reprendre'}</button>`;
 }
 
 /** Onglet Améliorations de l'île (seulement si elle t'appartient). */

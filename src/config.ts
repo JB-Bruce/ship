@@ -2153,6 +2153,18 @@ export const LIGHTNING = {
 export const TAVERN_FX = { tear: 420, tearTilt: 9 };
 
 /**
+ * Comptoir du port (`ui/market/`) : quantités des boutons de l'étal (`bulk` ; le bois, sans cale à remplir, s'achète
+ * par `woodBulk` au plus au lieu de « Plein »), et petite carte des routes : taille du dessin (unités du viewBox), marge
+ * autour des terres découvertes (m), points de chaque côte, courbure des routes (part de leur longueur) et durée du
+ * trajet du petit navire sur une route qui vient d'ouvrir (ms).
+ */
+export const MARKET = {
+  bulk: 10,
+  woodBulk: 100,
+  map: { width: 300, height: 200, margin: 160, coastSteps: 40, bulge: 0.16, sail: 1600 },
+};
+
+/**
  * Vue « vitrine » du Chantier (`camera/showcaseView.ts`) : glisse vers la partie choisie (`glide`, 1/s), rotation lente
  * de la vue d'ensemble (`spin`, rad/s), souris (`sensitivity`, rad/px ; hauteur ± `pitchRange`), bornes de hauteur
  * du regard (rad) et de la caméra au-dessus de l'eau (m). `views` : d'où regarder chaque partie (cap relatif au navire,
@@ -2763,7 +2775,7 @@ export const ISLAND_UPGRADES = {
 };
 
 /**
- * Routes commerciales confiées à tes navires (onglet Routes du port). Un navire en commerce quitte tes places de flotte
+ * Routes commerciales confiées à tes navires (Comptoir du port). Un navire en commerce quitte tes places de flotte
  * et prend un emplacement de l'île d'où il part (une île à toi) ; on le reprend à son port, s'il reste une place.
  */
 export const TRADE_ROUTES = {

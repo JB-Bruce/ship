@@ -86,7 +86,10 @@ function routeCard(ctx: CabinContext, m: FleetMember): string {
 function routeEditor(ctx: CabinContext, view: CabinView, m: FleetMember): string {
   const edit = view.edit!;
   const home = m.trade!.ports[0];
-  const ports = harbors.open().map((i) => i.id).filter((id) => id !== home);
+  // Ports découverts seulement, plus la destination en cours et celle qui l'attend (même d'une ancienne partie) : on
+  // peut toujours revenir à la route actuelle.
+  const keep = [m.trade!.ports[1], m.trade!.nextTo];
+  const ports = harbors.open().filter((i) => i.id !== home && (keep.includes(i.id) || ctx.known(i.port.x, i.port.z))).map((i) => i.id);
   const choice = (field: string, value: string, label: string, on: boolean) => `<button class="kit-btn${on ? ' on' : ''}" data-action="route-pick" data-arg="${field}:${value}">${label}</button>`;
   const goodRow = (field: 'out' | 'back', from: IslandId, to: IslandId, current: Good | null) =>
     [

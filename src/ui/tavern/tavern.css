@@ -45,7 +45,7 @@
 .tav-head .kit-coffer {
   color: #f1dfb4;
 }
-.tav-back {
+.tav-head .kit-btn.ghost.tav-back {
   color: #f1dfb4;
   border-color: #8a7550;
 }

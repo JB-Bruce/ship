@@ -36,6 +36,8 @@ export interface CabinContext {
   atPort(): boolean;
   /** État d'une mission en cours (escorte, siège…), pour le Journal. */
   missionStatus(contract: Contract): string | null;
+  /** Ce point de la carte est-il découvert ? (une route ne va que vers un port découvert) */
+  known(x: number, z: number): boolean;
 }
 
 /** Choix en cours dans la Cabine, gardés d'une ouverture à l'autre. */

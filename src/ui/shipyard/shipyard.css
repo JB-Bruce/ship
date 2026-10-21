@@ -71,7 +71,7 @@ body.yard-open #app > :not(.upgrade-menu):not(.viewport) {
 .yard-top .kit-coffer {
   color: #f1dfb4;
 }
-.yard-back {
+.yard-top .kit-btn.ghost.yard-back {
   color: #f1dfb4;
   border-color: #8a7550;
 }

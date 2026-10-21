@@ -29,7 +29,7 @@ export class FleetMenu extends ParchmentMenu {
       .map((f) => `<button class="choice${this.fleet.formation === f ? ' on' : ''}" data-action="formation" data-arg="${f}">${FORMATION_NAMES[f]}</button>`)
       .join('');
     this.body.innerHTML = `
-      <p class="subtitle">Les navires que tu ne pilotes pas te suivent et se battent à tes côtés (sauf ceux confiés au commerce, onglet Routes du port).</p>
+      <p class="subtitle">Les navires que tu ne pilotes pas te suivent et se battent à tes côtés (sauf ceux confiés au commerce, depuis le Comptoir du port).</p>
       <h3 class="section">Formation</h3>
       ${this.fleet.guarded ? '<p class="subtitle">Escorte en cours : tes navires entourent le marchand à protéger ; la formation reprendra à son arrivée.</p>' : ''}
       <div class="choices">${formations}</div>

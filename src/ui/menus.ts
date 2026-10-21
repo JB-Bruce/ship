@@ -1,4 +1,5 @@
 import type { Campaign } from '../campaign';
+import type { IslandId, TradeGood } from '../config';
 import type { Fleet, FleetMember } from '../fleet/fleet';
 import type { PlayerState } from '../progression/playerState';
 import type { Display } from '../render/display';
@@ -18,6 +19,7 @@ import { MapMenu } from './mapMenu';
 import { PortMenu } from './port/portMenu';
 import type { Radar } from './radar';
 import { SettingsMenu } from './settings/settingsMenu';
+import { MarketMenu } from './market/marketMenu';
 import { ShipyardMenu } from './shipyard/shipyardMenu';
 import { TavernMenu } from './tavern/tavernMenu';
 import type { DayCycle } from '../world/dayCycle';
@@ -49,14 +51,29 @@ export interface MenuWorld {
 export function createMenus(w: MenuWorld): PortMenu {
   const { container, campaign, fleet } = w;
   const { ledger, contracts, harbor } = campaign;
-  const portContext = { state: w.state, fleet, contracts, ledger, crew: campaign.crew, routes: campaign.routes, actions: harbor, get island() { return harbor.island; } };
+  const known = (x: number, z: number) => campaign.discovery.isKnown(x, z);
+  // Le port et ses lieux lisent tous ce contexte (le Comptoir y prend aussi les prix des autres îles et la carte).
+  const portContext = {
+    state: w.state,
+    fleet,
+    contracts,
+    ledger,
+    crew: campaign.crew,
+    routes: campaign.routes,
+    actions: harbor,
+    get island() {
+      return harbor.island;
+    },
+    priceAt: (id: IslandId, good: TradeGood) => campaign.islands[id].price(good),
+    known,
+  };
   const inRange = () => campaign.portInRange(fleet.leader) !== null;
   const portMenu: PortMenu = new PortMenu(container, portContext, {
     inRange,
     onOpen: () => harbor.visit(campaign.islands[campaign.portInRange(fleet.leader)!.id]),
     refused: () => w.hud.toast('Approche-toi du quai pour faire escale (P).', 2.5),
     openPlace: (place) => {
-      if (inRange()) (place === 'shipyard' ? shipyard : tavern).setOpen(true);
+      if (inRange()) ({ market, shipyard, tavern })[place].setOpen(true);
     },
   });
   const camera = w.chaseCamera;
@@ -68,6 +85,7 @@ export function createMenus(w: MenuWorld): PortMenu {
     back: () => portMenu.openOn(),
   });
   const tavern = new TavernMenu(container, portContext, () => portMenu.openOn());
+  const market = new MarketMenu(container, portContext, () => portMenu.openOn());
   new CabinMenu(container, {
     state: w.state,
     fleet,
@@ -84,6 +102,7 @@ export function createMenus(w: MenuWorld): PortMenu {
     },
     atPort: () => campaign.portInRange(fleet.leader) !== null,
     missionStatus: (c) => campaign.missions.status(c),
+    known,
   });
   new FleetMenu(container, fleet, (member) => w.takeHelm(member));
   new MapMenu(container, {

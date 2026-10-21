@@ -86,6 +86,9 @@ export interface MenuFx {
   spend?: string;
   /** On gagne : des pièces partent de cet élément vers le coffre. */
   earn?: string;
+  /** Du bois entre dans la réserve (bûches de cet élément vers le coffre), ou en sort (du coffre vers lui). */
+  woodIn?: string;
+  woodOut?: string;
   /** Un texte s'élève au-dessus de cet élément. */
   rise?: { at: string; text: string; tone: 'good' | 'bad' | 'info' };
   /** Cet élément tremble (refusé) ou luit (réussi). */
@@ -93,15 +96,20 @@ export interface MenuFx {
   glow?: string;
 }
 
-/** Joue les effets d'un menu sur ses éléments tout juste dessinés (coffre : `[data-coffer-gold]`). */
+/** Joue les effets d'un menu sur ses éléments tout juste dessinés (coffre : `[data-coffer-gold]`, `[data-coffer-wood]`). */
 export function playFx(root: Element, fx: MenuFx) {
   const find = (selector?: string) => (selector ? root.querySelector(selector) : null);
   const coffer = root.querySelector('[data-coffer-gold]');
+  const woodpile = root.querySelector('[data-coffer-wood]');
   if (fx.bars) settleBars(root);
   const spent = find(fx.spend);
   if (spent && coffer) flyCoins(coffer, spent);
   const earned = find(fx.earn);
   if (earned && coffer) flyCoins(earned, coffer);
+  const woodIn = find(fx.woodIn);
+  if (woodIn && woodpile) flyCoins(woodIn, woodpile, 'wood');
+  const woodOut = find(fx.woodOut);
+  if (woodOut && woodpile) flyCoins(woodpile, woodOut, 'wood');
   const rise = fx.rise && find(fx.rise.at);
   if (rise && fx.rise) riseText(rise, fx.rise.text, fx.rise.tone);
   const shaken = find(fx.shake);

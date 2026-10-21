@@ -1,18 +1,13 @@
-import type { IslandId } from '../../config';
-import type { Good } from '../../progression/goods';
 import type { IslandUpgradeId } from '../../progression/islandState';
 import { ParchmentMenu } from '../parchmentMenu';
 import { islandTab, islandUpgradesTab } from './islandTab';
-import type { PlaceTab, PortContext, PortTab, TradeGood } from './portContext';
-import { pickRoute, routesTab } from './routesTab';
+import { PLACE_TABS, type PlaceTab, type PortContext, type PortTab } from './portContext';
 import { TAB_ICONS } from './tabIcons';
-import { tradeTab } from './tradeTab';
 
-/** Onglets du panneau ; le Chantier et la Taverne (`render` null) ouvrent leur propre vue (`PlaceMenu`). */
+/** Onglets du panneau ; le Comptoir, le Chantier et la Taverne (`render` null) ouvrent leur propre vue (`PlaceMenu`). */
 const TABS: { id: PortTab; name: string; render: ((ctx: PortContext) => string) | null }[] = [
   { id: 'island', name: 'Île', render: islandTab },
-  { id: 'trade', name: 'Marché', render: tradeTab },
-  { id: 'routes', name: 'Routes', render: routesTab },
+  { id: 'market', name: 'Comptoir', render: null },
   { id: 'shipyard', name: 'Chantier', render: null },
   { id: 'upgrades', name: 'Améliorations', render: islandUpgradesTab },
   { id: 'tavern', name: 'Taverne', render: null },
@@ -25,15 +20,15 @@ export interface PortAccess {
   onOpen(): void;
   /** Touche pressée loin du port. */
   refused(code: string): void;
-  /** Ouvre un lieu du port qui a sa propre vue (Chantier autour du navire, Taverne). */
+  /** Ouvre un lieu du port qui a sa propre vue (Comptoir, Chantier autour du navire, Taverne). */
   openPlace(place: PlaceTab): void;
 }
 
 /**
  * Panneau du port où la flotte fait escale (P), seulement près d'un quai :
- * l'île et son allégeance (et son rachat), le marché, les routes, les améliorations de l'île (si elle t'appartient), et
- * deux lieux à part : le Chantier (`ShipyardMenu`) et la Taverne (`TavernMenu`). Le registre et les affectations des
- * officiers sont dans la Cabine (Tab).
+ * l'île et son allégeance (et son rachat), les améliorations de l'île (si elle t'appartient), et trois lieux à part :
+ * le Comptoir (`MarketMenu` : marché et routes), le Chantier (`ShipyardMenu`) et la Taverne (`TavernMenu`). Le registre
+ * et les affectations des officiers sont dans la Cabine (Tab).
  */
 export class PortMenu extends ParchmentMenu {
   private tab: PortTab = 'island';
@@ -75,16 +70,9 @@ export class PortMenu extends ParchmentMenu {
     const a = this.ctx.actions;
     switch (action) {
       case 'tab':
-        if (arg === 'shipyard' || arg === 'tavern') this.access.openPlace(arg);
+        if (PLACE_TABS.includes(arg as PlaceTab)) this.access.openPlace(arg as PlaceTab);
         else this.tab = arg as PortTab;
         break;
-      case 'buy':
-      case 'sell': {
-        // Marché : « marchandise:quantité ».
-        const [good, amount] = arg.split(':');
-        a.trade(good as TradeGood, action, Number(amount));
-        break;
-      }
       case 'buy-island':
         a.buyIsland();
         break;
@@ -94,16 +82,6 @@ export class PortMenu extends ParchmentMenu {
       case 'island-upgrade':
         a.buyIslandUpgrade(arg as IslandUpgradeId);
         break;
-      case 'route-pick':
-        pickRoute(arg);
-        break;
-      case 'route-start': {
-        // « navire:destination:aller:retour », 'none' = à vide.
-        const [ship, to, out, back] = arg.split(':');
-        const good = (g: string) => (g === 'none' ? null : (g as Good));
-        a.startRoute(Number(ship), to as IslandId, good(out), good(back));
-        break;
-      }
       case 'route-recall':
         a.recallRoute(Number(arg));
         break;

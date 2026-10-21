@@ -1,0 +1,485 @@
+/* Comptoir : étal à caisses sous un auvent, cales de la flotte et petite carte des routes. */
+
+.parchment.mk-frame {
+  width: min(1180px, calc(100vw - 24px));
+  height: min(700px, calc(100vh - 24px));
+  max-height: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 8px;
+  color: #2a1d12;
+  background: #6a4a2a;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.6), inset 0 0 0 3px #1f140a;
+}
+.parchment.mk-frame > h1,
+.parchment.mk-frame > .hint {
+  display: none;
+}
+.parchment.mk-frame > .menu-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* L'auvent rayé de l'échoppe. */
+.mk-frame > .menu-body::before {
+  content: '';
+  flex: none;
+  height: 22px;
+  background: repeating-linear-gradient(90deg, #9b2b1f 0, #9b2b1f 56px, #efe2c4 56px, #efe2c4 112px);
+  box-shadow: 0 3px 0 rgba(31, 20, 10, 0.6);
+}
+.mk-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 8px 22px;
+  background: rgba(20, 12, 6, 0.45);
+  color: #f1dfb4;
+}
+.mk-title {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 32px;
+  white-space: nowrap;
+}
+.mk-sub {
+  flex: 1;
+  color: #c9b48a;
+  font-size: 15px;
+}
+.mk-head .kit-coffer {
+  color: #f1dfb4;
+}
+.mk-head .kit-btn.ghost.mk-back {
+  color: #f1dfb4;
+  border-color: #8a7550;
+}
+.mk-main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 18px;
+  padding: 14px 18px 18px;
+}
+.mk-left {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.mk-frame h2 {
+  margin: 0;
+  font-family: 'Pirata One', Georgia, serif;
+  font-weight: 400;
+  font-size: 24px;
+}
+
+/* L'étal : une caisse par marchandise. */
+.mk-stall {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.mk-crate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px 12px;
+  background: #efe2c4;
+  border: 4px solid #3b2716;
+  border-radius: 6px;
+  transition: transform 0.15s ease;
+}
+.mk-crate:hover {
+  transform: translateY(-3px);
+}
+.mk-art {
+  width: 104px;
+  height: 72px;
+}
+.mk-art path {
+  stroke: #4a2c12;
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+.mk-art .mk-box {
+  fill: #b8863e;
+  stroke-width: 4;
+}
+.mk-name {
+  font-family: 'Pirata One', Georgia, serif;
+  font-weight: 400;
+  font-size: 26px;
+  line-height: 1;
+  cursor: help;
+}
+.mk-have {
+  font-size: 14px;
+  color: #5a4026;
+}
+.mk-prices {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 6px;
+}
+.mk-prices > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  font-size: 13px;
+  background: #f7eed8;
+  border: 1px solid #8a7550;
+  border-radius: 3px;
+}
+.mk-prices b {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.mk-prices .kit-icon,
+.mk-hint .kit-icon,
+.mk-estimate .kit-icon,
+.mk-route-card .kit-icon {
+  width: 14px;
+  height: 14px;
+}
+.mk-hint {
+  min-height: 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #6a5032;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.mk-hint.up {
+  color: #3f7a3a;
+}
+.mk-hint.best {
+  color: #9a6a10;
+}
+.mk-row {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+}
+.mk-verb {
+  width: 100%;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6a5032;
+}
+.mk-none {
+  padding: 13px 0 6px;
+  font-size: 13px;
+  font-style: italic;
+  color: #8a7550;
+}
+.mk-frame .kit-btn.small {
+  padding: 4px 9px;
+  font-size: 14px;
+}
+.mk-crate .kit-btn:not(.red) {
+  background: #3f7a3a;
+  border-color: #3f7a3a;
+  color: #f7eed8;
+}
+.mk-frame .kit-btn.dim {
+  opacity: 0.5;
+}
+
+/* Les cales de la flotte : une barre par navire, une part de couleur par marchandise. */
+.mk-holds {
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 16px;
+  background: #efe2c4;
+  border: 4px solid #3b2716;
+  border-radius: 6px;
+}
+.mk-hold {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+}
+.mk-hold-name {
+  width: 150px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mk-hold-bar {
+  flex: 1;
+  height: 14px;
+  display: flex;
+  overflow: hidden;
+  background: #d6c49c;
+  border-radius: 7px;
+}
+.mk-part {
+  height: 100%;
+  transition: width 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+.mk-hold-text {
+  width: 70px;
+  text-align: right;
+}
+.mk-legend {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #6a5032;
+}
+.mk-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+}
+
+/* Les routes : carte, routes en cours, route qu'on trace. */
+.mk-routes {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px 14px;
+  background: #e9dcb8;
+  border: 4px solid #3b2716;
+  border-radius: 6px;
+}
+.mk-map {
+  position: relative;
+  flex: none;
+  width: 100%;
+  border: 2px solid #8a7550;
+  border-radius: 4px;
+  background: #cfe0dc;
+  overflow: hidden;
+}
+/* Une fois la destination choisie, la carte se fait plus petite pour laisser la place au navire et aux marchandises. */
+.mk-routes.ready .mk-map {
+  width: 72%;
+  align-self: center;
+}
+.mk-map svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.mk-land {
+  fill: #dcc084;
+  stroke: #8a7550;
+  stroke-width: 1.5;
+}
+.mk-route {
+  fill: none;
+  stroke: #1f5229;
+  stroke-width: 3;
+  stroke-dasharray: 8 6;
+}
+.mk-route.back {
+  stroke: #8a5a2b;
+}
+.mk-route.plan {
+  stroke: #b8860b;
+  animation: mk-march 0.9s linear infinite;
+}
+@keyframes mk-march {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+.mk-runner path {
+  fill: #1f5229;
+  stroke: #f7eed8;
+  stroke-width: 1.5;
+}
+.mk-trader {
+  fill: #2f6b3a;
+  stroke: #f7eed8;
+  stroke-width: 1.5;
+}
+.mk-port {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.mk-port i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #2a1d12;
+  border: 2px solid #f7eed8;
+}
+.mk-port span {
+  position: absolute;
+  top: 14px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #2a1d12;
+  text-shadow: 0 0 3px #f7eed8, 0 0 3px #f7eed8;
+}
+.mk-port.here i {
+  background: #c9a24a;
+  box-shadow: 0 0 0 3px #2a1d12;
+}
+.mk-port.closed i {
+  background: #9b2b1f;
+}
+.mk-port.closed span {
+  color: #7a2b1c;
+}
+.mk-port.pick {
+  cursor: pointer;
+}
+.mk-port.pick i {
+  animation: mk-beckon 1.2s ease-in-out infinite;
+}
+.mk-port.pick:hover i,
+.mk-port.on i {
+  background: #b8860b;
+  transform: scale(1.3);
+}
+@keyframes mk-beckon {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(184, 134, 11, 0.9);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(184, 134, 11, 0);
+  }
+}
+.mk-route-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mk-route-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  font-size: 14px;
+  background: #f7eed8;
+  border: 1px solid #8a7550;
+  border-radius: 4px;
+}
+.mk-route-card > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.mk-route-foot {
+  display: flex;
+  justify-content: flex-end;
+}
+.mk-muted {
+  font-size: 13px;
+  color: #6a5032;
+}
+.mk-mooring {
+  font-size: 14px;
+  color: #6a5032;
+}
+.mk-blocked {
+  padding: 8px 10px;
+  font-size: 14px;
+  font-style: italic;
+  color: #6a5032;
+  border: 1px dashed #8a7550;
+  border-radius: 4px;
+}
+.mk-frame .kit-btn.mk-trace {
+  padding: 10px;
+  font-family: 'Pirata One', Georgia, serif;
+  font-weight: 400;
+  font-size: 24px;
+  background: #1f5229;
+  border-color: #2a1d12;
+  color: #f7eed8;
+}
+.mk-plan {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mk-plan > b {
+  font-size: 17px;
+}
+.mk-step {
+  margin: 0;
+  font-style: italic;
+  color: #5a4026;
+}
+.mk-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.mk-field > span {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6a5032;
+}
+.mk-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.mk-choices .kit-btn:not(.on) {
+  background: #f7eed8;
+  border-color: #8a7550;
+  color: #2a1d12;
+}
+.mk-estimate {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 16px;
+  color: #1f5229;
+}
+.mk-estimate b {
+  font-size: 22px;
+}
+.mk-plan-foot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+}
+.mk-plan-foot .kit-btn:not(.ghost) {
+  background: #1f5229;
+  border-color: #1f5229;
+}

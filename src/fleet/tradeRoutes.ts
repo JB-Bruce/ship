@@ -187,7 +187,7 @@ export class TradeRoutes {
     return true;
   }
 
-  /** Où en est un navire en commerce, en quelques mots (onglet Routes). */
+  /** Où en est un navire en commerce, en quelques mots (Comptoir, Cabine). */
   status(member: FleetMember): string {
     const r = this.runner(member);
     const order = member.trade;

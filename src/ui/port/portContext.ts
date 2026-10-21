@@ -11,9 +11,10 @@ import type { PlayerState } from '../../progression/playerState';
 import type { UpgradeId } from '../../progression/upgrades';
 import type { ShipType } from '../../shipTypes';
 
-export type PortTab = 'island' | 'trade' | 'routes' | 'shipyard' | 'upgrades' | 'tavern';
+export type PortTab = 'island' | 'market' | 'shipyard' | 'upgrades' | 'tavern';
 /** Lieux du port qui ont leur propre vue. */
-export type PlaceTab = Extract<PortTab, 'shipyard' | 'tavern'>;
+export type PlaceTab = Extract<PortTab, 'market' | 'shipyard' | 'tavern'>;
+export const PLACE_TABS: readonly PlaceTab[] = ['market', 'shipyard', 'tavern'];
 
 export type { TradeGood };
 
