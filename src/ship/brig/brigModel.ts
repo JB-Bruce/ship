@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { ShipLamps } from '../parts/shipLamps';
+import { brigLamps } from './brigLamps';
 import type { Waterline } from '../parts/hullShape';
 import { SAIL_BILLOW, type Livery, type ShipStats, HELM_WHEEL } from '../../config';
 import { wrapAngle } from '../../utils/math';
@@ -66,6 +68,9 @@ export class BrigModel implements ShipModel {
   private armorLevel = 0;
   private damage = 0;
   private flagLift = 0;
+
+  /** Appliques, lampadaires et lanternes suspendues (parts/shipLamps.ts), recréés avec le modèle. */
+  private lamps!: ShipLamps;
 
   constructor(
     stats: ShipStats,
@@ -148,6 +153,7 @@ export class BrigModel implements ShipModel {
   }
 
   animate(dt: number) {
+    this.lamps.animate(dt, this.root);
     this.flag.update(dt);
     this.spankerRig.rotation.y = damp(this.spankerRig.rotation.y, this.boomTarget, 1.2, dt);
     this.hoist.scale.x = this.leeSide;
@@ -188,7 +194,9 @@ export class BrigModel implements ShipModel {
       [0.45, -1, 1],
     ]);
     this.tornSail = new TornSail(t.sailMaterial, this.livery.sailEmblem);
-    this.lanterns = addStatics(this.body, t.statics);
+    this.lamps = new ShipLamps(brigLamps(L), t.palette);
+    this.body.add(this.lamps.object);
+    this.lanterns = [...addStatics(this.body, t.statics), ...this.lamps.lanterns];
 
     // Voiles carrées sur les mâts inclinés ; la basse voile du grand mât (la plus grande) porte l'emblème de la livrée.
     this.sails = [];
@@ -241,6 +249,7 @@ export class BrigModel implements ShipModel {
 
   /** Défait ce qui est propre à cette instance (le gabarit, partagé, reste en cache). */
   private disposeParts() {
+    this.lamps.dispose();
     this.flag.dispose();
     this.tornSail.dispose();
     this.body.clear();

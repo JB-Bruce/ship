@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { addLampFixtures } from '../parts/shipLamps';
+import { carrackLamps } from './carrackLamps';
 import { WATER_MASK, type Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { buildBatteryGun, buildWheel } from '../corvette/corvetteTemplate';
@@ -117,6 +119,7 @@ function buildTemplate(L: CarrackLayout, livery: Livery): CarrackTemplate {
     g.rotateZ(Math.PI / 2);
     return g;
   };
+  addLampFixtures(batch, p, carrackLamps(L));
   return {
     palette: p,
     statics: batch.build(),

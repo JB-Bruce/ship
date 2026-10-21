@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { ShipLamps } from '../parts/shipLamps';
+import { CARAVEL_LAMPS } from './caravelLamps';
 import { SAIL_BILLOW, type Livery, type ShipStats, HELM_WHEEL } from '../../config';
 import { wrapAngle } from '../../utils/math';
 import { RENDER_ORDER } from '../../utils/renderOrder';
@@ -84,10 +86,15 @@ export class CaravelModel implements ShipModel {
   private leeSide = 1;
   private yardTarget = 0;
 
+  /** Appliques, lampadaires et lanternes suspendues (parts/shipLamps.ts). */
+  private readonly lamps: ShipLamps;
+
   constructor(stats: ShipStats, livery: Livery) {
     const t = (this.template = caravelTemplateFor(livery));
     this.tornSail = new TornSail(t.sailMaterial, livery.sailEmblem);
-    this.lanterns = addStatics(this.root, t.statics);
+    this.lamps = new ShipLamps(CARAVEL_LAMPS, t.palette);
+    this.root.add(this.lamps.object);
+    this.lanterns = [...addStatics(this.root, t.statics), ...this.lamps.lanterns];
 
     // Grand-voile carrée (elle porte l'emblème de la livrée, s'il y en a un) et sa vergue.
     this.mainCourse = new THREE.Mesh(t.mainCourse, this.tornSail.material(t.mainCourse, 'z', true));
@@ -190,6 +197,7 @@ export class CaravelModel implements ShipModel {
   }
 
   animate(dt: number) {
+    this.lamps.animate(dt, this.root);
     this.flag.update(dt);
     this.lateenRig.rotation.y = damp(this.lateenRig.rotation.y, this.yardTarget, 1.2, dt);
     this.lateenRig.scale.x = this.leeSide;
@@ -204,6 +212,7 @@ export class CaravelModel implements ShipModel {
   }
 
   dispose() {
+    this.lamps.dispose();
     this.flag.dispose();
     this.tornSail.dispose();
   }

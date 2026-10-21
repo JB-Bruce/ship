@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { addLampFixtures } from '../parts/shipLamps';
+import { CARAVEL_LAMPS } from './caravelLamps';
 import { WATER_MASK, type Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } from '../parts/common';
@@ -147,6 +149,7 @@ function buildTemplate(livery: Livery): CaravelTemplate {
   const lateen = buildLateenSail(MIZZEN_SAIL);
   const chaseGun = buildBatteryGun();
   chaseGun.scale(CHASE_GUN_SCALE, CHASE_GUN_SCALE, CHASE_GUN_SCALE);
+  addLampFixtures(batch, p, CARAVEL_LAMPS);
   return {
     palette: p,
     statics: batch.build(),

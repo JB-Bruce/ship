@@ -1,4 +1,6 @@
 import { WATER_MASK } from '../../config';
+import { addLampFixtures } from '../parts/shipLamps';
+import { brigantineLamps } from './brigantineLamps';
 import * as THREE from 'three';
 import type { Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
@@ -118,6 +120,7 @@ function buildTemplate(L: BrigantineLayout, livery: Livery): BrigantineTemplate 
   addRopeCoil(batch, p, tf(0.4, forecastle.y, at(0.82).z));
   addLantern(batch, p, tf(0, stern.gunwale, stern.z + 0.2, 0, 0, 0, 1.4));
 
+  addLampFixtures(batch, p, brigantineLamps(L));
   return {
     palette: p,
     statics: batch.build(),

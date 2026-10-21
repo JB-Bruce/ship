@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { ShipLamps } from '../parts/shipLamps';
+import { schoonerLamps } from './schoonerLamps';
 import type { Waterline } from '../parts/hullShape';
 import type { Livery, ShipStats } from '../../config';
 import { wrapAngle } from '../../utils/math';
@@ -64,6 +66,9 @@ export class SchoonerModel implements ShipModel {
   private armorLevel = 0;
   private damage = 0;
   private flagLift = 0;
+
+  /** Appliques, lampadaires et lanternes suspendues (parts/shipLamps.ts), recréés avec le modèle. */
+  private lamps!: ShipLamps;
 
   constructor(
     stats: ShipStats,
@@ -143,6 +148,7 @@ export class SchoonerModel implements ShipModel {
   }
 
   animate(dt: number) {
+    this.lamps.animate(dt, this.root);
     this.flag.update(dt);
     for (const { rig, hoist } of this.rigs) {
       rig.rotation.y = damp(rig.rotation.y, this.boomTarget, 1.2, dt);
@@ -184,7 +190,9 @@ export class SchoonerModel implements ShipModel {
       [-0.5, -1, 0.45],
     ]);
     this.tornSail = new TornSail(t.sailMaterial, this.livery.sailEmblem);
-    this.lanterns = addStatics(this.body, t.statics);
+    this.lamps = new ShipLamps(schoonerLamps(L), t.palette);
+    this.body.add(this.lamps.object);
+    this.lanterns = [...addStatics(this.body, t.statics), ...this.lamps.lanterns];
 
     // Grand-voile (elle porte l'emblème de la livrée, s'il y en a un) et sa flèche, puis la misaine.
     const main = this.gaffRig(L.mainMastZ, t.mainBoom, t.mainSail, t.mainGaff, true);
@@ -228,6 +236,7 @@ export class SchoonerModel implements ShipModel {
 
   /** Défait ce qui est propre à cette instance (le gabarit, partagé, reste en cache). */
   private disposeParts() {
+    this.lamps.dispose();
     this.flag.dispose();
     this.tornSail.dispose();
     this.body.clear();

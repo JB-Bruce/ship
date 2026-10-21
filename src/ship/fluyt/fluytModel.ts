@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { ShipLamps } from '../parts/shipLamps';
+import { fluytLamps } from './fluytLamps';
 import { Staysails } from '../parts/staysails';
 import type { Waterline } from '../parts/hullShape';
 import { SAIL_BILLOW, type Livery, type ShipStats, HELM_WHEEL } from '../../config';
@@ -74,6 +76,9 @@ export class FluytModel implements ShipModel {
   private armorLevel = 0;
   private damage = 0;
   private flagLift = 0;
+
+  /** Appliques, lampadaires et lanternes suspendues (parts/shipLamps.ts), recréés avec le modèle. */
+  private lamps!: ShipLamps;
 
   constructor(
     stats: ShipStats,
@@ -155,6 +160,7 @@ export class FluytModel implements ShipModel {
   }
 
   animate(dt: number) {
+    this.lamps.animate(dt, this.root);
     this.staysails.apply(this.sailAmount, this.leeSide);
     this.flag.update(dt);
     this.lateenRig.rotation.y = damp(this.lateenRig.rotation.y, this.yardTarget, 1.2, dt);
@@ -198,7 +204,9 @@ export class FluytModel implements ShipModel {
       ] as const).map(([u, side, y]) => [L.base(u), side, y] as const),
     );
     this.tornSail = new TornSail(t.sailMaterial, this.livery.sailEmblem);
-    this.lanterns = addStatics(this.body, t.statics);
+    this.lamps = new ShipLamps(fluytLamps(L), t.palette);
+    this.body.add(this.lamps.object);
+    this.lanterns = [...addStatics(this.body, t.statics), ...this.lamps.lanterns];
     this.staysails = new Staysails(this.tornSail, [L.foreMast, L.mainMast]);
     this.body.add(this.staysails.group);
     this.staysails.setLevel(this.sailLevel);
@@ -252,6 +260,7 @@ export class FluytModel implements ShipModel {
 
   /** Défait ce qui est propre à cette instance (le gabarit, partagé, reste en cache). */
   private disposeParts() {
+    this.lamps.dispose();
     this.staysails.dispose();
     this.flag.dispose();
     this.tornSail.dispose();

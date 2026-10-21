@@ -1498,9 +1498,16 @@ export const STAYSAILS = {
  * l'on marche (les matelots et le joueur passent à travers elle, comme à travers toute lanterne suspendue).
  */
 export const SHIP_LAMPS = {
-  extra: { sloop: 1, schooner: 1, caravel: 2, brigantine: 2, xebec: 2, fluyt: 4, brig: 4, corvette: 4, carrack: 6, galleass: 6, frigate: 6, galleon: 8 } as Partial<Record<ShipType, number>>,
+  extra: { sloop: 1, schooner: 1, caravel: 3, brigantine: 3, xebec: 3, fluyt: 4, brig: 4, corvette: 4, carrack: 6, galleass: 6, frigate: 6, galleon: 8 } as Partial<Record<ShipType, number>>,
   perExtension: { schooner: 1, brigantine: 1, xebec: 1, fluyt: 1, brig: 1, corvette: 1, carrack: 2, galleass: 2, frigate: 2, galleon: 2 } as Partial<Record<ShipType, number>>,
   headClear: 1.75,
+  /**
+   * Applique : hauteur du centre du verre au-dessus du pont (m), et écart au moins sous le pont du dessus (château bas) ;
+   * allongement le plus long d'un navire (pour retrouver le niveau d'un plan).
+   */
+  wallHeight: 1.75,
+  wallTopGap: 0.35,
+  maxLevel: 2,
   /**
    * Lanterne (taille 1, m), la même pour toutes les sortes : verre (côté, hauteur), épaisseur des montants et des
    * plaques, chapeau à deux gradins (côté du premier, part du second, hauteur de chacun), anneau du dessus.

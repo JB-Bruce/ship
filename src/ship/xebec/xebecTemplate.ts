@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { addLampFixtures } from '../parts/shipLamps';
+import { xebecLamps } from './xebecLamps';
 import { WATER_MASK, type Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } from '../parts/common';
@@ -115,6 +117,7 @@ function buildTemplate(L: XebecLayout, livery: Livery): XebecTemplate {
     g.rotateZ(Math.PI / 2);
     return g;
   };
+  addLampFixtures(batch, p, xebecLamps(L));
   return {
     palette: p,
     statics: batch.build(),

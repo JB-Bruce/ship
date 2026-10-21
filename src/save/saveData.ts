@@ -13,6 +13,9 @@ import type { WeatherKind } from '../world/weather';
  * v2 : Île Royale (son état, `CampaignSnapshot.navyForts`). Une v1 se charge telle quelle : l'île y manque, elle reste
  * à la Marine avec son fort intact.
  * v3 : vie de tous les navires doublée ; la vie à flot d'une sauvegarde plus ancienne est doublée au chargement.
+ * v4 : découverte de la carte (`CampaignSnapshot.discovery`) et plans de navires (`CampaignSnapshot.blueprints`). Une v3
+ * se charge telle quelle : la carte connaît alors les îles déjà visitées (save/visitedIslands.ts), et les types de la
+ * flotte sont débloqués.
  */
 export const SAVE_VERSION = 4;
 /** Facteur appliqué au chargement à la vie à flot d'une sauvegarde de cette version. */

@@ -1,4 +1,6 @@
 import { HELM_WHEEL } from '../../config';
+import { ShipLamps } from '../parts/shipLamps';
+import { brigantineLamps } from './brigantineLamps';
 import * as THREE from 'three';
 import type { Waterline } from '../parts/hullShape';
 import type { Livery, ShipStats } from '../../config';
@@ -60,6 +62,9 @@ export class BrigantineModel implements ShipModel {
   private armorLevel = 0;
   private damage = 0;
   private flagLift = 0;
+
+  /** Appliques, lampadaires et lanternes suspendues (parts/shipLamps.ts), recréés avec le modèle. */
+  private lamps!: ShipLamps;
 
   constructor(
     stats: ShipStats,
@@ -130,6 +135,7 @@ export class BrigantineModel implements ShipModel {
   }
 
   animate(dt: number) {
+    this.lamps.animate(dt, this.root);
     this.flag.update(dt);
     for (const jib of this.jibs) jib.scale.x = Math.abs(jib.scale.x) * this.leeSide;
   }
@@ -170,7 +176,9 @@ export class BrigantineModel implements ShipModel {
       ] as const).map(([u, side, y]) => [L.base(u), side, y] as const),
     );
     this.tornSail = new TornSail(t.sailMaterial, this.livery.sailEmblem);
-    this.lanterns = addStatics(this.body, t.statics);
+    this.lamps = new ShipLamps(brigantineLamps(L), t.palette);
+    this.body.add(this.lamps.object);
+    this.lanterns = [...addStatics(this.body, t.statics), ...this.lamps.lanterns];
 
     L.squareSails.forEach((s, i) => {
       // La grand-voile (la plus grande) porte l'emblème de la livrée, s'il y en a un.
@@ -209,6 +217,7 @@ export class BrigantineModel implements ShipModel {
 
   /** Défait ce qui est propre à cette instance (le gabarit, partagé, reste en cache). */
   private disposeParts() {
+    this.lamps.dispose();
     this.flag.dispose();
     this.tornSail.dispose();
     this.body.clear();

@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { addLampFixtures } from '../parts/shipLamps';
+import { brigLamps } from './brigLamps';
 import { WATER_MASK, type Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { buildWheel } from '../corvette/corvetteTemplate';
@@ -114,6 +116,7 @@ function buildTemplate(L: BrigLayout, livery: Livery): BrigTemplate {
       return yard;
     });
   const mortar = buildMortarGeometry();
+  addLampFixtures(batch, p, brigLamps(L));
   return {
     palette: p,
     statics: batch.build(),

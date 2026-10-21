@@ -7,10 +7,15 @@ import type { Palette } from './props';
 
 export {
   addLampFixtures,
+  doorSconces,
   hangingBottom,
   lampCount,
   lampsFor,
+  layoutLevel,
+  mastPotences,
   mastTopLamp,
+  potenceHeight,
+  sconceHeight,
   type HangingLamp,
   type LampSpec,
   type PostLamp,

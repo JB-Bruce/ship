@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { ShipLamps } from '../parts/shipLamps';
+import { galleassLamps } from './galleassLamps';
 import type { Waterline } from '../parts/hullShape';
 import { GALLEASS_BOW, SAIL_BILLOW, type Livery, type ShipStats, HELM_WHEEL } from '../../config';
 import { wrapAngle } from '../../utils/math';
@@ -72,6 +74,9 @@ export class GalleassModel implements ShipModel {
   private armorLevel = 0;
   private damage = 0;
   private flagLift = 0;
+
+  /** Appliques, lampadaires et lanternes suspendues (parts/shipLamps.ts), recréés avec le modèle. */
+  private lamps!: ShipLamps;
 
   constructor(
     stats: ShipStats,
@@ -178,6 +183,7 @@ export class GalleassModel implements ShipModel {
   }
 
   animate(dt: number) {
+    this.lamps.animate(dt, this.root);
     this.flag.update(dt);
     for (const rig of this.lateenRigs) {
       rig.rotation.y = damp(rig.rotation.y, this.yardTarget, 1.1, dt);
@@ -224,7 +230,9 @@ export class GalleassModel implements ShipModel {
       ] as const).map(([u, side, y]) => [L.base(u), side, y] as const),
     );
     this.tornSail = new TornSail(t.sailMaterial, this.livery.sailEmblem);
-    this.lanterns = addStatics(this.body, t.statics);
+    this.lamps = new ShipLamps(galleassLamps(L), t.palette);
+    this.body.add(this.lamps.object);
+    this.lanterns = [...addStatics(this.body, t.statics), ...this.lamps.lanterns];
 
     // Voiles latines : couchées sur leur vergue (repère de la vergue posé au bout bas), dans un gréement qui tourne autour du mât.
     this.lateenRigs = [];
@@ -272,6 +280,7 @@ export class GalleassModel implements ShipModel {
 
   /** Défait ce qui est propre à cette instance (le gabarit, partagé, reste en cache). */
   private disposeParts() {
+    this.lamps.dispose();
     this.flag.dispose();
     this.tornSail.dispose();
     this.oars.dispose();

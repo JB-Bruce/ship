@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { addLampFixtures } from '../parts/shipLamps';
+import { galleonLamps } from './galleonLamps';
 import { WATER_MASK, type Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { buildBatteryGun, buildWheel } from '../corvette/corvetteTemplate';
@@ -124,6 +126,7 @@ function buildTemplate(L: GalleonLayout, livery: Livery): GalleonTemplate {
     g.rotateZ(Math.PI / 2);
     return g;
   };
+  addLampFixtures(batch, p, galleonLamps(L));
   return {
     palette: p,
     statics: batch.build(),

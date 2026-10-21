@@ -1,4 +1,6 @@
 import { WATER_MASK } from '../../config';
+import { addLampFixtures } from '../parts/shipLamps';
+import { corvetteLamps } from './corvetteLamps';
 import * as THREE from 'three';
 import type { Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
@@ -124,6 +126,7 @@ function buildTemplate(L: CorvetteLayout, livery: Livery): CorvetteTemplate {
   addRopeCoil(batch, p, tf(0.6, quarterdeck.y, L.mizzenMast.z + 0.8));
   addLantern(batch, p, tf(0, stern.gunwale, stern.z + 0.2, 0, 0, 0, 1.5));
 
+  addLampFixtures(batch, p, corvetteLamps(L));
   return {
     palette: p,
     statics: batch.build(),

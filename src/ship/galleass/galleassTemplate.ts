@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { addLampFixtures } from '../parts/shipLamps';
+import { galleassLamps } from './galleassLamps';
 import { WATER_MASK, type Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { buildBatteryGun, buildWheel } from '../corvette/corvetteTemplate';
@@ -110,6 +112,7 @@ function buildTemplate(L: GalleassLayout, livery: Livery): GalleassTemplate {
   addRopeCoil(batch, p, tf(0.55, DECK_Y, L.mizzenMast.z - 0.8));
   addRopeCoil(batch, p, tf(-0.6, sternDeck.y, at(-0.9).z));
 
+  addLampFixtures(batch, p, galleassLamps(L));
   return {
     palette: p,
     statics: batch.build(),

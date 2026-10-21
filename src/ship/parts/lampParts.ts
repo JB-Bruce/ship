@@ -89,6 +89,41 @@ export function mastTopLamp(z: number, underside: number, rim: number): HangingL
   return { kind: 'hanging', at: new THREE.Vector3(0, underside, z - rim + T.inset), drop: T.drop, scale: T.scale, halo: T.halo };
 }
 
+/**
+ * Deux appliques de part et d'autre d'une porte, sur la face d'une cloison (`z` : la face elle-même), `x` = ± `gap` de
+ * l'axe, à `y` (centre du verre) ; `facing` : 0 pour la face avant (vers la proue), π pour la face arrière.
+ */
+export function doorSconces(z: number, y: number, gap: number, facing = 0, scale?: number): WallLamp[] {
+  return [1, -1].map((side) => ({ kind: 'wall', at: new THREE.Vector3(side * gap, y, z), facing, scale }));
+}
+
+/**
+ * Deux lanternes pendues à des potences de part et d'autre d'un mât (bras vers bâbord et tribord), à `y` (au moins
+ * SHIP_LAMPS.headClear + la lanterne au-dessus du pont : voir `hangingBottom`) ; `radius` : rayon du mât à cette hauteur.
+ */
+export function mastPotences(z: number, y: number, radius: number, arm = 0.4, drop = 0.1): HangingLamp[] {
+  return [1, -1].map((side) => ({ kind: 'hanging', at: new THREE.Vector3(side * radius, y, z), facing: (side * Math.PI) / 2, arm, drop }));
+}
+
+/** Niveau d'allongement d'un plan, retrouvé parmi ceux que donne `layoutOf` (plans en cache : 0 à 2). */
+export function layoutLevel<T>(L: T, layoutOf: (level: number) => T): number {
+  for (let level = 0; level <= SHIP_LAMPS.maxLevel; level++) if (layoutOf(level) === L) return level;
+  return 0;
+}
+
+/**
+ * Hauteur du centre du verre d'une applique sur une cloison qui monte de `deck` à `top` : SHIP_LAMPS.wallHeight
+ * au-dessus du pont, ou plus bas sous un château bas (la lanterne reste sous le pont du dessus).
+ */
+export function sconceHeight(deck: number, top: number): number {
+  return deck + Math.min(SHIP_LAMPS.wallHeight, top - deck - SHIP_LAMPS.wallTopGap);
+}
+
+/** Hauteur où poser une potence pour que sa lanterne (tige `drop`, taille `scale`) passe au-dessus des têtes sur ce pont. */
+export function potenceHeight(deck: number, drop = 0.1, scale = 1): number {
+  return deck + SHIP_LAMPS.headClear + drop + (LANTERN_TOP + LANTERN_BOTTOM) * scale;
+}
+
 const LANTERN = SHIP_LAMPS.lantern;
 /** Du centre du verre au bas de la plaque du fond (m, taille 1). */
 export const LANTERN_BOTTOM = LANTERN.glassHeight / 2 + LANTERN.frame;

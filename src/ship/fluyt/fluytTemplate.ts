@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { addLampFixtures } from '../parts/shipLamps';
+import { fluytLamps } from './fluytLamps';
 import { WATER_MASK, type Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { buildBatteryGun, buildWheel } from '../corvette/corvetteTemplate';
@@ -112,6 +114,7 @@ function buildTemplate(L: FluytLayout, livery: Livery): FluytTemplate {
     return g;
   };
   const lateen = buildLateenSail(L.mizzenSail);
+  addLampFixtures(batch, p, fluytLamps(L));
   return {
     palette: p,
     statics: batch.build(),

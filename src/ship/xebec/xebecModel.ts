@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { ShipLamps } from '../parts/shipLamps';
+import { xebecLamps } from './xebecLamps';
 import type { Waterline } from '../parts/hullShape';
 import { SAIL_BILLOW, type Livery, type ShipStats, HELM_WHEEL } from '../../config';
 import { wrapAngle } from '../../utils/math';
@@ -73,6 +75,9 @@ export class XebecModel implements ShipModel {
   private armorLevel = 0;
   private damage = 0;
   private flagLift = 0;
+
+  /** Appliques, lampadaires et lanternes suspendues (parts/shipLamps.ts), recréés avec le modèle. */
+  private lamps!: ShipLamps;
 
   constructor(
     stats: ShipStats,
@@ -166,6 +171,7 @@ export class XebecModel implements ShipModel {
   }
 
   animate(dt: number) {
+    this.lamps.animate(dt, this.root);
     this.flag.update(dt);
     for (const { rig } of this.lateens) {
       rig.rotation.y = damp(rig.rotation.y, this.yardTarget, 1.2, dt);
@@ -208,7 +214,9 @@ export class XebecModel implements ShipModel {
       [0.35, -1, 0.55],
     ]);
     this.tornSail = new TornSail(t.sailMaterial, this.livery.sailEmblem);
-    this.lanterns = addStatics(this.body, t.statics);
+    this.lamps = new ShipLamps(xebecLamps(L), t.palette);
+    this.body.add(this.lamps.object);
+    this.lanterns = [...addStatics(this.body, t.statics), ...this.lamps.lanterns];
 
     // Grand mât : basse voile (elle porte l'emblème de la livrée, s'il y en a un) et hunier, sur le mât incliné.
     const main = this.mastFrame(L.mainMast.z);
@@ -248,6 +256,7 @@ export class XebecModel implements ShipModel {
 
   /** Défait ce qui est propre à cette instance (le gabarit, partagé, reste en cache). */
   private disposeParts() {
+    this.lamps.dispose();
     this.flag.dispose();
     this.tornSail.dispose();
     this.oars.dispose();
