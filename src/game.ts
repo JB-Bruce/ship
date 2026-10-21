@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { AIM, BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, HELM_VIEW, ISLAND_INFO, OCEAN, SKY, WORLD, WORLD_EDGE, type IslandId } from './config';
+import { AIM, BLUEPRINTS, BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, HELM_VIEW, ISLAND_INFO, OCEAN, SKY, WORLD, WORLD_EDGE, type IslandId } from './config';
 import { Campaign } from './campaign';
 import { ChaseCamera } from './camera/chaseCamera';
 import { arcOf, cannonStatsOf, findTarget, updateCannons } from './combat/cannons';
@@ -53,6 +53,7 @@ import type { Lighthouse } from './world/lighthouse';
 import { resolveLandCollisions } from './world/landCollision';
 import { Loot } from './world/loot';
 import { PirateTraffic } from './world/pirateTraffic';
+import { PlanScrolls } from './world/planScrolls';
 import { Sky } from './world/sky';
 import { Weather } from './world/weather';
 import { EdgeStorm } from './world/worldEdge';
@@ -102,6 +103,11 @@ export class Game {
   private readonly lamps: LampLights;
   // Butin : ta flotte le range ; un pirate allié le garde pour lui.
   private readonly loot = new Loot(this.scene, this.effects, (ship, kind, value) => (this.pirates.has(ship) ? value : this.campaign.collectLoot(ship, kind, value)));
+  /** Bouts de plan de navires lâchés par les épaves (le hud est créé plus loin, d'où les rappels). */
+  private readonly planScrolls = new PlanScrolls(this.scene, this.effects, {
+    notice: (text) => this.hud.notifications.notice(text, 'plan'),
+    message: (text) => this.hud.message(text, BLUEPRINTS.unlockMessageTime),
+  });
   private readonly spawner = new EnemySpawner(this.scene, this.ships, (enemy) => {
     const { x, z } = enemy.ship.position;
     this.loot.spawnWreckLoot(x, z, enemy.lootFactor);
@@ -197,8 +203,8 @@ export class Game {
     const loaded = this.saves.finish({ state: this.state, fleet: this.fleet, campaign: this.campaign, spawner: this.spawner, weather: this.weather, ships: this.ships });
     if (loaded) this.hud.toast(`Partie chargée : « ${loaded} »`, 3, 'good');
 
-    const { state, fleet, campaign, hud, wind, spawner, loot, schools, radar, pirates, settings, display, saves, dayCycle } = this;
-    this.portMenu = createMenus({ container, state, fleet, campaign, hud, wind, spawner, loot, schools, radar, pirates, settings, display, saves, dayCycle, takeHelm: (m) => this.takeHelm(m) });
+    const { state, fleet, campaign, hud, wind, spawner, loot, planScrolls, schools, radar, pirates, settings, display, saves, dayCycle } = this;
+    this.portMenu = createMenus({ container, state, fleet, campaign, hud, wind, spawner, loot, planScrolls, schools, radar, pirates, settings, display, saves, dayCycle, takeHelm: (m) => this.takeHelm(m) });
     this.weatherButtons = new WeatherButtons(container, this.weather);
     this.dayClock = new DayClock(container, this.dayCycle);
     this.fpsCounter = new FpsCounter(container, this.settings, this.display);
@@ -271,7 +277,7 @@ export class Game {
     this.fishing.update(dt, this.ships);
     // Pendant une escorte, les suiveurs entourent le navire à protéger au lieu de te suivre.
     this.fleet.guarded = this.campaign.escorts().find((s) => s.alive) ?? null;
-    this.fleet.update(dt, this.loot.crates);
+    this.fleet.update(dt, this.loot.crates, this.planScrolls.positions);
     const focus = this.fleet.leader.position;
     for (const ship of this.ships) {
       ship.far = Math.hypot(ship.position.x - focus.x, ship.position.z - focus.z) > OCEAN.farShips;
@@ -300,6 +306,7 @@ export class Game {
     this.criticals.update(dt, this.ships, this.waves);
     this.schoolFx.update(dt, this.schools.list, this.waves);
     this.loot.update(dt, this.ships, this.waves);
+    this.planScrolls.update(dt, this.waves, this.ships, this.fleet.hand);
     this.handleLeaderLoss();
 
     const leader = this.fleet.leader;
@@ -330,7 +337,7 @@ export class Game {
     // Ce que le radar balaie est découvert sur la carte, pour toujours.
     this.campaign.discovery.update(leader.position.x, leader.position.z, this.radar.range);
     this.encounters.update(this.spawner.enemies, leader);
-    this.radar.update(dt, leader, this.spawner.enemies, this.wind, this.ships, this.schools.list, this.campaign.escorts(), this.fleet.traders);
+    this.radar.update(dt, leader, this.spawner.enemies, this.wind, this.ships, this.schools.list, this.campaign.escorts(), this.fleet.traders, this.planScrolls.positions);
     this.betrayal.update(this.camera, leader, (this.scene.fog as THREE.Fog).far);
     this.healthBars.update(this.camera, this.ships, leader, (this.scene.fog as THREE.Fog).far, this.spawner.enemies, this.fleet.members);
     this.healthBars.mark(this.betrayal.marked, this.betrayal.hovered);
@@ -418,6 +425,7 @@ export class Game {
     if (ship.faction === 'enemy') {
       if (this.spawner.enemies.some((e) => e.ship === ship && e.boss)) this.bossSinking.start(ship, leader);
       this.campaign.enemySunk(ship, attacker);
+      this.planScrolls.claim(this.spawner.enemies.find((e) => e.ship === ship), this.fleet.members.some((m) => m.ship === attacker));
       return;
     }
     // Un navire allié hors de ta flotte (marchand escorté ou des îles) : sa mission ou le trafic s'en charge.

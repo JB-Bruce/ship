@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { FleetMember } from '../fleet/fleet';
 import { rankName, rankOf } from '../fleet/officers';
 import type { Ship } from '../ship/ship';
-import { typeName } from '../shipTypes';
+import { blueprints, shipTypeLabel } from '../progression/blueprints';
 import type { Enemy } from '../world/enemySpawner';
 import { enemyTagHtml, threatOf, type Threat } from './enemyTags';
 
@@ -16,6 +16,8 @@ interface Bar {
   /** Étiquette d'un ennemi (type, élite, menace) ou d'un navire de ta flotte (rang, nom) ; null pour un autre allié. */
   tag: HTMLElement | null;
   threat: Threat | null;
+  /** Plans connus quand l'étiquette d'un ennemi a été écrite : un type découvert depuis refait son nom. */
+  plans: number;
   /** Rang et nom affichés sur l'étiquette d'un navire de ta flotte (le DOM n'est touché qu'à leur changement). */
   label: string;
   /** Pictogrammes des avaries (coups critiques), à droite de la barre. */
@@ -95,8 +97,9 @@ export class HealthBars {
     const enemy = enemies.find((e) => e.ship === ship);
     if (!enemy) return;
     const threat = threatOf(enemy, player);
-    if (threat === bar.threat) return;
+    if (threat === bar.threat && bar.plans === blueprints.version) return;
     bar.threat = threat;
+    bar.plans = blueprints.version;
     tag.className = `ship-tag ${threat}`;
     tag.innerHTML = enemyTagHtml(enemy, threat);
   }
@@ -108,7 +111,7 @@ export class HealthBars {
     const tag = (bar.tag ??= this.tagElement(member ? 'ship-tag mine' : 'ship-tag ally'));
     tag.style.transform = transform;
     const stars = member ? rankOf(member.kills) : 0;
-    const type = typeName(ship.type, ship.extension);
+    const type = shipTypeLabel(ship.type, ship.extension);
     const label = `${stars}|${member?.name ?? ''}|${type}`;
     if (label === bar.label) return;
     bar.label = label;
@@ -142,7 +145,7 @@ export class HealthBars {
     const tag = ship.faction === 'enemy' ? this.tagElement('ship-tag') : null;
     const crits = this.parent.appendChild(document.createElement('div'));
     crits.className = 'ship-crits';
-    const bar: Bar = { root, fill, tag, threat: null, label: '', crits, critIcons: '', seen: this.frame, mark: 0 };
+    const bar: Bar = { root, fill, tag, threat: null, plans: blueprints.version, label: '', crits, critIcons: '', seen: this.frame, mark: 0 };
     this.bars.set(ship, bar);
     return bar;
   }

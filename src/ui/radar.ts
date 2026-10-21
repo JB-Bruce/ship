@@ -1,9 +1,10 @@
-import { RADAR, WIND } from '../config';
+import { BLUEPRINTS, RADAR, WIND } from '../config';
 import type { Ship } from '../ship/ship';
 import type { Enemy } from '../world/enemySpawner';
 import type { FishSchool } from '../world/fishSchools';
 import { isIsland, LAND_LIST, type Landmass } from '../world/island';
 import type { Wind } from '../world/wind';
+import { paintDiamond } from './mapGlyphs';
 
 const COLORS = {
   background: 'rgba(6, 28, 38, 0.72)',
@@ -48,7 +49,8 @@ function gustsIcon(level: number): string {
 /**
  * Radar circulaire qui tourne avec le bateau : le haut = devant toi.
  * Vert = navire de ta flotte, vert plus foncé = ton navire en commerce, bleu = autre allié (pirate, marchand), bleu ciel cerclé de blanc = navire à protéger. Rouge = ennemi qui te chasse, orange = en patrouille, violet = en fuite, gros point
- * rouge cerclé = boss, poisson bleu = banc de poissons. Le butin n'y figure pas (il encombrait le radar).
+ * rouge cerclé = boss, poisson bleu = banc de poissons, losange rose = rouleau de plan de navire. Le reste du butin n'y
+ * figure pas (il encombrait le radar).
  * Hors de portée : point pâle au bord, dans sa direction. La portée grandit près de l'île avec le phare.
  * Le triangle clair sur le bord montre d'où vient le vent ; au-dessus, ses crans de force (1 à 5), ses nœuds et son effet sur ta vitesse.
  */
@@ -85,9 +87,9 @@ export class Radar {
   /** `ships` : tous les bateaux (les alliés y sont repérés par leur camp). */
   /**
    * `escorts` : navires à protéger (en bleu ciel) ; les autres alliés hors de ta flotte sont en bleu. `traders` : tes
-   * navires en commerce (vert plus foncé).
+   * navires en commerce (vert plus foncé). `scrolls` : rouleaux de plan de navire qui flottent.
    */
-  update(dt: number, player: Ship, enemies: readonly Enemy[], wind: Wind, ships: readonly Ship[], schools: readonly FishSchool[], escorts: readonly Ship[], traders: readonly Ship[]) {
+  update(dt: number, player: Ship, enemies: readonly Enemy[], wind: Wind, ships: readonly Ship[], schools: readonly FishSchool[], escorts: readonly Ship[], traders: readonly Ship[], scrolls: readonly { x: number; z: number }[] = []) {
     // Redessiner un dessin 2D à chaque image coûte cher : RADAR.refreshRate fois par seconde suffit.
     this.sinceDraw += dt;
     if (this.sinceDraw < 1 / RADAR.refreshRate) return;
@@ -159,6 +161,11 @@ export class Radar {
       if (school.diving) continue;
       const p = place(school.x, school.z);
       this.fish(p.x, p.y);
+    }
+    ctx.fillStyle = BLUEPRINTS.radarColor;
+    for (const scroll of scrolls) {
+      const p = place(scroll.x, scroll.z);
+      paintDiamond(ctx, p.x, p.y, p.outside ? 3.5 : 5);
     }
     for (const ship of ships) {
       if (ship === player || ship.faction === 'enemy' || !ship.alive) continue;

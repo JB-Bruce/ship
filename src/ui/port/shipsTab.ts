@@ -1,6 +1,7 @@
 import { BOSSES, FLEET, ISLAND_INFO, OFFICERS, RANKS } from '../../config';
 import { rankName, rankOf } from '../../fleet/officers';
 import type { FleetMember } from '../../fleet/fleet';
+import { blueprints, revealTypes } from '../../progression/blueprints';
 import { cannonCount, isExtended } from '../../progression/upgrades';
 import { PLAYER_SHIP_TYPES, SHIP_TYPES, typeName, type ShipType } from '../../shipTypes';
 import { costHtml } from '../parchmentMenu';
@@ -80,7 +81,28 @@ function trophies(m: FleetMember): string {
   return `<div class="choices trophies">${buttons}</div>`;
 }
 
+/**
+ * Navire dont le plan est incomplet : ni nom ni achat, seulement sa silhouette pâle et les bouts de plan réunis (on les
+ * gagne en coulant des navires de ce type).
+ */
+function unknownCard(type: ShipType): string {
+  const count = blueprints.count(type);
+  const needed = blueprints.needed(type);
+  const pips = Array.from({ length: needed }, (_, i) => `<span class="pip${i < count ? ' on' : ''}"></span>`).join('');
+  return `
+    <div class="upgrade-card unknown">
+      <div class="icon">${SHIP_ICONS[type]}</div>
+      <div class="body">
+        <h2>Navire inconnu <span class="pips">${pips}</span></h2>
+        <p>Plan incomplet : coule des navires de cette silhouette et repêche les bouts de plan parmi leur butin.</p>
+        <p class="effect">${count}/${needed} bouts de plan</p>
+      </div>
+      <div class="buy"></div>
+    </div>`;
+}
+
 function shopCard(ctx: PortContext, type: ShipType): string {
+  if (!blueprints.isUnlocked(type)) return unknownCard(type);
   const def = SHIP_TYPES[type];
   const s = def.stats;
   const price = ctx.island.shipPrice(def.price);
@@ -94,7 +116,7 @@ function shopCard(ctx: PortContext, type: ShipType): string {
       <div class="icon">${SHIP_ICONS[type]}</div>
       <div class="body">
         <h2>${def.name}</h2>
-        <p>${def.description}</p>${locked ? `<p class="effect">Il faut le chantier naval de niveau ${yard} dans ce port (onglet Île).</p>` : ''}
+        <p>${revealTypes(def.description)}</p>${locked ? `<p class="effect">Il faut le chantier naval de niveau ${yard} dans ce port (onglet Île).</p>` : ''}
         <p class="effect">Vie ${s.maxHealth} · ${cannonCount(s)} canons · ${Math.round(s.maxSpeed * MS_TO_KNOTS)} nœuds · cale ${def.hold}${def.canFish ? ' · pêche' : ''}</p>
       </div>
       <div class="buy">

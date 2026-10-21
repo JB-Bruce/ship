@@ -8,6 +8,7 @@ import type { EnemySpawner } from '../world/enemySpawner';
 import type { FishSchools } from '../world/fishSchools';
 import type { Loot } from '../world/loot';
 import type { PirateTraffic } from '../world/pirateTraffic';
+import type { PlanScrolls } from '../world/planScrolls';
 import type { Wind } from '../world/wind';
 import { FleetMenu } from './fleetMenu';
 import type { Hud } from './hud';
@@ -27,6 +28,7 @@ export interface MenuWorld {
   readonly wind: Wind;
   readonly spawner: EnemySpawner;
   readonly loot: Loot;
+  readonly planScrolls: PlanScrolls;
   readonly schools: FishSchools;
   readonly radar: Radar;
   readonly pirates: PirateTraffic;
@@ -53,6 +55,7 @@ export function createMenus(w: MenuWorld): PortMenu {
     wind: w.wind,
     enemies: () => w.spawner.enemies,
     crates: () => w.loot.crates,
+    scrolls: () => w.planScrolls.positions,
     schools: () => w.schools.list,
     radarRange: () => w.radar.range,
     coverage: () => campaign.islands.tortuga.coverage,

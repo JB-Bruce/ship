@@ -62,6 +62,7 @@ export interface ShipTypeDef {
   name: string;
   /** Nom féminin (« une barque ») : accorde les textes affichés (« Barque ennemie coulée »). */
   feminine?: boolean;
+  /** Présentation à l'achat ; un autre type s'y nomme à trous (« {le:corvette} », `revealTypes` de progression/blueprints.ts). */
   description: string;
   /** Disposition des canons : sur les flancs (bordée) ou à l'avant (l'IA attaque alors en passes). */
   armament: 'broadside' | 'bow';

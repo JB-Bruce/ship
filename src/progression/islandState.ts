@@ -1,4 +1,5 @@
 import { SHIP_TYPES, type ShipType } from '../shipTypes';
+import { blueprints, unknownShips } from './blueprints';
 import {
   CITADEL,
   FORT,
@@ -24,7 +25,7 @@ export const ISLAND_UPGRADE_INFO: Record<IslandUpgradeId, { name: string; descri
   fort: { name: 'Fort', description: 'Plus de canons sur les remparts, une meilleure poudre et des boulets plus lourds.' },
   citadel: { name: 'Citadelle', description: 'Les Frères du Sabre arment de nouveaux bastions : jusqu’à 8 canons, qui portent loin.' },
   royalFort: { name: 'Fort-Royal', description: 'Tes canonniers remettent en batterie les pièces de la Marine : jusqu’à 11 canons, les plus lourds de l’archipel.' },
-  shipyard: { name: 'Chantier naval', description: 'Des cales de construction et des maîtres charpentiers : le port peut bâtir des navires plus grands (brigantin, chébec, flûte, brick et corvette, puis caraque, galéasse et frégate, puis galion).' },
+  shipyard: { name: 'Chantier naval', description: 'Des cales de construction et des maîtres charpentiers : le port peut bâtir des navires de plus en plus grands, pourvu que tu en aies le plan.' },
   dock: { name: 'Quai', description: 'Des charpentiers en nombre : réparations plus rapides, navires remis à flot plus vite et moins chers.' },
   workshop: { name: 'Scierie', description: 'Les bûcherons de l’île débitent du bois de charpente, même quand tu es au large. Il attend dans la réserve de l’île.' },
   counter: { name: 'Comptoir', description: 'Des négociants s’installent au port : les marchands alliés viennent plus souvent et laissent plus d’or dans la réserve de l’île.' },
@@ -140,8 +141,11 @@ export class IslandState {
       case 'dock':
         return `Réparation ×${(u.dock.repairRate[i] / PORT.repairRate).toFixed(1)} · retour des navires −${Math.round((1 - u.dock.respawnFactor[i]) * 100)} % · navires −${Math.round(u.dock.shipDiscount[i] * 100)} %`;
       case 'shipyard': {
+        // Les navires dont le plan est incomplet restent inconnus : seulement leur nombre.
         const types = (Object.keys(u.shipyard.required) as ShipType[]).filter((t) => u.shipyard.required[t] === level);
-        return `Construction : ${types.map((t) => SHIP_TYPES[t].name.toLowerCase()).join(', ')}`;
+        const known = types.filter((t) => blueprints.isUnlocked(t)).map((t) => SHIP_TYPES[t].name.toLowerCase());
+        const unknown = types.length - known.length;
+        return `Construction : ${[...known, ...(unknown ? [unknownShips(unknown)] : [])].join(', ')}`;
       }
       case 'workshop':
         return `${u.workshop.woodPerMinute[i]} bois par minute`;

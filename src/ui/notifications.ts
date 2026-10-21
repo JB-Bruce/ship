@@ -3,6 +3,8 @@ import type { LootKind } from '../world/loot';
 /** Durée d'affichage (s) d'une ligne « navire coulé », d'une popup de butin, et du fondu final. */
 const KILL_TIME = 4;
 const PICKUP_TIME = 2;
+/** Popup à texte libre (bout de plan ramassé) : plus rare, elle reste plus longtemps. */
+const NOTICE_TIME = 4;
 const FADE_TIME = 0.6;
 /** Lignes « navire coulé » affichées au plus. */
 const MAX_KILLS = 5;
@@ -20,8 +22,8 @@ const PICKUP_NAMES: Record<PickupKind, (amount: number) => string> = {
 interface Item {
   readonly el: HTMLElement;
   time: number;
-  /** Pour les popups de butin : ce qu'elles additionnent. */
-  readonly kind?: PickupKind;
+  /** Pour les popups de butin : ce qu'elles additionnent (`notice` : texte libre, qui ne s'additionne pas). */
+  readonly kind?: PickupKind | 'notice';
   amount: number;
 }
 
@@ -69,6 +71,15 @@ export class Notifications {
     item.time = PICKUP_TIME;
     item.el.textContent = `+${item.amount} ${PICKUP_NAMES[kind](item.amount)}`;
     item.el.style.opacity = '1';
+  }
+
+  /** Popup à texte libre à côté des ressources (« 📜 Plan de navire inconnu · 2/5 ») ; `className` donne sa couleur. */
+  notice(text: string, className: string) {
+    const el = document.createElement('div');
+    el.className = `notif-pickup ${className}`;
+    el.textContent = text;
+    this.pickups.appendChild(el);
+    this.items.push({ el, time: NOTICE_TIME, kind: 'notice', amount: 0 });
   }
 
   update(dt: number) {

@@ -1,5 +1,6 @@
 import { ISLAND_INFO } from '../config';
 import type { Fleet } from '../fleet/fleet';
+import { revealTypes } from '../progression/blueprints';
 import { MISSION_TYPES, missionType, starsText, type Contract, type Contracts } from '../progression/contracts';
 import type { Objective } from '../progression/navyIsland';
 import { contractProgress } from './port/tavernTab';
@@ -42,7 +43,7 @@ export class QuestTracker {
     const note = ready ? (c.kind === 'deliver' ? `Livre-les à ${port}` : `Prime à toucher à ${port}`) : status;
     return `
       <div class="quest${ready ? ' done' : ''}">
-        <div class="quest-title"><span class="quest-icon" title="${type.name}">${type.icon}</span>${ready ? '✔ ' : ''}${c.title} <span class="stars">${starsText(c.stars)}</span></div>
+        <div class="quest-title"><span class="quest-icon" title="${type.name}">${type.icon}</span>${ready ? '✔ ' : ''}${revealTypes(c.title)} <span class="stars">${starsText(c.stars)}</span></div>
         <div class="quest-progress"><span class="quest-bar"><span style="width:${(count / c.target) * 100}%"></span></span><span>${count} / ${c.target}</span></div>
         ${note ? `<div class="quest-note">${note}</div>` : ''}
       </div>`;

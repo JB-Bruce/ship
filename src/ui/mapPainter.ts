@@ -1,7 +1,7 @@
 import type { MapZone } from '../missions/mission';
 import type { Ship } from '../ship/ship';
 import type { FishSchool } from '../world/fishSchools';
-import { ISLAND_INFO, WORLD_EDGE, type IslandId } from '../config';
+import { BLUEPRINTS, ISLAND_INFO, WORLD_EDGE, type IslandId } from '../config';
 import { harbors } from '../world/harbors';
 import { isIsland, LAND_LIST, type Islet, type Landmass } from '../world/island';
 import { LANDMARKS } from '../world/landmarks';
@@ -9,7 +9,7 @@ import type { Crate, LootKind } from '../world/loot';
 import type { Wind } from '../world/wind';
 import type { MapFog } from './mapFog';
 import type { MapFrame } from './mapView';
-import { INK, paintCompass, paintLandmark, paintScale, paintShip } from './mapGlyphs';
+import { INK, paintCompass, paintDiamond, paintLandmark, paintScale, paintShip } from './mapGlyphs';
 
 /** Ce que la carte montre. Les ennemis sont déjà filtrés : seulement ceux à portée du radar. */
 export interface MapData {
@@ -19,6 +19,8 @@ export interface MapData {
   traders: readonly Ship[];
   enemies: readonly Ship[];
   crates: readonly Crate[];
+  /** Rouleaux de plan de navire qui flottent (losange de leur couleur). */
+  scrolls: readonly { x: number; z: number }[];
   schools: readonly FishSchool[];
   wind: Wind;
   /** Portée du radar du bateau piloté (m). */
@@ -136,6 +138,8 @@ export function paintMap(ctx: CanvasRenderingContext2D, width: number, height: n
     ctx.fillStyle = CRATE_COLORS[kind];
     ctx.fillRect(toX(mesh.position.x) - 3, toY(mesh.position.z) - 3, 6, 6);
   }
+  ctx.fillStyle = BLUEPRINTS.mapColor;
+  for (const p of data.scrolls) paintDiamond(ctx, toX(p.x), toY(p.z), 6);
   ctx.fillStyle = COLORS.fish;
   ctx.font = '15px system-ui, sans-serif';
   ctx.textAlign = 'center';

@@ -93,6 +93,22 @@ function buildSpiceCrate(): LootModel {
  */
 export type LootCollector = (ship: Ship, kind: LootKind, value: number) => number;
 
+/**
+ * Un bateau passe-t-il sur ce point (butin, rouleau de plan) ? La zone suit sa coque : une gélule de sa longueur et de sa
+ * largeur (allongements compris), orientée selon son cap, plus LOOT.pickupMargin tout autour.
+ */
+export function passesOver(ship: Ship, p: { x: number; z: number }): boolean {
+  const { length, width } = ship.stats;
+  const dx = p.x - ship.position.x;
+  const dz = p.z - ship.position.z;
+  // Position le long de l'axe proue-poupe, ramenée sur le segment central de la gélule.
+  const half = Math.max(0, (length - width) / 2);
+  const along = Math.max(-half, Math.min(half, dx * Math.sin(ship.heading) + dz * Math.cos(ship.heading)));
+  const ex = dx - Math.sin(ship.heading) * along;
+  const ez = dz - Math.cos(ship.heading) * along;
+  return Math.hypot(ex, ez) < width / 2 + LOOT.pickupMargin;
+}
+
 /** Butin laissé par les épaves (or, planches, parfois rhum et épices) : il flotte, on le ramasse en passant dessus. */
 export class Loot {
   readonly crates: Crate[] = [];
@@ -156,22 +172,9 @@ export class Loot {
     }
   }
 
-  /**
-   * Un bateau non ennemi à flot passe-t-il sur la caisse ? La zone suit sa coque : une gélule de sa longueur et de sa
-   * largeur (allongements compris), orientée selon son cap, plus LOOT.pickupMargin tout autour. Le collecteur décide qui
-   * garde le butin (ta flotte, un pirate allié… ou personne).
-   */
+  /** Un bateau non ennemi à flot passe-t-il sur la caisse ? Le collecteur décide qui garde le butin (ta flotte, un pirate allié… ou personne). */
   private reaches(ship: Ship, p: THREE.Vector3): boolean {
-    if (ship.faction === 'enemy' || !ship.alive) return false;
-    const { length, width } = ship.stats;
-    const dx = p.x - ship.position.x;
-    const dz = p.z - ship.position.z;
-    // Position le long de l'axe proue-poupe, ramenée sur le segment central de la gélule.
-    const half = Math.max(0, (length - width) / 2);
-    const along = Math.max(-half, Math.min(half, dx * Math.sin(ship.heading) + dz * Math.cos(ship.heading)));
-    const ex = dx - Math.sin(ship.heading) * along;
-    const ez = dz - Math.cos(ship.heading) * along;
-    return Math.hypot(ex, ez) < width / 2 + LOOT.pickupMargin;
+    return ship.faction !== 'enemy' && ship.alive && passesOver(ship, p);
   }
 
   /**

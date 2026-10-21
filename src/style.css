@@ -1048,6 +1048,29 @@ body {
   color: #9fe3ff;
 }
 
+/* Bout de plan de navire ramassé. */
+.notif-pickup.plan {
+  color: #ffb8e6;
+}
+
+.map-legend .plan {
+  color: #9b2f7f;
+}
+
+/* Navire dont le plan est incomplet (onglet Navires) : silhouette pâle, pas d'achat. */
+.upgrade-card.unknown {
+  border-style: dashed;
+  background: rgba(255, 245, 215, 0.18);
+}
+
+.upgrade-card.unknown .icon svg {
+  stroke: rgba(74, 46, 20, 0.35);
+}
+
+.upgrade-card.unknown h2 {
+  color: #6a4a2a;
+}
+
 .map-legend .rum {
   color: #9a3f1c;
 }

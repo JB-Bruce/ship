@@ -1,6 +1,6 @@
 import { ENCOUNTER_ALERT } from '../config';
 import type { Ship } from '../ship/ship';
-import { typeName } from '../shipTypes';
+import { shipTypeLabel } from '../progression/blueprints';
 import { wrapAngle } from '../utils/math';
 import type { Enemy } from '../world/enemySpawner';
 import { threatOf, type Threat } from './enemyTags';
@@ -44,7 +44,7 @@ export class EncounterAlerts {
       const t = threatOf(e, leader);
       return THREAT_ORDER.indexOf(t) > THREAT_ORDER.indexOf(worst) ? t : worst;
     }, 'weak');
-    const name = (e: Enemy) => `${e.name ? `${e.name}, ` : ''}${typeName(e.ship.type, e.ship.extension)}${e.elite ? ' d’élite' : ''}`;
+    const name = (e: Enemy) => `${e.name ? `${e.name}, ` : ''}${shipTypeLabel(e.ship.type, e.ship.extension)}${e.elite ? ' d’élite' : ''}`;
     const who = members.length > 1 ? `${members.length} navires (chef : ${name(chief)})` : name(chief);
     const { x, z } = chief.ship.position;
     const bearing = wrapAngle(Math.atan2(x - leader.position.x, z - leader.position.z) - leader.heading);

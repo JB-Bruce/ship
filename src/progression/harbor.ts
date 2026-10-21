@@ -6,6 +6,7 @@ import type { Fleet, FleetMember } from '../fleet/fleet';
 import { fleetStock, load, unload } from '../fleet/holds';
 import type { TradeRoutes } from '../fleet/tradeRoutes';
 import { SHIP_TYPES, UPGRADE_INFO, type ShipType } from '../shipTypes';
+import { blueprints, revealTypes } from './blueprints';
 import type { Contract, ContractOptions, Contracts } from './contracts';
 import { goodText, type Good } from './goods';
 import { ISLAND_UPGRADE_INFO, type IslandState, type IslandUpgradeId } from './islandState';
@@ -109,8 +110,9 @@ export class Harbor {
 
   buyShip(type: ShipType) {
     const price = this.island.shipPrice(SHIP_TYPES[type].price);
-    // Les navires en commerce ne prennent pas de place dans la flotte (ils ont un emplacement dans leur île).
-    if (!this.island.canBuild(type) || this.fleet.hand.length >= this.state.slots || !this.state.spend(price)) return;
+    // Les navires en commerce ne prennent pas de place dans la flotte (ils ont un emplacement dans leur île). Il faut
+    // aussi le plan complet du navire.
+    if (!blueprints.isUnlocked(type) || !this.island.canBuild(type) || this.fleet.hand.length >= this.state.slots || !this.state.spend(price)) return;
     const member = this.fleet.add(type, price);
     this.events.say(`${member.name} (${SHIP_TYPES[type].name}) rejoint ta flotte !`);
   }
@@ -258,7 +260,7 @@ export class Harbor {
     this.ledger.contractsDone++;
     const officer = c.special ? this.crew.grantUnique(c.special) : null;
     const joins = officer ? ` — ${officer.name} rejoint ton équipage !` : '';
-    this.events.say(`Prime touchée : ${c.title} (+${c.reward.gold} or${c.reward.wood ? `, +${c.reward.wood} bois` : ''})${joins}`);
+    this.events.say(`Prime touchée : ${revealTypes(c.title)} (+${c.reward.gold} or${c.reward.wood ? `, +${c.reward.wood} bois` : ''})${joins}`);
     return officer;
   }
 }

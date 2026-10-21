@@ -4,6 +4,7 @@ import { rankName, rankOf } from './fleet/officers';
 import { refit } from './fleet/refit';
 import { TradeRoutes, type RunnerSnapshot } from './fleet/tradeRoutes';
 import { factor } from './progression/modifiers';
+import { blueprints, labelFeminine, revealTypes, shipTypeLabel, type BlueprintsSnapshot } from './progression/blueprints';
 import type { Fleet, FleetMember } from './fleet/fleet';
 import { loseCargo, store } from './fleet/holds';
 import { MissionDirector } from './missions/missionDirector';
@@ -18,7 +19,6 @@ import { repairAtPort } from './progression/portRepair';
 import { visitedIslands } from './save/visitedIslands';
 import type { PlayerState } from './progression/playerState';
 import type { Combatant, Ship } from './ship/ship';
-import { SHIP_TYPES } from './shipTypes';
 import type { Hud } from './ui/hud';
 import type { EnemySpawner } from './world/enemySpawner';
 import type { Fort } from './world/fort';
@@ -43,6 +43,8 @@ export interface CampaignSnapshot {
   navyForts?: Partial<Record<IslandId, number>>;
   /** Ce que la carte a découvert (voir mapDiscovery.ts) ; absent d'une sauvegarde d'avant la brume de la carte. */
   discovery?: string;
+  /** Plans de navires (absents avant la v4 : seuls les types de la flotte sont alors connus). */
+  blueprints?: BlueprintsSnapshot;
 }
 
 /**
@@ -85,7 +87,7 @@ export class Campaign {
       failed: (c, reason) => {
         this.contracts.remove(c);
         hud.message(reason, 4, true);
-        hud.notifications.kill(`✖ Contrat échoué : ${c.title}`);
+        hud.notifications.kill(`✖ Contrat échoué : ${revealTypes(c.title)}`);
       },
     });
     this.routes = new TradeRoutes(fleet, state, this.ledger, this.islands, world.ships, (text) => hud.notifications.kill(text));
@@ -114,6 +116,8 @@ export class Campaign {
     }
     this.crew.newDay();
     this.discovery.revealLand(tortuga);
+    // Plans de navires : la chaloupe, et les types de la flotte (de départ, ou de la sauvegarde à reprendre).
+    blueprints.reset(fleet.members.map((m) => m.type));
   }
 
   /** Une île de la Marine prise, ou reprise par elle : son fort, sa taverne, et ce qui partait vers son port. */
@@ -134,7 +138,7 @@ export class Campaign {
   snapshot(): CampaignSnapshot {
     const islands = Object.fromEntries(ISLAND_LIST.map((i) => [i.id, this.islands[i.id].snapshot()])) as Record<IslandId, IslandSnapshot>;
     const { lastPort, ledger, contracts, crew, routes, navy } = this;
-    return { islands, lastPort, ledger: ledger.snapshot(), contracts: contracts.snapshot(), crew: crew.snapshot(), routes: routes.snapshot(), navyForts: navy.snapshot(), discovery: this.discovery.snapshot() };
+    return { islands, lastPort, ledger: ledger.snapshot(), contracts: contracts.snapshot(), crew: crew.snapshot(), routes: routes.snapshot(), navyForts: navy.snapshot(), discovery: this.discovery.snapshot(), blueprints: blueprints.snapshot() };
   }
 
   /** Reprend une sauvegarde, la flotte déjà rétablie. Les missions en cours (chasse, défense, escorte) recommencent. */
@@ -152,6 +156,7 @@ export class Campaign {
     this.routes.restore(s.routes);
     // Ancienne sauvegarde (ou grille illisible) : la carte connaît les îles déjà visitées.
     if (!s.discovery || !this.discovery.restore(s.discovery)) for (const id of visitedIslands(s)) this.discovery.revealLand(islandById(id));
+    blueprints.restore(s.blueprints, this.fleet.members.map((m) => m.type));
     for (const c of this.contracts.active) {
       if ((c.kind === 'hunt' || c.kind === 'defend' || c.kind === 'escort') && !this.contracts.isDone(c)) this.missions.start(c);
     }
@@ -239,7 +244,7 @@ export class Campaign {
   private missionSucceeded(c: Contract) {
     if (c.kind === 'hunt') {
       c.progress = c.target;
-      this.hud.notifications.kill(`✔ Contrat rempli : ${c.title} (prime à ${ISLAND_INFO[c.claimAt].portName})`);
+      this.hud.notifications.kill(`✔ Contrat rempli : ${revealTypes(c.title)} (prime à ${ISLAND_INFO[c.claimAt].portName})`);
       return;
     }
     this.contracts.complete(c);
@@ -307,8 +312,7 @@ export class Campaign {
     const by = killer ? ` par ${killer.name}` : fortInfo ? byFort : byPirates ? ' par des pirates' : '';
     if (byPirates && enemy) enemy.uncounted = true;
     if (!byPirates) this.ledger.recordSunk(ship.type, elite, boss);
-    const def = SHIP_TYPES[ship.type];
-    const e = def.feminine ? 'e' : '';
+    const e = labelFeminine(ship.type) ? 'e' : '';
     if (boss) {
       const b = BOSSES[boss];
       const be = b.feminine ? 'e' : '';
@@ -317,11 +321,11 @@ export class Campaign {
     } else if (enemy?.name) {
       this.hud.notifications.kill(`☠ ${enemy.name} coulé${by}`);
     } else {
-      this.hud.notifications.kill(`☠ ${def.name} ennemi${e}${elite ? " d'élite" : ''} coulé${e}${by}`);
+      this.hud.notifications.kill(`☠ ${shipTypeLabel(ship.type)} ennemi${e}${elite ? " d'élite" : ''} coulé${e}${by}`);
     }
     if (byPirates) return;
     for (const c of this.contracts.onSunk(ship.type, elite, boss)) {
-      this.hud.notifications.kill(`✔ Contrat rempli : ${c.title} (prime à la taverne)`);
+      this.hud.notifications.kill(`✔ Contrat rempli : ${revealTypes(c.title)} (prime à la taverne)`);
     }
   }
 }
