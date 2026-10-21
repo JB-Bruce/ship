@@ -38,8 +38,8 @@ const BOX_VERTICES = 36;
 const spotsCache = new WeakMap<THREE.BufferGeometry, THREE.Vector3[]>();
 
 /**
- * Centres des lampes d'une géométrie fusionnée de lanternes (chaque lampe est une boîte de `addLantern`), en cache
- * par géométrie : les gabarits sont partagés.
+ * Centres des lampes d'une géométrie fusionnée de lanternes (chaque lampe est une seule boîte : `addLantern`,
+ * `addLampFixtures`), en cache par géométrie : les gabarits sont partagés.
  */
 function lampSpots(geometry: THREE.BufferGeometry): THREE.Vector3[] {
   let spots = spotsCache.get(geometry);
@@ -56,10 +56,16 @@ function lampSpots(geometry: THREE.BufferGeometry): THREE.Vector3[] {
   return spots;
 }
 
-/** Lanterne : centre de sa lampe (repère de son modèle) et couleur de son halo (celle du fanal). */
+/**
+ * Lanterne : centre de sa lampe (repère de son modèle) et couleur de son halo (celle du fanal). Une lanterne suspendue
+ * (parts/shipLamps.ts) bouge : `at` est mis à jour sur place, et `seed` (fixe) règle son scintillement ; `halo` : taille
+ * de son halo (× celle d'un fanal, 1 par défaut ; plus pour la lanterne de hune, vue de loin).
+ */
 export interface LanternSpot {
   readonly at: THREE.Vector3;
   readonly color: THREE.Color;
+  readonly seed?: number;
+  readonly halo?: number;
 }
 
 /**

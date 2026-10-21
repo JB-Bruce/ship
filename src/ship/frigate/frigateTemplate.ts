@@ -7,7 +7,9 @@ import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } f
 import { addHatch, addStairs } from '../parts/deckFittings';
 import { buildCarriageGunGeometry, type Palette } from '../parts/props';
 import { buildGaffSail, buildSquareSail, buildTriangleSail, cylinderBetween } from '../parts/sails';
+import { addLampFixtures } from '../parts/shipLamps';
 import { addBeakhead, addCargo, addStern } from './frigateDecor';
+import { frigateLamps } from './frigateLamps';
 import { batteryY, DECK_Y, sheer, type FrigateLayout } from './frigateLayout';
 
 export interface FrigateTemplate {
@@ -143,6 +145,7 @@ function buildTemplate(L: FrigateLayout, livery: Livery): FrigateTemplate {
   batch.add(p.wood, new THREE.CylinderGeometry(0.36, 0.42, 0.75, 8), tf(0, DECK_Y + 0.38, L.at(-0.36).z));
   batch.add(p.dark, new THREE.CylinderGeometry(0.47, 0.47, 0.08, 8), tf(0, DECK_Y + 0.7, L.at(-0.36).z));
   addCargo(L, batch, p);
+  addLampFixtures(batch, p, frigateLamps(L));
 
   return {
     palette: p,

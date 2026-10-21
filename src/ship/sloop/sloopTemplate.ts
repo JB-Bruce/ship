@@ -5,6 +5,7 @@ import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } f
 import { HullShape } from '../parts/hullShape';
 import { sailSegments } from '../parts/sails';
 import { addBarrel, addCrate, addLantern, addRopeCoil, buildCarriageGunGeometry, type Palette } from '../parts/props';
+import { addLampFixtures, lampsFor, type LampSpec } from '../parts/shipLamps';
 
 /** Longueur de référence du modèle (m). */
 export const SLOOP_LENGTH = 12;
@@ -44,6 +45,13 @@ export const BOWSPRIT_TIP = new THREE.Vector3(0, 2.35, 9);
 /** Foc, relatif à son point d'amure (le bout du beaupré). */
 const JIB = { head: new THREE.Vector3(0, 11.3, MAST_Z + 0.2), clew: new THREE.Vector3(0, 2.1, 3.4), bulge: 0.5 };
 export const FLAG = { length: 1.4, height: 0.9, y: MAST_TOP + 0.1 };
+/**
+ * Lampes en plus du fanal de poupe (parts/shipLamps.ts) : une lanterne pendue à une potence sur l'avant du mât, au-dessus
+ * des têtes, loin de la bôme (qui part vers l'arrière) et du foc.
+ */
+export const SLOOP_LAMPS: readonly LampSpec[] = lampsFor('sloop', 0, [
+  { kind: 'hanging', at: new THREE.Vector3(0, DECK_Y + 2.3, MAST_Z + 0.16), facing: 0, arm: 0.3, drop: 0.1 },
+]);
 
 export interface SloopTemplate {
   palette: Palette;
@@ -133,6 +141,7 @@ function buildTemplate(livery: Livery): SloopTemplate {
   addRopeCoil(batch, p, tf(0.4, DECK_Y, 4.9));
   addRopeCoil(batch, p, tf(-0.45, DECK_Y, MAST_Z - 0.6));
   addLantern(batch, p, tf(-0.9, stern.gunwale, stern.z + 0.15));
+  addLampFixtures(batch, p, SLOOP_LAMPS);
 
   return {
     palette: p,

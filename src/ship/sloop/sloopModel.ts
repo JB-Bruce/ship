@@ -4,10 +4,11 @@ import { wrapAngle } from '../../utils/math';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import { armorFor, cannonMount, fireSpots, sternStaff, riggingMaterial, waterMaskMaterial, WavingFlag } from '../parts/common';
 import { addStatics, type LanternSpot } from '../parts/nightGlow';
+import { ShipLamps } from '../parts/shipLamps';
 import { TornSail } from '../parts/tornSail';
 import { deckWalks, ropeSpots, type DeckPlan } from '../deckPlan';
 import type { CannonMount, EnsignStaff, FlagMount, ShipModel } from '../shipModel';
-import { BOOM_Y, BOWSPRIT_TIP, DECK_Y, FLAG, MAST_Z, SLOOP_HULL, SLOOP_LENGTH, sloopTemplateFor } from './sloopTemplate';
+import { BOOM_Y, BOWSPRIT_TIP, DECK_Y, FLAG, MAST_Z, SLOOP_HULL, SLOOP_LAMPS, SLOOP_LENGTH, sloopTemplateFor } from './sloopTemplate';
 
 const RUDDER_MAX_ANGLE = 0.55;
 /** Allongement de la bôme et de la grand-voile par niveau de voilure (en longueur seulement : la voile ne dépasse jamais le mât). */
@@ -50,6 +51,8 @@ export class SloopModel implements ShipModel {
     [-0.5, -1, 0.45],
   ]);
   private readonly tornSail: TornSail;
+  /** Lanterne pendue au mât, qui se balance (parts/shipLamps.ts). */
+  private readonly lamps: ShipLamps;
   /** Gréement aurique (bôme, grand-voile, corne), qui tourne autour du mât. */
   private readonly rig = new THREE.Group();
   /** Partie hissée (grand-voile + corne) : on l'écrase vers la bôme pour carguer. */
@@ -76,7 +79,9 @@ export class SloopModel implements ShipModel {
     this.gunportGeometry = t.gunport;
     this.cannonMaterial = t.palette.metal;
     this.gunportMaterial = t.palette.dark;
-    this.lanterns = addStatics(this.root, t.statics);
+    this.lamps = new ShipLamps(SLOOP_LAMPS, t.palette);
+    this.root.add(this.lamps.object);
+    this.lanterns = [...addStatics(this.root, t.statics), ...this.lamps.lanterns];
 
     this.hoist.add(new THREE.Mesh(t.mainSail, this.tornSail.material(t.mainSail, 'x', true)), new THREE.Mesh(t.gaff, t.palette.wood));
     if (t.patchMaterial) this.hoist.add(new THREE.Mesh(t.patches, this.tornSail.patchMaterial(t.patchMaterial, t.mainSail, 'x')));
@@ -161,6 +166,7 @@ export class SloopModel implements ShipModel {
 
   animate(dt: number) {
     this.flag.update(dt);
+    this.lamps.animate(dt, this.root);
     this.rig.rotation.y = damp(this.rig.rotation.y, this.boomTarget, 1.2, dt);
     this.hoist.scale.x = this.leeSide;
     this.jib.scale.x = Math.abs(this.jib.scale.x) * this.leeSide;
@@ -177,6 +183,7 @@ export class SloopModel implements ShipModel {
   dispose() {
     this.flag.dispose();
     this.tornSail.dispose();
+    this.lamps.dispose();
   }
 
   /** Voiles hissées (cran de voile) et agrandies (niveau de voilure). */

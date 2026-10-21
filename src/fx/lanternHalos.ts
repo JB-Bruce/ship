@@ -110,7 +110,7 @@ export class LanternHalos {
       if (ship.sunk || !root.visible || (lanterns.length === 0 && !burning)) continue;
       if (ship.position.distanceTo(camera.position) > this.fadeFar + ship.stats.length) continue;
       root.updateMatrix();
-      for (const spot of lanterns) this.push(world.copy(spot.at).applyMatrix4(root.matrix), spot.color, camera, 1);
+      for (const spot of lanterns) this.push(world.copy(spot.at).applyMatrix4(root.matrix), spot.color, camera, spot.halo ?? 1);
       // Un incendie à bord : une grande lueur orange autour du foyer.
       if (burning) this.push(world.copy(fireSpots[ship.crits.fireSpot % fireSpots.length]).applyMatrix4(root.matrix), FIRE_COLOR, camera, CRIT.fireGlow);
     }

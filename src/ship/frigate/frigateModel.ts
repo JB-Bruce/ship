@@ -6,10 +6,12 @@ import { wrapAngle } from '../../utils/math';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import { armorFor, cannonMount, fireSpots, mastheadStaff, riggingMaterial, waterMaskMaterial, WavingFlag } from '../parts/common';
 import { addStatics, type LanternSpot } from '../parts/nightGlow';
+import { ShipLamps } from '../parts/shipLamps';
 import { TornSail } from '../parts/tornSail';
 import type { DeckPlan } from '../deckPlan';
 import type { CannonMount, EnsignStaff, FlagMount, ShipModel } from '../shipModel';
 import { batteryY, DECK_Y, frigateArmament, frigateLayout, MAIN_COURSE, type FrigateLayout } from './frigateLayout';
+import { frigateLamps } from './frigateLamps';
 import { frigateTemplateFor, type FrigateTemplate } from './frigateTemplate';
 
 const { damp } = THREE.MathUtils;
@@ -44,6 +46,8 @@ export class FrigateModel implements ShipModel {
   private readonly body = new THREE.Group();
   /** Voiles d'étai entre les mâts (parts/staysails.ts), recréées avec le modèle. */
   private staysails!: Staysails;
+  /** Appliques et lanternes suspendues (parts/shipLamps.ts), recréées avec le modèle. */
+  private lamps!: ShipLamps;
   private tornSail!: TornSail;
   private readonly sails: THREE.Mesh[] = [];
   private readonly yards: THREE.Mesh[] = [];
@@ -161,6 +165,7 @@ export class FrigateModel implements ShipModel {
     this.staysails.apply(this.sailAmount, this.leeSide);
     this.flag.update(dt);
     this.spritFlag.update(dt);
+    this.lamps.animate(dt, this.root);
     this.spankerRig.rotation.y = damp(this.spankerRig.rotation.y, this.boomTarget, 1.2, dt);
     this.hoist.scale.x = this.leeSide;
     for (const jib of this.jibs) jib.scale.x = Math.abs(jib.scale.x) * this.leeSide;
@@ -203,7 +208,9 @@ export class FrigateModel implements ShipModel {
       ] as const).map(([u, side, y]) => [L.base(u), side, y] as const),
     );
     this.tornSail = new TornSail(t.sailMaterial, this.livery.sailEmblem);
-    this.lanterns = addStatics(this.body, t.statics);
+    this.lamps = new ShipLamps(frigateLamps(L), t.palette);
+    this.body.add(this.lamps.object);
+    this.lanterns = [...addStatics(this.body, t.statics), ...this.lamps.lanterns];
     this.staysails = new Staysails(this.tornSail, [L.foreMast, L.mainMast], true);
     this.body.add(this.staysails.group);
     this.staysails.setLevel(this.sailLevel);
@@ -253,6 +260,7 @@ export class FrigateModel implements ShipModel {
   /** Défait ce qui est propre à cette instance (le gabarit, partagé, reste en cache). */
   private disposeParts() {
     this.staysails.dispose();
+    this.lamps.dispose();
     this.flag.dispose();
     this.spritFlag.dispose();
     this.tornSail.dispose();

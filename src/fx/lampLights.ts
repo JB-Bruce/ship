@@ -101,7 +101,7 @@ export class LampLights {
       if (ship.sunk || !root.visible || (lanterns.length === 0 && !burning)) continue;
       if (ship.position.distanceTo(camera.position) > range * L.firePriority + ship.stats.length) continue;
       root.updateMatrix();
-      for (const spot of lanterns) this.consider(world.copy(spot.at).applyMatrix4(root.matrix), spot.color, camera, range, 1, L.flicker, spot.at.x * 3 + spot.at.y + spot.at.z * 7);
+      for (const spot of lanterns) this.consider(world.copy(spot.at).applyMatrix4(root.matrix), spot.color, camera, range, 1, L.flicker, spot.seed ?? spot.at.x * 3 + spot.at.y + spot.at.z * 7);
       // Un incendie à bord : une grande lueur orange qui vacille, vue de plus loin.
       if (burning) this.consider(world.copy(fireSpots[ship.crits.fireSpot % fireSpots.length]).applyMatrix4(root.matrix), FIRE_COLOR, camera, range, L.fire, L.fireFlicker, 0);
     }

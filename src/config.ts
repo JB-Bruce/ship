@@ -1489,6 +1489,66 @@ export const STAYSAILS = {
   step: 0.01,
 };
 
+/**
+ * Lampes des navires (ship/parts/lampParts.ts, ship/parts/shipLamps.ts), en plus des fanaux de poupe : lampadaires sur
+ * le pont (poteau), appliques murales des cloisons, lanternes suspendues qui se balancent (sous un barrot, le rebord
+ * d'un château, une vergue fixe, ou au bout d'une potence), dont la lanterne de hune. Chaque modèle déclare une liste
+ * ordonnée de places, coupée à `extra[type] + perExtension[type] × allongements` (`lampsFor`) : plus le navire est
+ * gros, plus il en porte. `headClear` : hauteur libre (m) à laisser sous une lanterne suspendue, au-dessus d'un pont où
+ * l'on marche (les matelots et le joueur passent à travers elle, comme à travers toute lanterne suspendue).
+ */
+export const SHIP_LAMPS = {
+  extra: { sloop: 1, schooner: 1, caravel: 2, brigantine: 2, xebec: 2, fluyt: 4, brig: 4, corvette: 4, carrack: 6, galleass: 6, frigate: 6, galleon: 8 } as Partial<Record<ShipType, number>>,
+  perExtension: { schooner: 1, brigantine: 1, xebec: 1, fluyt: 1, brig: 1, corvette: 1, carrack: 2, galleass: 2, frigate: 2, galleon: 2 } as Partial<Record<ShipType, number>>,
+  headClear: 1.75,
+  /**
+   * Lanterne (taille 1, m), la même pour toutes les sortes : verre (côté, hauteur), épaisseur des montants et des
+   * plaques, chapeau à deux gradins (côté du premier, part du second, hauteur de chacun), anneau du dessus.
+   */
+  lantern: { glass: 0.14, glassHeight: 0.2, frame: 0.025, cap: 0.21, capTop: 0.55, capHeight: 0.045, ring: 0.06 },
+  /** Lampadaire : hauteur du poteau par défaut (m), rayon du poteau en haut (× `taper` au pied), côté et hauteur du socle (m). */
+  post: { height: 1.25, radius: 0.035, taper: 1.2, foot: 0.16, footHeight: 0.06 },
+  /**
+   * Applique murale (taille 1, m) : écart du centre du verre au mur, platine (largeur, hauteur, épaisseur), épaisseur
+   * de la tablette ; jambe de force : hauteur de son pied sous la tablette, part de la tablette où elle la rejoint.
+   */
+  wall: { offset: 0.2, plate: [0.12, 0.32, 0.025] as const, bracket: 0.03, brace: [0.13, 0.7] as const },
+  /**
+   * Lanterne suspendue : longueur de tige par défaut (m), épaisseur de la tige, côté du piton (taille 1) ; potence
+   * (bras fixé à un mur ou à un mât : épaisseur, platine, jambe de force comme celle d'une applique).
+   * Balancement : pendule amorti dans le monde, que seule l'accélération de son point d'attache met en branle (le navire
+   * roule et tangue autour de lui) : g (m/s²), part de la fréquence d'un vrai pendule de cette longueur, amortissement
+   * (part de l'amortissement critique), écart au plus avec la verticale du navire (rad, butée) ; part de l'accélération
+   * du point d'attache ressentie, lissage de cette accélération (/s), au plus (m/s²), pesanteur apparente au moins (part
+   * de g) ; pas de temps au plus (s) ; après un arrêt plus long (navire lointain ou dans la brume, s) ou un saut du
+   * navire (m/s), la lanterne repart d'aplomb.
+   */
+  hanging: {
+    drop: 0.3,
+    rod: 0.018,
+    eye: 0.05,
+    arm: 0.035,
+    armPlate: [0.1, 0.22, 0.025] as const,
+    armBrace: [0.22, 0.7] as const,
+    gravity: 9.81,
+    pace: 0.8,
+    damping: 0.08,
+    maxAngle: 0.6,
+    inertia: 1,
+    accelSmoothing: 6,
+    maxAccel: 5,
+    minWeight: 0.5,
+    maxStep: 0.05,
+    resetAfter: 0.3,
+    jump: 25,
+  },
+  /**
+   * Lanterne de hune (`mastTopLamp`), pendue sous le bord arrière de la hune du grand mât : en deçà du bord (m), tige
+   * (m), taille, halo (× celui d'un fanal : elle se voit de loin).
+   */
+  top: { inset: 0.2, drop: 0.08, scale: 1.4, halo: 1.6 },
+};
+
 export type EmblemId = 'skull' | 'sabres' | 'kraken' | 'serpent' | 'compass' | 'anchor' | 'raven' | 'mermaid';
 
 /**

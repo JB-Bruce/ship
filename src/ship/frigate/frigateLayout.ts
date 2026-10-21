@@ -88,6 +88,8 @@ export interface Mast {
  * parties SECTIONS s'étirent, le reste glisse sans se déformer.
  */
 export interface FrigateLayout {
+  /** Nombre d'allongements de ce plan (0, 1, 2). */
+  readonly level: number;
   readonly length: number;
   readonly hull: HullShape;
   /** u de la coque d'un point placé en u de base. */
@@ -176,6 +178,7 @@ function createLayout(level: number): FrigateLayout {
     isOpenGun: (mount) => mount.calibre === 'deck',
   };
   return {
+    level,
     length: FRIGATE_LENGTH + extra,
     hull,
     base,
