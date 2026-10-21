@@ -1623,7 +1623,7 @@ export const SHIP_LAMPS = {
 export type EmblemId = 'skull' | 'sabres' | 'kraken' | 'serpent' | 'compass' | 'anchor' | 'raven' | 'mermaid';
 
 /**
- * Emblèmes peints sur la grande voile d'un navire de ta flotte (onglet Chantier) : prix pour en peindre un nouveau
+ * Emblèmes peints sur la grande voile d'un navire de ta flotte (Chantier du port) : prix pour en peindre un nouveau
  * (revenir à un emblème déjà payé pour ce navire est gratuit), nom, couleurs principale et seconde du dessin.
  */
 export const EMBLEMS = {
@@ -2158,6 +2158,31 @@ export const TAVERN_FX = { tear: 420, tearTilt: 9 };
  * autour des terres découvertes (m), points de chaque côte, courbure des routes (part de leur longueur) et durée du
  * trajet du petit navire sur une route qui vient d'ouvrir (ms).
  */
+/**
+ * Capitainerie du port (`ui/harbormaster/`) : carte de l'île (taille du dessin en unités du viewBox, marge autour de la
+ * côte en m, points de la côte, retrait des collines `hills` en m) et place des bâtiments sans lieu propre, autour de
+ * la crique : `angle` = écart au cap de la crique (rad), `inland` = retrait depuis la côte (m, négatif en mer). Le fort
+ * et le phare se posent sur leur vrai lieu (`LANDMARKS`). Les étiquettes qui se chevauchent s'écartent (`width` ×
+ * `height` : place d'une étiquette en unités du viewBox, `passes` : itérations) ; l'île est cadrée avec ses bâtiments,
+ * à une demi-étiquette des bords.
+ */
+export const HARBORMASTER = {
+  map: { width: 760, height: 520, shallows: 22, coastSteps: 90, hills: 45 },
+  spots: <Record<IslandUpgradeId, { angle: number; inland: number }>>{
+    fort: { angle: 0.62, inland: 15 },
+    citadel: { angle: -0.62, inland: 30 },
+    royalFort: { angle: 0.5, inland: 48 },
+    lighthouse: { angle: -0.62, inland: 9 },
+    dock: { angle: 0, inland: 8 },
+    shipyard: { angle: 0.3, inland: 12 },
+    moorings: { angle: 0, inland: -45 },
+    workshop: { angle: 1.6, inland: 70 },
+    counter: { angle: -0.3, inland: 30 },
+    smuggling: { angle: -0.35, inland: 22 },
+  },
+  pins: { width: 124, height: 76, passes: 80 },
+};
+
 export const MARKET = {
   bulk: 10,
   woodBulk: 100,

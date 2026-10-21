@@ -19,7 +19,7 @@ export interface LedgerSnapshot {
   distanceSailed: number;
 }
 
-/** Registre du capitaine : tout ce qui s'est passé depuis le début de la partie (onglet Registre du port). */
+/** Registre du capitaine : tout ce qui s'est passé depuis le début de la partie (Journal de la Cabine). */
 export class Ledger {
   /** Ennemis coulés par type (élites et boss compris). */
   readonly sunk: Partial<Record<ShipType, number>> = {};

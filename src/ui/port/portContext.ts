@@ -1,7 +1,6 @@
 import type { BossId, EmblemId, GunType, IslandId, TradeGood } from '../../config';
 import type { Crew } from '../../fleet/crew';
 import type { Fleet, FleetMember } from '../../fleet/fleet';
-import { fleetHold } from '../../fleet/holds';
 import type { TradeRoutes } from '../../fleet/tradeRoutes';
 import type { Good } from '../../progression/goods';
 import type { Contracts } from '../../progression/contracts';
@@ -11,10 +10,9 @@ import type { PlayerState } from '../../progression/playerState';
 import type { UpgradeId } from '../../progression/upgrades';
 import type { ShipType } from '../../shipTypes';
 
-export type PortTab = 'island' | 'market' | 'shipyard' | 'upgrades' | 'tavern';
-/** Lieux du port qui ont leur propre vue. */
-export type PlaceTab = Extract<PortTab, 'market' | 'shipyard' | 'tavern'>;
-export const PLACE_TABS: readonly PlaceTab[] = ['market', 'shipyard', 'tavern'];
+/** Les lieux du port, chacun sa vue (`PlaceMenu`), ouverts depuis les enseignes du quai. */
+export type PlaceTab = 'shipyard' | 'market' | 'tavern' | 'harbormaster';
+export const PLACE_TABS: readonly PlaceTab[] = ['shipyard', 'market', 'tavern', 'harbormaster'];
 
 export type { TradeGood };
 
@@ -60,16 +58,4 @@ export interface PortContext {
   readonly crew: Crew;
   readonly routes: TradeRoutes;
   readonly actions: PortActions;
-}
-
-/** « l’île de la Tortue » : le nom de l'île au fil d'une phrase. */
-export function islandInSentence(ctx: PortContext): string {
-  const name = ctx.island.info.name;
-  return `l’${name.charAt(0).toLowerCase()}${name.slice(1)}`;
-}
-
-/** Bandeau des ressources, en tête de chaque onglet. */
-export function resourcesHtml(ctx: PortContext): string {
-  const hold = fleetHold(ctx.fleet.hand);
-  return `<div class="resources"><span class="gold">${ctx.state.gold} or</span><span class="wood">${ctx.state.wood} bois</span><span class="hold">Cales ${hold.used} / ${hold.capacity}</span></div>`;
 }

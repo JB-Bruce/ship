@@ -19,6 +19,7 @@ import { MapMenu } from './mapMenu';
 import { PortMenu } from './port/portMenu';
 import type { Radar } from './radar';
 import { SettingsMenu } from './settings/settingsMenu';
+import { HarbormasterMenu } from './harbormaster/harbormasterMenu';
 import { MarketMenu } from './market/marketMenu';
 import { ShipyardMenu } from './shipyard/shipyardMenu';
 import { TavernMenu } from './tavern/tavernMenu';
@@ -73,7 +74,7 @@ export function createMenus(w: MenuWorld): PortMenu {
     onOpen: () => harbor.visit(campaign.islands[campaign.portInRange(fleet.leader)!.id]),
     refused: () => w.hud.toast('Approche-toi du quai pour faire escale (P).', 2.5),
     openPlace: (place) => {
-      if (inRange()) ({ market, shipyard, tavern })[place].setOpen(true);
+      if (inRange()) ({ market, shipyard, tavern, harbormaster })[place].setOpen(true);
     },
   });
   const camera = w.chaseCamera;
@@ -86,6 +87,7 @@ export function createMenus(w: MenuWorld): PortMenu {
   });
   const tavern = new TavernMenu(container, portContext, () => portMenu.openOn());
   const market = new MarketMenu(container, portContext, () => portMenu.openOn());
+  const harbormaster = new HarbormasterMenu(container, portContext, () => portMenu.openOn());
   new CabinMenu(container, {
     state: w.state,
     fleet,

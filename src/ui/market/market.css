@@ -278,7 +278,7 @@
   width: 72%;
   align-self: center;
 }
-.mk-map svg {
+.mk-map > svg {
   position: absolute;
   inset: 0;
   width: 100%;
