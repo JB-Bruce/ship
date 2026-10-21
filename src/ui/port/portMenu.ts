@@ -6,7 +6,6 @@ import type { ShipType } from '../../shipTypes';
 import { ParchmentMenu } from '../parchmentMenu';
 import { crewTab } from './crewTab';
 import { islandTab, islandUpgradesTab } from './islandTab';
-import { ledgerTab } from './ledgerTab';
 import type { PortContext, PortTab, TradeGood } from './portContext';
 import { pickRoute, routesTab } from './routesTab';
 import { shipsTab } from './shipsTab';
@@ -24,7 +23,6 @@ const TABS: { id: PortTab; name: string; render: (ctx: PortContext) => string }[
   { id: 'crew', name: 'Équipage', render: crewTab },
   { id: 'upgrades', name: 'Améliorations', render: islandUpgradesTab },
   { id: 'tavern', name: 'Taverne', render: tavernTab },
-  { id: 'ledger', name: 'Registre', render: ledgerTab },
 ];
 
 export interface PortAccess {
@@ -37,9 +35,9 @@ export interface PortAccess {
 }
 
 /**
- * Panneau du port où la flotte fait escale (Tab), seulement près d'un quai :
+ * Panneau du port où la flotte fait escale (P), seulement près d'un quai :
  * l'île et son allégeance (et son rachat), le marché, le chantier naval, les navires, les améliorations de l'île (si
- * elle t'appartient), la taverne et le registre.
+ * elle t'appartient) et la taverne. Le registre est dans le Journal de la Cabine (Tab).
  */
 export class PortMenu extends ParchmentMenu {
   private tab: PortTab = 'island';
@@ -49,11 +47,11 @@ export class PortMenu extends ParchmentMenu {
     private readonly ctx: PortContext,
     private readonly access: PortAccess,
   ) {
-    super(parent, ctx.island.info.portName, 'Tab ou Échap pour reprendre la mer', ['Tab']);
+    super(parent, ctx.island.info.portName, 'P ou Échap pour reprendre la mer · Tab : Cabine du capitaine', ['KeyP']);
     this.body.parentElement!.classList.add('port-sheet');
   }
 
-  /** Ouvre le panneau sur un onglet (bouton à l'écran, touche Tab…). */
+  /** Ouvre le panneau sur un onglet (bouton à l'écran, touche P…). */
   openOn(tab: PortTab = this.tab) {
     if (!this.access.inRange()) return;
     this.tab = tab;

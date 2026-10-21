@@ -1,0 +1,612 @@
+/* Cabine du capitaine (Tab) : cadre de bois, marque-pages rouges, feuille de parchemin sans défilement. */
+
+.parchment.cabin-sheet-frame {
+  width: min(1180px, calc(100vw - 24px));
+  height: min(700px, calc(100vh - 24px));
+  max-height: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 8px;
+  color: #2a1d12;
+  background: repeating-linear-gradient(92deg, #3a2615 0, #43301b 18px, #3a2615 34px, #33210f 52px);
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.6), inset 0 0 0 3px #1f140a;
+}
+.parchment.cabin-sheet-frame > h1 {
+  display: none;
+}
+.parchment.cabin-sheet-frame > .menu-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.parchment.cabin-sheet-frame > .hint {
+  margin: 4px 0 8px;
+  text-align: center;
+  color: #c9b48a;
+  font-size: 15px;
+}
+
+.cabin-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 22px;
+  background: rgba(20, 12, 6, 0.45);
+  border-bottom: 3px solid #1f140a;
+  color: #f1dfb4;
+}
+.cabin-title {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 34px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+.cabin-picks {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.cabin-pick {
+  font: inherit;
+  font-size: 16px;
+  padding: 4px 12px;
+  border-radius: 16px;
+  border: 2px solid #6a5032;
+  background: rgba(0, 0, 0, 0.25);
+  color: #e4d3ad;
+  cursor: pointer;
+}
+.cabin-pick.on {
+  background: #c9a24a;
+  border-color: #f1dfb4;
+  color: #2a1d12;
+  font-weight: 700;
+}
+.cabin-head .kit-coffer {
+  color: #f1dfb4;
+}
+
+.cabin-main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  padding: 14px 18px 0 0;
+}
+.cabin-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+}
+.cabin-tab {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-right: 18px;
+  padding: 11px 12px;
+  border: none;
+  border-radius: 0 8px 8px 0;
+  background: #7a2b1c;
+  color: #f1dfb4;
+  font: 700 18px 'IM Fell English', Georgia, serif;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.18s ease, margin 0.18s ease;
+}
+.cabin-tab:hover {
+  transform: translateX(5px);
+}
+.cabin-tab.on {
+  margin-right: -2px;
+  background: #efe2c4;
+  color: #2a1d12;
+  box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.35);
+  transform: none;
+}
+.cabin-tab svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cabin-page {
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 20px;
+  border-radius: 6px;
+  background: #efe2c4;
+  box-shadow: inset 0 0 40px rgba(120, 80, 30, 0.35), 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* Pièces communes des pages. */
+.cabin-page h2 {
+  margin: 0;
+  font-family: 'Pirata One', Georgia, serif;
+  font-weight: 400;
+  font-size: 26px;
+}
+.cabin-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.cabin-section-head > span,
+.cabin-muted {
+  color: #6a5032;
+  font-size: 15px;
+}
+.cabin-good {
+  color: #3f7a3a;
+  font-size: 15px;
+}
+.cabin-warn {
+  color: #9b5a10;
+  font-size: 15px;
+}
+.cabin-card {
+  background: #f7eed8;
+  border: 1px solid #c9b48a;
+  border-radius: 6px;
+  padding: 9px 12px;
+}
+.cabin-card.here {
+  border: 2px solid #c9a24a;
+}
+.cabin-mini-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+.cabin-mini-row .kit-gauge {
+  flex: 1;
+}
+.cabin-mini-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.kit-btn.small {
+  padding: 3px 8px;
+  font-size: 14px;
+}
+.cabin-ship-icon svg,
+.cabin-mini-icon svg,
+.cabin-plan-icon svg,
+.cabin-upgrade-icon svg {
+  fill: none;
+  stroke: #4a2e14;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cabin-ship-icon .solid,
+.cabin-mini-icon .solid,
+.cabin-plan-icon .solid,
+.cabin-upgrade-icon .solid {
+  fill: #4a2e14;
+}
+
+/* Page Navire. */
+.cabin-ship {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 22px;
+}
+.cabin-ship-left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cabin-ship-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #e4d3ad;
+}
+.cabin-ship-icon {
+  display: flex;
+  justify-content: center;
+}
+.cabin-ship-icon svg {
+  width: 120px;
+  height: 120px;
+}
+.cabin-ship-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  color: #6a5032;
+}
+.cabin-name {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 28px;
+  color: #2a1d12;
+}
+.cabin-ship-meta {
+  display: flex;
+  gap: 14px;
+  font-size: 15px;
+}
+.cabin-life {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cabin-life .kit-gauge {
+  flex: 1;
+  height: 13px;
+}
+.cabin-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+}
+.cabin-upgrades {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.cabin-upgrade {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid #c9b48a;
+  border-radius: 6px;
+  background: #f7eed8;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.cabin-upgrade:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(40, 24, 10, 0.25);
+}
+.cabin-upgrade-icon svg {
+  width: 34px;
+  height: 34px;
+}
+.cabin-upgrade-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 16px;
+}
+.cabin-chip {
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 1px dashed #8a7550;
+  color: #6a5032;
+  font-size: 14px;
+}
+.cabin-chip.ok {
+  border: 1px solid #c9a24a;
+  background: #e9d79d;
+  color: #5a3b22;
+}
+.cabin-done {
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: #3f7a3a;
+  color: #f7eed8;
+  font-size: 14px;
+  font-weight: 700;
+}
+.cabin-upgrade .kit-btn {
+  padding: 4px 8px;
+  font-size: 14px;
+  background: #e9d79d;
+  border-color: #c9a24a;
+  color: #2a1d12;
+}
+
+/* Page Équipage. */
+.cabin-crew {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 22px;
+}
+.cabin-deck {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  min-height: 360px;
+  padding: 70px 34px 40px;
+  border-radius: 50% 50% 24% 24% / 34% 34% 9% 9%;
+  background: repeating-linear-gradient(0deg, #c8a46a 0, #c8a46a 22px, #b8945a 23px, #c8a46a 24px);
+  border: 4px solid #5a3b22;
+}
+.cabin-post {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f7eed8;
+  border: 2px solid #c9a24a;
+}
+.cabin-post.empty {
+  flex-direction: column;
+  align-items: flex-start;
+  background: rgba(247, 238, 216, 0.55);
+  border: 2px dashed #8a7550;
+  color: #6a5032;
+}
+.cabin-post-label {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.cabin-post-body,
+.cabin-officer-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 15px;
+  min-width: 0;
+}
+.cabin-medal {
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border-radius: 50%;
+  background: #5a3b22;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 21px;
+}
+.cabin-officers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.cabin-officer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cabin-xp .kit-gauge {
+  height: 6px;
+  margin-top: 3px;
+}
+
+/* Page Flotte. */
+.cabin-fleet {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cabin-fleet-top {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.cabin-formations {
+  display: flex;
+  gap: 10px;
+}
+.cabin-formation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 104px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 2px solid #c9b48a;
+  background: #f7eed8;
+  color: #5a3b22;
+  font: 16px 'IM Fell English', Georgia, serif;
+  cursor: pointer;
+}
+.cabin-formation.on {
+  background: #5a3b22;
+  border-color: #c9a24a;
+  color: #f1dfb4;
+}
+.cabin-formation svg {
+  width: 64px;
+  height: 36px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+.cabin-ships {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+}
+.cabin-ship-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.cabin-mini-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cabin-mini-head > span:last-child {
+  display: flex;
+  flex-direction: column;
+}
+.cabin-mini-icon svg {
+  width: 40px;
+  height: 40px;
+}
+.cabin-routes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cabin-route {
+  display: grid;
+  grid-template-columns: 150px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  background: #e4d3ad;
+}
+.cabin-route.editing {
+  grid-template-columns: 1fr auto;
+}
+.cabin-route-art {
+  width: 150px;
+  height: 48px;
+}
+.cabin-route-art .sea-line {
+  fill: none;
+  stroke: #2f6f73;
+  stroke-width: 3;
+  stroke-dasharray: 7 6;
+}
+.cabin-route-art circle {
+  fill: #5a3b22;
+}
+.cabin-route-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 15px;
+}
+.cabin-route-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.cabin-route-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cabin-route-form > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.cabin-route-form b {
+  min-width: 210px;
+}
+.cabin-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cabin-choices .kit-btn {
+  padding: 4px 10px;
+  font-size: 15px;
+  background: #f7eed8;
+  color: #5a3b22;
+}
+.cabin-choices .kit-btn.on {
+  background: #5a3b22;
+  color: #f1dfb4;
+}
+
+/* Page Journal. */
+.cabin-log {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+.cabin-contracts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cabin-contract {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 15px;
+}
+.cabin-contract.ready {
+  border: 2px solid #3f7a3a;
+}
+.cabin-contract-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cabin-plans {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.cabin-plan {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border-radius: 6px;
+  background: #e4d3ad;
+  font-size: 14px;
+  text-align: center;
+}
+.cabin-plan-icon svg {
+  width: 44px;
+  height: 44px;
+  stroke: #b49a6a;
+}
+.cabin-plan.known .cabin-plan-icon svg {
+  stroke: #4a2e14;
+}
+.cabin-plan .kit-pip {
+  width: 9px;
+  height: 9px;
+  border-width: 1.5px;
+}
+.cabin-plan .kit-pip.on {
+  background: #9b2f7f;
+}
+.cabin-facts > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 2px;
+  border-bottom: 1px dashed #b49a6a;
+  font-size: 16px;
+}
+.cabin-facts b {
+  font-size: 20px;
+}
+.cabin-flags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.cabin-flag {
+  width: 46px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  border: 2px dashed #b49a6a;
+  color: #8a7550;
+  font-size: 18px;
+}
+.cabin-flag.taken {
+  border: 2px solid #141210;
+  background: #141210;
+  color: #e9dfc7;
+}

@@ -10,6 +10,7 @@ import type { Loot } from '../world/loot';
 import type { PirateTraffic } from '../world/pirateTraffic';
 import type { PlanScrolls } from '../world/planScrolls';
 import type { Wind } from '../world/wind';
+import { CabinMenu } from './cabin/cabinMenu';
 import { FleetMenu } from './fleetMenu';
 import type { Hud } from './hud';
 import { MapMenu } from './mapMenu';
@@ -39,7 +40,7 @@ export interface MenuWorld {
   takeHelm(member: FleetMember): void;
 }
 
-/** Crée les menus parchemin (port, flotte, carte, paramètres). Renvoie celui du port, qu'ouvrent les commandes à l'écran. */
+/** Crée les menus parchemin (Cabine, port, flotte, carte, paramètres). Renvoie celui du port, qu'ouvrent les commandes à l'écran. */
 export function createMenus(w: MenuWorld): PortMenu {
   const { container, campaign, fleet } = w;
   const { ledger, contracts, harbor } = campaign;
@@ -47,7 +48,23 @@ export function createMenus(w: MenuWorld): PortMenu {
   const portMenu = new PortMenu(container, portContext, {
     inRange: () => campaign.portInRange(fleet.leader) !== null,
     onOpen: () => harbor.visit(campaign.islands[campaign.portInRange(fleet.leader)!.id]),
-    refused: (code) => w.hud.toast(code === 'Tab' ? 'Approche-toi du quai pour faire escale (Tab).' : 'Approche-toi du quai pour faire escale.', 2.5),
+    refused: () => w.hud.toast('Approche-toi du quai pour faire escale (P).', 2.5),
+  });
+  new CabinMenu(container, {
+    state: w.state,
+    fleet,
+    crew: campaign.crew,
+    contracts,
+    ledger,
+    routes: campaign.routes,
+    actions: {
+      buyUpgrade: (id) => harbor.buyUpgrade(id),
+      assignOfficer: (officer, member) => harbor.assignOfficer(officer, member),
+      takeHelm: (member) => w.takeHelm(member),
+      abandonContract: (id) => harbor.abandonContract(id),
+    },
+    atPort: () => campaign.portInRange(fleet.leader) !== null,
+    missionStatus: (c) => campaign.missions.status(c),
   });
   new FleetMenu(container, fleet, (member) => w.takeHelm(member));
   new MapMenu(container, {

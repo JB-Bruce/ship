@@ -16,8 +16,10 @@ import type { WeatherKind } from '../world/weather';
  * v4 : découverte de la carte (`CampaignSnapshot.discovery`) et plans de navires (`CampaignSnapshot.blueprints`). Une v3
  * se charge telle quelle : la carte connaît alors les îles déjà visitées (save/visitedIslands.ts), et les types de la
  * flotte sont débloqués.
+ * v5 : route commerciale arrêtée ou changée de loin (`TradeOrder.returning`, `nextTo`, optionnels). Une v4 se charge telle
+ * quelle : ses routes continuent.
  */
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 /** Facteur appliqué au chargement à la vie à flot d'une sauvegarde de cette version. */
 export const healthScaleOf = (version: number) => (version < 3 ? 2 : 1);
 /** Marque des fichiers de sauvegarde du jeu (pour refuser un fichier qui n'en est pas une). */

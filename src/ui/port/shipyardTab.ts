@@ -11,7 +11,7 @@ import { resourcesHtml, type PortContext } from './portContext';
 const MS_TO_KNOTS = 1.944;
 
 /** Icônes dessinées au trait, façon gravure. */
-const ICONS: Record<UpgradeId, string> = {
+export const UPGRADE_ICONS: Record<UpgradeId, string> = {
   accuracy: `<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="17"/><circle cx="24" cy="24" r="9"/><circle class="solid" cx="24" cy="24" r="2.5"/><path d="M24 2v10M24 36v10M2 24h10M36 24h10"/></svg>`,
   range: `<svg viewBox="0 0 48 48"><path d="M4 40c10-22 26-32 40-32"/><path d="M36 6l8 2-3 8"/><circle class="solid" cx="8" cy="38" r="3"/><path d="M18 44h4M28 44h4M38 44h4"/></svg>`,
   cannons: `<svg viewBox="0 0 48 48"><path d="M5 22l29-7 4 10-29 7z"/><path d="M38 17l5-1 2 8-5 1"/><circle cx="15" cy="35" r="6"/><circle class="solid" cx="15" cy="35" r="1.5"/></svg>`,
@@ -143,7 +143,7 @@ function card(ctx: PortContext, id: UpgradeId): string {
   }
   return `
     <div class="upgrade-card${cost || waiting ? '' : ' maxed'}">
-      <div class="icon">${ICONS[id]}</div>
+      <div class="icon">${UPGRADE_ICONS[id]}</div>
       <div class="body">
         <h2>${UPGRADE_INFO[id].name} <span class="pips">${pips}</span></h2>
         <p>${UPGRADE_INFO[id].description}</p>

@@ -11,7 +11,7 @@ import type { PlayerState } from '../../progression/playerState';
 import type { UpgradeId } from '../../progression/upgrades';
 import type { ShipType } from '../../shipTypes';
 
-export type PortTab = 'island' | 'trade' | 'routes' | 'shipyard' | 'ships' | 'crew' | 'upgrades' | 'tavern' | 'ledger';
+export type PortTab = 'island' | 'trade' | 'routes' | 'shipyard' | 'ships' | 'crew' | 'upgrades' | 'tavern';
 
 export type { TradeGood };
 

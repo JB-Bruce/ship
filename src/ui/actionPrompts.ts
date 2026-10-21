@@ -7,11 +7,11 @@ interface Prompt {
 
 /** Les commandes contextuelles et leur action (clic = touche). */
 type PromptId = 'helm' | 'port' | 'fish' | 'betray';
-const KEYS: Record<PromptId, string> = { helm: 'E', port: 'Tab', fish: 'F', betray: 'R' };
+const KEYS: Record<PromptId, string> = { helm: 'E', port: 'P', fish: 'F', betray: 'R' };
 
 /**
  * Commandes contextuelles en bas de l'écran : « E · Quitter la barre » (ou la reprendre, grimper au hauban),
- * « Tab · Port de la Tortue » près du quai, « F · Pêcher » près d'un banc, « R · Trahir » quand un allié qu'on peut
+ * « P · Port de la Tortue » près du quai, « F · Pêcher » près d'un banc, « R · Trahir » quand un allié qu'on peut
  * trahir est à portée, et une ligne d'état (pêche en cours, consigne de visée). Cliquer revient à presser la touche.
  */
 export class ActionPrompts {

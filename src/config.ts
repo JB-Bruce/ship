@@ -351,6 +351,28 @@ export const LOOT = {
  * inconnu lâche parfois un bout de plan : un rouleau de parchemin qui flotte parmi le butin, à ramasser en passant dessus.
  * Tant que son plan n'est pas complet, le nom du type reste caché partout (« Navire inconnu »).
  */
+/**
+ * Effets de retour des menus (`ui/kit/feedback.ts`), en ms et en px : pièces qui volent jusqu'au coffre (`coins` pièces,
+ * `coinGap` ms d'écart, arc de `arc` px), coffre qui « encaisse » (`bump`), chiffre qui s'envole (`rise`,
+ * `riseHeight`), refus qui tremble (`shake`, `shakeDistance`), halo de réussite (`glow`, `glowSize`), bulles d'aide.
+ */
+export const UI_FX = {
+  coins: 5,
+  coinGap: 60,
+  fly: 650,
+  arc: 90,
+  bump: 1.18,
+  bumpTime: 320,
+  rise: 1100,
+  riseHeight: 56,
+  shake: 380,
+  shakeDistance: 8,
+  glow: 800,
+  glowSize: 14,
+  /** Écart entre une bulle d'aide et ce qu'elle explique, et au bord de l'écran (px). */
+  tipGap: 8,
+};
+
 export const BLUEPRINTS = {
   /**
    * Bouts de plan à réunir pour chaque type. Un type absent de cette table est connu d'office : la chaloupe (le navire

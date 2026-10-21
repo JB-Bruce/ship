@@ -19,6 +19,10 @@ export interface TradeOrder {
   readonly goods: readonly [Good | null, Good | null];
   /** Port d'où part l'étape en cours (indice dans `ports`). */
   leg: 0 | 1;
+  /** Arrêtée de loin (Cabine) : au prochain port, il vend ce qu'il porte et rejoint ta flotte. */
+  returning?: boolean;
+  /** Nouvelle destination choisie de loin pendant le retour : elle prend effet à son île d'attache. */
+  nextTo?: IslandId;
 }
 
 /** Ce qu'une sauvegarde garde d'un navire en commerce (sa route est dans `FleetMember.trade`). */
@@ -47,7 +51,8 @@ const rand = ([min, max]: readonly [number, number]) => min + Math.random() * (m
  * l'île d'où il part (`ports[0]`, une île à toi : `IslandState.tradeSlots`) ; on ne le reprend qu'à ce port, s'il reste
  * une place dans la flotte. À chaque port, il vend ce qu'il a apporté (l'or te revient tout de suite) puis achète, sur
  * ton or, la marchandise prévue pour l'autre port, autant que sa cale en tient. Coulé, il perd sa cargaison et
- * réapparaît au port d'où partait son étape après le délai habituel. Il continue jusqu'à son rappel.
+ * réapparaît au port d'où partait son étape après le délai habituel. Il continue jusqu'à son rappel, ou jusqu'à ce que
+ * tu l'arrêtes de loin (`stop` : il vend au prochain port et rejoint ta flotte). La route se change aussi de loin (`modify`).
  */
 export class TradeRoutes {
   private readonly runners: Runner[] = [];
@@ -145,6 +150,43 @@ export class TradeRoutes {
     this.fleet.setTrade(member, null);
   }
 
+  /**
+   * Arrête une route de loin (Cabine) : le navire finit son étape, vend ce qu'il porte au port d'arrivée (ou là où il est
+   * à quai) et rejoint ta flotte en mer. Il faut une place libre dans la flotte ; sinon il attend au port.
+   */
+  stop(member: FleetMember): boolean {
+    if (!member.trade || !this.fleetHasRoom) return false;
+    member.trade.returning = true;
+    return true;
+  }
+
+  /** Annule l'arrêt demandé : il reprend sa route. */
+  resume(member: FleetMember) {
+    if (member.trade) member.trade.returning = false;
+  }
+
+  /**
+   * Change une route de loin (Cabine) : les marchandises valent dès le prochain chargement ; la destination tout de suite
+   * s'il est à son île d'attache ou en route vers l'ancienne destination (il change de cap), sinon à son retour chez lui.
+   */
+  modify(member: FleetMember, to: IslandId, out: Good | null, back: Good | null): boolean {
+    const order = member.trade;
+    const r = this.runner(member);
+    if (!order || !r) return false;
+    const home = order.ports[0];
+    if (to === home) return false;
+    const rerouted = to !== order.ports[1] && order.leg === 0;
+    const later = to !== order.ports[1] && order.leg === 1;
+    member.trade = { ports: rerouted ? [home, to] : order.ports, goods: [out, back], leg: order.leg, returning: order.returning, nextTo: later ? to : undefined };
+    if (rerouted && r.phase === 'sailing') {
+      releaseMooring(member.ship);
+      const dest = islandById(to);
+      const here = { x: member.ship.position.x, z: member.ship.position.z };
+      r.ai = new MerchantAI(member.ship, [...seaRoute(here, bayMouth(dest)), mooringSpot(dest, this.ships, member.ship)], TRADE_ROUTES.sail);
+    }
+    return true;
+  }
+
   /** Où en est un navire en commerce, en quelques mots (onglet Routes). */
   status(member: FleetMember): string {
     const r = this.runner(member);
@@ -181,9 +223,21 @@ export class TradeRoutes {
       }
       if (r.phase === 'docked') {
         steerTo(m.ship, m.ship.heading, 0);
+        // Arrêtée de loin : il vend ce qu'il a apporté et rejoint la flotte dès qu'il y a une place.
+        if (m.trade.returning) {
+          this.sell(r, m.trade);
+          if (this.fleetHasRoom) {
+            this.recall(m);
+            this.say(`⚖ ${m.name} quitte sa route et met le cap sur ta flotte`);
+          }
+          continue;
+        }
+        // Nouvelle destination choisie pendant le retour : elle vaut à partir de son île d'attache.
+        if (m.trade.nextTo && m.trade.leg === 0) m.trade = { ...m.trade, ports: [m.trade.ports[0], m.trade.nextTo], nextTo: undefined };
         r.stay -= dt;
         if (r.stay > 0) continue;
-        this.trade(r, m.trade);
+        this.sell(r, m.trade);
+        this.buy(r, m.trade);
         this.depart(r, m.trade);
       } else if (r.ai?.update(dt)) {
         m.trade.leg = m.trade.leg === 0 ? 1 : 0;
@@ -193,8 +247,8 @@ export class TradeRoutes {
     }
   }
 
-  /** À quai : vend ce qu'il a apporté, puis achète la marchandise prévue pour l'autre port. */
-  private trade(r: Runner, order: TradeOrder) {
+  /** À quai : vend ce qu'il a apporté. */
+  private sell(r: Runner, order: TradeOrder) {
     const m = r.member;
     const port = order.ports[order.leg];
     const island = this.islands[port];
@@ -214,6 +268,13 @@ export class TradeRoutes {
       }
       r.load = null;
     }
+  }
+
+  /** À quai : achète la marchandise prévue pour l'autre port, autant que la cale et ton or le permettent. */
+  private buy(r: Runner, order: TradeOrder) {
+    const m = r.member;
+    const port = order.ports[order.leg];
+    const island = this.islands[port];
     const good = order.goods[order.leg];
     const buy = good ? island.price(good).buy : null;
     if (!good || buy === null) return;

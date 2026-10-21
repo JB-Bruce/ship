@@ -10,5 +10,4 @@ export const TAB_ICONS: Record<PortTab, string> = {
   crew: `<svg viewBox="0 0 48 48"><path d="M3 30c8 0 12-14 21-14s13 14 21 14c-6 6-36 6-42 0z"/><path d="M16 21c2-6 14-6 16 0"/><path d="M14 38c2 4 18 4 20 0"/></svg>`,
   upgrades: `<svg viewBox="0 0 48 48"><path d="M12 44V20h24v24M10 20h28M12 20v-5h5v5M21 20v-5h6v5M31 20v-5h5v5"/><path d="M24 15V3l11 4-11 4M20 44v-8a4 4 0 0 1 8 0v8"/></svg>`,
   tavern: `<svg viewBox="0 0 48 48"><path d="M10 16h22v26H10z"/><path d="M32 21h5a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4h-5"/><path d="M8 16c0-6 6-8 10-6 3-4 11-4 13 1 4 0 4 5 1 5"/><path d="M16 22v14M26 22v14"/></svg>`,
-  ledger: `<svg viewBox="0 0 48 48"><path d="M4 12c8-2 14-1 20 3 6-4 12-5 20-3v28c-8-2-14-1-20 3-6-4-12-5-20-3z"/><path d="M24 15v28M9 20h10M9 26h10M29 20h10M29 26h10"/></svg>`,
 };
