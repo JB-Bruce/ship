@@ -1048,9 +1048,109 @@ body {
   color: #9fe3ff;
 }
 
-/* Bout de plan de navire ramassé. */
+/* Bout de plan de navire ramassé : la silhouette du navire (son nom reste caché), ses pastilles et la progression. */
 .notif-pickup.plan {
-  color: #ffb8e6;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 6px;
+  color: #ffd2ee;
+  font-size: 17px;
+}
+
+.notif-pickup.plan .plan-icon svg {
+  width: 40px;
+  height: 40px;
+  fill: none;
+  stroke: #ffd2ee;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.notif-pickup.plan .pip {
+  border-color: #ffd2ee;
+}
+
+.notif-pickup.plan .pip.on {
+  background: #ff86d6;
+  border-color: #ffd2ee;
+}
+
+/* Plan complet : grand panneau de parchemin au centre, qui se déroule ; la silhouette prend sa couleur. */
+.unlock-panel {
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  width: min(440px, calc(100vw - 32px));
+  padding: 18px 28px 14px;
+  border-radius: 6px;
+  color: #3b2410;
+  text-shadow: none;
+  text-align: center;
+  font-family: 'IM Fell English', Georgia, serif;
+  background:
+    radial-gradient(ellipse at 20% 15%, rgba(255, 250, 230, 0.7), transparent 55%),
+    radial-gradient(ellipse at 85% 90%, rgba(150, 100, 40, 0.25), transparent 60%),
+    linear-gradient(#f1deb4, #e2c58f);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), inset 0 0 0 2px rgba(110, 70, 30, 0.35);
+  transform: translateX(-50%) scaleY(0);
+  transform-origin: top;
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.45s ease-out, opacity 0.45s;
+}
+
+.unlock-panel.on {
+  transform: translateX(-50%) scaleY(1);
+  opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.unlock-title {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 30px;
+  color: #7a1a12;
+}
+
+.unlock-icon svg {
+  width: 110px;
+  height: 110px;
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke: rgba(74, 46, 20, 0.3);
+}
+
+.unlock-panel.on .unlock-icon svg {
+  animation: unlock-reveal 1.6s ease-out 0.3s forwards;
+}
+
+@keyframes unlock-reveal {
+  to {
+    stroke: #4a2e14;
+    filter: drop-shadow(0 0 6px rgba(255, 200, 90, 0.8));
+  }
+}
+
+.unlock-name {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 40px;
+  line-height: 1.1;
+}
+
+.unlock-stats,
+.unlock-where {
+  margin: 6px 0 0;
+  font-size: 16px;
+}
+
+.unlock-hint {
+  margin: 10px 0 0;
+  font-size: 13px;
+  opacity: 0.65;
 }
 
 .map-legend .plan {

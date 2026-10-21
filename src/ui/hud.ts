@@ -1,4 +1,5 @@
 import type { Fleet } from '../fleet/fleet';
+import { UnlockPanel } from './unlockPanel';
 import { fleetHold } from '../fleet/holds';
 import { rankName, rankOf } from '../fleet/officers';
 import type { PlayerState } from '../progression/playerState';
@@ -19,6 +20,8 @@ export class Hud {
   readonly notifications: Notifications;
   /** Contrats acceptés, en haut à droite (au-dessus du fil des navires coulés). */
   readonly quests: QuestTracker;
+  /** Grand panneau « Nouveau navire ! » quand un plan est complet. */
+  readonly unlock: UnlockPanel;
   private readonly healthFill: HTMLElement;
   private readonly gold: HTMLElement;
   private readonly wood: HTMLElement;
@@ -64,6 +67,7 @@ export class Hud {
     parent.appendChild(root);
     this.quests = new QuestTracker(topRight);
     this.notifications = new Notifications(topRight, panel);
+    this.unlock = new UnlockPanel(root);
   }
 
   /** Petit message d'information en haut de l'écran (achats, pêche, barre…), qui s'efface seul. */
@@ -84,6 +88,7 @@ export class Hud {
 
   update(dt: number, ship: Ship, state: PlayerState, inCombat: boolean, fleet: Fleet) {
     this.notifications.update(dt);
+    this.unlock.update(dt);
     this.toasts.update(dt);
     this.fleetTimer -= dt;
     if (this.fleetTimer <= 0 || dt === 0) {

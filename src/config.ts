@@ -382,8 +382,9 @@ export const BLUEPRINTS = {
   /** Couleurs sur la carte (parchemin) et sur le radar (fond sombre). */
   mapColor: '#9b2f7f',
   radarColor: '#ff86d6',
-  /** Durée du grand message quand un plan est complet (s). */
-  unlockMessageTime: 5,
+  /** Durée de la popup d'un bout de plan ramassé, et du grand panneau « Nouveau navire ! » d'un plan complet (s). */
+  noticeTime: 6,
+  unlockPanelTime: 7,
 };
 
 export interface Cost {

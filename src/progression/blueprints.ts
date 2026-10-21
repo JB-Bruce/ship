@@ -1,4 +1,4 @@
-import { BLUEPRINTS, ISLAND_UPGRADES } from '../config';
+import { BLUEPRINTS } from '../config';
 import { SHIP_TYPES, typeName, type ShipType } from '../shipTypes';
 
 /** Ce qu'une sauvegarde garde des plans : les bouts gagnés des types encore inconnus, et les types connus. */
@@ -175,19 +175,4 @@ export function tokenizeTypeNames(text: string): string {
     }
   }
   return out;
-}
-
-/** Popup d'un bout de plan ramassé : « 📜 Plan de navire inconnu · 2/5 », ou le nom du navire une fois le plan complet. */
-export function fragmentNotice(p: BlueprintProgress): string {
-  const name = p.completed ? SHIP_TYPES[p.type].name.toLowerCase() : UNKNOWN.noun;
-  return `📜 Plan de ${name} · ${p.count}/${p.needed}`;
-}
-
-/** Grand message d'un plan complet, qui révèle enfin le nom du navire (et le chantier naval qu'il demande). */
-export function unlockMessage(type: ShipType): string {
-  const def = SHIP_TYPES[type];
-  const yard = ISLAND_UPGRADES.shipyard.required[type] ?? 0;
-  const where = yard ? ` (chantier naval de niveau ${yard})` : '';
-  const article = def.feminine ? 'la' : 'le';
-  return `📜 Plan complet : ${article} ${def.name.toLowerCase()} ! Tu sais désormais ${article} construire${where}.`;
 }

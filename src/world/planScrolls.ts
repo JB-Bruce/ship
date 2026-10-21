@@ -3,7 +3,7 @@ import { BLUEPRINTS } from '../config';
 import type { FleetMember } from '../fleet/fleet';
 import type { Effects } from '../fx/effects';
 import type { Waves } from '../ocean/waves';
-import { blueprints, fragmentNotice, unlockMessage } from '../progression/blueprints';
+import { blueprints, type BlueprintProgress } from '../progression/blueprints';
 import type { Ship } from '../ship/ship';
 import type { ShipType } from '../shipTypes';
 import type { Enemy } from './enemySpawner';
@@ -20,10 +20,10 @@ interface PlanScroll {
   phase: number;
 }
 
-/** Ce que les rouleaux annoncent : popup à côté des ressources, et grand message quand un plan est complet. */
+/** Ce que les rouleaux annoncent : un bout ramassé (popup à côté des ressources), un plan complet (grand panneau). */
 export interface PlanScrollEvents {
-  notice(text: string): void;
-  message(text: string): void;
+  fragment(progress: BlueprintProgress): void;
+  unlocked(type: ShipType): void;
 }
 
 /** Peint une pièce d'une couleur unie (attribut `color`) et la place. */
@@ -173,8 +173,8 @@ export class PlanScrolls {
     this.removeAt(i);
     if (blueprints.isUnlocked(type)) return;
     const progress = blueprints.addFragment(type);
-    this.events.notice(fragmentNotice(progress));
-    if (progress.completed) this.events.message(unlockMessage(type));
+    if (progress.completed) this.events.unlocked(type);
+    else this.events.fragment(progress);
   }
 
   private spawn(type: ShipType, x: number, z: number) {

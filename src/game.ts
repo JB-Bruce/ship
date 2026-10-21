@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { fragmentHtml } from './ui/unlockPanel';
 import { AIM, BLUEPRINTS, BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, HELM_VIEW, ISLAND_INFO, OCEAN, SKY, WORLD, WORLD_EDGE, type IslandId } from './config';
 import { Campaign } from './campaign';
 import { ChaseCamera } from './camera/chaseCamera';
@@ -105,8 +106,8 @@ export class Game {
   private readonly loot = new Loot(this.scene, this.effects, (ship, kind, value) => (this.pirates.has(ship) ? value : this.campaign.collectLoot(ship, kind, value)));
   /** Bouts de plan de navires lâchés par les épaves (le hud est créé plus loin, d'où les rappels). */
   private readonly planScrolls = new PlanScrolls(this.scene, this.effects, {
-    notice: (text) => this.hud.notifications.notice(text, 'plan'),
-    message: (text) => this.hud.message(text, BLUEPRINTS.unlockMessageTime),
+    fragment: (progress) => this.hud.notifications.noticeHtml(fragmentHtml(progress), 'plan', BLUEPRINTS.noticeTime),
+    unlocked: (type) => this.hud.unlock.show(type),
   });
   private readonly spawner = new EnemySpawner(this.scene, this.ships, (enemy) => {
     const { x, z } = enemy.ship.position;

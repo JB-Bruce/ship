@@ -74,12 +74,18 @@ export class Notifications {
   }
 
   /** Popup à texte libre à côté des ressources (« 📜 Plan de navire inconnu · 2/5 ») ; `className` donne sa couleur. */
-  notice(text: string, className: string) {
+  notice(text: string, className: string, seconds = NOTICE_TIME) {
     const el = document.createElement('div');
     el.className = `notif-pickup ${className}`;
     el.textContent = text;
     this.pickups.appendChild(el);
-    this.items.push({ el, time: NOTICE_TIME, kind: 'notice', amount: 0 });
+    this.items.push({ el, time: seconds, kind: 'notice', amount: 0 });
+  }
+
+  /** Comme `notice`, avec du HTML (icône, pastilles) : seulement pour du contenu du jeu, jamais un texte venu d'ailleurs. */
+  noticeHtml(html: string, className: string, seconds = NOTICE_TIME) {
+    this.notice('', className, seconds);
+    this.items[this.items.length - 1].el.innerHTML = html;
   }
 
   update(dt: number) {
