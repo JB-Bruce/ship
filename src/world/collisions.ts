@@ -19,7 +19,7 @@ export function resolveCollisions(ships: readonly Ship[], effects: Effects, onRa
     for (let j = i + 1; j < ships.length; j++) {
       const a = ships[i];
       const b = ships[j];
-      if (!a.alive || !b.alive || a.distanceTo(b) > (a.stats.length + b.stats.length) / 2) continue;
+      if (!a.alive || !b.alive || a.intangible || b.intangible || a.distanceTo(b) > (a.stats.length + b.stats.length) / 2) continue;
       collide(a, b, effects, onRam);
     }
   }

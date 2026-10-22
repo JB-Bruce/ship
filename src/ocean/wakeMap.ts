@@ -192,6 +192,8 @@ export class WakeMap {
   private collectStamps(ships: readonly Ship[], crates: readonly Crate[], schools: readonly FishSchool[]) {
     this.count = 0;
     for (const ship of ships) {
+      // Un navire maudit sous l'eau (il surgit ou replonge) ne laisse pas de sillage.
+      if (ship.intangible) continue;
       const halfLength = ship.stats.length / 2;
       const halfWidth = ship.stats.width / 2;
       if (!ship.alive) {
@@ -266,7 +268,7 @@ export class WakeMap {
     const distance = this.nearDistance;
     let count = 0;
     for (const ship of ships) {
-      if (!ship.alive) continue;
+      if (!ship.alive || ship.intangible) continue;
       const half = ship.stats.length / 2;
       toShip.subVectors(ship.position, camera.position);
       const d = toShip.length() - half;

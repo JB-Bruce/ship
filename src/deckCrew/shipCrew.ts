@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { DECK_CREW } from '../config';
+import { CURSED, DECK_CREW } from '../config';
 import type { DeckPlan, DeckSpot } from '../ship/deckPlan';
 import type { Ship } from '../ship/ship';
 import { CrewActivities, isLeisure } from './crewActivities';
@@ -13,6 +13,10 @@ import { drawSailor } from './sailorPose';
 import { poseSailor } from './sailorPoses';
 import type { SailorMeshes } from './sailorMeshes';
 import { SailorWalker } from './sailorWalk';
+
+/** Teinte du corps des marins : aucune, ou gris pâle pour l'équipage spectral d'un navire maudit. */
+const NO_TINT = new THREE.Color(0xffffff);
+const GHOST_TINT = new THREE.Color(CURSED.crewTint);
 
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
 const pick = <T>(list: readonly T[]) => list[Math.floor(Math.random() * list.length)];
@@ -133,10 +137,11 @@ export class ShipCrew {
   /** `noHelm` : le barreur n'est pas dessiné (la caméra est à sa place). */
   draw(meshes: SailorMeshes, noHelm = false) {
     const matrix = this.ship.model.root.matrixWorld;
+    const tint = this.ship.faction === 'cursed' ? GHOST_TINT : NO_TINT;
     for (const s of this.sailors) {
       if (s.mode === 'gone' || s.rise <= 0.02 || (noHelm && s.role === 'helm')) continue;
       poseSailor(s, this.motion);
-      drawSailor(meshes, matrix, s.pose, s.shirt, s.hat);
+      drawSailor(meshes, matrix, s.pose, s.shirt, s.hat, tint);
     }
   }
 

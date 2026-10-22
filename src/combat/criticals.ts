@@ -59,6 +59,8 @@ export class Criticals {
     for (const kind of ORDER) {
       // Un boulet dans le gréement ne peut qu'abattre une voile, mais plus souvent.
       if (rigging && kind !== 'rigging') continue;
+      // Un navire maudit : voiles déjà en lambeaux, coque noyée, poudre mouillée ; seul son gouvernail peut casser.
+      if (ship.faction === 'cursed' && kind !== 'rudder') continue;
       if (Math.random() >= CRIT.chance[kind] * (rigging ? CRIT.riggingHitFactor : 1)) continue;
       const { effects, hud, camera } = this.world;
       if (kind === 'magazine') {

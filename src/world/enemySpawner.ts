@@ -1,6 +1,6 @@
 import type * as THREE from 'three';
 import { EnemyAI, type EnemyAIOptions, type EnemyGroup, type FlotillaSlot } from '../ai/enemyAI';
-import { BOSSES, DAY_NIGHT, ELITE_LIVERY, ENEMIES, LAND, type BossId, type EncounterStage } from '../config';
+import { BOSSES, CURSED, DAY_NIGHT, ELITE_LIVERY, ENEMIES, LAND, type BossId, type EncounterStage } from '../config';
 import type { ContractOptions } from '../progression/contracts';
 import { deriveStats, maxLevels, randomLevels, totalLevels } from '../progression/upgrades';
 import { createShip, Ship } from '../ship/ship';
@@ -27,6 +27,8 @@ export interface Enemy {
   uncounted?: boolean;
   /** Porteur de plans (chasse aux plans) : coulé, il lâche à coup sûr un bout de son plan, quel que soit le coup fatal. */
   carriesPlan?: boolean;
+  /** Navire maudit (world/cursedTide.ts) : ni butin ni plan. */
+  cursed?: boolean;
 }
 
 /** Du plus petit au plus gros : un chef de flottille est pris un cran au-dessus de ses suiveurs. */
@@ -213,6 +215,21 @@ export class EnemySpawner {
     // Un groupe déjà alerté : il chasse aussitôt, comme un ennemi qui t'a repéré.
     enemy.ai = new EnemyAI(enemy.ship, { leader: enemy.ship, alerted: true });
     return true;
+  }
+
+  /**
+   * Navire maudit (world/cursedTide.ts) : camp `cursed`, livrée grise, vie × CURSED.health, améliorations des ennemis
+   * ordinaires ; il se bat à mort contre tout ce qui flotte. La marée maudite le retire elle-même quand il replonge.
+   */
+  spawnCursed(type: ShipType, x: number, z: number, heading: number): Enemy {
+    const ship = createShip(type, 'cursed', randomLevels(type, this.threat, ENEMIES.extensionChance));
+    strengthen(ship, { health: CURSED.health, damage: 1, reload: 1, spread: 1 });
+    ship.position.set(x, 0, z);
+    ship.heading = heading;
+    const ai = new EnemyAI(ship, null, null, { relentless: true });
+    const enemy: Enemy = { ship, ai, lootFactor: 0, elite: false, boss: null, persistent: true, name: null, cursed: true };
+    this.track(enemy);
+    return enemy;
   }
 
   /** Fait apparaître un ennemi ou une flottille. Renvoie false si aucun endroit valable n'a été trouvé. */

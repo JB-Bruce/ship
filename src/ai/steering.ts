@@ -18,7 +18,7 @@ const FLANK_SINE = Math.SQRT1_2;
  * Le cap est d'abord corrigé pour contourner les terres : les ennemis s'en tiennent très à l'écart, les alliés moins.
  */
 export function steerTo(ship: Ship, heading: number, sail: number) {
-  heading = avoidLand(ship, heading, ship.faction === 'enemy' ? LAND.enemyMargin : LAND.allyMargin);
+  heading = avoidLand(ship, heading, ship.faction === 'enemy' || ship.faction === 'cursed' ? LAND.enemyMargin : LAND.allyMargin);
   const diff = wrapAngle(heading - ship.heading);
   ship.controls.rudder = THREE.MathUtils.clamp(diff * 2, -1, 1);
   ship.controls.sail = sail;

@@ -150,7 +150,7 @@ export class NavyIsland {
   private aimFleet(on: boolean) {
     const b = this.fort.bounds;
     for (const ship of this.world.ships) {
-      if (ship.faction === 'enemy') continue;
+      if (ship.faction === 'enemy' || ship.faction === 'cursed') continue;
       const near = on && Math.hypot(ship.position.x - b.x, ship.position.z - b.z) < GARRISON.fortAimRange;
       if (near && ship.siegeTarget === null) ship.siegeTarget = this.target;
       else if (!near && ship.siegeTarget === this.target) ship.siegeTarget = null;
@@ -159,7 +159,7 @@ export class NavyIsland {
 
   /** Un navire à flot de la Marine (`navy`), ou de ton côté (ta flotte, tes alliés), à moins de `radius` m de `p` ? */
   private shipsNear(p: { x: number; z: number }, radius: number, navy: boolean): boolean {
-    return this.world.ships.some((s) => s.alive && (s.faction === 'enemy') === navy && Math.hypot(s.position.x - p.x, s.position.z - p.z) < radius);
+    return this.world.ships.some((s) => s.alive && s.faction !== 'cursed' && (s.faction === 'enemy') === navy && Math.hypot(s.position.x - p.x, s.position.z - p.z) < radius);
   }
 
   /** Accostage : ton navire au port, et plus aucun navire de la Marine aux abords. */

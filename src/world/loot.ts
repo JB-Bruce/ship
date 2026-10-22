@@ -174,7 +174,7 @@ export class Loot {
 
   /** Un bateau non ennemi à flot passe-t-il sur la caisse ? Le collecteur décide qui garde le butin (ta flotte, un pirate allié… ou personne). */
   private reaches(ship: Ship, p: THREE.Vector3): boolean {
-    return ship.faction !== 'enemy' && ship.alive && passesOver(ship, p);
+    return (ship.faction === 'player' || ship.faction === 'ally') && ship.alive && passesOver(ship, p);
   }
 
   /**

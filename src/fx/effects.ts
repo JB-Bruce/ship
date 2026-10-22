@@ -175,6 +175,25 @@ export class Effects {
     }
   }
 
+  /** Brume pâle et faiblement lumineuse (visible de nuit) qui traîne autour d'un navire maudit. */
+  ghostMist(x: number, y: number, z: number) {
+    const s = reset(x, y, z, COLORS.mist);
+    Object.assign(s, { vx: rand(-0.4, 0.4), vy: rand(0.1, 0.35), vz: rand(-0.4, 0.4), life: rand(2, 3.2), size: rand(0.25, 0.45), sizeEnd: 0.05, drag: 0.3, spin: rand(-0.3, 0.3) });
+    this.glow.spawn(s);
+  }
+
+  /** L'eau bouillonne là où un navire maudit sort des flots ou y replonge : écume posée en anneau, gouttes. */
+  seethe(x: number, y: number, z: number, radius: number) {
+    const a = Math.random() * Math.PI * 2;
+    const r = radius * Math.sqrt(Math.random());
+    const s = reset(x + Math.sin(a) * r, y, z + Math.cos(a) * r, COLORS.foam);
+    Object.assign(s, { vx: Math.sin(a) * 1.2, vz: Math.cos(a) * 1.2, life: rand(1.2, 2), size: rand(0.3, 0.5), sizeEnd: 0.9, drag: 1.2, shapeY: 0.15, onWater: true });
+    this.lit.spawn(s);
+    const d = reset(x + Math.sin(a) * r, y, z + Math.cos(a) * r, COLORS.water);
+    Object.assign(d, { vx: rand(-0.8, 0.8), vy: rand(2, 4), vz: rand(-0.8, 0.8), life: rand(0.6, 1), size: rand(0.12, 0.22), sizeEnd: 0.06, gravity: 10, drag: 0.3 });
+    this.lit.spawn(d);
+  }
+
   /** Boulet qui s'écrase sur l'île : mottes de terre et nuage de poussière. */
   groundHit(p: THREE.Vector3) {
     for (let i = 0; i < 10; i++) {
@@ -276,7 +295,7 @@ export class Effects {
     const bowOut = (ship.stats.width / 2) * SPRAY.bowOut + SPRAY.bowGap;
     // En glisse sur la pente d'une vague, l'étrave en jette bien plus, et plus haut.
     const surf = ship.surfAmount;
-    t.bow += dt * Math.max(0, ship.speed - SPRAY.sprayMinSpeed) * SPRAY.sprayRate * (1 + SURF.spray * surf);
+    t.bow += ship.intangible ? 0 : dt * Math.max(0, ship.speed - SPRAY.sprayMinSpeed) * SPRAY.sprayRate * (1 + SURF.spray * surf);
     while (t.bow >= 1) {
       t.bow -= 1;
       const side = Math.random() < 0.5 ? 1 : -1;

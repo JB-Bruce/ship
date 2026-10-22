@@ -9,6 +9,7 @@ import { moveTowards, wrapAngle } from '../utils/math';
 import type { Wind } from '../world/wind';
 import { conditions } from '../world/weather';
 import { Buoyancy } from './buoyancy';
+import { applyGhostLook } from './ghostLook';
 import { ShipDressing } from './shipDressing';
 import { createShipModel, type ShipModel } from './shipModel';
 import { ShipCrits } from './shipCrits';
@@ -30,17 +31,24 @@ const ADRIFT: ShipControls = { sail: 0, rudder: 0 };
 /** Tout ce qui appartient à un camp et peut tirer : bateaux, fort… */
 export interface Combatant {
   readonly faction: Faction;
+  /** Sous l'eau (navire maudit qui surgit ou replonge) : ni cible, ni tireur. */
+  readonly intangible?: boolean;
 }
 
-/** Joueur et alliés contre ennemis. */
+/** Joueur et alliés contre ennemis ; les maudits contre tous les autres. Rien ne vise ni ne touche un navire sous l'eau. */
 export function isHostile(a: Combatant, b: Combatant): boolean {
+  if (a.intangible || b.intangible) return false;
+  if (a.faction === 'cursed' || b.faction === 'cursed') return a.faction !== b.faction;
   return (a.faction === 'enemy') !== (b.faction === 'enemy');
 }
+
+/** Caractéristiques de base d'un camp : celles du joueur, ou la version adverse (Marine, maudits). */
+const foeStats = (faction: Faction) => faction === 'enemy' || faction === 'cursed';
 
 /** Crée un bateau d'un type et d'un camp donnés, avec ses améliorations (stats et apparence). La livrée par défaut est celle du camp. */
 export function createShip(type: ShipType, faction: Faction, levels: UpgradeLevels, livery: Livery = LIVERIES[faction]): Ship {
   const def = SHIP_TYPES[type];
-  const ship = new Ship(type, deriveStats(type, faction === 'enemy' ? def.enemyStats : def.stats, levels), faction, livery);
+  const ship = new Ship(type, deriveStats(type, foeStats(faction) ? def.enemyStats : def.stats, levels), faction, livery);
   ship.applyLooks(levels);
   return ship;
 }
@@ -102,6 +110,10 @@ export class Ship {
   /** Avaries des coups critiques (gréement, gouvernail, incendie). */
   readonly crits = new ShipCrits();
   readonly model: ShipModel;
+  /** Profondeur sous la flottaison (m) : un navire maudit qui sort de l'eau ou y replonge. */
+  drowned = 0;
+  /** Sous l'eau : ni cible, ni tireur (voir isHostile). */
+  intangible = false;
   /** Point que ce bateau bombarde quand aucun ennemi n'est à portée (assiégeant d'une mission de défense), ou null. */
   siegeTarget: CannonTarget | null = null;
 
@@ -134,7 +146,7 @@ export class Ship {
   /** Applique de nouveaux niveaux d'amélioration (stats + apparence). */
   upgrade(levels: UpgradeLevels) {
     const def = SHIP_TYPES[this.type];
-    this.applyStats(applyModifiers(deriveStats(this.type, this.faction === 'enemy' ? def.enemyStats : def.stats, levels), this.modifiers, this.guns));
+    this.applyStats(applyModifiers(deriveStats(this.type, foeStats(this.faction) ? def.enemyStats : def.stats, levels), this.modifiers, this.guns));
     this.applyLooks(levels);
   }
 
@@ -150,6 +162,7 @@ export class Ship {
     }
     this.model.setArmorLevel(levels.hull);
     this.model.setSailLevel(levels.sails);
+    if (this.faction === 'cursed') applyGhostLook(this.model.root);
   }
 
   /** Le bateau vient de tirer : il est en combat, la réparation attend. */
@@ -332,14 +345,16 @@ export class Ship {
   private updateMotion(dt: number, controls: ShipControls, wind: Wind) {
     const s = this.stats;
     // Voilure trouée : la vitesse max baisse avec les dégâts.
-    const torn = 1 - DAMAGE.maxSpeedLoss * Math.min(1, this.damageLevel / DAMAGE.fullDamageAt);
+    // Un navire maudit, aux voiles déjà en lambeaux, ne perd jamais de vitesse.
+    const cursed = this.faction === 'cursed';
+    const torn = cursed ? 1 : 1 - DAMAGE.maxSpeedLoss * Math.min(1, this.damageLevel / DAMAGE.fullDamageAt);
     // Un navigateur tire plus du vent favorable et souffre moins du vent contraire.
     // Vent de face : la goélette (upwindLoss) perd moins de vitesse que les autres.
     const w = wind.speedFactor(this.heading) - 1;
     const upwind = SHIP_TYPES[this.type].upwindLoss ?? 1;
     const windEffect = 1 + w * (w > 0 ? factor(this.modifiers, 'wind') : upwind / factor(this.modifiers, 'wind'));
     const rowing = this.updateOars(dt, controls, wind);
-    const targetSpeed = s.maxSpeed * torn * this.crits.speedFactor * controls.sail * (windEffect + rowing);
+    const targetSpeed = s.maxSpeed * torn * (cursed ? 1 : this.crits.speedFactor) * controls.sail * (windEffect + rowing);
     const accel = targetSpeed > this.cruise ? s.acceleration : s.deceleration;
     this.cruise = moveTowards(this.cruise, targetSpeed, accel * dt);
     this.surge = damp(this.surge, this.surfTarget(), SURF.response, dt);
@@ -386,7 +401,7 @@ export class Ship {
     // En virage, un navire gîte vers l'extérieur.
     const heel = this.yawRate * this.speed * this.stats.turnHeel;
     this.buoyancy.update(dt, this.stats, this.position.x, this.position.z, this.heading, heel, sinking, waves);
-    this.position.y = this.buoyancy.y;
+    this.position.y = this.buoyancy.y - this.drowned;
   }
 
   private syncModel(dt: number, controls: ShipControls, wind: Wind) {

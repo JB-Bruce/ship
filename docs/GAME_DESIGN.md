@@ -4,6 +4,8 @@ Décisions prises avec l'auteur (depuis le 2026-10-06). Les valeurs chiffrées s
 
 ## Vision long terme
 - **Progression du monde (orientation, 2026-10-22, demandée par le joueur)** : façon *One Piece*, on vogue de zone en zone, chacune plus dangereuse que la précédente (ennemis, boss, Marine, mer plus rude), en partant de l'archipel de départ (la Tortue). Pas encore construit : à garder en tête pour la carte, les ennemis, les boss et les missions à venir.
+- **But du jeu (2026-10-22)** : battre tous les boss avant de terminer le jeu. Une liste des boss de la Marine en crescendo a été proposée (Garde-Côte Dubois, Hawke « le Faucon », Vasseur, « L'Implacable », Leclerc, la Caraque du Gouverneur, l'Amiral Montclair, le Grand Amiral de Rohan) : à revoir plus tard avec le joueur.
+- **Histoire (2026-10-22)** : le dieu des océans t'a maudit, toi et tous ceux qui partent à la recherche du grand trésor que tu cherches. Ses envoyés, les navires maudits, t'empêcheront d'accéder à des zones, te guideront ou te combattront selon les événements principaux.
 - Améliorer son bateau : taille, voilure, nombre de canons…
 - Caméra arrière (faite) et vue du dessus (plus tard).
 - Bateaux alliés qui patrouillent et attaquent les ennemis.
@@ -155,6 +157,13 @@ Quêtes longues en plusieurs étapes, qui font voyager, combattre et fouiller po
 - **Coffre** : or et bois, bouts de plan (le plus petit type encore inconnu), un emblème unique offert au Chantier (caché tant que le trésor n'est pas trouvé), une relique exposée dans le Journal avec un petit bonus permanent.
 - **L'or de Lagrange** (Tortue, 150 or) : fouiller la chaloupe échouée du Banc du Naufragé (20 s, journal et 1er morceau) → énigme « Trois encablures sous le fortin du Dauphin » (≈ 555 m au sud du fortin) → le Gardien de Lagrange (sloop d'élite et chaloupe, 2e morceau) → Le Corbeau, sloop qui rôde au nord-ouest de la Tortue (3e morceau) → déterrer le coffre dans la crique du Crâne, nouvel îlot rocheux au nord-ouest (40 s, deux embuscades). Coffre : 1 500 or, 400 bois, 2 bouts de plan, emblème « Crâne d'or de Lagrange », relique « La boussole de Lagrange » (+10 % de portée du radar).
 - Sauvegarde v6 : chasses en cours (étape, morceaux) et terminées ; une fouille entamée repart de zéro au chargement.
+
+## Navires maudits (fait, 2026-10-22)
+Les envoyés du dieu des océans (voir « Histoire »). N'importe quel type de navire, à l'aspect fantomatique : coque et bois délavés vers le gris, voiles toujours en lambeaux, fanaux verts (leur lumière verte sur l'eau), brume pâle autour de la coque, équipage gris pâle ; étiquette « … maudit ».
+- **Apparition** : rarement, de nuit (une nuit sur trois environ, 1 ou 2 navires, entre 20 s et 3 min après la tombée de la nuit), à 150-250 m de toi : ils sortent de l'eau (4 s, mâts d'abord, l'eau bouillonne), bien plus près que les autres ennemis. Type tiré jusqu'à ton plus gros navire + 1 cran (+ 2 lors d'un événement de l'histoire). Triche : **K** de nuit en fait surgir un.
+- **Combat** : ennemis de tous (ta flotte, la Marine, les pirates alliés, les forts). Vie × 1,5, aucune perte de vitesse (dégâts, avaries), ni voile abattue, ni incendie, ni sainte-barbe (seul le gouvernail peut casser). Pendant qu'ils sortent de l'eau ou replongent, rien ne les vise et ils ne tirent pas. Ils se battent à mort.
+- **Départ** : ils replongent au lever du jour, quand toute ta flotte est à plus de 900 m, ou au bout de 4 min.
+- **Coulés** : aucun butin, aucun plan (des éléments spéciaux viendront peut-être plus tard). Ils comptent dans le registre et le rang du navire qui les coule, pas pour les contrats ; coulés par la Marine ou des pirates, ce n'est pas ta victoire.
 
 ## Port et escale (fait)
 - **Touches (2026-10-21)** : le port s'ouvre par **P** près d'un quai ; **Tab** ouvre la Cabine du capitaine, partout.

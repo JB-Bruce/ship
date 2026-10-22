@@ -1,6 +1,6 @@
 import { BOSSES } from '../config';
 import type { Ship } from '../ship/ship';
-import { shipTypeLabel } from '../progression/blueprints';
+import { labelFeminine, shipTypeLabel } from '../progression/blueprints';
 import { sizeRank } from '../shipTypes';
 import type { Enemy } from '../world/enemySpawner';
 
@@ -19,7 +19,8 @@ export function threatOf(enemy: Enemy, leader: Ship): Threat {
  * pas complet) ; couronne pour une élite, crâne si redoutable.
  */
 export function enemyTagHtml(enemy: Enemy, threat: Threat): string {
-  const type = shipTypeLabel(enemy.ship.type, enemy.ship.extension);
+  const cursed = enemy.ship.faction === 'cursed' ? ` maudit${labelFeminine(enemy.ship.type) ? 'e' : ''}` : '';
+  const type = shipTypeLabel(enemy.ship.type, enemy.ship.extension) + cursed;
   const name = enemy.boss ? BOSSES[enemy.boss].name : enemy.name ? `${enemy.name} · ${type}` : type;
   const crown = enemy.elite ? '<b class="crown">♛</b>' : '';
   const skull = threat === 'deadly' ? '☠ ' : '';

@@ -2,7 +2,8 @@
 import type { ShipType } from './shipTypes';
 import type { WeatherKind } from './world/weather';
 
-export type Faction = 'player' | 'ally' | 'enemy';
+/** Camps : ta flotte, les pirates alliés, la Marine, et les navires maudits (ennemis de tous). */
+export type Faction = 'player' | 'ally' | 'enemy' | 'cursed';
 
 /**
  * Voilure : une jauge de 0 (affalée) à 1 (pleine voile), qui fixe la fraction de vitesse max visée.
@@ -523,9 +524,9 @@ export const DECK_CREW = {
   /** Recul d'un canonnier quand sa pièce tire (m), et distance derrière la culasse où il se tient (m). */
   recoil: 0.35,
   gunnerOffset: 0.85,
-  /** Chemises : pirates (blanc, rouge, brun), marine royale (blanc, bleu) ; chance de porter le tricorne plutôt que le bandana. */
-  shirts: { player: [0xe8e2d0, 0x9b2d20, 0x6b5a3a], ally: [0xe8e2d0, 0x9b2d20, 0x6b5a3a], enemy: [0xe8e2d0, 0x2c4466] },
-  tricorn: { player: 0.3, ally: 0.3, enemy: 0.85 },
+  /** Chemises : pirates (blanc, rouge, brun), marine royale (blanc, bleu), maudits (gris pâle) ; chance de porter le tricorne plutôt que le bandana. */
+  shirts: { player: [0xe8e2d0, 0x9b2d20, 0x6b5a3a], ally: [0xe8e2d0, 0x9b2d20, 0x6b5a3a], enemy: [0xe8e2d0, 0x2c4466], cursed: [0xb4bbb7, 0x8e9692] },
+  tricorn: { player: 0.3, ally: 0.3, enemy: 0.85, cursed: 0.5 },
 };
 
 /**
@@ -878,6 +879,38 @@ export const LIVERIES: Record<Faction, Livery> = {
   player: { hull: 0x4a3020, hullInside: 0x6b4a30, trim: 0x2a1c12, sail: 0xe3d3ae, sailPatch: 0xbfa77a, flag: 'skull' },
   ally: { hull: 0x2f4f36, hullInside: 0x6b4a30, trim: 0x1f2a1c, sail: 0xe8e0c8, sailPatch: 0xc9bc96, flag: 'skull' },
   enemy: { hull: 0x2c4466, hullInside: 0x6b4a30, trim: 0xd9b44a, sail: 0xf4f1e8, sailPatch: null, flag: 'crown' },
+  /** Navires maudits : coque et voiles grisâtres délavées, voiles en lambeaux, fanaux verts spectraux. */
+  cursed: { hull: 0x585e5c, hullInside: 0x4b4f4c, trim: 0x77847c, sail: 0xa2a7a1, sailPatch: null, flag: 'ghostSkull', lantern: 0x6dffa0, tattered: 0.75 },
+};
+
+/**
+ * Navires maudits (`world/cursedTide.ts`) : les envoyés du dieu des océans, qui a maudit ceux qui cherchent le grand
+ * trésor. Ennemis de tous (ta flotte, la Marine, les pirates). Ils surgissent rarement de nuit : une nuit sur
+ * `1 / nightChance`, entre `count` navires, `delay` s après la tombée de la nuit, à `distance` m du navire piloté
+ * (bien plus près que les autres). Type tiré jusqu'à ton plus gros navire + `rankBonus` crans (`eventRankBonus` lors
+ * d'un événement de l'histoire), parmi les `rankSpan` crans du dessus. Vie × `health`. Ils sortent de l'eau en
+ * `riseTime` s et y replongent en `diveTime` s (intouchables et sans tirer pendant ce temps), depuis `depth` m sous leur
+ * plus haut point ; ils se battent à mort, mais replongent au lever du jour, à plus de `leaveDistance` m de ta flotte ou
+ * après `lifetime` s. Apparence : matériaux de la coque délavés vers le gris (`ghost` : saturation gardée, clarté
+ * visée, part du mélange), équipage gris pâle (`crewTint`), brume pâle autour de la coque (`mist` bouffées / s).
+ */
+export const CURSED = {
+  nightChance: 0.33,
+  count: [1, 2] as const,
+  delay: [20, 180] as const,
+  distance: [150, 250] as const,
+  rankBonus: 1,
+  eventRankBonus: 2,
+  rankSpan: 2,
+  health: 1.5,
+  riseTime: 4,
+  diveTime: 4,
+  depth: 3,
+  leaveDistance: 900,
+  lifetime: 240,
+  ghost: { saturation: 0.15, lightness: 0.4, mix: 0.65 },
+  crewTint: 0xc4ccc8,
+  mist: 7,
 };
 
 /** Un palier de rencontres ordinaires (voir ENEMIES.encounters). */

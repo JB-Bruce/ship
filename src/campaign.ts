@@ -321,11 +321,13 @@ export class Campaign {
     if (killer) this.creditKill(killer, enemy?.boss ?? null);
     const forts = this.world.forts;
     // Coulé par un allié hors de ta flotte (pirate) : le fil l'indique, mais ce n'est pas ta victoire.
-    const byPirates = !killer && attacker?.faction === 'ally';
+    // Un navire maudit coulé par la Marine n'est pas non plus ta victoire.
+    const byNavy = !killer && !!enemy?.cursed && attacker?.faction === 'enemy';
+    const byPirates = (!killer && attacker?.faction === 'ally') || byNavy;
     const fort = Object.values(forts).find((f) => f === attacker);
     const fortInfo = fort ? ISLAND_INFO[fort.island].fort : null;
     const byFort = fortInfo ? ` par ${fortInfo.feminine ? 'la' : 'le'} ${fortInfo.noun}` : '';
-    const by = killer ? ` par ${killer.name}` : fortInfo ? byFort : byPirates ? ' par des pirates' : '';
+    const by = killer ? ` par ${killer.name}` : fortInfo ? byFort : byNavy ? ' par la Marine' : byPirates ? ' par des pirates' : '';
     if (byPirates && enemy) enemy.uncounted = true;
     if (!byPirates) this.ledger.recordSunk(ship.type, elite, boss);
     const e = labelFeminine(ship.type) ? 'e' : '';
@@ -334,12 +336,15 @@ export class Campaign {
       const be = b.feminine ? 'e' : '';
       this.hud.notifications.kill(`☠ ${b.name} coulé${be}${by}`);
       this.hud.message(`${b.name} est coulé${be} ! Son pavillon rejoint ton registre.`, 5);
+    } else if (enemy?.cursed) {
+      this.hud.notifications.kill(`☠ ${shipTypeLabel(ship.type)} maudit${e} renvoyé${e} aux abysses${by}`);
     } else if (enemy?.name) {
       this.hud.notifications.kill(`☠ ${enemy.name} coulé${by}`);
     } else {
       this.hud.notifications.kill(`☠ ${shipTypeLabel(ship.type)} ennemi${e}${elite ? " d'élite" : ''} coulé${e}${by}`);
     }
-    if (byPirates) return;
+    // Un navire maudit n'est pas de la Marine : il ne compte pas pour les contrats.
+    if (byPirates || enemy?.cursed) return;
     // Une élite coulée par ta flotte lâche parfois le début d'une chasse au trésor.
     const hunt = treasures.untouched()[0];
     if (killer && elite && !boss && hunt && Math.random() < TREASURE.eliteStart) this.treasure.start(hunt, 'elite');

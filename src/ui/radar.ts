@@ -168,7 +168,7 @@ export class Radar {
       paintDiamond(ctx, p.x, p.y, p.outside ? 3.5 : 5);
     }
     for (const ship of ships) {
-      if (ship === player || ship.faction === 'enemy' || !ship.alive) continue;
+      if (ship === player || ship.faction === 'enemy' || ship.faction === 'cursed' || !ship.alive) continue;
       // Vert : ta flotte (plus foncé : en commerce) ; bleu ciel cerclé : navire à protéger ; bleu : autre allié (pirate, marchand des îles).
       const escort = escorts.includes(ship);
       const own = traders.includes(ship) ? COLORS.trader : COLORS.ally;

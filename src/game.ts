@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { fragmentHtml } from './ui/unlockPanel';
-import { AIM, BLUEPRINTS, BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, HELM_VIEW, ISLAND_INFO, OCEAN, SKY, WORLD, WORLD_EDGE, type IslandId } from './config';
+import { AIM, BLUEPRINTS, BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, CURSED, HELM_VIEW, ISLAND_INFO, OCEAN, SKY, WORLD, WORLD_EDGE, type IslandId } from './config';
 import { Campaign } from './campaign';
 import { ChaseCamera } from './camera/chaseCamera';
 import { arcOf, cannonStatsOf, findTarget, updateCannons } from './combat/cannons';
@@ -56,6 +56,7 @@ import { resolveLandCollisions } from './world/landCollision';
 import { Loot } from './world/loot';
 import { PirateTraffic } from './world/pirateTraffic';
 import { PlanScrolls } from './world/planScrolls';
+import { CursedTide } from './world/cursedTide';
 import { treasures } from './progression/treasures';
 import { Sky } from './world/sky';
 import { Weather } from './world/weather';
@@ -112,10 +113,14 @@ export class Game {
     unlocked: (type) => this.hud.unlock.show(type),
   });
   private readonly spawner = new EnemySpawner(this.scene, this.ships, (enemy) => {
+    // Un navire maudit coulé ne laisse rien.
+    if (enemy.cursed) return;
     const { x, z } = enemy.ship.position;
     this.loot.spawnWreckLoot(x, z, enemy.lootFactor);
     if (enemy.boss) for (const kind of ['rum', 'spices'] as const) this.loot.spawnGoods(x, z, kind, 2);
   }, () => this.fleetPower());
+  /** Navires maudits qui surgissent la nuit. */
+  private readonly cursed: CursedTide;
   private readonly pirates = new PirateTraffic(this.scene, this.ships, () => this.fleetPower(), (ship) => this.wreckLoot(ship));
   private readonly schools = new FishSchools();
   private readonly schoolFx = new FishSchoolFx();
@@ -165,6 +170,10 @@ export class Game {
     this.chaseCamera = new ChaseCamera(this.camera, this.display.viewport, (x, y) => this.betrayal.click(x, y, this.camera));
     this.bossSinking = new BossSinking(this.effects, this.chaseCamera);
     this.hud = new Hud(container);
+    this.cursed = new CursedTide(this.spawner, this.effects, () => this.fleetPower().best, {
+      alert: (text) => this.hud.message(text, 4, true),
+      toast: (text) => this.hud.toast(text, 3),
+    });
     // On commence la partie à la barre, à la première personne.
     this.chaseCamera.firstPerson.setActive(true);
     // Échap souris capturée : le menu s'ouvre dans le même appui ; refermé, on reprend la souris.
@@ -245,6 +254,10 @@ export class Game {
         // Triche de test : un ennemi apparaît à 300 m, déjà lancé à ta poursuite.
         if (this.spawner.spawnChaser(this.fleet.leader)) this.hud.toast('Un ennemi te prend en chasse !', 1.5, 'danger');
         else this.hud.toast('Pas de place pour un ennemi ici (terre ou port trop proche)', 1.5, 'info');
+      } else if (e.code === 'KeyK') {
+        // Triche de test : de nuit, un navire maudit surgit des flots tout près.
+        if (!this.cursed.night) this.hud.toast('Les navires maudits ne surgissent que de nuit', 2, 'info');
+        else this.cursed.summon(this.fleet.leader, 1, CURSED.rankBonus);
       } else if (e.code === 'KeyF') {
         this.toggleFishing();
       } else if (e.code === 'KeyR') {
@@ -262,7 +275,9 @@ export class Game {
   /** Un navire hors de ta flotte touché par un coup critique lâche un peu de butin. */
   private critLoot(ship: Ship) {
     if (this.fleet.members.some((m) => m.ship === ship)) return;
-    const factor = this.spawner.enemies.find((e) => e.ship === ship)?.lootFactor ?? 1;
+    const enemy = this.spawner.enemies.find((e) => e.ship === ship);
+    if (enemy?.cursed) return;
+    const factor = enemy?.lootFactor ?? 1;
     this.loot.spawnWreckLoot(ship.position.x, ship.position.z, factor * CRIT.lootFactor);
   }
 
@@ -286,6 +301,7 @@ export class Game {
     this.controller.enabled = !paused && !this.onFoot.walking;
     this.controller.update(dt);
     this.spawner.update(dt, this.fleet.leader);
+    this.cursed.update(dt, this.fleet.leader, this.fleet.hand);
     this.bosses.update(dt, this.weather, this.fleet.leader, this.fleet.anyAlive());
     this.pirates.update(dt, this.loot.crates, this.schools.list, this.fleet.leader);
     this.schools.update(dt);
@@ -439,6 +455,10 @@ export class Game {
     if (ship === leader) this.chaseCamera.shake(COMBAT.hitShake);
     if (!sank) return;
     this.effects.wreck(ship.position);
+    if (ship.faction === 'cursed') {
+      this.campaign.enemySunk(ship, attacker);
+      return;
+    }
     if (ship.faction === 'enemy') {
       if (this.spawner.enemies.some((e) => e.ship === ship && e.boss)) this.bossSinking.start(ship, leader);
       this.campaign.enemySunk(ship, attacker);

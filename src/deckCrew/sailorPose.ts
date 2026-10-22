@@ -50,19 +50,20 @@ function child(out: THREE.Matrix4, parent: THREE.Matrix4, x: number, y: number, 
 }
 
 /** Place les parties d'un marin dans les lots de dessin. `ship` = matrice monde du navire. */
-export function drawSailor(meshes: SailorMeshes, ship: THREE.Matrix4, p: SailorPose, shirt: THREE.Color, hat: 'tricorn' | 'bandana') {
+/** `tint` : teinte du reste du corps (blanc = sans effet ; gris pâle pour l'équipage d'un navire maudit). */
+export function drawSailor(meshes: SailorMeshes, ship: THREE.Matrix4, p: SailorPose, shirt: THREE.Color, hat: 'tricorn' | 'bandana', tint: THREE.Color) {
   child(base, ship, p.x, p.y + p.bob, p.z, 0, p.facing, p.roll, 'YZX');
   child(upper, base, 0, HIP, 0, p.lean, 0, p.tilt, 'XZY');
   meshes.put('torso', upper, shirt);
   child(part, upper, 0, NECK, 0, 0, p.headYaw, 0, 'XYZ');
-  meshes.put('head', part);
-  meshes.put(hat, part);
+  meshes.put('head', part, tint);
+  meshes.put(hat, part, tint);
   for (const side of [1, -1]) {
     const left = side === 1;
     child(part, upper, side * SHOULDER_X, SHOULDER, 0, -(left ? p.armL : p.armR), 0, side * (left ? p.outL : p.outR), 'XZY');
     meshes.put('arm', part, shirt);
-    meshes.put('hand', part);
+    meshes.put('hand', part, tint);
     child(part, base, side * HIP_X, HIP, 0, -(left ? p.legL : p.legR), 0, 0, 'XYZ');
-    meshes.put('leg', part);
+    meshes.put('leg', part, tint);
   }
 }
