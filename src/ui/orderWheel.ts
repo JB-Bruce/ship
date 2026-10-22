@@ -67,6 +67,10 @@ export class OrderWheel {
   private pick = -1;
   private vx = 0;
   private vy = 0;
+  /** Dernière position connue du curseur (px), pour centrer la roue sur lui quand la souris est libre. */
+  private cursorX = innerWidth / 2;
+  private cursorY = innerHeight / 2;
+  private readonly wheel: HTMLElement;
 
   /** Facteur de vitesse du jeu : ralenti tant que la roue est ouverte. */
   static timeScale(): number {
@@ -98,6 +102,7 @@ export class OrderWheel {
     parent.appendChild(this.root);
     this.segments.push(...this.root.querySelectorAll<HTMLButtonElement>('.wheel-seg'));
     this.pointer = this.root.querySelector('.wheel-pointer')!;
+    this.wheel = this.root.querySelector('.wheel')!;
     this.label = this.root.querySelector('.wheel-center b')!;
     this.hint = this.root.querySelector('.wheel-center span')!;
 
@@ -112,9 +117,19 @@ export class OrderWheel {
     });
     window.addEventListener('blur', () => this.close());
     document.addEventListener('mousemove', (e) => {
+      this.cursorX = e.clientX;
+      this.cursorY = e.clientY;
       if (!this.open) return;
-      this.vx += e.movementX;
-      this.vy += e.movementY;
+      if (document.pointerLockElement) {
+        // Souris capturée : seul le mouvement compte, depuis l'ouverture.
+        this.vx += e.movementX;
+        this.vy += e.movementY;
+      } else {
+        // Souris libre : la roue est centrée sur le curseur, qui vise depuis son centre.
+        const r = this.wheel.getBoundingClientRect();
+        this.vx = e.clientX - (r.left + r.width / 2);
+        this.vy = e.clientY - (r.top + r.height / 2);
+      }
       const length = Math.hypot(this.vx, this.vy);
       if (length > ORDERS.reach) {
         this.vx *= ORDERS.reach / length;
@@ -123,7 +138,6 @@ export class OrderWheel {
       if (length > ORDERS.deadzone) this.select(Math.round(Math.atan2(this.vx, -this.vy) / STEP + ITEMS.length) % ITEMS.length);
     });
     this.segments.forEach((seg, i) => {
-      seg.addEventListener('mouseenter', () => this.select(i));
       seg.addEventListener('click', () => {
         this.select(i);
         this.commit();
@@ -143,6 +157,12 @@ export class OrderWheel {
       this.segments[i].classList.toggle('off', this.why(item) !== null);
     });
     this.select(-1);
+    // Souris libre : la roue s'ouvre sous le curseur (sans sortir de l'écran) ; capturée, au centre, où vise le regard.
+    const half = SIZE / 2;
+    const free = !document.pointerLockElement;
+    const x = free ? Math.min(innerWidth - half, Math.max(half, this.cursorX)) : innerWidth / 2;
+    const y = free ? Math.min(innerHeight - half, Math.max(half, this.cursorY)) : innerHeight / 2;
+    this.wheel.style.translate = `${(x - innerWidth / 2).toFixed(0)}px ${(y - innerHeight / 2).toFixed(0)}px`;
     this.root.classList.add('on');
   }
 

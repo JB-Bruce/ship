@@ -119,6 +119,8 @@
   line-height: 1.2;
 }
 .wheel-help {
+  position: absolute;
+  bottom: 40px;
   margin: 0;
   padding: 6px 14px;
   font-size: 16px;
