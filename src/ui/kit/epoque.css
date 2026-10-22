@@ -140,3 +140,42 @@
   font-family: 'IM Fell English SC', Georgia, serif !important;
   text-shadow: 0 0 4px #f0e0b8, 0 0 2px #f0e0b8;
 }
+
+/* Difficulté des missions : têtes de mort à l'encre, pâles au-delà de la difficulté. */
+.kit-skulls {
+  display: inline-flex;
+  gap: 2px;
+  vertical-align: middle;
+}
+.kit-skull {
+  width: 17px;
+  height: 17px;
+}
+.kit-skull path:first-child {
+  fill: var(--ink);
+}
+.kit-skull .kit-skull-eye {
+  fill: #e8d5a6;
+}
+.kit-skull-slot:not(.on) {
+  opacity: 0.22;
+}
+
+/* Aperçu d'une amélioration : le gain se détache en vert plein derrière les hachures. */
+.kit-bar > span.kit-bar-next {
+  background: rgba(63, 122, 58, 0.55) !important;
+}
+
+/*
+ * Prix qui manque, sur un bouton sombre ou un sceau de cire : rouge clair barré (le rouge d'encre ne s'y lit pas) ; le
+ * bouton reste lisible (pas de transparence).
+ */
+.kit-btn .kit-price-part.short {
+  color: #ffc2a8;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+.upgrade-menu .kit-btn.dim {
+  opacity: 1 !important;
+  filter: saturate(0.45) brightness(0.92);
+}

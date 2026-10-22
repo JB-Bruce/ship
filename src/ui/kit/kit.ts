@@ -62,6 +62,15 @@ export function cofferHtml(have: Cost): string {
   return `<span class="kit-coffer" data-coffer><span class="kit-coffer-part" data-coffer-gold>${COIN_ICON}<b>${have.gold.toLocaleString('fr-FR')}</b></span><span class="kit-coffer-part" data-coffer-wood>${WOOD_ICON}<b>${have.wood.toLocaleString('fr-FR')}</b></span></span>`;
 }
 
+const SKULL = '<svg class="kit-skull" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2C5.6 2 3 5 3 8.6c0 2.2 1 3.7 2.4 4.6V16h2v-1.6h1.2V16h2.8v-1.6h1.2V16h2v-2.8C16 12.3 17 10.8 17 8.6 17 5 14.4 2 10 2Z"/><circle cx="7.2" cy="9" r="1.9" class="kit-skull-eye"/><circle cx="12.8" cy="9" r="1.9" class="kit-skull-eye"/><path d="M10 11.2 9 13h2Z" class="kit-skull-eye"/></svg>';
+
+/** Difficulté d'une mission en têtes de mort, pleines puis pâles jusqu'à `max`. */
+export function skullsHtml(n: number, max = n): string {
+  let html = '';
+  for (let i = 0; i < max; i++) html += `<span class="kit-skull-slot${i < n ? ' on' : ''}">${SKULL}</span>`;
+  return `<span class="kit-skulls" aria-label="${n} sur ${max}">${html}</span>`;
+}
+
 /** Étoiles de talent ou de difficulté, pleines puis vides jusqu'à `max`. */
 export function starsHtml(n: number, max = n): string {
   return `<span class="kit-stars">${'★'.repeat(n)}<span class="off">${'★'.repeat(Math.max(0, max - n))}</span></span>`;

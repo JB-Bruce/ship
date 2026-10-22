@@ -366,3 +366,52 @@
   box-shadow: none;
   outline: 2px solid rgba(20, 10, 4, 0.6);
 }
+
+/*
+ * Avis de la taverne : le papier déchiré est dessiné par un fond découpé (::before), pour que la punaise, posée sur le
+ * bord, ne soit pas coupée avec lui.
+ */
+.tav-poster,
+.tav-poster.special {
+  clip-path: none;
+  background: none;
+  box-shadow: none;
+  isolation: isolate;
+}
+.tav-poster::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--paper);
+  box-shadow: var(--paper-edge);
+  clip-path: polygon(0 3%, 6% 0, 40% 2%, 70% 0, 100% 2%, 98% 40%, 100% 72%, 97% 100%, 60% 97%, 30% 100%, 2% 98%, 0 60%);
+}
+.tav-poster.special::before {
+  background: var(--grain), radial-gradient(ellipse at 50% 40%, #f3e6c2, #dcc28c 70%, #b08a48);
+}
+.tav-pin {
+  z-index: 2;
+}
+.tav-trait {
+  font-weight: 700;
+  color: var(--wax);
+}
+.tav-trait-fx {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--ink-green);
+  text-align: center;
+  line-height: 1.15;
+}
+
+/* Un élément qui tremble (refus) ne fait plus apparaître de barre de défilement horizontale. */
+.hm-side,
+.tav-side,
+.mk-route-list,
+.mk-holds,
+.mk-plan,
+.cabin-page,
+.yard-panel {
+  overflow-x: hidden;
+}

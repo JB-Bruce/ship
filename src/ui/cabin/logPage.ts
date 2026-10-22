@@ -2,7 +2,7 @@ import { BOSS_IDS, BOSSES, ISLAND_INFO } from '../../config';
 import { blueprints, revealTypes, shipTypeLabel } from '../../progression/blueprints';
 import { MISSION_TYPES, missionType, type Contract } from '../../progression/contracts';
 import { SHIP_SIZE_ORDER } from '../../shipTypes';
-import { gaugeHtml, pipsHtml, starsHtml, tip } from '../kit/kit';
+import { gaugeHtml, pipsHtml, skullsHtml, tip } from '../kit/kit';
 import { contractProgress } from '../contractProgress';
 import { SHIP_ICONS } from '../shipIcons';
 import type { CabinContext, CabinView } from './cabinContext';
@@ -62,7 +62,7 @@ function contractCard(ctx: CabinContext, view: CabinView, c: Contract): string {
   const confirm = view.confirmAbandon === c.id;
   return `
     <div class="cabin-card cabin-contract${ready ? ' ready' : ''}">
-      <div class="cabin-contract-head"><span class="tag mission ${missionType(c)}">${type.icon} ${type.name}</span>${starsHtml(c.stars, MAX_STARS)}</div>
+      <div class="cabin-contract-head"><span class="tag mission ${missionType(c)}">${type.icon} ${type.name}</span>${skullsHtml(c.stars, MAX_STARS)}</div>
       <b>${ready ? '✔ ' : ''}${revealTypes(c.title)}</b>
       <div class="cabin-mini-row">${gaugeHtml(count / c.target, 'mission')}<b>${count} / ${c.target}</b></div>
       <div class="cabin-mini-foot"><span class="cabin-muted">${note}</span><button class="kit-btn ${confirm ? 'red' : 'ghost'} small" data-action="abandon" data-arg="${c.id}">${confirm ? 'Sûr ?' : 'Abandonner'}</button></div>

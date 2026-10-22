@@ -3,7 +3,7 @@ import { effectText, officerPrice, roleEffect, type Officer } from '../../fleet/
 import { revealTypes } from '../../progression/blueprints';
 import { MISSION_TYPES, missionType, type Contract } from '../../progression/contracts';
 import { contractProgress } from '../contractProgress';
-import { COIN_ICON, gaugeHtml, priceHtml, starsHtml, tip, WOOD_ICON } from '../kit/kit';
+import { COIN_ICON, gaugeHtml, priceHtml, skullsHtml, starsHtml, tip, WOOD_ICON } from '../kit/kit';
 import type { PortContext } from '../port/portContext';
 import { POSTER_ART } from './posterArt';
 
@@ -24,7 +24,6 @@ const reward = (c: Contract) => `<span class="tav-reward">${c.reward.gold ? `${C
 /** Une affiche : son genre, sa silhouette, son titre, ses sceaux (étoiles) et sa prime ; la description en bulle. */
 function poster(c: Contract, full: boolean): string {
   const type = missionType(c);
-  const seals = Array.from({ length: c.stars }, () => '<span class="tav-seal"></span>').join('');
   const why = full ? `Tu as déjà ${CONTRACTS.maxActive} contrats : termine ou abandonne-en un` : revealTypes(c.description);
   return `
     <button class="tav-poster ${type}${c.special ? ' special' : ''}${full ? ' full' : ''}" style="--tilt:${TILTS[c.id % TILTS.length]}deg" data-action="accept" data-arg="${c.id}" data-poster="${c.id}"${tip(why)}>
@@ -33,7 +32,7 @@ function poster(c: Contract, full: boolean): string {
       <span class="tav-kind">${MISSION_TYPES[type].name}</span>
       <svg class="tav-art" viewBox="0 0 150 60" aria-hidden="true"><path d="${POSTER_ART[type]}"/></svg>
       <b class="tav-title">${revealTypes(c.title)}</b>
-      <span class="tav-seals" aria-label="${c.stars} étoiles">${seals}</span>
+      <span class="tav-seals">${skullsHtml(c.stars, MAX_STARS)}</span>
       ${reward(c)}
     </button>`;
 }
@@ -63,7 +62,7 @@ export function slotsHtml(ctx: PortContext, confirm: number | null): string {
         : `<span class="tav-where">${ready ? `Prime à ${ISLAND_INFO[c.claimAt].portName}` : delivery ? `${count} / ${c.target} dans tes cales` : `${count} / ${c.target}`}</span>`;
     return `
       <div class="tav-slot${ready ? ' ready' : ''}" data-slot="${c.id}">
-        <div class="tav-slot-head"><span class="tav-slot-kind ${type}">${MISSION_TYPES[type].name}</span>${starsHtml(c.stars, MAX_STARS)}<button class="tav-drop${confirm === c.id ? ' sure' : ''}" data-action="abandon" data-arg="${c.id}"${tip(confirm === c.id ? 'Clique encore pour abandonner' : 'Abandonner ce contrat')}>${confirm === c.id ? 'Sûr ?' : '×'}</button></div>
+        <div class="tav-slot-head"><span class="tav-slot-kind ${type}">${MISSION_TYPES[type].name}</span>${skullsHtml(c.stars, MAX_STARS)}<button class="tav-drop${confirm === c.id ? ' sure' : ''}" data-action="abandon" data-arg="${c.id}"${tip(confirm === c.id ? 'Clique encore pour abandonner' : 'Abandonner ce contrat')}>${confirm === c.id ? 'Sûr ?' : '×'}</button></div>
         <b>${revealTypes(c.title)}</b>
         ${gaugeHtml(count / c.target, 'mission')}
         <div class="tav-slot-foot">${reward(c)}${action}</div>
@@ -72,10 +71,9 @@ export function slotsHtml(ctx: PortContext, confirm: number | null): string {
   return slots.join('');
 }
 
-/** Ce qu'apporte un officier : sa fonction, puis son trait. */
+/** Ce qu'apporte un officier par sa fonction (son trait est montré à part, sur sa carte). */
 function effects(o: Officer): string {
-  const trait = o.trait ? OFFICERS.traits[o.trait] : null;
-  return effectText(roleEffect(o)) + (trait ? ` · ${trait.name} : ${effectText(trait.effect)}` : '');
+  return effectText(roleEffect(o));
 }
 
 /** Les candidats de la taverne : fonction, talent, trait et prix d'engagement. */
@@ -90,7 +88,7 @@ export function recruitsHtml(ctx: PortContext): string {
           <span class="tav-medal">${OFFICERS.roles[o.role].icon}</span>
           <b>${OFFICERS.roles[o.role].name}</b>
           ${starsHtml(o.talent, OFFICERS.maxTalent)}
-          ${o.trait ? `<span class="tav-trait">${OFFICERS.traits[o.trait].name}</span>` : ''}
+          ${o.trait ? `<span class="tav-trait">${OFFICERS.traits[o.trait].name}</span><span class="tav-trait-fx">${effectText(OFFICERS.traits[o.trait].effect)}</span>` : ''}
           ${priceHtml({ gold: price, wood: 0 }, { gold: ctx.state.gold, wood: ctx.state.wood })}
         </button>`;
     })
