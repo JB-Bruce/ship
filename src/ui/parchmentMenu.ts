@@ -45,7 +45,8 @@ export abstract class ParchmentMenu {
       const button = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-action]');
       if (!button || button.disabled) return;
       this.onAction(button.dataset.action!, button.dataset.arg ?? '');
-      this.render();
+      // Un bouton qui ferme le menu (« Retour au port »…) ne le redessine pas : le Chantier y remettrait sa caméra.
+      if (this.isOpen) this.render();
     });
     parent.appendChild(this.root);
     ParchmentMenu.all.push(this);

@@ -22,6 +22,11 @@ export class FirstPersonView {
   /** La souris était capturée, et c'est nous qui la rendons (menu ouvert) : pas un Échap du joueur. */
   private wasLocked = false;
   private releasing = false;
+  /**
+   * La souris n'a pas pu être reprise : le navigateur refuse quand le menu a été fermé par Échap (cette touche ne
+   * compte pas comme un geste du joueur). Un clic dans la vue la reprend.
+   */
+  onCaptureRefused: () => void = () => {};
   /** Regard figé (roue d'ordres ouverte : la souris sert à viser un ordre). */
   frozen = false;
   /** Échap pressé souris capturée : le navigateur rend le curseur sans transmettre la touche ; on ouvre le menu tout de suite. */
@@ -80,6 +85,9 @@ export class FirstPersonView {
     raw?.catch?.((error: DOMException) => {
       if (error?.name === 'NotSupportedError') (this.dom.requestPointerLock() as Promise<void> | undefined)?.catch?.(() => {});
     });
+    setTimeout(() => {
+      if (this.active && !this.locked && !document.pointerLockElement) this.onCaptureRefused();
+    }, HELM_VIEW.captureCheck);
   }
 
   release() {
