@@ -627,3 +627,74 @@
   background: #141210;
   color: #e9dfc7;
 }
+
+/* Chasses au trésor du Journal (treasureMap.ts) : carte en morceaux déchirés, indice, étape, reliques. */
+.cabin-treasures {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.tm-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tm-map {
+  width: 100%;
+  max-width: 260px;
+  align-self: center;
+}
+.tm-piece {
+  fill: #dcc28a;
+  stroke: #6a4626;
+  stroke-width: 1;
+}
+.tm-missing {
+  fill: none;
+  stroke: rgba(58, 36, 18, 0.35);
+  stroke-dasharray: 3 3;
+}
+.tm-islet {
+  fill: #b89a5c;
+  stroke: #3a2412;
+  stroke-width: 1.5;
+}
+.tm-route {
+  fill: none;
+  stroke: #7a1e12;
+  stroke-width: 1.4;
+  stroke-dasharray: 4 3;
+}
+.tm-rose {
+  fill: #3a2412;
+}
+.tm-x {
+  stroke: #8a1c14;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.tm-clue {
+  margin: 0;
+  font-style: italic;
+  color: #3a2412;
+}
+.tm-step {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tm-relics {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.tm-relic {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: 1.4px solid #3a2412;
+  border-radius: 3px 6px 4px 5px;
+}

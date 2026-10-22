@@ -7,6 +7,7 @@ import type { Ship } from '../ship/ship';
 import { typeName } from '../shipTypes';
 import { Notifications } from './notifications';
 import { QuestTracker } from './questTracker';
+import { SearchGaugeView } from './searchGauge';
 import { Toasts, type ToastTone } from './toasts';
 
 /** Intervalle de rafraîchissement du bandeau de flotte (s) : inutile de le refaire à chaque image. */
@@ -22,6 +23,8 @@ export class Hud {
   readonly quests: QuestTracker;
   /** Grand panneau « Nouveau navire ! » quand un plan est complet. */
   readonly unlock: UnlockPanel;
+  /** Jauge de fouille d'une chasse au trésor. */
+  readonly search: SearchGaugeView;
   private readonly healthFill: HTMLElement;
   private readonly gold: HTMLElement;
   private readonly wood: HTMLElement;
@@ -68,6 +71,7 @@ export class Hud {
     this.quests = new QuestTracker(topRight);
     this.notifications = new Notifications(topRight, panel);
     this.unlock = new UnlockPanel(root);
+    this.search = new SearchGaugeView(root);
   }
 
   /** Petit message d'information en haut de l'écran (achats, pêche, barre…), qui s'efface seul. */

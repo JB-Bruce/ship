@@ -1629,7 +1629,7 @@ export const SHIP_LAMPS = {
   top: { inset: 0.2, drop: 0.08, scale: 1.4, halo: 1.6 },
 };
 
-export type EmblemId = 'skull' | 'sabres' | 'kraken' | 'serpent' | 'compass' | 'anchor' | 'raven' | 'mermaid';
+export type EmblemId = 'skull' | 'sabres' | 'kraken' | 'serpent' | 'compass' | 'anchor' | 'raven' | 'mermaid' | 'goldSkull';
 
 /**
  * Emblèmes peints sur la grande voile d'un navire de ta flotte (Chantier du port) : prix pour en peindre un nouveau
@@ -1646,6 +1646,8 @@ export const EMBLEMS = {
     anchor: { name: 'Ancre', main: 0x1d2a44, second: 0xb08a3a },
     raven: { name: 'Corbeau', main: 0x141210, second: 0xc23a22 },
     mermaid: { name: 'Sirène', main: 0x1e4a5a, second: 0xb8542a },
+    /** Emblème du trésor de Lagrange : jamais en vente, offert à toute la flotte par le coffre. */
+    goldSkull: { name: 'Crâne d’or de Lagrange', main: 0x1d1714, second: 0xd8a830 },
   } satisfies Record<EmblemId, { name: string; main: number; second: number }>,
 };
 
@@ -2162,6 +2164,79 @@ export const LIGHTNING = {
 export const TAVERN_FX = { tear: 420, tearTilt: 9 };
 
 /**
+ * Chasses au trésor (`treasure/`) : fouille d'une épave ou du trésor = navire presque arrêté (vitesse sous `searchSpeed`
+ * m/s) à moins du rayon de l'étape ; s'éloigner met la jauge en pause. Zone approximative sur la carte M : un cercle de
+ * `zoneRadius` m décalé d'au plus `zoneJitter` m du vrai lieu. Un gardien ou une embuscade surgit à `spawnDistance` m.
+ * Le gardien d'une étape n'apparaît qu'à moins de `wakeDistance` m de son lieu. Une élite coulée par ta flotte lâche
+ * le début d'une chasse pas encore commencée avec la probabilité `eliteStart`.
+ */
+export const TREASURE = { searchSpeed: 1.5, zoneRadius: 420, zoneJitter: 220, spawnDistance: 380, wakeDistance: 900, eliteStart: 0.25 };
+
+/** Une étape d'une chasse au trésor. Les lieux sont donnés dans le monde (m) ; `piece` : elle rapporte un morceau de carte. */
+export type TreasureStep =
+  | { kind: 'search'; at: readonly [number, number]; radius: number; time: number; piece: boolean; title: string; note: string; found: string }
+  | { kind: 'reach'; at: readonly [number, number]; radius: number; title: string; note: string; found: string }
+  | { kind: 'guardian'; at: readonly [number, number]; captain: string; squadron: readonly ShipType[]; title: string; note: string; found: string }
+  | { kind: 'roamer'; at: readonly [number, number]; radius: number; type: ShipType; captain: string; title: string; note: string; found: string }
+  | { kind: 'dig'; at: readonly [number, number]; radius: number; time: number; waves: readonly (readonly ShipType[])[]; title: string; note: string; found: string };
+
+/** Ce que rapporte un trésor : or, bois, un emblème unique, des bouts de plan, une relique (bonus permanent). */
+export interface TreasureReward {
+  gold: number;
+  wood: number;
+  emblem: EmblemId;
+  planFragments: number;
+  relic: { name: string; description: string; radar: number };
+}
+
+export interface TreasureHuntDef {
+  title: string;
+  /** Ce que raconte la rumeur ou le bout de carte qui ouvre la chasse. */
+  intro: string;
+  /** Taverne où la rumeur se vend, et son prix. */
+  rumor: { island: IslandId; price: number };
+  /** Morceaux de la carte au trésor à réunir (la croix apparaît quand ils y sont tous). */
+  pieces: number;
+  /** Indice écrit sur la carte au trésor. */
+  clue: string;
+  /** L'îlot dessiné sur la carte au trésor. */
+  islet: IsletId;
+  steps: readonly TreasureStep[];
+  reward: TreasureReward;
+}
+
+/**
+ * Chasses au trésor : quêtes longues en plusieurs étapes (fouille, énigme, gardien, morceau de carte qui rôde, trésor à
+ * déterrer sous la menace). Une chasse s'ouvre par une rumeur à la taverne ou un bout de carte lâché par une élite.
+ */
+export const TREASURE_HUNTS = {
+  lagrange: {
+    title: 'L’or de Lagrange',
+    intro: 'On raconte que le capitaine Lagrange a caché l’or de la Compagnie avant de sombrer. Sa chaloupe s’est échouée sur le Banc du Naufragé : son journal y serait encore.',
+    rumor: { island: 'tortuga', price: 150 },
+    pieces: 3,
+    clue: '« Trois encablures sous le fortin du Dauphin, mon gardien veille ; mon or dort dans la gueule du Crâne. »',
+    islet: 'skull',
+    steps: [
+      { kind: 'search', at: [905, 1084], radius: 80, time: 20, piece: true, title: 'Fouiller la chaloupe de Lagrange', note: 'Banc du Naufragé : jette l’ancre près de la chaloupe échouée', found: 'Le journal de Lagrange et un morceau de sa carte !' },
+      { kind: 'reach', at: [1240, -410], radius: 110, title: 'Résoudre l’énigme', note: '« Trois encablures sous le fortin du Dauphin »', found: 'Une voile noire surgit de la brume : le gardien de Lagrange !' },
+      { kind: 'guardian', at: [1240, -410], captain: 'Le Gardien de Lagrange', squadron: ['sloop', 'longboat'], title: 'Couler le gardien', note: 'Il porte un morceau de la carte', found: 'Le gardien sombre : un deuxième morceau de carte flotte dans l’épave !' },
+      { kind: 'roamer', at: [-450, 1250], radius: 380, type: 'sloop', captain: 'Le Corbeau', title: 'Retrouver le dernier morceau', note: 'Le Corbeau le garde, quelque part dans la zone marquée', found: 'Le dernier morceau ! La croix apparaît sur la carte : le Crâne.' },
+      { kind: 'dig', at: [-1000, 1665], radius: 60, time: 40, waves: [['longboat', 'longboat'], ['sloop']], title: 'Déterrer le trésor', note: 'Le Crâne : jette l’ancre dans sa crique et fouille', found: 'Le coffre de Lagrange !' },
+    ],
+    reward: {
+      gold: 1500,
+      wood: 400,
+      emblem: 'goldSkull',
+      planFragments: 2,
+      relic: { name: 'La boussole de Lagrange', description: 'Le radar de ta flotte porte plus loin.', radar: 0.1 },
+    },
+  },
+} satisfies Record<string, TreasureHuntDef>;
+
+export type TreasureHuntId = keyof typeof TREASURE_HUNTS;
+
+/**
  * Textures du style d'époque des menus (`ui/kit/textures.ts`), calculées une fois au démarrage : grain du papier (tuile
  * de `grain` px, opacité maximale des points) et fil du bois (tuile `wood` = [largeur, hauteur] px, opacité des veines,
  * nombre de veines).
@@ -2444,7 +2519,7 @@ export const ISLAND_SLOTS = 8;
 export type IslandId = 'tortuga' | 'sabre' | 'royale' | 'dauphin';
 
 /** Îlots : terres de décor ou lieux de quête, sans port ni fiche de campagne (rien à sauvegarder). */
-export type IsletId = 'castaway';
+export type IsletId = 'castaway' | 'skull';
 
 /** Décor semé sur une terre : palmiers, pins (au-dessus de `pineFrom` m), rochers, graine du tirage, altitude max (m). */
 export interface LandDecor {
@@ -2489,6 +2564,30 @@ export const ISLETS: Record<IsletId, IsletDef> = {
     grass: 0x9fbf6a,
     darkGrass: 0x7fa354,
     decor: { palms: 16, pines: 0, rocks: 5, seed: 333, palmHeight: 4, pineFrom: 0, pineHeight: 0 },
+  },
+  /**
+   * Le Crâne : un rocher nu au nord-ouest de l'archipel, à falaises, dont la forme (crâne arrondi, mâchoire) se
+   * reconnaît sur la carte au trésor de Lagrange ; quelques palmiers dans sa crique, où dort le trésor.
+   */
+  skull: {
+    name: 'Le Crâne',
+    center: [-1000, 1750],
+    radius: 78,
+    lobes: [
+      [2, 10, 1.57],
+      [3, 7, 0.2],
+      [5, 4, 1.1],
+    ],
+    bay: { angle: Math.PI, width: 0.35, depth: 34 },
+    relief: 'cliffs',
+    peak: 18,
+    cliff: 9,
+    calmDistance: 0,
+    lagoonWidth: 18,
+    surfWidth: 4,
+    grass: 0x8f9a5a,
+    darkGrass: 0x6f7a44,
+    decor: { palms: 6, pines: 0, rocks: 14, seed: 913, palmHeight: 6, pineFrom: 0, pineHeight: 0 },
   },
 };
 

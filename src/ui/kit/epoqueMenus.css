@@ -442,3 +442,14 @@
   border: none !important;
   box-shadow: none !important;
 }
+
+/* Rumeur de trésor : un vieux bout de carte, plus sombre et taché, ruban de cire. */
+.tav-poster.rumor::before {
+  background: var(--grain), radial-gradient(circle at 70% 75%, rgba(90, 50, 16, 0.3) 0, transparent 22%),
+    radial-gradient(ellipse at 50% 40%, #e2cc96, #c2a060 70%, #8a6430);
+}
+.tav-rumor-note {
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-soft);
+}

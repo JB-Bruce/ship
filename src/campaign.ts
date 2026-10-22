@@ -1,4 +1,4 @@
-import { BOSSES, ISLAND_INFO, OFFICERS, PORT, type BossId, type IslandId } from './config';
+import { BOSSES, ISLAND_INFO, OFFICERS, PORT, TREASURE, type BossId, type IslandId } from './config';
 import { Crew, type CrewSnapshot } from './fleet/crew';
 import { rankName, rankOf } from './fleet/officers';
 import { refit } from './fleet/refit';
@@ -8,6 +8,8 @@ import { blueprints, labelFeminine, revealTypes, shipTypeLabel, type BlueprintsS
 import type { Fleet, FleetMember } from './fleet/fleet';
 import { loseCargo, store } from './fleet/holds';
 import { MissionDirector } from './missions/missionDirector';
+import { TreasureDirector } from './missions/treasure/treasureDirector';
+import { treasures, type TreasuresSnapshot } from './progression/treasures';
 import type { MissionWorld } from './missions/mission';
 import { Contracts, fleetLevel, MISSION_KINDS, type Contract, type ContractOptions, type ContractsSnapshot } from './progression/contracts';
 import { Harbor } from './progression/harbor';
@@ -45,6 +47,8 @@ export interface CampaignSnapshot {
   discovery?: string;
   /** Plans de navires (absents avant la v4 : seuls les types de la flotte sont alors connus). */
   blueprints?: BlueprintsSnapshot;
+  /** Chasses au trésor (absentes avant la v6 : aucune chasse). */
+  treasures?: TreasuresSnapshot;
 }
 
 /**
@@ -62,6 +66,8 @@ export class Campaign {
   /** Navires de ta flotte confiés à une route commerciale. */
   readonly routes: TradeRoutes;
   readonly missions: MissionDirector;
+  /** Chasses au trésor en cours. */
+  readonly treasure: TreasureDirector;
   /** Marchands alliés qui laissent de l'or dans la réserve de tes îles. */
   readonly merchants: MerchantTraffic;
   /** Îles de la Marine (l'Île Royale) : fort, garnison, prise, contre-attaques. */
@@ -90,6 +96,12 @@ export class Campaign {
         hud.notifications.kill(`✖ Contrat échoué : ${revealTypes(c.title)}`);
       },
     });
+    this.treasure = new TreasureDirector(world, state, {
+      toast: (text, tone) => hud.toast(text, 4, tone),
+      alert: (text, danger) => hud.message(text, 5, danger),
+      log: (text) => hud.notifications.kill(text),
+    });
+    treasures.reset();
     this.routes = new TradeRoutes(fleet, state, this.ledger, this.islands, world.ships, (text) => hud.notifications.kill(text));
     this.harbor = new Harbor(state, fleet, this.islands.tortuga, this.contracts, this.ledger, this.crew, this.routes, {
       say: (text) => hud.toast(text, 2.5),
@@ -98,6 +110,7 @@ export class Campaign {
       contractOptions: () => this.contractOptions(),
       contractAccepted: (c) => this.missions.start(c),
       contractAbandoned: (c) => this.missions.cancel(c),
+      treasureRumor: (id) => this.treasure.start(id, 'rumor'),
     });
     this.merchants = new MerchantTraffic(world.scene, world.ships, (island) => this.islands[island.id], {
       deposited: () => this.ledger.merchantVisits++,
@@ -138,7 +151,7 @@ export class Campaign {
   snapshot(): CampaignSnapshot {
     const islands = Object.fromEntries(ISLAND_LIST.map((i) => [i.id, this.islands[i.id].snapshot()])) as Record<IslandId, IslandSnapshot>;
     const { lastPort, ledger, contracts, crew, routes, navy } = this;
-    return { islands, lastPort, ledger: ledger.snapshot(), contracts: contracts.snapshot(), crew: crew.snapshot(), routes: routes.snapshot(), navyForts: navy.snapshot(), discovery: this.discovery.snapshot(), blueprints: blueprints.snapshot() };
+    return { islands, lastPort, ledger: ledger.snapshot(), contracts: contracts.snapshot(), crew: crew.snapshot(), routes: routes.snapshot(), navyForts: navy.snapshot(), discovery: this.discovery.snapshot(), blueprints: blueprints.snapshot(), treasures: treasures.snapshot() };
   }
 
   /** Reprend une sauvegarde, la flotte déjà rétablie. Les missions en cours (chasse, défense, escorte) recommencent. */
@@ -157,6 +170,8 @@ export class Campaign {
     // Ancienne sauvegarde (ou grille illisible) : la carte connaît les îles déjà visitées.
     if (!s.discovery || !this.discovery.restore(s.discovery)) for (const id of visitedIslands(s)) this.discovery.revealLand(islandById(id));
     blueprints.restore(s.blueprints, this.fleet.members.map((m) => m.type));
+    treasures.restore(s.treasures);
+    this.treasure.restore();
     for (const c of this.contracts.active) {
       if (MISSION_KINDS.includes(c.kind) && !this.contracts.isDone(c)) this.missions.start(c);
     }
@@ -181,6 +196,7 @@ export class Campaign {
     const port = this.portInRange(leader);
     if (port) this.lastPort = port.id;
     this.missions.update(dt);
+    this.treasure.update(dt);
     this.navy.update(dt, leader);
     this.merchants.update(dt, leader);
     this.routes.update(dt);
@@ -324,6 +340,9 @@ export class Campaign {
       this.hud.notifications.kill(`☠ ${shipTypeLabel(ship.type)} ennemi${e}${elite ? " d'élite" : ''} coulé${e}${by}`);
     }
     if (byPirates) return;
+    // Une élite coulée par ta flotte lâche parfois le début d'une chasse au trésor.
+    const hunt = treasures.untouched()[0];
+    if (killer && elite && !boss && hunt && Math.random() < TREASURE.eliteStart) this.treasure.start(hunt, 'elite');
     for (const c of this.contracts.onSunk(ship.type, elite, boss)) {
       this.hud.notifications.kill(`✔ Contrat rempli : ${revealTypes(c.title)} (prime à la taverne)`);
     }

@@ -46,6 +46,26 @@ function skull(g: Pen) {
   for (const x of [54, 62, 70]) g.fillRect(x, 86, 4, 10);
 }
 
+/** Crâne d'or de Lagrange : tête de mort dans un anneau de pièces (anneau et crâne en seconde couleur). */
+function goldSkull(g: Pen) {
+  g.fillStyle = SECOND;
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    circle(g, 64 + Math.cos(a) * 52, 64 + Math.sin(a) * 52, 9);
+  }
+  circle(g, 64, 56, 30);
+  poly(g, [[46, 74], [82, 74], [78, 94], [50, 94]]);
+  g.fillStyle = MAIN;
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    circle(g, 64 + Math.cos(a) * 52, 64 + Math.sin(a) * 52, 3.5);
+  }
+  circle(g, 52, 56, 9);
+  circle(g, 76, 56, 9);
+  poly(g, [[64, 66], [58, 78], [70, 78]]);
+  for (const x of [54, 62, 70]) g.fillRect(x, 84, 4, 10);
+}
+
 /** Deux sabres croisés : lames en seconde couleur, gardes et poignées en principale. */
 function sabres(g: Pen) {
   for (const side of [1, -1]) {
@@ -196,7 +216,7 @@ function crown(g: Pen) {
   for (const x of [42, 64, 86]) circle(g, x, 100, 4.5);
 }
 
-const DESIGNS: Record<EmblemId | 'crown', (g: Pen) => void> = { skull, sabres, kraken, serpent, compass, anchor, raven, mermaid, crown };
+const DESIGNS: Record<EmblemId | 'crown', (g: Pen) => void> = { skull, sabres, kraken, serpent, compass, anchor, raven, mermaid, crown, goldSkull };
 
 /** Dessine le masque de l'emblème `id` (la texture est retournée à l'envoi : le haut du dessin est le haut de la voile). */
 export function drawEmblem(g: Pen, id: EmblemId | 'crown') {

@@ -7,6 +7,7 @@ import { SHIP_TYPES, UPGRADE_INFO } from '../../shipTypes';
 import type { ShipStats } from '../../config';
 import { pipsHtml, priceHtml, statBarHtml, tip } from '../kit/kit';
 import { emblemPreview } from '../emblemPreview';
+import { treasures } from '../../progression/treasures';
 import type { PortContext } from '../port/portContext';
 import { UPGRADE_ICONS } from '../upgradeIcons';
 import { extensionIcon } from '../shipIcons';
@@ -116,9 +117,10 @@ function gunRow(ctx: PortContext, m: FleetMember, battery: 'main' | 'deck', labe
 
 /** Emblème de la grande voile : les dessins, celui en place, le prix d'un nouveau. */
 function emblemRow(ctx: PortContext, m: FleetMember): string {
-  const choices = EMBLEM_IDS.map((id) => {
+  // L'emblème d'un trésor n'apparaît qu'une fois le trésor trouvé, et il est offert.
+  const choices = EMBLEM_IDS.filter((id) => treasures.emblemAvailable(id)).map((id) => {
     const on = m.emblem === id;
-    const owned = m.ownedEmblems.has(id);
+    const owned = m.ownedEmblems.has(id) || treasures.isTreasureEmblem(id);
     const state = on ? '<span class="yard-done">En place</span>' : owned ? '<span class="yard-free">Repeindre</span>' : priceHtml({ gold: EMBLEMS.price, wood: 0 }, { gold: ctx.state.gold, wood: ctx.state.wood });
     return `<button class="yard-emblem${on ? ' on' : ''}" data-action="emblem" data-arg="${id}" data-emblem="${id}"${tip(EMBLEMS.designs[id].name)}><img src="${emblemPreview(id)}" alt="">${state}</button>`;
   }).join('');

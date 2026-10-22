@@ -1,6 +1,7 @@
-import { EMBLEMS, GUNS, ISLAND_INFO, OFFICERS, type EmblemId, type BossId, type GunType, type IslandId, type TradeGood } from '../config';
+import { EMBLEMS, GUNS, ISLAND_INFO, OFFICERS, TREASURE_HUNTS, type TreasureHuntId, type EmblemId, type BossId, type GunType, type IslandId, type TradeGood } from '../config';
 import type { Crew } from '../fleet/crew';
 import { officerPrice, type Officer } from '../fleet/officers';
+import { treasures } from './treasures';
 import { refit } from '../fleet/refit';
 import type { Fleet, FleetMember } from '../fleet/fleet';
 import { fleetStock, load, unload } from '../fleet/holds';
@@ -26,6 +27,8 @@ export interface HarborEvents {
   /** Un contrat vient d'être accepté (une mission peut commencer) ou abandonné. */
   contractAccepted(contract: Contract): void;
   contractAbandoned(contract: Contract): void;
+  /** Une rumeur de trésor achetée : la chasse commence. */
+  treasureRumor(id: TreasureHuntId): void;
 }
 
 /**
@@ -160,7 +163,8 @@ export class Harbor {
   paintEmblem(id: EmblemId | null) {
     const member = this.fleet.controlled;
     if (id === member.emblem) return;
-    if (id && !member.ownedEmblems.has(id)) {
+    if (id && !treasures.emblemAvailable(id)) return;
+    if (id && !member.ownedEmblems.has(id) && !treasures.isTreasureEmblem(id)) {
       if (!this.state.spend({ gold: EMBLEMS.price, wood: 0 })) return;
       member.ownedEmblems.add(id);
     }
@@ -219,6 +223,14 @@ export class Harbor {
     if (good === 'wood') this.state.wood += n;
     else n = load(this.fleet.hand, good, n, this.fleet.controlled);
     this.state.gold -= n * price.buy;
+  }
+
+  /** Achète la rumeur d'une chasse au trésor à la taverne de l'escale. */
+  buyRumor(id: TreasureHuntId) {
+    const hunt = TREASURE_HUNTS[id];
+    if (!hunt || hunt.rumor.island !== this.island.id || !treasures.canStart(id)) return;
+    if (!this.state.spend({ gold: hunt.rumor.price, wood: 0 })) return;
+    this.events.treasureRumor(id);
   }
 
   acceptContract(id: number) {

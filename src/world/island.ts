@@ -54,8 +54,10 @@ export const dauphin = new Island('dauphin', ISLANDS.dauphin);
 /** Les îles à port (campagne : allégeance, marché, ports, pirates, marchands…). */
 export const ISLAND_LIST: readonly Island[] = [tortuga, sabre, royale, dauphin];
 export const castaway = new Islet('castaway', ISLETS.castaway);
+/** Le Crâne : îlot rocheux au nord-ouest, où dort l'or de Lagrange (chasse au trésor). */
+export const skullIslet = new Islet('skull', ISLETS.skull);
 /** Les îlots (décor, lieux de quête). */
-export const ISLET_LIST: readonly Islet[] = [castaway];
+export const ISLET_LIST: readonly Islet[] = [castaway, skullIslet];
 /** Toutes les terres : navigation, collisions, boulets, vagues, eau, radar, carte. */
 export const LAND_LIST: readonly Landmass[] = [...ISLAND_LIST, ...ISLET_LIST];
 export const islandById = (id: IslandId): Island => ISLAND_LIST.find((island) => island.id === id)!;

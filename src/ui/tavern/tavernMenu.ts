@@ -1,4 +1,4 @@
-import { CONTRACTS, TAVERN_FX } from '../../config';
+import { CONTRACTS, TAVERN_FX, type TreasureHuntId } from '../../config';
 import { flyCoins, playFx, riseText, shake, type MenuFx } from '../kit/feedback';
 import { cofferHtml, tip } from '../kit/kit';
 import type { PortContext } from '../port/portContext';
@@ -88,6 +88,15 @@ export class TavernMenu extends PlaceMenu {
       case 'recruit':
         this.recruit(id);
         break;
+      case 'rumor': {
+        const poster = el(`[data-rumor="${arg}"]`);
+        const gold = ctx.state.gold;
+        a.buyRumor(arg as TreasureHuntId);
+        if (ctx.state.gold === gold) {
+          if (poster) shake(poster);
+        } else if (poster && coffer) flyCoins(coffer, poster);
+        break;
+      }
     }
   }
 

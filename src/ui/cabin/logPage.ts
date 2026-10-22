@@ -6,11 +6,13 @@ import { gaugeHtml, pipsHtml, skullsHtml, tip } from '../kit/kit';
 import { contractProgress } from '../contractProgress';
 import { SHIP_ICONS } from '../shipIcons';
 import type { CabinContext, CabinView } from './cabinContext';
+import { treasureHtml } from './treasureMap';
 
 const MAX_STARS = 5;
 
 /**
- * Page Journal : les contrats en cours (avancement, où toucher la prime, abandon en deux clics), les plans de navires
+ * Page Journal : les contrats en cours (avancement, où toucher la prime, abandon en deux clics), les chasses au trésor
+ * (carte, indice, étape ; reliques), les plans de navires
  * (bouts gagnés) et le registre (exploits et pavillons des boss).
  */
 export function logPage(ctx: CabinContext, view: CabinView): string {
@@ -43,6 +45,8 @@ export function logPage(ctx: CabinContext, view: CabinView): string {
         <div class="cabin-contracts">${contracts}</div>
       </div>
       <div class="cabin-log-col">
+        <div class="cabin-section-head"><h2>Chasses au trésor</h2></div>
+        <div class="cabin-treasures">${treasureHtml()}</div>
         <div class="cabin-section-head"><h2>Plans de navires</h2></div>
         <div class="cabin-plans">${plans}</div>
       </div>

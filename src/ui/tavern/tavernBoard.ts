@@ -1,4 +1,5 @@
-import { CONTRACTS, ISLAND_INFO, OFFICERS, type IslandId } from '../../config';
+import { CONTRACTS, ISLAND_INFO, OFFICERS, TREASURE_HUNTS, type IslandId, type TreasureHuntId } from '../../config';
+import { HUNT_IDS, treasures } from '../../progression/treasures';
 import { effectText, officerPrice, roleEffect, type Officer } from '../../fleet/officers';
 import { revealTypes } from '../../progression/blueprints';
 import { MISSION_TYPES, missionType, type Contract } from '../../progression/contracts';
@@ -38,13 +39,33 @@ function poster(c: Contract, full: boolean): string {
     </button>`;
 }
 
-/** Le tableau : les offres du jour de cette taverne et ses missions spéciales. */
+/** Coffre au trésor : silhouette de l'affiche d'une rumeur. */
+const CHEST = 'M42 27 C42 11 108 11 108 27 Z M40 30 L110 30 L110 55 L40 55 Z M70 6 L73 0 L76 6 L82 7 L77 11 L78 17 L73 14 L68 17 L69 11 L64 7 Z';
+
+/** Une rumeur de trésor qu'on achète au tavernier : la chasse commence aussitôt (pas une place de contrat). */
+function rumorPoster(id: TreasureHuntId, ctx: PortContext): string {
+  const hunt = TREASURE_HUNTS[id];
+  const price = hunt.rumor.price;
+  return `
+    <button class="tav-poster rumor special" style="--tilt:${TILTS[(id.length + 1) % TILTS.length]}deg" data-action="rumor" data-arg="${id}" data-rumor="${id}"${tip(`${hunt.intro} Une chasse au trésor en plusieurs étapes.`)}>
+      <span class="tav-pin"></span>
+      <span class="tav-ribbon">Chasse au trésor</span>
+      <span class="tav-kind">Rumeur</span>
+      <svg class="tav-art" viewBox="0 0 150 60" aria-hidden="true"><path d="${CHEST}"/></svg>
+      <b class="tav-title">${hunt.title}</b>
+      <span class="tav-rumor-note">Le tavernier en sait plus…</span>
+      ${priceHtml({ gold: price, wood: 0 }, { gold: ctx.state.gold, wood: ctx.state.wood })}
+    </button>`;
+}
+
+/** Le tableau : les rumeurs de trésor, les offres du jour de cette taverne et ses missions spéciales. */
 export function boardHtml(ctx: PortContext): string {
   const { contracts, island } = ctx;
   const full = contracts.active.length >= CONTRACTS.maxActive;
+  const rumors = HUNT_IDS.filter((id) => TREASURE_HUNTS[id].rumor.island === island.id && treasures.canStart(id)).map((id) => rumorPoster(id, ctx));
   const posters = [...contracts.offers[island.id], ...contracts.specials(island.id)];
   const empty = contracts.specialsFinished(island.id) ? 'Plus aucune affiche pour aujourd’hui.' : 'Plus d’affiche pour l’instant : reviens à l’aube.';
-  return posters.length ? posters.map((c) => poster(c, full)).join('') : `<p class="tav-empty">${empty}</p>`;
+  return rumors.length || posters.length ? rumors.join('') + posters.map((c) => poster(c, full)).join('') : `<p class="tav-empty">${empty}</p>`;
 }
 
 /** Tes contrats : avancement, où toucher la prime (ou livrer), et l'abandon en deux clics. */

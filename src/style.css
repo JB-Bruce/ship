@@ -2041,3 +2041,44 @@ body {
   height: 56px;
   margin: 0 auto 4px;
 }
+
+/* Jauge de fouille d'une chasse au trésor (ui/searchGauge.ts) : au-dessus de l'alerte « À portée de tir ». */
+.search-gauge {
+  position: absolute;
+  left: 50%;
+  bottom: 74px;
+  transform: translateX(-50%);
+  width: 320px;
+  padding: 7px 14px 9px;
+  border-radius: 6px;
+  background: rgba(40, 26, 12, 0.72);
+  color: #f1dfb4;
+  font-family: 'IM Fell English', Georgia, serif;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+.search-gauge.on {
+  opacity: 1;
+}
+.search-gauge-label {
+  font-size: 15px;
+  margin-bottom: 5px;
+}
+.search-gauge-bar {
+  height: 9px;
+  border: 1.4px solid #e0c590;
+  border-radius: 2px 5px 3px 4px;
+}
+.search-gauge-bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  color: #e0b24a;
+  background: repeating-linear-gradient(-55deg, currentColor 0 1.6px, transparent 1.6px 5px);
+  transition: width 0.3s linear;
+}
+.search-gauge.paused .search-gauge-bar span {
+  color: #a08a60;
+}

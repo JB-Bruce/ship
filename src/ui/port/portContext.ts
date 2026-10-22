@@ -1,4 +1,4 @@
-import type { BossId, EmblemId, GunType, IslandId, TradeGood } from '../../config';
+import type { BossId, EmblemId, GunType, IslandId, TradeGood, TreasureHuntId } from '../../config';
 import type { Crew } from '../../fleet/crew';
 import type { Fleet, FleetMember } from '../../fleet/fleet';
 import type { TradeRoutes } from '../../fleet/tradeRoutes';
@@ -32,6 +32,8 @@ export interface PortActions {
   /** `amount` : nombre d'unités, ou Infinity pour « tout » (dans la limite de ce qui est possible). */
   trade(good: TradeGood, side: 'buy' | 'sell', amount: number): void;
   acceptContract(id: number): void;
+  /** Achète la rumeur d'une chasse au trésor (taverne de l'escale). */
+  buyRumor(id: TreasureHuntId): void;
   abandonContract(id: number): void;
   claimContract(id: number): void;
   /** Engage un candidat de la taverne de l'escale. */

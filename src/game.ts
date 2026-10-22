@@ -56,6 +56,7 @@ import { resolveLandCollisions } from './world/landCollision';
 import { Loot } from './world/loot';
 import { PirateTraffic } from './world/pirateTraffic';
 import { PlanScrolls } from './world/planScrolls';
+import { treasures } from './progression/treasures';
 import { Sky } from './world/sky';
 import { Weather } from './world/weather';
 import { EdgeStorm } from './world/worldEdge';
@@ -347,8 +348,9 @@ export class Game {
     this.halos.update(this.camera, this.ships, dark, this.dayCycle.night, (this.scene.fog as THREE.Fog).far);
     this.lamps.update(dt, this.camera, this.ships, dark, (this.scene.fog as THREE.Fog).far);
     this.hud.update(dt, leader, this.state, this.inCombat(), this.fleet);
-    this.hud.quests.update(dt, this.campaign.contracts, this.fleet, (c) => this.campaign.missions.status(c), () => this.campaign.navy.objectives());
-    this.radar.range = this.campaign.islands.tortuga.radarRange(tortuga.sdf(leader.position.x, leader.position.z)) * this.fleet.radarFactor();
+    this.hud.search.update(this.campaign.treasure.gauge());
+    this.hud.quests.update(dt, this.campaign.contracts, this.fleet, (c) => this.campaign.missions.status(c), () => [...this.campaign.navy.objectives(), ...this.campaign.treasure.objectives()]);
+    this.radar.range = this.campaign.islands.tortuga.radarRange(tortuga.sdf(leader.position.x, leader.position.z)) * this.fleet.radarFactor() * (1 + treasures.radarBonus());
     // Ce que le radar balaie est découvert sur la carte, pour toujours.
     this.campaign.discovery.update(leader.position.x, leader.position.z, this.radar.range);
     this.encounters.update(this.spawner.enemies, leader);
