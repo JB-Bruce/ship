@@ -3,6 +3,7 @@
 Décisions prises avec l'auteur (depuis le 2026-10-06). Les valeurs chiffrées sont des réglages à ajuster en jouant (`src/config.ts`).
 
 ## Vision long terme
+- **Progression du monde (orientation, 2026-10-22, demandée par le joueur)** : façon *One Piece*, on vogue de zone en zone, chacune plus dangereuse que la précédente (ennemis, boss, Marine, mer plus rude), en partant de l'archipel de départ (la Tortue). Pas encore construit : à garder en tête pour la carte, les ennemis, les boss et les missions à venir.
 - Améliorer son bateau : taille, voilure, nombre de canons…
 - Caméra arrière (faite) et vue du dessus (plus tard).
 - Bateaux alliés qui patrouillent et attaquent les ennemis.
