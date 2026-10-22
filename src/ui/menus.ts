@@ -25,6 +25,10 @@ import { MarketMenu } from './market/marketMenu';
 import { ShipyardMenu } from './shipyard/shipyardMenu';
 import { TavernMenu } from './tavern/tavernMenu';
 import type { DayCycle } from '../world/dayCycle';
+// Style d'époque, chargé après les feuilles des menus pour en reprendre les surfaces.
+import './kit/epoque.css';
+import './kit/epoqueMenus.css';
+import { installTextures } from './kit/textures';
 
 /** Ce que les menus parchemin lisent du jeu. */
 export interface MenuWorld {
@@ -51,6 +55,7 @@ export interface MenuWorld {
 
 /** Crée les menus parchemin (Cabine, port, flotte, carte, paramètres). Renvoie celui du port, qu'ouvrent les commandes à l'écran. */
 export function createMenus(w: MenuWorld): PortMenu {
+  installTextures();
   const { container, campaign, fleet } = w;
   const { ledger, contracts, harbor } = campaign;
   const known = (x: number, z: number) => campaign.discovery.isKnown(x, z);

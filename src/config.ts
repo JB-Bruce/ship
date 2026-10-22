@@ -2162,6 +2162,13 @@ export const LIGHTNING = {
 export const TAVERN_FX = { tear: 420, tearTilt: 9 };
 
 /**
+ * Textures du style d'époque des menus (`ui/kit/textures.ts`), calculées une fois au démarrage : grain du papier (tuile
+ * de `grain` px, opacité maximale des points) et fil du bois (tuile `wood` = [largeur, hauteur] px, opacité des veines,
+ * nombre de veines).
+ */
+export const UI_TEXTURES = { grain: 160, grainAlpha: 0.24, wood: [512, 256] as const, woodAlpha: 0.55, veins: 14 };
+
+/**
  * Comptoir du port (`ui/market/`) : quantités des boutons de l'étal (`bulk` ; le bois, sans cale à remplir, s'achète
  * par `woodBulk` au plus au lieu de « Plein »), et petite carte des routes : taille du dessin (unités du viewBox), marge
  * autour des terres découvertes (m), points de chaque côte, courbure des routes (part de leur longueur) et durée du
