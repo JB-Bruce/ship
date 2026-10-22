@@ -103,8 +103,7 @@
   border: 2px solid #3a2412;
 }
 .cabin-chip,
-.cabin-medal,
-.tav-medal {
+.cabin-medal {
   color: #f3d9c8;
   background: radial-gradient(circle at 40% 35%, #a8281c, #5a0c06);
   border-color: #3a0804;
@@ -414,4 +413,32 @@
 .cabin-page,
 .yard-panel {
   overflow-x: hidden;
+}
+
+/* Taverne : icône à l'encre du genre de mission, à côté de son nom ; pictogramme des recrues sans cadre. */
+.tav-kind,
+.tav-slot-kind {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.tav-type-icon {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tav-slot-kind .tav-type-icon {
+  width: 16px;
+  height: 16px;
+}
+.tav-medal {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }

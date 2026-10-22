@@ -5,6 +5,7 @@ import { MISSION_TYPES, missionType, type Contract } from '../../progression/con
 import { contractProgress } from '../contractProgress';
 import { COIN_ICON, gaugeHtml, priceHtml, skullsHtml, starsHtml, tip, WOOD_ICON } from '../kit/kit';
 import type { PortContext } from '../port/portContext';
+import { missionIcon } from './missionIcons';
 import { POSTER_ART } from './posterArt';
 
 /** Nom de la taverne de chaque île, et qui y offre des contrats (bulle du titre). */
@@ -29,7 +30,7 @@ function poster(c: Contract, full: boolean): string {
     <button class="tav-poster ${type}${c.special ? ' special' : ''}${full ? ' full' : ''}" style="--tilt:${TILTS[c.id % TILTS.length]}deg" data-action="accept" data-arg="${c.id}" data-poster="${c.id}"${tip(why)}>
       <span class="tav-pin"></span>
       ${c.special ? '<span class="tav-ribbon">Mission spéciale</span>' : ''}
-      <span class="tav-kind">${MISSION_TYPES[type].name}</span>
+      <span class="tav-kind">${missionIcon(type)}${MISSION_TYPES[type].name}</span>
       <svg class="tav-art" viewBox="0 0 150 60" aria-hidden="true"><path d="${POSTER_ART[type]}"/></svg>
       <b class="tav-title">${revealTypes(c.title)}</b>
       <span class="tav-seals">${skullsHtml(c.stars, MAX_STARS)}</span>
@@ -62,7 +63,7 @@ export function slotsHtml(ctx: PortContext, confirm: number | null): string {
         : `<span class="tav-where">${ready ? `Prime à ${ISLAND_INFO[c.claimAt].portName}` : delivery ? `${count} / ${c.target} dans tes cales` : `${count} / ${c.target}`}</span>`;
     return `
       <div class="tav-slot${ready ? ' ready' : ''}" data-slot="${c.id}">
-        <div class="tav-slot-head"><span class="tav-slot-kind ${type}">${MISSION_TYPES[type].name}</span>${skullsHtml(c.stars, MAX_STARS)}<button class="tav-drop${confirm === c.id ? ' sure' : ''}" data-action="abandon" data-arg="${c.id}"${tip(confirm === c.id ? 'Clique encore pour abandonner' : 'Abandonner ce contrat')}>${confirm === c.id ? 'Sûr ?' : '×'}</button></div>
+        <div class="tav-slot-head"><span class="tav-slot-kind ${type}">${missionIcon(type)}${MISSION_TYPES[type].name}</span>${skullsHtml(c.stars, MAX_STARS)}<button class="tav-drop${confirm === c.id ? ' sure' : ''}" data-action="abandon" data-arg="${c.id}"${tip(confirm === c.id ? 'Clique encore pour abandonner' : 'Abandonner ce contrat')}>${confirm === c.id ? 'Sûr ?' : '×'}</button></div>
         <b>${revealTypes(c.title)}</b>
         ${gaugeHtml(count / c.target, 'mission')}
         <div class="tav-slot-foot">${reward(c)}${action}</div>
