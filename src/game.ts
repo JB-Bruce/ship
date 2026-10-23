@@ -171,7 +171,6 @@ export class Game {
     this.bossSinking = new BossSinking(this.effects, this.chaseCamera);
     this.hud = new Hud(container);
     this.cursed = new CursedTide(this.spawner, this.effects, () => this.fleetPower().best, {
-      alert: (text) => this.hud.message(text, 4, true),
       toast: (text) => this.hud.toast(text, 3),
     });
     // On commence la partie à la barre, à la première personne.

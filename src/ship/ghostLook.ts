@@ -1,8 +1,12 @@
 import * as THREE from 'three';
 import { CURSED } from '../config';
+import { windowMaterial } from './parts/nightGlow';
+import type { TornSail } from './parts/tornSail';
 
 /** Copies délavées des matériaux, par matériau d'origine (partagées par tous les navires maudits). */
 const ghosts = new Map<THREE.Material, THREE.Material>();
+/** Fenêtres d'un navire maudit : une lueur verte à peine visible, jour et nuit. */
+const ghostWindow = new THREE.MeshStandardMaterial({ color: 0x1a221d, emissive: CURSED.windowGlow, flatShading: true, roughness: 0.85 });
 const GREY = new THREE.Color();
 const hsl = { h: 0, s: 0, l: 0 };
 
@@ -27,14 +31,20 @@ function ghostOf(base: THREE.MeshStandardMaterial): THREE.Material {
 }
 
 /**
- * Apparence d'un navire maudit : tout le bois, la peinture et le métal délavés vers un gris pâle (les voiles, en
- * lambeaux, et les fanaux verts viennent de sa livrée). À poser après chaque reconstruction du modèle.
+ * Apparence d'un navire maudit : tout le bois, la peinture et le métal délavés vers un gris pâle, voiles en lambeaux
+ * (`CURSED.sailTear`) ; les fanaux d'un vert sourd viennent de sa livrée. À poser après chaque reconstruction du modèle.
  */
 export function applyGhostLook(root: THREE.Object3D) {
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh || (mesh as unknown as THREE.InstancedMesh).isInstancedMesh) return;
-    const swap = (m: THREE.Material) => (isPlain(m) && !m.userData.ghostFrom ? ghostOf(m) : m);
+    const swap = (m: THREE.Material) => {
+      // Voiles en lambeaux, bien plus trouées que celles d'un navire abîmé.
+      const torn = m.userData.tornSail as TornSail | undefined;
+      if (torn) torn.shredded = CURSED.sailTear;
+      if (m === windowMaterial) return ghostWindow;
+      return isPlain(m) && !m.userData.ghostFrom ? ghostOf(m) : m;
+    };
     mesh.material = Array.isArray(mesh.material) ? mesh.material.map(swap) : swap(mesh.material);
   });
 }

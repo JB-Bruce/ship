@@ -879,8 +879,8 @@ export const LIVERIES: Record<Faction, Livery> = {
   player: { hull: 0x4a3020, hullInside: 0x6b4a30, trim: 0x2a1c12, sail: 0xe3d3ae, sailPatch: 0xbfa77a, flag: 'skull' },
   ally: { hull: 0x2f4f36, hullInside: 0x6b4a30, trim: 0x1f2a1c, sail: 0xe8e0c8, sailPatch: 0xc9bc96, flag: 'skull' },
   enemy: { hull: 0x2c4466, hullInside: 0x6b4a30, trim: 0xd9b44a, sail: 0xf4f1e8, sailPatch: null, flag: 'crown' },
-  /** Navires maudits : coque et voiles grisâtres délavées, voiles en lambeaux, fanaux verts spectraux. */
-  cursed: { hull: 0x585e5c, hullInside: 0x4b4f4c, trim: 0x77847c, sail: 0xa2a7a1, sailPatch: null, flag: 'ghostSkull', lantern: 0x6dffa0, tattered: 0.75 },
+  /** Navires maudits : coque et voiles grisâtres délavées, fanaux d'un vert sourd (faible lueur) ; lambeaux : CURSED.sailTear. */
+  cursed: { hull: 0x585e5c, hullInside: 0x4b4f4c, trim: 0x77847c, sail: 0xa2a7a1, sailPatch: null, flag: 'ghostSkull', lantern: 0x1d4529 },
 };
 
 /**
@@ -890,7 +890,8 @@ export const LIVERIES: Record<Faction, Livery> = {
  * (bien plus près que les autres). Type tiré jusqu'à ton plus gros navire + `rankBonus` crans (`eventRankBonus` lors
  * d'un événement de l'histoire), parmi les `rankSpan` crans du dessus. Vie × `health`. Ils sortent de l'eau en
  * `riseTime` s et y replongent en `diveTime` s (intouchables et sans tirer pendant ce temps), depuis `depth` m sous leur
- * plus haut point ; ils se battent à mort, mais replongent au lever du jour, à plus de `leaveDistance` m de ta flotte ou
+ * plus haut point, la proue la première (assiette de `plunge` rad) ; voiles toujours trouées comme sous `sailTear`
+ * (uTear des voiles, environ 60 % de toile arrachée) ; ils se battent à mort, mais replongent au lever du jour, à plus de `leaveDistance` m de ta flotte ou
  * après `lifetime` s. Apparence : matériaux de la coque délavés vers le gris (`ghost` : saturation gardée, clarté
  * visée, part du mélange), équipage gris pâle (`crewTint`), brume pâle autour de la coque (`mist` bouffées / s).
  */
@@ -906,6 +907,10 @@ export const CURSED = {
   riseTime: 4,
   diveTime: 4,
   depth: 3,
+  plunge: 0.35,
+  sailTear: 0.56,
+  /** Lueur des fenêtres (vert très sourd). */
+  windowGlow: 0x0c2414,
   leaveDistance: 900,
   lifetime: 240,
   ghost: { saturation: 0.15, lightness: 0.4, mix: 0.65 },

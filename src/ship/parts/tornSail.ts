@@ -25,6 +25,8 @@ export type SailAxis = 'x' | 'z';
  */
 export class TornSail {
   private readonly tear = { value: 0 };
+  /** Trous toujours présents (uTear minimal) : voiles en lambeaux d'un navire maudit (ghostLook.ts). */
+  shredded = 0;
   /** Usure des toiles (ancienneté du navire, 0 à 1 : voir RANK_LOOKS) : jaunies, tachées, rapiécées. */
   private readonly wear = { value: 0 };
   /** Part du gonflement maximal de chaque voile (0 = creux d'origine, 1 = maximum) : celle du vent × le déploiement. */
@@ -179,7 +181,7 @@ ${emblemOn ? EMBLEM_FRAGMENT : ''}
 
   /** `damage` : vie perdue (0 = intact, 1 = coulé). */
   setDamage(damage: number) {
-    this.tear.value = DAMAGE.maxSailHoles * Math.min(1, damage / DAMAGE.fullDamageAt);
+    this.tear.value = Math.max(this.shredded, DAMAGE.maxSailHoles * Math.min(1, damage / DAMAGE.fullDamageAt));
   }
 
   dispose() {

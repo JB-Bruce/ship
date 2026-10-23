@@ -112,6 +112,8 @@ export class Ship {
   readonly model: ShipModel;
   /** Profondeur sous la flottaison (m) : un navire maudit qui sort de l'eau ou y replonge. */
   drowned = 0;
+  /** Assiette imposée (rad, proue basse si positif) : un navire maudit qui sort de l'eau ou y pique du nez. */
+  plunge = 0;
   /** Sous l'eau : ni cible, ni tireur (voir isHostile). */
   intangible = false;
   /** Point que ce bateau bombarde quand aucun ennemi n'est à portée (assiégeant d'une mission de défense), ou null. */
@@ -408,7 +410,7 @@ export class Ship {
     this.sailAmount = damp(this.sailAmount, controls.sail, 1.5, dt);
     this.model.root.position.copy(this.position);
     // Ordre YXZ : cap d'abord, puis tangage (proue haute = x négatif), puis roulis (bâbord haut = z positif).
-    this.model.root.rotation.set(-this.buoyancy.pitch, this.heading, this.buoyancy.roll, 'YXZ');
+    this.model.root.rotation.set(this.plunge - this.buoyancy.pitch, this.heading, this.buoyancy.roll, 'YXZ');
     // Loin, ou noyé dans la brume (caché par FogCulling à l'image précédente) : rien à animer ; tout est remis à jour
     // dès qu'il réapparaît.
     if (this.far || !this.model.root.visible) return;

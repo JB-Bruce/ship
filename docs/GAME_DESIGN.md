@@ -159,10 +159,10 @@ Quêtes longues en plusieurs étapes, qui font voyager, combattre et fouiller po
 - Sauvegarde v6 : chasses en cours (étape, morceaux) et terminées ; une fouille entamée repart de zéro au chargement.
 
 ## Navires maudits (fait, 2026-10-22)
-Les envoyés du dieu des océans (voir « Histoire »). N'importe quel type de navire, à l'aspect fantomatique : coque et bois délavés vers le gris, voiles toujours en lambeaux, fanaux verts (leur lumière verte sur l'eau), brume pâle autour de la coque, équipage gris pâle ; étiquette « … maudit ».
-- **Apparition** : rarement, de nuit (une nuit sur trois environ, 1 ou 2 navires, entre 20 s et 3 min après la tombée de la nuit), à 150-250 m de toi : ils sortent de l'eau (4 s, mâts d'abord, l'eau bouillonne), bien plus près que les autres ennemis. Type tiré jusqu'à ton plus gros navire + 1 cran (+ 2 lors d'un événement de l'histoire). Triche : **K** de nuit en fait surgir un.
+Les envoyés du dieu des océans (voir « Histoire »). N'importe quel type de navire, à l'aspect fantomatique : coque et bois délavés vers le gris, voiles en lambeaux (environ 60 % de la toile arrachée), fanaux et fenêtres d'un vert très sourd (presque aucune lueur), brume pâle autour de la coque, équipage gris pâle ; étiquette « … maudit ».
+- **Apparition** : rarement, de nuit (une nuit sur trois environ, 1 ou 2 navires, entre 20 s et 3 min après la tombée de la nuit), à 150-250 m de toi, sans aucun message : ils sortent de l'eau la proue la première (4 s, l'eau bouillonne), puis se redressent, bien plus près que les autres ennemis. Type tiré jusqu'à ton plus gros navire + 1 cran (+ 2 lors d'un événement de l'histoire). Triche : **K** de nuit en fait surgir un.
 - **Combat** : ennemis de tous (ta flotte, la Marine, les pirates alliés, les forts). Vie × 1,5, aucune perte de vitesse (dégâts, avaries), ni voile abattue, ni incendie, ni sainte-barbe (seul le gouvernail peut casser). Pendant qu'ils sortent de l'eau ou replongent, rien ne les vise et ils ne tirent pas. Ils se battent à mort.
-- **Départ** : ils replongent au lever du jour, quand toute ta flotte est à plus de 900 m, ou au bout de 4 min.
+- **Départ** : ils piquent du nez et replongent la proue la première au lever du jour, quand toute ta flotte est à plus de 900 m, ou au bout de 4 min.
 - **Coulés** : aucun butin, aucun plan (des éléments spéciaux viendront peut-être plus tard). Ils comptent dans le registre et le rang du navire qui les coule, pas pour les contrats ; coulés par la Marine ou des pirates, ce n'est pas ta victoire.
 
 ## Port et escale (fait)

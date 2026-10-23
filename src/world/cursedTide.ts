@@ -24,7 +24,6 @@ interface Ghost {
 
 /** Ce que la marée maudite fait savoir. */
 export interface CursedEvents {
-  alert(text: string): void;
   toast(text: string): void;
 }
 
@@ -42,7 +41,7 @@ const spot = new THREE.Vector3();
  * Navires maudits, envoyés du dieu des océans : une nuit sur trois environ, ils sortent des flots tout près de ta
  * flotte (bien plus près que les autres ennemis), se battent à mort contre tout ce qui flotte, puis replongent au
  * lever du jour, quand tu t'éloignes ou au bout d'un temps. Pendant qu'ils surgissent ou replongent, rien ne les vise et
- * ils ne tirent pas. `summon` les fait surgir à la demande (triche K, événements de l'histoire).
+ * ils ne tirent pas (ils sortent de l'eau et y replongent la proue la première). `summon` les fait surgir à la demande (triche K, événements de l'histoire).
  */
 export class CursedTide {
   private readonly ghosts: Ghost[] = [];
@@ -102,7 +101,6 @@ export class CursedTide {
       enemy.ship.intangible = true;
       this.ghosts.push({ enemy, phase: 'rise', t: 0, age: 0, depth, mist: 0 });
     }
-    if (count > 0) this.events.alert(count > 1 ? '☠ Des navires maudits surgissent des flots !' : '☠ Un navire maudit surgit des flots !');
     return count;
   }
 
@@ -118,10 +116,13 @@ export class CursedTide {
     }
     if (g.phase === 'rise') {
       const k = Math.min(1, g.t / CURSED.riseTime);
+      // Il sort de l'eau la proue la première, puis se redresse.
       ship.drowned = g.depth * (1 - ease(k));
+      ship.plunge = -CURSED.plunge * (1 - ease(k));
       if (k < 1) return false;
       g.phase = 'fight';
       ship.drowned = 0;
+      ship.plunge = 0;
       ship.intangible = false;
       return false;
     }
@@ -136,7 +137,9 @@ export class CursedTide {
       return false;
     }
     const k = Math.min(1, g.t / CURSED.diveTime);
+    // Il pique du nez et s'enfonce la proue la première.
     ship.drowned = g.depth * ease(k);
+    ship.plunge = CURSED.plunge * ease(k);
     return k >= 1;
   }
 
