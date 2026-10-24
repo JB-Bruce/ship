@@ -168,6 +168,9 @@ Les envoyés du dieu des océans (voir « Histoire »). N'importe quel type de n
 ## Onglet Triche (fait, 2026-10-24)
 Dans le menu Échap, pour tester : +100 000 or et bois, tous les plans, toute la carte, invincibilité de la flotte, réparation, ennemi en chasse, navire maudit (de nuit), chaque boss même hors de son temps (il reste jusqu'à ce qu'il coule), téléportation vers chaque port et îlot, navire piloté au maximum (allongements compris), bâtiments des îles au maximum, rang suivant.
 
+## Longue-vue (fait, 2026-10-25)
+En première personne, clic gauche maintenu : on porte la longue-vue à l'œil (grossissement ×4 au départ, de ×2 à ×8 à la molette, regard ralenti d'autant, image dans un cercle cerclé de laiton) ; relâché, on la baisse. Juste le zoom, aucune information ajoutée.
+
 ## Son (fait, 2026-10-24)
 De vrais enregistrements (87 sons CC0 de Freesound, Kenney et OpenGameArt, choisis et préparés par une session locale selon `docs/SOUND_FETCH.md`, crédits dans `public/sounds/CREDITS.txt` ; compromis à remplacer un jour dans `MISSING.md`).
 - **Écran d'accueil** « Larguer les amarres » au lancement (le navigateur n'autorise le son qu'après un clic) ; le monde vit derrière.

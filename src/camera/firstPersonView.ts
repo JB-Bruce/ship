@@ -29,6 +29,8 @@ export class FirstPersonView {
   onCaptureRefused: () => void = () => {};
   /** Regard figé (roue d'ordres ouverte : la souris sert à viser un ordre). */
   frozen = false;
+  /** Vitesse du regard (< 1 à la longue-vue). */
+  lookScale = 1;
   /** Échap pressé souris capturée : le navigateur rend le curseur sans transmettre la touche ; on ouvre le menu tout de suite. */
   onEscape: () => void = () => {};
 
@@ -41,8 +43,9 @@ export class FirstPersonView {
       if (!this.locked || this.frozen) return;
       // Un saut énorme d'un seul coup est un raté du navigateur (capture qui démarre), pas un geste.
       if (Math.abs(e.movementX) > HELM_VIEW.maxMouseStep || Math.abs(e.movementY) > HELM_VIEW.maxMouseStep) return;
-      this.yaw -= e.movementX * HELM_VIEW.sensitivity;
-      this.pitch = THREE.MathUtils.clamp(this.pitch - e.movementY * HELM_VIEW.sensitivity, -HELM_VIEW.maxPitch, HELM_VIEW.maxPitch);
+      const s = HELM_VIEW.sensitivity * this.lookScale;
+      this.yaw -= e.movementX * s;
+      this.pitch = THREE.MathUtils.clamp(this.pitch - e.movementY * s, -HELM_VIEW.maxPitch, HELM_VIEW.maxPitch);
     });
     document.addEventListener('pointerlockchange', () => {
       const locked = document.pointerLockElement === this.dom;

@@ -2483,6 +2483,13 @@ export const HELM_WHEEL = { turns: 1.3 };
  * au plus (rad) ; mouvement de souris au-delà duquel un événement est un raté du navigateur (px) ; plan proche de la
  * caméra dans cette vue et dans la vue de loin (m).
  */
+/**
+ * Longue-vue (première personne, clic gauche maintenu, `camera/spyglass.ts`) : grossissement (de `zoom[0]` à `zoom[1]`,
+ * au départ `start`, la molette le multiplie par `wheelStep` à chaque cran), vitesse à laquelle on la porte à l'œil
+ * (/s) ; le regard est d'autant plus lent que le grossissement est fort.
+ */
+export const SPYGLASS = { zoom: [2, 8] as const, start: 4, wheelStep: 1.15, response: 9 };
+
 export const HELM_VIEW = {
   /** Après une demande de capture de la souris, délai (ms) au bout duquel, si le navigateur l'a refusée, on invite à cliquer. */
   captureCheck: 400, eyeHeight: 1.8, behindWheel: 0.35, startPitch: -0.15, boatEye: 1.1, boatStern: 0.3, sensitivity: 0.0025, maxPitch: 1.3, maxMouseStep: 400, near: 0.06, chaseNear: 0.5 };

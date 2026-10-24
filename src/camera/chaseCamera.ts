@@ -5,6 +5,7 @@ import type { Ship } from '../ship/ship';
 import { wrapAngle } from '../utils/math';
 import { FirstPersonView } from './firstPersonView';
 import { ShowcaseView } from './showcaseView';
+import { Spyglass } from './spyglass';
 
 const { clamp, damp } = THREE.MathUtils;
 /** Écart de champ de vision (degrés) en deçà duquel on ne recalcule pas la projection. */
@@ -18,6 +19,8 @@ const FOV_EPSILON = 0.01;
  */
 export class ChaseCamera {
   readonly firstPerson: FirstPersonView;
+  /** Longue-vue de la première personne (clic gauche maintenu). */
+  readonly spyglass = new Spyglass(document.body);
   readonly showcase: ShowcaseView;
   /** La vitrine tourne lentement d'elle-même (vue d'ensemble, rien de choisi). */
   showcaseTurning = false;
@@ -50,7 +53,10 @@ export class ChaseCamera {
       // Vue du barreur : un clic reprend la souris ; souris capturée, un clic vise le centre de l'écran.
       if (this.firstPerson.active) {
         if (!this.firstPerson.locked) this.firstPerson.capture();
-        else if (e.button === 0) onClick(innerWidth / 2, innerHeight / 2);
+        else if (e.button === 0) {
+          this.spyglass.held = true;
+          onClick(innerWidth / 2, innerHeight / 2);
+        }
         return;
       }
       this.dragging = true;
@@ -59,6 +65,7 @@ export class ChaseCamera {
       dom.setPointerCapture(e.pointerId);
     });
     dom.addEventListener('pointerup', (e) => {
+      if (e.button === 0) this.spyglass.held = false;
       if (!this.dragging) return;
       this.dragging = false;
       dom.releasePointerCapture(e.pointerId);
@@ -75,7 +82,10 @@ export class ChaseCamera {
       'wheel',
       (e) => {
         e.preventDefault();
-        if (this.firstPerson.active) return;
+        if (this.firstPerson.active) {
+          this.spyglass.wheel(e.deltaY);
+          return;
+        }
         this.distance = clamp(this.distance * (1 + e.deltaY * 0.001), CAMERA.minDistance, CAMERA.maxDistance);
       },
       { passive: false },
@@ -158,7 +168,13 @@ export class ChaseCamera {
       zoom = z.amount * envelope;
       if (t >= 1) this.zoom = null;
     }
-    const fov = CAMERA.fov * (1 + this.surfFov) * (1 - zoom);
+    // Longue-vue : seulement en première personne, souris capturée ; le regard ralentit avec le grossissement.
+    const usable = this.firstPerson.active && this.firstPerson.locked;
+    if (!usable) this.spyglass.held = false;
+    this.spyglass.update(dt, usable);
+    const glass = this.spyglass.zoom;
+    this.firstPerson.lookScale = 1 / glass;
+    const fov = (CAMERA.fov * (1 + this.surfFov) * (1 - zoom)) / glass;
     if (Math.abs(fov - this.camera.fov) > FOV_EPSILON) {
       this.camera.fov = fov;
       this.camera.updateProjectionMatrix();

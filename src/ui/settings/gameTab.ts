@@ -9,6 +9,7 @@ const CONTROLS: readonly [string, string][] = [
   ['Q / D', 'Barre'],
   ['Souris (clic pour la prendre)', 'Regarder (première personne)'],
   ['V (à la barre)', 'Vue de loin / première personne'],
+  ['Clic gauche maintenu · molette', 'Longue-vue (première personne) · grossissement'],
   ['Glisser la souris · molette', 'Vue de loin : tourner la caméra · zoom'],
   ['E', 'Quitter la barre · la reprendre devant la roue · grimper au hauban'],
   ['Z Q S D · Maj · Espace (à pied)', 'Marcher · courir · sauter'],
