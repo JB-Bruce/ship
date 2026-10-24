@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import { LIGHTNING } from '../config';
+import { AUDIO, LIGHTNING } from '../config';
 import type { Waves } from '../ocean/waves';
 import type { Ship } from '../ship/ship';
 import { land } from '../world/island';
+import { sound } from '../audio/sound';
 
 /** Points de l'éclair principal et de sa ramification. */
 const MAIN_POINTS = 15;
@@ -89,6 +90,8 @@ export class Lightning {
     this.age = 0;
     this.peak = LIGHTNING.flash * THREE.MathUtils.clamp(1.15 - distance / 600, 0.35, 1);
     this.events.bolt(distance);
+    // Le tonnerre roule après l'éclair, d'autant plus tard et plus sourd qu'il tombe loin.
+    sound.play('ambience/thunder', { bus: 'ambience', delay: distance / AUDIO.soundSpeed, volume: THREE.MathUtils.clamp(1 - distance / AUDIO.thunderFade, 0.2, 1) });
     if (target) this.events.strike(target, top);
   }
 

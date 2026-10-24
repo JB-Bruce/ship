@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { fragmentHtml } from './ui/unlockPanel';
-import { AIM, BLUEPRINTS, BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, CURSED, HELM_VIEW, ISLAND_INFO, OCEAN, SKY, WORLD, WORLD_EDGE, type IslandId } from './config';
+import { AIM, AUDIO, BLUEPRINTS, BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, CURSED, HELM_VIEW, ISLAND_INFO, OCEAN, SKY, WORLD, WORLD_EDGE, type IslandId } from './config';
 import { Campaign } from './campaign';
 import { ChaseCamera } from './camera/chaseCamera';
 import { arcOf, cannonStatsOf, findTarget, updateCannons } from './combat/cannons';
@@ -58,6 +58,9 @@ import { PirateTraffic } from './world/pirateTraffic';
 import { PlanScrolls } from './world/planScrolls';
 import { CursedTide } from './world/cursedTide';
 import { Cheats } from './cheats';
+import { GameAudio } from './audio/gameAudio';
+import { sound } from './audio/sound';
+import { showWelcome } from './ui/welcomeScreen';
 import { treasures } from './progression/treasures';
 import { Sky } from './world/sky';
 import { Weather } from './world/weather';
@@ -129,6 +132,8 @@ export class Game {
   private readonly bosses: Bosses;
   /** Onglet Triche du menu Échap (et l'invincibilité de la flotte). */
   private readonly cheats: Cheats;
+  /** Le son en jeu (ambiances, musique, oreille sur la caméra). */
+  private readonly audio: GameAudio;
   private readonly campaign: Campaign;
   private readonly controller: KeyboardController;
   private readonly chaseCamera: ChaseCamera;
@@ -229,6 +234,11 @@ export class Game {
     if (loaded) this.hud.toast(`Partie chargée : « ${loaded} »`, 3, 'good');
 
     const { state, fleet, campaign, hud, wind, spawner, loot, planScrolls, schools, radar, pirates, settings, display, saves, dayCycle } = this;
+    this.audio = new GameAudio({ fleet, weather: this.weather, wind, campaign, spawner, bosses: this.bosses, ships: this.ships });
+    const applyVolumes = () => sound.setVolumes(settings.volumes, settings.muted);
+    applyVolumes();
+    settings.onChange(applyVolumes);
+    showWelcome(container, () => this.chaseCamera.firstPerson.capture());
     this.cheats = new Cheats({ state, fleet, campaign, spawner, cursed: this.cursed, bosses: this.bosses, hud });
     this.portMenu = createMenus({ container, cheats: this.cheats, state, fleet, campaign, hud, wind, spawner, loot, planScrolls, schools, radar, pirates, settings, display, saves, dayCycle, chaseCamera: this.chaseCamera, takeHelm: (m) => this.takeHelm(m) });
     this.weatherButtons = new WeatherButtons(container, this.weather);
@@ -382,6 +392,7 @@ export class Game {
     const fort = this.campaign.objectiveFort(this.camera.position, this.scene.fog as THREE.Fog);
     this.siegeBar.update(fort ? ISLAND_INFO[fort.island].fort.name : null, fort ? fort.health / fort.maxHealth : 0);
     this.updatePrompts();
+    this.audio.update(elapsed, this.camera);
     this.fpsCounter.update();
     this.debugUpdate?.(elapsed);
     this.display.render(this.scene, this.camera);
@@ -437,6 +448,7 @@ export class Game {
     if (ball.shell) this.shellShake(ship);
     else if (rigging) this.effects.riggingHit(ball.position);
     else this.effects.impact(ball.position);
+    sound.at(rigging ? 'combat/rigging_hit' : 'combat/hit_wood', ball.position, { ref: AUDIO.refs.hit });
     this.applyDamage(ship, ball.damage * (rigging ? AIM.riggingDamage : 1), ball.owner);
     if (this.criticals.strike(ship, rigging) === 'magazine') this.applyDamage(ship, ship.stats.maxHealth * CRIT.magazineDamage, ball.owner);
   }
@@ -460,6 +472,10 @@ export class Game {
     if (ship === leader) this.chaseCamera.shake(COMBAT.hitShake);
     if (!sank) return;
     this.effects.wreck(ship.position);
+    sound.at('combat/sinking', ship.position, { ref: AUDIO.refs.sinking });
+    // Ton équipage salue la victoire du navire qui a porté le coup.
+    const victor = this.fleet.members.find((m) => m.ship === attacker);
+    if (victor && ship.faction !== 'player') sound.at('crew/cheer', victor.ship.position);
     if (ship.faction === 'cursed') {
       this.campaign.enemySunk(ship, attacker);
       return;

@@ -2199,6 +2199,103 @@ export const LIGHTNING = {
 };
 
 /**
+ * Son (`audio/`) : fichiers de `public/sounds/` (liste dans docs/SOUNDS.md ; variantes `nom_1`, `nom_2`… tirées au
+ * hasard, hauteur variée de ± `pitchJitter`). Volumes par défaut des quatre curseurs, voix simultanées au plus,
+ * sons placés en 3D autour de la caméra (distance de référence, au-delà de laquelle le son baisse, et portée maximale,
+ * m), canon lointain au-delà de `farCannon` m, sifflement d'un boulet qui passe à moins de `whistle` m, vitesse du
+ * son pour le retard du tonnerre (m/s). `gains` : volume propre de chaque son (1 par défaut).
+ */
+export const AUDIO = {
+  root: 'sounds/',
+  volumes: { master: 0.8, music: 0.5, sfx: 0.85, ambience: 0.7 },
+  maxVoices: 28,
+  pitchJitter: 0.06,
+  refDistance: 30,
+  maxDistance: 1400,
+  rolloff: 1,
+  farCannon: 260,
+  /** Distances de référence des sons forts (m) : canon, explosion, impact dans le bois, naufrage. */
+  refs: { cannon: 140, explosion: 220, hit: 50, sinking: 90 },
+  /** Tonnerre : retard selon la distance de l'éclair, volume qui baisse jusqu'à `thunderFade` m. */
+  thunderFade: 2000,
+  whistle: 18,
+  soundSpeed: 340,
+  /** Au-delà de cette durée (s), un fichier est lu en continu (boucles, musique) plutôt que décodé en mémoire. */
+  streamFrom: 15,
+  gains: {
+    'combat/cannon_near': 1,
+    'combat/cannon_far': 0.8,
+    'combat/fort_cannon': 1,
+    'combat/hit_wood': 0.8,
+    'combat/splash': 0.55,
+    'combat/rigging_hit': 0.6,
+    'combat/ball_whistle': 0.5,
+    'combat/explosion': 1,
+    'combat/shell_blast': 0.9,
+    'combat/mortar_fire': 0.9,
+    'combat/mast_crack': 0.8,
+    'combat/sinking': 0.9,
+    'combat/ram_crash': 0.9,
+    'ambience/thunder': 0.9,
+    'ambience/hull_creak': 0.35,
+    'ambience/rope_creak': 0.3,
+    'ambience/sail_flap': 0.3,
+    'ambience/bow_splash': 0.35,
+    'ambience/gulls': 0.35,
+    'ambience/ship_bell': 0.6,
+    'cursed/rise': 0.9,
+    'cursed/dive': 0.8,
+    'crew/cheer': 0.55,
+    'crew/shout': 0.4,
+    'ui/wood_click': 0.35,
+    'ui/paper': 0.5,
+    'ui/map_unfold': 0.6,
+    'ui/coins': 0.6,
+    'ui/coins_big': 0.7,
+    'ui/hammer': 0.6,
+    'ui/quill': 0.6,
+    'ui/tear_poster': 0.6,
+    'ui/chest_open': 0.8,
+  } as Record<string, number>,
+  /**
+   * Ambiances (`audio/ambienceDirector.ts`) : fondu des boucles (s) ; mer calme / formée / tempête selon la houle
+   * (`waveFactor` : formée dès `roughAt`, tempête dès `stormAt`) ; vent selon sa force (léger jusqu'à `strongWind`) ;
+   * mouettes à moins de `gullCoast` m d'une côte, toutes les `gullEvery` s ; grincements du navire piloté toutes les
+   * `creakEvery` s ; embruns d'étrave au-delà de `splashSpeed` m/s ; port entendu à moins de `harborRange` m ;
+   * incendie entendu à moins de `fireRange` m ; présence des maudits à moins de `cursedRange` m.
+   */
+  ambience: {
+    fade: 1.5,
+    levels: { calm: 0.8, rough: 0.8, storm: 1, windLight: 0.5, windStrong: 0.7, rain: 0.8, night: 0.5, harbor: 0.7, fire: 0.9, presence: 0.8, tavern: 0.6 },
+    roughAt: 1.3,
+    stormAt: 2.2,
+    strongWind: 1.4,
+    /** Largeur des passages d'une boucle à l'autre (houle, vent). */
+    blend: 0.4,
+    /** Dans la taverne, la mer et le vent ne s'entendent plus qu'à cette part. */
+    insideTavern: 0.35,
+    /** Les grincements se pressent avec la houle (× 1 + houle × creakSea) ; pas de mouettes la nuit (au-delà de gullNight). */
+    creakSea: 0.5,
+    gullNight: 0.5,
+    gullCoast: 220,
+    gullEvery: [7, 18] as const,
+    creakEvery: [3, 9] as const,
+    splashSpeed: 5,
+    splashEvery: [2, 6] as const,
+    harborRange: 260,
+    fireRange: 220,
+    cursedRange: 500,
+  },
+  /**
+   * Musique (`audio/musicDirector.ts`) : fondu enchaîné (s) ; en mer, un air puis `silence` s de mer seule ; combat
+   * dès qu'un ennemi s'en prend à ta flotte à moins de `combatRange` m, et pendant `combatHold` s après le dernier ;
+   * maudits à moins de `cursedRange` m ; musique de nuit au-delà de `nightAt` (conditions.night) ; le motif du trésor
+ * (`treasureLength` s) baisse la musique à `duck` pendant qu'il joue.
+   */
+  music: { fade: 3, treasureLength: 8, nightAt: 0.5, silence: [60, 180] as const, combatRange: 500, combatHold: 15, cursedRange: 600, duck: 0.25, levels: { port: 0.8, sailing: 0.7, night: 0.7, combat: 0.85, boss: 0.9, cursed: 0.8, treasure: 1 } },
+};
+
+/**
  * Onglet Triche du menu Échap (`cheats.ts`) : or et bois donnés d'un coup, mer libre autour d'un point de
  * téléportation au large d'un îlot (m depuis sa côte).
  */

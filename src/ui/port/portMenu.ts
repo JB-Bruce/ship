@@ -6,6 +6,7 @@ import { hideTip } from '../kit/tooltip';
 import { ParchmentMenu } from '../parchmentMenu';
 import { PLACE_TABS, type PlaceTab, type PortContext } from './portContext';
 import './portHub.css';
+import { audioPlaces } from '../../audio/audioView';
 
 /** Les enseignes du quai, une par lieu : nom, ce qu'on y fait, dessin au trait (repère 110 × 90). */
 const SIGNS: Record<PlaceTab, { name: string; sub: string; art: string }> = {
@@ -54,6 +55,7 @@ export class PortMenu extends ParchmentMenu {
   setOpen(open: boolean) {
     super.setOpen(open);
     document.body.classList.toggle('hub-open', this.isOpen);
+    audioPlaces.port = this.isOpen;
     // La bulle d'une enseigne survolée ne reste pas à l'écran une fois le quai quitté.
     if (!this.isOpen) hideTip();
   }

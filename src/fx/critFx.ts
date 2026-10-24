@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import { CRIT } from '../config';
+import { AUDIO, CRIT } from '../config';
 import type { Ship } from '../ship/ship';
 import type { Effects } from './effects';
+import { sound } from '../audio/sound';
 
 const point = new THREE.Vector3();
 const debris = new THREE.Vector3();
@@ -27,6 +28,7 @@ export class CritFx {
   /** La réserve de poudre de `ship` saute en `at`. */
   magazine(ship: Ship, at: THREE.Vector3) {
     this.effects.explosion(at, CRIT.magazineScale);
+    sound.at('combat/explosion', at, { ref: AUDIO.refs.explosion });
     const [near, far] = CRIT.magazineDebrisRange;
     for (let i = 0; i < CRIT.magazineDebris; i++) {
       const a = Math.random() * Math.PI * 2;

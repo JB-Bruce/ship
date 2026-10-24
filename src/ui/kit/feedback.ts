@@ -1,5 +1,6 @@
 import { UI_FX } from '../../config';
 import { COIN_ICON, WOOD_ICON } from './kit';
+import { sound } from '../../audio/sound';
 
 /**
  * Effets de retour des menus, joués après un `render` sur les éléments fraîchement dessinés (animations du navigateur,
@@ -14,6 +15,7 @@ const center = (el: Element) => {
 
 /** Quelques pièces (ou bûches) partent de `from` et filent vers `to` en arc, l'une après l'autre. */
 export function flyCoins(from: Element, to: Element, kind: 'gold' | 'wood' = 'gold') {
+  if (kind === 'gold') sound.play('ui/coins');
   const a = center(from);
   const b = center(to);
   for (let i = 0; i < UI_FX.coins; i++) {

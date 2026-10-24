@@ -148,6 +148,11 @@ export class Weather {
     return kind === 'tempest' ? this.current.seaFoam : this.progress;
   }
 
+  /** Le temps tel qu'on le voit et l'entend en ce moment (houle, pluie, éclairs…). */
+  get state(): Readonly<WeatherProfile> {
+    return this.shown;
+  }
+
   /** Obscurité qui allume les lumières (0 en plein jour, 1 la nuit ou sous l'orage). */
   get darkness(): number {
     return this.lighting.darkness;

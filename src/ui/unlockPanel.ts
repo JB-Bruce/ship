@@ -3,6 +3,7 @@ import type { BlueprintProgress } from '../progression/blueprints';
 import { cannonCount } from '../progression/upgrades';
 import { SHIP_TYPES, type ShipType } from '../shipTypes';
 import { SHIP_ICONS } from './shipIcons';
+import { music } from '../audio/musicDirector';
 
 const MS_TO_KNOTS = 1.944;
 
@@ -37,6 +38,7 @@ export class UnlockPanel {
   }
 
   show(type: ShipType) {
+    music.stinger();
     this.queue.push(type);
     if (this.time <= 0) this.next();
   }

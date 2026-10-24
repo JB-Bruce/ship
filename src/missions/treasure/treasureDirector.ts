@@ -6,6 +6,8 @@ import { treasures } from '../../progression/treasures';
 import { SHIP_SIZE_ORDER } from '../../shipTypes';
 import type { MapZone, MissionWorld } from '../mission';
 import { TreasureRun, type SearchGauge } from './treasureRun';
+import { music } from '../../audio/musicDirector';
+import { sound } from '../../audio/sound';
 
 /** D'où vient une chasse : rumeur achetée, bout de carte d'une élite, découverte en explorant, mission spéciale. */
 export type TreasureSource = 'rumor' | 'elite' | 'explore' | 'special';
@@ -83,6 +85,9 @@ export class TreasureDirector {
     const def = TREASURE_HUNTS[id];
     const r = def.reward;
     treasures.finish(id);
+    sound.play('ui/chest_open');
+    sound.play('ui/coins_big');
+    music.stinger();
     this.state.gold += r.gold;
     this.state.wood += r.wood;
     const plans: string[] = [];

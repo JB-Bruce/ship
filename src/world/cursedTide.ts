@@ -7,6 +7,7 @@ import type { Ship } from '../ship/ship';
 import { maxRank, SHIP_SIZE_ORDER, sizeRank, typeOfRank, type ShipType } from '../shipTypes';
 import type { Enemy, EnemySpawner } from './enemySpawner';
 import { conditions } from './weather';
+import { sound } from '../audio/sound';
 
 /** Un navire maudit et où il en est : il sort de l'eau, se bat, ou replonge. */
 interface Ghost {
@@ -100,6 +101,7 @@ export class CursedTide {
       enemy.ship.drowned = depth;
       enemy.ship.intangible = true;
       this.ghosts.push({ enemy, phase: 'rise', t: 0, age: 0, depth, mist: 0 });
+      sound.at('cursed/rise', enemy.ship.position);
     }
     return count;
   }
@@ -133,6 +135,7 @@ export class CursedTide {
       if (!night) this.events.toast('Le jour se lève : les maudits retournent aux abysses');
       g.phase = 'dive';
       g.t = 0;
+      sound.at('cursed/dive', ship.position);
       ship.intangible = true;
       return false;
     }

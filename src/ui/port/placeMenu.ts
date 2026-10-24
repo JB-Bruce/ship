@@ -1,5 +1,6 @@
 import { hideTip } from '../kit/tooltip';
 import { ParchmentMenu } from '../parchmentMenu';
+import { audioPlaces } from '../../audio/audioView';
 
 /**
  * Un lieu du port (Chantier, Taverne…) : il s'ouvre depuis le panneau du port, sans touche à lui, et Échap (ou son
@@ -20,7 +21,9 @@ export abstract class PlaceMenu extends ParchmentMenu {
     const closing = this.isOpen && !open;
     if (opening) this.opened();
     super.setOpen(open);
+    if (opening) audioPlaces.port = true;
     if (!closing) return;
+    audioPlaces.port = false;
     hideTip();
     this.closed();
     // Fermé par Échap (aucun autre menu ne s'ouvre à sa place) : retour au panneau du port.

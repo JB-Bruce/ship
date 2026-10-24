@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { ChaseCamera } from '../camera/chaseCamera';
-import { BOSS_SINK, CRIT } from '../config';
+import { AUDIO, BOSS_SINK, CRIT } from '../config';
 import { CritFx } from '../fx/critFx';
 import type { Effects } from '../fx/effects';
 import { FallingSails } from '../fx/fallingSails';
@@ -8,6 +8,7 @@ import type { Waves } from '../ocean/waves';
 import type { Ship } from '../ship/ship';
 import type { CritKind } from '../ship/shipCrits';
 import type { Hud } from '../ui/hud';
+import { sound } from '../audio/sound';
 
 const ORDER: readonly CritKind[] = ['magazine', 'fire', 'rudder', 'rigging'];
 const point = new THREE.Vector3();
@@ -70,6 +71,7 @@ export class Criticals {
         // Une voile qui tombe : éclats de bois, et la voile qui s'abat à l'eau en tournoyant.
         if (kind === 'rigging' && ship.crits.lastDropped) {
           effects.impact(deckPoint(ship));
+          sound.at('combat/mast_crack', ship.position, { ref: AUDIO.refs.hit });
           this.sails.drop(ship.crits.lastDropped);
         }
       }

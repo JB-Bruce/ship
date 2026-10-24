@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import type { ChaseCamera } from '../camera/chaseCamera';
-import { BOSS_SINK } from '../config';
+import { AUDIO, BOSS_SINK } from '../config';
 import type { Ship } from '../ship/ship';
 import type { Effects } from './effects';
+import { sound } from '../audio/sound';
 
 const rand = ([min, max]: readonly [number, number]) => min + Math.random() * (max - min);
 const point = new THREE.Vector3();
@@ -30,6 +31,7 @@ export class BossSinking {
   /** Le boss `ship` vient de recevoir le coup fatal ; `viewer` : le bateau piloté. */
   start(ship: Ship, viewer: Ship) {
     this.effects.explosion(deckPoint(ship), 1.6);
+    sound.at('combat/explosion', ship.position, { ref: AUDIO.refs.explosion });
     if (ship.distanceTo(viewer) < BOSS_SINK.shakeRange) this.camera.shake(BOSS_SINK.shake);
     this.camera.punch(BOSS_SINK.zoom, BOSS_SINK.zoomTime);
     this.wrecks.push({ ship, left: BOSS_SINK.aftershocks, next: rand(BOSS_SINK.aftershockInterval) });

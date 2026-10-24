@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COMBAT, FORT, FORT_FX, LIVERIES, type Faction, type IslandId } from '../config';
+import { AUDIO, COMBAT, FORT, FORT_FX, LIVERIES, type Faction, type IslandId } from '../config';
 import { aimSpot, distanceSpread, newAimPoint, pickAimPoint, type AimPoint } from '../combat/aimSpread';
 import type { Projectiles } from '../combat/projectiles';
 import type { Effects } from '../fx/effects';
@@ -10,6 +10,7 @@ import { moveTowards, wrapAngle } from '../utils/math';
 import { buildFort, type FortLayout, type FortModel, type GunSlot } from './fortModel';
 import type { Wind } from './wind';
 import { conditions } from './weather';
+import { sound } from '../audio/sound';
 
 const MUZZLE = new THREE.Vector3(1, 0.38, 0);
 /** Écart toléré entre le canon et la visée pour tirer (rad). */
@@ -236,5 +237,6 @@ export class Fort {
     velocity.set(Math.sin(angle) * FORT.ballSpeed, vy, Math.cos(angle) * FORT.ballSpeed);
     projectiles.fire(muzzle, velocity, this, this.damage);
     effects.muzzleFlash(muzzle, Math.sin(angle), Math.cos(angle));
+    sound.at('combat/fort_cannon', muzzle, { ref: AUDIO.refs.cannon });
   }
 }

@@ -5,6 +5,8 @@ import type { PortContext } from '../port/portContext';
 import { PlaceMenu } from '../port/placeMenu';
 import { boardHtml, recruitsHtml, slotsHtml, TAVERNS } from './tavernBoard';
 import './tavern.css';
+import { audioPlaces } from '../../audio/audioView';
+import { sound } from '../../audio/sound';
 
 /**
  * Taverne du port : un tableau de liège couvert d'affiches (offres du jour et missions spéciales), qu'on arrache d'un
@@ -31,6 +33,11 @@ export class TavernMenu extends PlaceMenu {
   protected opened() {
     this.confirm = null;
     this.busy = false;
+    audioPlaces.tavern = true;
+  }
+
+  protected closed() {
+    audioPlaces.tavern = false;
   }
 
   render() {
@@ -115,6 +122,7 @@ export class TavernMenu extends PlaceMenu {
     const dx = to.left + to.width / 2 - (from.left + from.width / 2);
     const dy = to.top + to.height / 2 - (from.top + from.height / 2);
     this.busy = true;
+    sound.play('ui/tear_poster');
     const tilt = poster.style.getPropertyValue('--tilt') || '0deg';
     const anim = poster.animate(
       [

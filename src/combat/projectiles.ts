@@ -1,9 +1,15 @@
 import * as THREE from 'three';
-import { COMBAT, MORTAR_FX, type ShellStats } from '../config';
+import { AUDIO, COMBAT, MORTAR_FX, type ShellStats } from '../config';
+
+/** Gerbe d'un obus : plus forte que celle d'un boulet. */
+const SHELL_SPLASH = 1.4;
+/** Un boulet tiré à moins de `AUDIO.whistle` × ce facteur de la caméra vient de ton navire. */
+const OWN_SHOT = 2.5;
 import type { Effects } from '../fx/effects';
 import type { Waves } from '../ocean/waves';
 import { isHostile, type Combatant, type Ship } from '../ship/ship';
 import { land } from '../world/island';
+import { sound } from '../audio/sound';
 
 export interface Ball {
   readonly position: THREE.Vector3;
@@ -16,6 +22,8 @@ export interface Ball {
   shell: ShellStats | null;
   /** Navire dont le boulet a déjà traversé le gréement : il poursuit sa course sans plus pouvoir le toucher. */
   pierced: Ship | null;
+  /** Son sifflement a déjà été entendu (il passe près de la caméra). */
+  whistled?: boolean;
   trailTimer: number;
 }
 
@@ -62,6 +70,8 @@ export class Projectiles {
     ball.shell = shell;
     ball.pierced = null;
     ball.trailTimer = 0;
+    // Les boulets de ton propre navire (tirés près de la caméra) ne sifflent pas.
+    ball.whistled = sound.distance(from) < AUDIO.whistle * OWN_SHOT;
     this.balls.push(ball);
   }
 
@@ -85,6 +95,11 @@ export class Projectiles {
       ball.previous.copy(ball.position);
       ball.velocity.y -= COMBAT.gravity * (ball.shell?.gravityFactor ?? 1) * dt;
       ball.position.addScaledVector(ball.velocity, dt);
+      // Un boulet qui frôle la caméra siffle (une fois).
+      if (!ball.whistled && sound.distance(ball.position) < AUDIO.whistle) {
+        ball.whistled = true;
+        sound.at('combat/ball_whistle', ball.position);
+      }
 
       ball.trailTimer -= dt;
       if (ball.trailTimer <= 0) {
@@ -125,6 +140,7 @@ export class Projectiles {
       if (ball.position.y < water) {
         if (ball.shell) effects.waterColumn(ball.position.x, water, ball.position.z);
         else effects.splash(ball.position.x, water, ball.position.z);
+        sound.at('combat/splash', ball.position, { volume: ball.shell ? SHELL_SPLASH : 1 });
         this.detonate(ball, ships, null, onBlast, effects, false);
         this.removeAt(i);
       }
@@ -145,7 +161,10 @@ export class Projectiles {
   private detonate(ball: Ball, ships: readonly Ship[], direct: Ship | null, onBlast: (ship: Ship, ball: Ball, damage: number) => void, effects: Effects, fire = true) {
     const shell = ball.shell;
     if (!shell) return;
-    if (fire) effects.shellBlast(ball.position);
+    if (fire) {
+      effects.shellBlast(ball.position);
+      sound.at('combat/shell_blast', ball.position, { ref: AUDIO.refs.explosion });
+    }
     const { x, z } = ball.position;
     for (const ship of ships) {
       if (ship === direct || ship === ball.owner || !ship.alive || !isHostile(ball.owner, ship)) continue;

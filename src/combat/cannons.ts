@@ -8,6 +8,7 @@ import { moveTowards, wrapAngle } from '../utils/math';
 import { conditions } from '../world/weather';
 import { aimHeight, aimSpot, distanceSpread, newAimPoint, pickAimPoint, type AimPoint } from './aimSpread';
 import type { Projectiles } from './projectiles';
+import { sound } from '../audio/sound';
 
 /** Vitesse de rotation d'un canon (rad/s) : il pivote, il ne se téléporte pas. */
 const TURN_SPEED = 1.3;
@@ -193,4 +194,5 @@ function shoot(ship: Ship, mount: CannonMount, local: THREE.Vector3, c: CannonSt
   projectiles.fire(muzzle, velocity, ship, c.damage, c.shell);
   if (c.shell) effects.mortarLaunch(muzzle);
   else effects.muzzleFlash(muzzle, Math.sin(angle), Math.cos(angle));
+  sound.cannon(muzzle, !!c.shell);
 }

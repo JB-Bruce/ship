@@ -168,8 +168,15 @@ Les envoyés du dieu des océans (voir « Histoire »). N'importe quel type de n
 ## Onglet Triche (fait, 2026-10-24)
 Dans le menu Échap, pour tester : +100 000 or et bois, tous les plans, toute la carte, invincibilité de la flotte, réparation, ennemi en chasse, navire maudit (de nuit), chaque boss même hors de son temps (il reste jusqu'à ce qu'il coule), téléportation vers chaque port et îlot, navire piloté au maximum (allongements compris), bâtiments des îles au maximum, rang suivant.
 
-## Son (prévu, 2026-10-24)
-De vrais enregistrements (pas de synthèse), pour une ambiance pirate cohérente : le joueur télécharge des banques libres (Sonniss GDC, Freesound CC0, Kenney, OpenGameArt) selon `docs/SOUNDS.md`, puis le moteur son les branche. Contenu : ambiance de mer selon la météo, combat, navires maudits, menus et vie à bord, musique (port, mer, nuit, combat, boss, maudits, trésor).
+## Son (fait, 2026-10-24)
+De vrais enregistrements (87 sons CC0 de Freesound, Kenney et OpenGameArt, choisis et préparés par une session locale selon `docs/SOUND_FETCH.md`, crédits dans `public/sounds/CREDITS.txt` ; compromis à remplacer un jour dans `MISSING.md`).
+- **Écran d'accueil** « Larguer les amarres » au lancement (le navigateur n'autorise le son qu'après un clic) ; le monde vit derrière.
+- **Volumes** (menu Échap, onglet Jeu) : général, musique, effets, ambiance, et « Couper le son » ; gardés d'une partie à l'autre.
+- **Écoute depuis la caméra** : les sons du monde sont placés en 3D autour d'elle (à la barre, on entend depuis la barre).
+- **Ambiance** : mer calme, formée ou en tempête selon la houle, vent léger ou fort, pluie, mer de nuit, port (plus fort au quai et dans les menus du port), taverne (la mer s'efface), incendie et présence des maudits à proximité ; grincements du bois et des cordages, voiles qui claquent, embruns d'étrave en route, mouettes près des côtes le jour, cloche en entrant au port, tonnerre après chaque éclair (retardé selon la distance).
+- **Combat** : canons proches ou lointains, mortier, canons des forts, boulets qui sifflent en passant près de toi, impacts dans le bois, toile déchirée, mât qui casse, gerbes, explosions (sainte-barbe, obus, boss), éperonnage, naufrage ; l'équipage crie aux postes au début d'un combat et acclame quand ton navire en coule un. Navires maudits : l'eau qui bouillonne quand ils surgissent et quand ils replongent.
+- **Menus** : parchemin à l'ouverture (la carte se déroule), petit clic de bois, pièces, marteau au chantier, plume (contrat accepté), affiche arrachée, coffre au trésor, grosse prime.
+- **Musique par moments** : en mer, un air (jour ou nuit) puis 1 à 3 min de mer seule ; au port, au combat, face à un boss ou aux maudits, la musique de la situation démarre aussitôt en fondu ; motif du trésor (trésor trouvé, plan complet) par-dessus, la musique baissée.
 
 ## Port et escale (fait)
 - **Touches (2026-10-21)** : le port s'ouvre par **P** près d'un quai ; **Tab** ouvre la Cabine du capitaine, partout.

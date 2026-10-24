@@ -2082,3 +2082,58 @@ body {
 .search-gauge.paused .search-gauge-bar span {
   color: #a08a60;
 }
+
+/* Écran d'accueil (ui/welcomeScreen.ts) : un parchemin au milieu, le monde visible derrière. */
+.welcome {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at center, rgba(10, 16, 22, 0.15), rgba(10, 16, 22, 0.65));
+}
+body.welcome-open .hud {
+  display: none;
+}
+.welcome-card {
+  width: min(440px, calc(100vw - 32px));
+  padding: 34px 30px 26px;
+  text-align: center;
+  color: var(--ink, #3a2412);
+  background: var(--paper, #e8d6a8);
+  box-shadow: var(--paper-edge, none), 0 18px 40px rgba(0, 0, 0, 0.55);
+  border-radius: 3px 8px 4px 6px;
+  font-family: 'IM Fell English', Georgia, serif;
+}
+.welcome-card h1 {
+  margin: 0;
+  font-family: 'Pirata One', 'IM Fell English SC', Georgia, serif;
+  font-size: 64px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+.welcome-sub {
+  margin: 2px 0 22px;
+  font-style: italic;
+  font-size: 18px;
+  color: var(--ink-soft, #6a4626);
+}
+.welcome-go {
+  padding: 10px 26px;
+  font-family: 'IM Fell English SC', Georgia, serif;
+  font-size: 22px;
+  color: #f3d9c8;
+  background: var(--grain, none), radial-gradient(circle at 40% 35%, #a8281c, #6a1008);
+  border: 2px solid #4a0a04;
+  border-radius: 47% 53% 49% 51% / 52% 46% 54% 48%;
+  box-shadow: 0 3px 0 #3a0804;
+  cursor: pointer;
+}
+.welcome-go:hover {
+  filter: brightness(1.1);
+}
+.welcome-hint {
+  margin: 18px 0 0;
+  font-size: 13px;
+  color: var(--ink-pale, #8a6a48);
+}

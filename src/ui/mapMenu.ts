@@ -62,6 +62,7 @@ export class MapMenu extends ParchmentMenu {
     private readonly source: MapSource,
   ) {
     super(parent, 'Carte', 'M ou Échap pour reprendre la mer', MAP_KEYS);
+    this.openSound = 'ui/map_unfold';
     this.body.parentElement!.classList.add('map-sheet');
     this.canvas.className = 'map-canvas';
     const legend = document.createElement('div');

@@ -1,7 +1,7 @@
 import { GRAPHICS, type BossId, type GraphicsSettings, type QualityPreset } from '../../config';
 import type { Display } from '../../render/display';
 import type { SaveManager } from '../../save/saveManager';
-import type { Settings } from '../../settings/settings';
+import type { Settings, VolumeKey } from '../../settings/settings';
 import type { DayCycle } from '../../world/dayCycle';
 import { clockLabel } from '../dayClock';
 import { ParchmentMenu } from '../parchmentMenu';
@@ -73,6 +73,15 @@ export class SettingsMenu extends ParchmentMenu {
       this.onAction('save', '');
       this.render();
     });
+    // Curseurs de volume : le son suit pendant qu'on glisse (sans redessiner l'onglet, qui lâcherait le curseur).
+    this.body.addEventListener('input', (e) => {
+      const input = e.target instanceof HTMLInputElement ? e.target : null;
+      const key = input?.dataset.volume as VolumeKey | undefined;
+      if (!input || !key) return;
+      ctx.settings.setVolume(key, Number(input.value) / 100);
+      const label = input.closest('.setting')?.querySelector('.volume-value');
+      if (label) label.textContent = `${input.value} %`;
+    });
     // Curseur d'heure : le ciel suit pendant qu'on le glisse (sans redessiner l'onglet, qui lâcherait le curseur).
     new HourDial(this.body, ctx.clock, () => {
       const label = this.body.querySelector('.clock-label');
@@ -108,6 +117,9 @@ export class SettingsMenu extends ParchmentMenu {
         break;
       case 'fps':
         settings.setShowFps(arg === 'true');
+        break;
+      case 'mute':
+        settings.setMuted(arg === 'true');
         break;
       case 'preset':
         settings.applyPreset(arg as QualityPreset);

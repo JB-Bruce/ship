@@ -15,6 +15,7 @@ import type { Ledger } from './ledger';
 import type { PlayerState } from './playerState';
 import { gunCost } from './modifiers';
 import { nextCost, type UpgradeId } from './upgrades';
+import { sound } from '../audio/sound';
 
 export interface HarborEvents {
   say(text: string): void;
@@ -89,6 +90,7 @@ export class Harbor {
     const member = this.fleet.controlled;
     const ext = SHIP_TYPES[member.type].extensions?.[member.levels.extension];
     if (!ext || !this.state.spend(ext.cost)) return;
+    sound.play('ui/hammer');
     member.levels.extension++;
     member.spent.gold += ext.cost.gold;
     member.spent.wood += ext.cost.wood;
@@ -104,6 +106,7 @@ export class Harbor {
     const member = this.fleet.controlled;
     const cost = nextCost(member.type, id, member.levels);
     if (!cost || !this.state.spend(cost)) return;
+    sound.play('ui/hammer');
     member.levels[id]++;
     member.spent.gold += cost.gold;
     member.spent.wood += cost.wood;
@@ -116,6 +119,7 @@ export class Harbor {
     // Les navires en commerce ne prennent pas de place dans la flotte (ils ont un emplacement dans leur île). Il faut
     // aussi le plan complet du navire.
     if (!blueprints.isUnlocked(type) || !this.island.canBuild(type) || this.fleet.hand.length >= this.state.slots || !this.state.spend(price)) return;
+    sound.play('ui/hammer');
     const member = this.fleet.add(type, price);
     this.events.say(`${member.name} (${SHIP_TYPES[type].name}) rejoint ta flotte !`);
   }
@@ -198,6 +202,7 @@ export class Harbor {
   buyIslandUpgrade(id: IslandUpgradeId) {
     const cost = this.island.nextCost(id);
     if (!this.island.owned || !this.island.info.upgrades.includes(id) || !cost || !this.state.spend(cost)) return;
+    sound.play('ui/hammer');
     this.island.levels[id]++;
     this.events.islandChanged(this.island);
     this.events.say(`${ISLAND_UPGRADE_INFO[id].name} : niveau ${this.island.levels[id]}`);
@@ -236,6 +241,7 @@ export class Harbor {
   acceptContract(id: number) {
     const contract = this.contracts.accept(id);
     if (!contract) return;
+    sound.play('ui/quill');
     this.contracts.refresh(this.island.id, this.events.contractOptions());
     this.events.contractAccepted(contract);
   }
@@ -259,6 +265,7 @@ export class Harbor {
       return;
     }
     this.contracts.complete(c);
+    sound.play('ui/coins_big');
     this.pay(c);
   }
 

@@ -1,3 +1,4 @@
+import { sound } from '../audio/sound';
 /**
  * Socle des menus façon parchemin : ouverture par une touche, fermeture par la même touche ou Échap,
  * un seul menu ouvert à la fois. Tant qu'un menu est ouvert, le jeu est en pause. Échap ferme le menu ouvert ; si
@@ -44,6 +45,7 @@ export abstract class ParchmentMenu {
     this.body.addEventListener('click', (e) => {
       const button = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-action]');
       if (!button || button.disabled) return;
+      sound.play('ui/wood_click');
       this.onAction(button.dataset.action!, button.dataset.arg ?? '');
       // Un bouton qui ferme le menu (« Retour au port »…) ne le redessine pas : le Chantier y remettrait sa caméra.
       if (this.isOpen) this.render();
@@ -58,6 +60,9 @@ export abstract class ParchmentMenu {
     });
     ParchmentMenu.listenEscape();
   }
+
+  /** Son à l'ouverture : un parchemin qu'on déplie (la carte a le sien). */
+  protected openSound = 'ui/paper';
 
   /** Ce menu s'ouvre par Échap quand aucun menu n'est ouvert. */
   protected openOnEscape() {
@@ -98,6 +103,7 @@ export abstract class ParchmentMenu {
   setOpen(open: boolean) {
     if (open) for (const other of ParchmentMenu.all) if (other !== this) other.setOpen(false);
     const closing = this.isOpen && !open;
+    if (open && !this.isOpen) sound.play(this.openSound);
     this.isOpen = open;
     this.root.classList.toggle('on', open);
     if (open) this.render();
