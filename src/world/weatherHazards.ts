@@ -18,7 +18,7 @@ export function weatherHazards(camera: ChaseCamera, effects: Effects, fleet: Fle
     strike(ship, top) {
       effects.impact(top);
       const member = fleet.members.find((m) => m.ship === ship);
-      if (member) hud.message(`⚡ La foudre frappe ${member.name} !`, 3);
+      if (member) hud.toast(`⚡ La foudre frappe ${member.name} !`, 3, 'danger');
       damage(ship, ship.stats.maxHealth * LIGHTNING.strikeDamage);
     },
     seaHit(ship, bow, amount) {

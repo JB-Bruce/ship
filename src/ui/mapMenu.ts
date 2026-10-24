@@ -1,12 +1,18 @@
+import type { IslandId } from '../config';
 import type { Fleet } from '../fleet/fleet';
 import type { Ship } from '../ship/ship';
 import type { MapZone } from '../missions/mission';
+import type { MapDiscovery } from '../progression/mapDiscovery';
+import { NAVY, PIRATE, PLAYER, type Territory } from '../progression/territory';
+import { TerritoryLayer } from './territoryLayer';
 import type { Enemy } from '../world/enemySpawner';
 import type { FishSchool } from '../world/fishSchools';
 import { tortuga } from '../world/island';
 import type { Crate } from '../world/loot';
 import type { Wind } from '../world/wind';
+import { MapFog } from './mapFog';
 import { paintMap } from './mapPainter';
+import { MapView } from './mapView';
 import { ParchmentMenu } from './parchmentMenu';
 
 /** Touche M : code « KeyM » en QWERTY, « Semicolon » en AZERTY (même touche physique que « ; » en QWERTY). */
@@ -20,6 +26,8 @@ export interface MapSource {
   readonly wind: Wind;
   enemies(): readonly Enemy[];
   crates(): readonly Crate[];
+  /** Rouleaux de plan de navire qui flottent. */
+  scrolls(): readonly { x: number; z: number }[];
   schools(): readonly FishSchool[];
   /** Portée du radar du bateau piloté (m). */
   radarRange(): number;
@@ -27,24 +35,41 @@ export interface MapSource {
   coverage(): number;
   /** Zones de mission (chasse à un capitaine). */
   zones(): readonly MapZone[];
-  /** Navires escortés (marchands). */
+  /** Navires à protéger (marchand escorté). */
   escorts(): readonly Ship[];
-  /** Pirates alliés en mer. */
+  /** Autres alliés en mer (pirates, marchands des îles). */
   pirates(): readonly Ship[];
+  /** Ce que la carte a découvert. */
+  readonly discovery: MapDiscovery;
+  /** Ports où toucher une prime ou que vise un contrat suivi. */
+  objectivePorts(): readonly IslandId[];
+  /** Territoires de la mer (Marine, pirates, toi). */
+  readonly territory: Territory;
 }
 
+/** Texte sous la carte : commandes, puis part de la mer découverte. */
+const HINT = 'Molette : zoom · glisser : déplacer · double-clic ou C : recentrer sur ton navire';
+
 /**
- * Carte (M) : l'île et ses lieux, ta flotte, les ennemis repérés par le radar, le butin et le vent.
- * Elle est dessinée à l'ouverture : le jeu est en pause tant qu'elle est affichée.
+ * Carte (M) : l'île et ses lieux, ta flotte, les ennemis repérés par le radar, le butin et le vent, là où la mer est
+ * découverte (ailleurs, un parchemin vierge : mapFog.ts). Elle est dessinée à l'ouverture : le jeu est en pause tant
+ * qu'elle est affichée.
  */
 export class MapMenu extends ParchmentMenu {
   private readonly canvas = document.createElement('canvas');
+  private readonly hint = document.createElement('p');
+  private readonly view: MapView;
+  private readonly fog: MapFog;
+  private readonly territory: TerritoryLayer;
+  private readonly territoryButton = document.createElement('button');
+  private readonly territoryLegend = document.createElement('div');
 
   constructor(
     parent: HTMLElement,
     private readonly source: MapSource,
   ) {
     super(parent, 'Carte', 'M ou Échap pour reprendre la mer', MAP_KEYS);
+    this.openSound = 'ui/map_unfold';
     this.body.parentElement!.classList.add('map-sheet');
     this.canvas.className = 'map-canvas';
     const legend = document.createElement('div');
@@ -52,16 +77,38 @@ export class MapMenu extends ParchmentMenu {
     legend.innerHTML = `
       <span><b class="me">▲</b> Toi</span>
       <span><b class="ally">▲</b> Ta flotte</span>
+      <span><b class="trader">▲</b> En commerce</span>
       <span><b class="enemy">▲</b> Ennemis repérés</span>
       <span><b class="gold">■</b> Or</span>
       <span><b class="wood">■</b> Bois</span>
       <span><b class="rum">■</b> Rhum, épices</span>
+      <span><b class="plan">◆</b> Plan de navire</span>
       <span><b class="fish">≋</b> Banc de poissons</span>
       <span><b class="zone">◌</b> Portée du radar</span>
-      <span><b class="merchant">▲</b> Marchands alliés</span>
-      <span><b class="pirate">▲</b> Pirates alliés</span>
-      <span><b class="hunt">◌</b> Zone de chasse</span>`;
-    this.body.append(this.canvas, legend);
+      <span><b class="pirate">▲</b> Alliés</span>
+      <span><b class="escort">▲</b> À protéger</span>
+      <span><b class="hunt">◌</b> Zone de chasse</span>
+      <span><b class="navy">♛</b> Port de la Marine</span>
+      <span><b class="unknown">▒</b> Mer inconnue</span>`;
+    this.hint.className = 'map-hint';
+    this.territory = new TerritoryLayer(source.territory);
+    this.territoryButton.className = 'kit-btn small ghost map-territory-btn';
+    this.territoryButton.addEventListener('click', () => {
+      this.territory.shown = !this.territory.shown;
+      this.render();
+    });
+    this.territoryLegend.className = 'map-legend map-territory-legend';
+    this.body.append(this.canvas, this.hint, this.territoryButton, this.territoryLegend, legend);
+    this.fog = new MapFog(source.discovery);
+    this.view = new MapView(this.canvas, () => this.render(), () => this.source.fleet.leader.position);
+    window.addEventListener('keydown', (e) => {
+      if (this.isOpen && e.code === 'KeyC' && !e.repeat) this.view.recenter();
+    });
+  }
+
+  override setOpen(open: boolean) {
+    if (open && !this.isOpen) this.view.reset();
+    super.setOpen(open);
   }
 
   render() {
@@ -78,27 +125,45 @@ export class MapMenu extends ParchmentMenu {
     const { fleet } = this.source;
     const leader = fleet.leader;
     const allies: Ship[] = [];
-    for (const m of fleet.members) if (m !== fleet.controlled && m.inWorld && m.ship.alive) allies.push(m.ship);
+    const traders: Ship[] = [];
+    for (const m of fleet.members) if (m !== fleet.controlled && m.inWorld && m.ship.alive) (m.trade ? traders : allies).push(m.ship);
     // Seuls les ennemis que ton radar voit sont connus (pas un boss caché dans la brume), plus ceux qui approchent de l'île (vigies du phare).
     const range = this.source.radarRange();
     const coverage = this.source.coverage();
     const enemies = this.source
       .enemies()
-      .filter((e) => !e.ai.hidden)
+      .filter((e) => !e.ai.hidden && !e.cursed)
       .map((e) => e.ship)
       .filter((s) => s.alive && (s.distanceTo(leader) <= range || tortuga.sdf(s.position.x, s.position.z) < coverage));
     const source = this.source;
-    paintMap(ctx, width, height, {
+    const discovery = source.discovery;
+    this.hint.textContent = `${HINT} · mer découverte : ${Math.round(discovery.share * 100)} %`;
+    const shown = this.territory.shown;
+    const t = source.territory;
+    const pct = (k: typeof NAVY) => `${Math.round(t.share(k) * 100)} %`;
+    this.territoryButton.textContent = shown ? 'Cacher les territoires' : 'Territoires';
+    this.territoryButton.classList.toggle('on', shown);
+    this.territoryLegend.hidden = !shown;
+    this.territoryLegend.innerHTML = `<span><b class="t-player">■</b> Tes eaux ${pct(PLAYER)}</span><span><b class="t-pirate">■</b> Pirates ${pct(PIRATE)}</span><span><b class="t-navy">■</b> Marine ${pct(NAVY)}</span>`;
+    this.view.frame = paintMap(ctx, width, height, {
       leader,
       allies,
+      traders,
       enemies,
       crates: source.crates(),
+      scrolls: source.scrolls(),
       schools: source.schools(),
       wind: source.wind,
       radarRange: range,
       zones: source.zones(),
       escorts: source.escorts(),
       pirates: source.pirates().filter((s) => s.alive && s.distanceTo(leader) <= range),
+      zoom: this.view.zoom,
+      center: this.view.center,
+      fog: this.fog,
+      known: discovery.bounds(),
+      objectivePorts: source.objectivePorts(),
+      territory: this.territory,
     });
   }
 

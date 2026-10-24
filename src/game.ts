@@ -1,37 +1,52 @@
 import * as THREE from 'three';
-import { BOSSES, CAMERA, COMBAT, ISLAND_INFO, OCEAN, SKY, WORLD, type IslandId } from './config';
+import { fragmentHtml } from './ui/unlockPanel';
+import { AIM, AUDIO, BLUEPRINTS, BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, CURSED, HELM_VIEW, ISLAND_INFO, OCEAN, SKY, TERRITORY, WORLD, WORLD_EDGE, type IslandId } from './config';
+import { NAVY, OWNER_KEYS } from './progression/territory';
 import { Campaign } from './campaign';
 import { ChaseCamera } from './camera/chaseCamera';
-import { cannonStatsOf, findTarget, updateCannons } from './combat/cannons';
+import { arcOf, cannonStatsOf, findTarget, updateCannons } from './combat/cannons';
+import { Criticals } from './combat/criticals';
 import { Projectiles, type Ball } from './combat/projectiles';
 import { setupDebug } from './debug';
 import { DeckCrew } from './deckCrew/deckCrew';
 import { Fishing } from './fleet/fishing';
 import { Fleet, type FleetMember } from './fleet/fleet';
+import { BossSinking } from './fx/bossSinking';
 import { Effects } from './fx/effects';
 import { FishSchoolFx } from './fx/fishSchoolFx';
 import { KeyboardController } from './input/keyboardController';
 import { Ocean } from './ocean/oceanMesh';
 import { WakeMap } from './ocean/wakeMap';
 import { Waves } from './ocean/waves';
+import { OnFoot } from './player/onFoot';
 import { PlayerState } from './progression/playerState';
 import { Display } from './render/display';
+import { SaveManager } from './save/saveManager';
 import { applyQuality } from './render/quality';
 import { Settings } from './settings/settings';
 import type { Combatant, Ship } from './ship/ship';
 import { SHIP_TYPES } from './shipTypes';
 import { ActionPrompts } from './ui/actionPrompts';
+import { BetrayalPicker } from './ui/betrayalPicker';
 import { ObjectiveBar } from './ui/bossBar';
 import { FpsCounter } from './ui/fpsCounter';
 import { HealthBars } from './ui/healthBars';
 import { Hud } from './ui/hud';
+import { EncounterAlerts } from './ui/encounterAlerts';
 import { createMenus } from './ui/menus';
+import { OrderWheel } from './ui/orderWheel';
 import { ParchmentMenu } from './ui/parchmentMenu';
 import type { PortMenu } from './ui/port/portMenu';
 import { Radar } from './ui/radar';
 import { WeatherButtons } from './ui/weatherButtons';
 import { Bosses } from './world/bossEncounter';
+import { DayCycle } from './world/dayCycle';
+import { DayClock } from './ui/dayClock';
+import { LampLights } from './fx/lampLights';
+import { LanternHalos } from './fx/lanternHalos';
+import { setNightGlow } from './ship/parts/nightGlow';
 import { resolveCollisions } from './world/collisions';
+import { Betrayal } from './world/betrayal';
 import { EnemySpawner } from './world/enemySpawner';
 import { FishSchools } from './world/fishSchools';
 import { FogCulling } from './world/fogCulling';
@@ -41,8 +56,16 @@ import type { Lighthouse } from './world/lighthouse';
 import { resolveLandCollisions } from './world/landCollision';
 import { Loot } from './world/loot';
 import { PirateTraffic } from './world/pirateTraffic';
-import { Sky, sunDirection } from './world/sky';
+import { PlanScrolls } from './world/planScrolls';
+import { CursedTide } from './world/cursedTide';
+import { Cheats } from './cheats';
+import { GameAudio } from './audio/gameAudio';
+import { sound } from './audio/sound';
+import { showWelcome } from './ui/welcomeScreen';
+import { treasures } from './progression/treasures';
+import { Sky } from './world/sky';
 import { Weather } from './world/weather';
+import { EdgeStorm } from './world/worldEdge';
 import { weatherHazards } from './world/weatherHazards';
 import { Wind } from './world/wind';
 import { buildIslands } from './world/worldBuilder';
@@ -53,17 +76,26 @@ export class Game {
   private readonly settings = new Settings();
   private readonly display: Display;
   private readonly scene = new THREE.Scene();
-  private readonly camera = new THREE.PerspectiveCamera(CAMERA.fov, innerWidth / innerHeight, 0.5, 1000);
-  /** Houle, puis clapot de grosse tempête (nul par temps normal : la météo règle sa raideur). */
-  private readonly waves = new Waves([...OCEAN.waves, ...OCEAN.chopWaves.map((w) => ({ ...w, steepness: 0 }))]);
+  private readonly camera = new THREE.PerspectiveCamera(CAMERA.fov, innerWidth / innerHeight, HELM_VIEW.chaseNear, 1000);
+  /** Houle, puis clapot et houle de fond (nuls tant que la météo ne les lève pas : elle règle leur raideur). */
+  private readonly waves = new Waves([...OCEAN.waves, ...[...OCEAN.chopWaves, ...OCEAN.groundSwell].map((w) => ({ ...w, steepness: 0 }))]);
   private readonly wind = new Wind();
   private readonly ocean = new Ocean(this.waves);
   private readonly sky = new Sky();
   private readonly ambient = new THREE.HemisphereLight(SKY.ambientSky, SKY.ambientGround, SKY.ambientIntensity);
   private readonly sun = new THREE.DirectionalLight(SKY.sunColor, SKY.sunIntensity);
   private readonly weather: Weather;
+  /** La foudre de la tempête du bord du monde (sans message). */
+  private readonly edgeStorm: EdgeStorm;
   private readonly weatherButtons: WeatherButtons;
+  private readonly dayClock: DayClock;
   private readonly state = new PlayerState();
+  /** Heure du jour : suit la journée des contrats (la campagne est créée plus loin, d'où les rappels). */
+  private readonly dayCycle = new DayCycle(
+    () => this.campaign?.contracts.dayLeft ?? CONTRACTS.dayLength,
+    (seconds) => (this.campaign.contracts.dayLeft = seconds),
+  );
+  private readonly saves = new SaveManager();
   /** Tous les bateaux dans le monde : ceux de la flotte du joueur et les ennemis. */
   private readonly ships: Ship[] = [];
   private readonly fleet = new Fleet(this.scene, this.ships);
@@ -75,27 +107,50 @@ export class Game {
   private readonly deckCrew = new DeckCrew(this.scene, (x, y, z) => this.effects.splash(x, y, z));
   private readonly forts: Record<IslandId, Fort>;
   private readonly lighthouse: Lighthouse;
+  /** Halos des fanaux (navires et ports) quand il fait sombre. */
+  private readonly halos: LanternHalos;
+  private readonly lamps: LampLights;
   // Butin : ta flotte le range ; un pirate allié le garde pour lui.
   private readonly loot = new Loot(this.scene, this.effects, (ship, kind, value) => (this.pirates.has(ship) ? value : this.campaign.collectLoot(ship, kind, value)));
+  /** Bouts de plan de navires lâchés par les épaves (le hud est créé plus loin, d'où les rappels). */
+  private readonly planScrolls = new PlanScrolls(this.scene, this.effects, {
+    fragment: (progress) => this.hud.notifications.noticeHtml(fragmentHtml(progress), 'plan', BLUEPRINTS.noticeTime),
+    unlocked: (type) => this.hud.unlock.show(type),
+  });
   private readonly spawner = new EnemySpawner(this.scene, this.ships, (enemy) => {
+    // Un navire maudit coulé ne laisse rien.
+    if (enemy.cursed) return;
     const { x, z } = enemy.ship.position;
     this.loot.spawnWreckLoot(x, z, enemy.lootFactor);
     if (enemy.boss) for (const kind of ['rum', 'spices'] as const) this.loot.spawnGoods(x, z, kind, 2);
   }, () => this.fleetPower());
-  private readonly pirates = new PirateTraffic(this.scene, this.ships, () => this.fleetPower());
+  /** Navires maudits qui surgissent la nuit. */
+  private readonly cursed: CursedTide;
+  private readonly pirates = new PirateTraffic(this.scene, this.ships, () => this.fleetPower(), (ship) => this.wreckLoot(ship));
   private readonly schools = new FishSchools();
   private readonly schoolFx = new FishSchoolFx();
   private readonly fishing: Fishing;
   private readonly bosses: Bosses;
+  /** Onglet Triche du menu Échap (et l'invincibilité de la flotte). */
+  private readonly cheats: Cheats;
+  /** Le son en jeu (ambiances, musique, oreille sur la caméra). */
+  private readonly audio: GameAudio;
   private readonly campaign: Campaign;
   private readonly controller: KeyboardController;
   private readonly chaseCamera: ChaseCamera;
+  /** Le joueur peut quitter la barre et se promener sur le pont. */
+  private readonly onFoot: OnFoot;
+  private readonly bossSinking: BossSinking;
   private readonly hud: Hud;
   private readonly radar: Radar;
+  private readonly encounters: EncounterAlerts;
+  private readonly criticals: Criticals;
   private readonly healthBars: HealthBars;
   private readonly bossBar: ObjectiveBar;
   private readonly siegeBar: ObjectiveBar;
   private readonly prompts: ActionPrompts;
+  /** Visée « Trahir » : un clic fait passer un pirate ou un marchand allié à l'ennemi. */
+  private readonly betrayal: BetrayalPicker;
   private readonly portMenu: PortMenu;
   private readonly fpsCounter: FpsCounter;
   /** Décor et navires noyés dans la brume : pas dessinés. */
@@ -110,43 +165,98 @@ export class Game {
 
     this.scene.background = new THREE.Color(SKY.horizonColor);
     this.scene.fog = new THREE.Fog(SKY.horizonColor, WORLD.fogNear, WORLD.fogFar);
-    this.sun.position.copy(sunDirection).multiplyScalar(100);
     this.scene.add(this.ambient, this.sun, this.sky.mesh, this.ocean.mesh, this.projectiles.mesh, this.schoolFx.group);
     const islands = buildIslands(this.scene);
     ({ forts: this.forts, lighthouse: this.lighthouse } = islands);
     for (const decor of islands.decor) this.fogCulling.add(decor);
+    this.halos = new LanternHalos(islands.lanterns);
+    this.lamps = new LampLights(islands.lanterns);
+    this.scene.add(this.halos.mesh, this.lamps.group);
 
-    // On commence avec une chaloupe (comptée comme achetée, pour sa valeur de revente).
-    this.fleet.add('longboat', SHIP_TYPES.longboat.price);
-    const start = tortuga.portSpawn;
-    this.fleet.leader.respawn(start.x, start.z);
-    this.fleet.leader.heading = start.heading;
+    // La flotte de la sauvegarde à charger, ou la chaloupe de départ.
+    this.saves.start(this.fleet);
     this.controller = new KeyboardController(this.fleet.leader.controls);
-    this.chaseCamera = new ChaseCamera(this.camera, this.display.viewport);
+    this.chaseCamera = new ChaseCamera(this.camera, this.display.viewport, (x, y) => this.betrayal.click(x, y, this.camera));
+    this.bossSinking = new BossSinking(this.effects, this.chaseCamera);
     this.hud = new Hud(container);
+    this.cursed = new CursedTide(this.spawner, this.effects, () => this.fleetPower().best, {
+      toast: (text) => this.hud.toast(text, 3),
+    });
+    // On commence la partie à la barre, à la première personne.
+    this.chaseCamera.firstPerson.setActive(true);
+    // Échap souris capturée : le menu s'ouvre dans le même appui ; refermé, on reprend la souris.
+    this.chaseCamera.firstPerson.onEscape = () => ParchmentMenu.pressEscape();
+    ParchmentMenu.onAllClosed = () => this.chaseCamera.firstPerson.capture();
+    this.chaseCamera.firstPerson.onCaptureRefused = () => {
+      if (!ParchmentMenu.anyOpen()) this.hud.toast('Clique dans la vue pour reprendre la barre', 3);
+    };
+    this.onFoot = new OnFoot(this.chaseCamera.firstPerson, this.deckCrew, (text) => this.hud.toast(text, 2));
     const hazards = weatherHazards(this.chaseCamera, this.effects, this.fleet, this.hud, (ship, damage) => this.applyDamage(ship, damage));
-    this.weather = new Weather(this.scene, this.waves, this.ambient, this.sun, hazards);
-    const applyGraphics = () => applyQuality(this.settings.graphics, { display: this.display, ocean: this.ocean, wakes: this.wakes, weather: this.weather });
+    this.weather = new Weather(this.scene, this.waves, this.ambient, this.sun, this.dayCycle, hazards);
+    this.edgeStorm = new EdgeStorm((ship) => {
+      this.effects.impact(this.weather.strikeShip(ship, this.camera, this.fleet.leader));
+      this.applyDamage(ship, ship.stats.maxHealth * WORLD_EDGE.strikeDamage);
+    });
+    const applyGraphics = () => applyQuality(this.settings.graphics, { display: this.display, ocean: this.ocean, wakes: this.wakes, weather: this.weather, lamps: this.lamps });
     applyGraphics();
     this.settings.onChange(applyGraphics);
     this.radar = new Radar(container);
+    this.encounters = new EncounterAlerts(this.hud, this.radar);
+    this.criticals = new Criticals({
+      container,
+      effects: this.effects,
+      hud: this.hud,
+      camera: this.chaseCamera,
+      scene: this.scene,
+      leader: () => this.fleet.leader,
+      struck: (ship) => this.critLoot(ship),
+    });
     this.healthBars = new HealthBars(container);
     this.bossBar = new ObjectiveBar(container, 'boss');
     this.siegeBar = new ObjectiveBar(container, 'siege');
-    const world = { scene: this.scene, ships: this.ships, spawner: this.spawner, forts: this.forts };
+    const world = {
+      scene: this.scene,
+      ships: this.ships,
+      spawner: this.spawner,
+      forts: this.forts,
+      leader: () => this.fleet.leader,
+      wreckLoot: (ship: Ship) => this.wreckLoot(ship),
+      adoptPirate: (ship: Ship) => this.pirates.adopt(ship),
+    };
     this.campaign = new Campaign(this.state, this.fleet, this.hud, world, this.lighthouse, this.spawner);
-    this.fishing = new Fishing(this.fleet, { caught: () => this.campaign.fishCaught(), say: (text) => this.hud.message(text, 2.5) });
+    this.campaign.routes.fishers.schools = this.schools;
+    // Territoires : la Marine apparaît plus souvent dans ses eaux, les pirates sont plus nombreux hors d'elles.
+    const territory = this.campaign.territory;
+    this.spawner.rateAt = (x, z) => TERRITORY.enemyRate[OWNER_KEYS[territory.ownerAt(x, z)]];
+    this.pirates.bonusAt = (x, z) => (territory.ownerAt(x, z) === NAVY ? 0 : TERRITORY.pirateBonus);
+    this.fishing = new Fishing(this.fleet, { caught: () => this.campaign.fishCaught(), say: (text) => this.hud.toast(text, 2.5) });
     this.bosses = new Bosses(this.spawner, {
       appear: (id) => this.hud.message(`☠ ${BOSSES[id].name} approche !`, 5, true),
-      leave: (id) => this.hud.message(`${BOSSES[id].calm} : ${BOSSES[id].name} s'éloigne…`, 4),
+      leave: (id) => this.hud.toast(`${BOSSES[id].calm} : ${BOSSES[id].name} s'éloigne…`, 4),
       vanish: (id) => this.hud.notifications.kill(`${BOSSES[id].name} a disparu dans la brume`),
     });
 
-    const { state, fleet, campaign, hud, wind, spawner, loot, schools, radar, pirates, settings, display } = this;
-    this.portMenu = createMenus({ container, state, fleet, campaign, hud, wind, spawner, loot, schools, radar, pirates, settings, display, takeHelm: (m) => this.takeHelm(m) });
+    const loaded = this.saves.finish({ state: this.state, fleet: this.fleet, campaign: this.campaign, spawner: this.spawner, weather: this.weather, ships: this.ships });
+    if (loaded) this.hud.toast(`Partie chargée : « ${loaded} »`, 3, 'good');
+
+    const { state, fleet, campaign, hud, wind, spawner, loot, planScrolls, schools, radar, pirates, settings, display, saves, dayCycle } = this;
+    this.audio = new GameAudio({ fleet, weather: this.weather, wind, campaign, spawner, bosses: this.bosses, ships: this.ships });
+    const applyVolumes = () => sound.setVolumes(settings.volumes, settings.muted);
+    applyVolumes();
+    settings.onChange(applyVolumes);
+    showWelcome(container, () => this.chaseCamera.firstPerson.capture());
+    this.cheats = new Cheats({ state, fleet, campaign, spawner, cursed: this.cursed, bosses: this.bosses, hud });
+    this.portMenu = createMenus({ container, cheats: this.cheats, state, fleet, campaign, hud, wind, spawner, loot, planScrolls, schools, radar, pirates, settings, display, saves, dayCycle, chaseCamera: this.chaseCamera, takeHelm: (m) => this.takeHelm(m) });
     this.weatherButtons = new WeatherButtons(container, this.weather);
+    this.dayClock = new DayClock(container, this.dayCycle);
     this.fpsCounter = new FpsCounter(container, this.settings, this.display);
-    this.prompts = new ActionPrompts(container, () => this.portMenu.openOn(), () => this.toggleFishing());
+    this.betrayal = new BetrayalPicker(this.display.viewport, new Betrayal(pirates, campaign.merchants, spawner), hud, radar);
+    this.prompts = new ActionPrompts(container, {
+      helm: () => this.onFoot.interact(this.fleet.leader),
+      port: () => this.portMenu.openOn(),
+      fish: () => this.toggleFishing(),
+      betray: () => this.betrayal.toggle(),
+    });
     if (new URLSearchParams(location.search).has('debug')) {
       this.debugUpdate = setupDebug(this.waves, this.fleet.leader);
       // Accès console pour inspecter / faire avancer la simulation pendant les tests.
@@ -155,16 +265,39 @@ export class Game {
 
     addEventListener('keydown', (e) => {
       if (e.repeat) return;
-      // Triche de test : B donne 1000 or et 1000 bois.
+      // Triche de test : B donne 10 000 or et 10 000 bois.
       if (e.code === 'KeyB') {
-        this.state.earn({ gold: 1000, wood: 1000 });
-        this.hud.message('+1000 or et +1000 bois', 1.5);
+        this.state.earn({ gold: 10000, wood: 10000 });
+        this.hud.toast('+10 000 or et +10 000 bois', 1.5, 'good');
+      } else if (e.code === 'KeyN') {
+        // Triche de test : un ennemi apparaît à 300 m, déjà lancé à ta poursuite.
+        if (this.spawner.spawnChaser(this.fleet.leader)) this.hud.toast('Un ennemi te prend en chasse !', 1.5, 'danger');
+        else this.hud.toast('Pas de place pour un ennemi ici (terre ou port trop proche)', 1.5, 'info');
+      } else if (e.code === 'KeyK') {
+        // Triche de test : de nuit, un navire maudit surgit des flots tout près.
+        if (!this.cursed.night) this.hud.toast('Les navires maudits ne surgissent que de nuit', 2, 'info');
+        else this.cursed.summon(this.fleet.leader, 1, CURSED.rankBonus);
       } else if (e.code === 'KeyF') {
         this.toggleFishing();
+      } else if (e.code === 'KeyR') {
+        this.betrayal.toggle();
+      } else if (e.code === 'KeyV' && !ParchmentMenu.anyOpen()) {
+        this.onFoot.toggleView();
+      } else if (e.code === 'KeyE' && !ParchmentMenu.anyOpen()) {
+        this.onFoot.interact(this.fleet.leader);
       }
     });
     addEventListener('resize', () => this.resize());
     this.display.start(this.scene, this.camera, (time) => this.frame(time));
+  }
+
+  /** Un navire hors de ta flotte touché par un coup critique lâche un peu de butin. */
+  private critLoot(ship: Ship) {
+    if (this.fleet.members.some((m) => m.ship === ship)) return;
+    const enemy = this.spawner.enemies.find((e) => e.ship === ship);
+    if (enemy?.cursed) return;
+    const factor = enemy?.lootFactor ?? 1;
+    this.loot.spawnWreckLoot(ship.position.x, ship.position.z, factor * CRIT.lootFactor);
   }
 
   /** Le moteur de rendu (accès console en ?debug pour les tests). */
@@ -177,54 +310,95 @@ export class Game {
     // Menu ouvert = jeu en pause : la simulation est figée, l'affichage continue.
     const paused = ParchmentMenu.anyOpen();
     const elapsed = this.lastTime ? THREE.MathUtils.clamp((timeMs - this.lastTime) / 1000, 0, 0.05) : 0;
-    const dt = paused ? 0 : elapsed;
+    // Roue d'ordres ouverte (T maintenu) : le jeu tourne au ralenti.
+    const dt = paused ? 0 : elapsed * OrderWheel.timeScale();
     this.lastTime = timeMs;
 
     this.waves.time += dt;
     this.wind.update(dt);
-    this.controller.enabled = !paused;
+    // À pied, un matelot tient la barre : cap droit, même voilure.
+    this.controller.enabled = !paused && !this.onFoot.walking;
     this.controller.update(dt);
     this.spawner.update(dt, this.fleet.leader);
+    this.cursed.update(dt, this.fleet.leader, this.fleet.hand);
     this.bosses.update(dt, this.weather, this.fleet.leader, this.fleet.anyAlive());
     this.pirates.update(dt, this.loot.crates, this.schools.list, this.fleet.leader);
     this.schools.update(dt);
     this.fishing.update(dt, this.ships);
-    this.fleet.update(dt, this.loot.crates);
-    for (const ship of this.ships) ship.update(dt, this.waves, this.wind);
+    // Pendant une escorte, les suiveurs entourent le navire à protéger au lieu de te suivre.
+    this.fleet.guarded = this.campaign.escorts().find((s) => s.alive) ?? null;
+    this.fleet.update(dt, this.loot.crates, this.planScrolls.positions);
+    const focus = this.fleet.leader.position;
+    for (const ship of this.ships) {
+      ship.far = Math.hypot(ship.position.x - focus.x, ship.position.z - focus.z) > OCEAN.farShips;
+      ship.update(dt, this.waves, this.wind);
+    }
     resolveCollisions(this.ships, this.effects, (ship, damage, other) => this.applyDamage(ship, damage, other));
     resolveLandCollisions(this.ships);
     this.repairStatus = this.campaign.repairAtPort(dt, this.ships, this.fleet.leader);
     this.campaign.update(dt, this.fleet.leader);
     for (const fort of Object.values(this.forts)) fort.update(dt, this.ships, this.projectiles, this.effects, this.wind);
-    updateCannons(dt, this.ships, this.projectiles, this.effects);
-    const besieged = this.campaign.missions.besieged();
-    this.projectiles.update(dt, this.ships, this.waves, this.effects, (ship, ball) => this.onBallHit(ship, ball), besieged, (fort, ball) => fort.takeDamage(ball.damage));
+    updateCannons(dt, this.ships, this.projectiles, this.effects, this.waves);
+    const besieged = this.campaign.besieged();
+    this.projectiles.update(
+      dt,
+      this.ships,
+      this.waves,
+      this.effects,
+      (ship, ball, rigging) => this.onBallHit(ship, ball, rigging),
+      besieged,
+      (fort, ball) => fort.takeDamage(ball.damage),
+      (ship, ball, damage) => this.onShellBlast(ship, ball, damage),
+    );
     for (const ship of this.ships) this.effects.shipAmbient(dt, ship, this.waves);
     this.effects.update(dt, this.waves, this.ships);
+    this.bossSinking.update(dt);
+    this.criticals.update(dt, this.ships, this.waves);
     this.schoolFx.update(dt, this.schools.list, this.waves);
     this.loot.update(dt, this.ships, this.waves);
+    this.planScrolls.update(dt, this.waves, this.ships, this.fleet.hand);
     this.handleLeaderLoss();
 
     const leader = this.fleet.leader;
     this.ocean.update(leader.position);
     this.wakes.update(this.display.renderer, this.camera, dt, leader.position, this.ships, this.loot.crates, this.schools.list);
-    this.chaseCamera.update(elapsed, leader, this.waves);
+    // Un menu ouvert rend le curseur (première personne).
+    const view = this.chaseCamera.firstPerson;
+    if (paused) view.release();
+    this.onFoot.update(dt, leader);
+    this.chaseCamera.update(elapsed, leader, this.waves, this.onFoot.footEye());
+    // Au Chantier, la vitrine montre le navire de l'extérieur : le barreur reste visible.
+    this.deckCrew.hiddenHelm = view.active && !this.onFoot.walking && !this.chaseCamera.showcase.active ? leader : null;
     this.weather.update(dt, this.camera, this.wind, this.ships, leader);
+    this.edgeStorm.update(dt, this.ships);
     this.fogCulling.update(this.camera, (this.scene.fog as THREE.Fog).far, this.ships);
     this.deckCrew.update(dt, this.camera, this.ships);
     this.weatherButtons.update();
+    this.dayClock.update();
     this.sky.update(this.camera.position);
     this.lighthouse.update(dt, this.camera);
+    // Fanaux et fenêtres : allumés la nuit et par temps sombre.
+    const dark = this.weather.darkness;
+    setNightGlow(dark);
+    this.halos.update(this.camera, this.ships, dark, this.dayCycle.night, (this.scene.fog as THREE.Fog).far);
+    this.lamps.update(dt, this.camera, this.ships, dark, (this.scene.fog as THREE.Fog).far);
     this.hud.update(dt, leader, this.state, this.inCombat(), this.fleet);
-    this.hud.quests.update(dt, this.campaign.contracts, this.fleet, (c) => this.campaign.missions.status(c));
-    this.radar.range = this.campaign.islands.tortuga.radarRange(tortuga.sdf(leader.position.x, leader.position.z)) * this.fleet.radarFactor();
-    this.radar.update(dt, leader, this.spawner.enemies, this.loot.crates, this.wind, this.ships, this.schools.list, this.campaign.escorts());
-    this.healthBars.update(this.camera, this.ships, leader, (this.scene.fog as THREE.Fog).far);
+    this.hud.search.update(this.campaign.treasure.gauge());
+    this.hud.quests.update(dt, this.campaign.contracts, this.fleet, (c) => this.campaign.missions.status(c), () => [...this.campaign.navy.objectives(), ...this.campaign.treasure.objectives()]);
+    this.radar.range = this.campaign.islands.tortuga.radarRange(tortuga.sdf(leader.position.x, leader.position.z)) * this.fleet.radarFactor() * (1 + treasures.radarBonus());
+    // Ce que le radar balaie est découvert sur la carte, pour toujours.
+    this.campaign.discovery.update(leader.position.x, leader.position.z, this.radar.range);
+    this.encounters.update(this.spawner.enemies, leader);
+    this.radar.update(dt, leader, this.spawner.enemies, this.wind, this.ships, this.schools.list, this.campaign.escorts(), this.fleet.traders, this.planScrolls.positions);
+    this.betrayal.update(this.camera, leader, (this.scene.fog as THREE.Fog).far);
+    this.healthBars.update(this.camera, this.ships, leader, (this.scene.fog as THREE.Fog).far, this.spawner.enemies, this.fleet.members);
+    this.healthBars.mark(this.betrayal.marked, this.betrayal.hovered);
     const boss = this.bosses.inSight(leader);
     this.bossBar.update(boss?.boss ? `☠ ${BOSSES[boss.boss].name}` : null, boss ? boss.ship.health / boss.ship.stats.maxHealth : 0);
-    const fort = besieged[0];
+    const fort = this.campaign.objectiveFort(this.camera.position, this.scene.fog as THREE.Fog);
     this.siegeBar.update(fort ? ISLAND_INFO[fort.island].fort.name : null, fort ? fort.health / fort.maxHealth : 0);
     this.updatePrompts();
+    this.audio.update(elapsed, this.camera);
     this.fpsCounter.update();
     this.debugUpdate?.(elapsed);
     this.display.render(this.scene, this.camera);
@@ -235,13 +409,17 @@ export class Game {
     return { ships: this.fleet.hand.length, best: this.fleet.strongest };
   }
 
-  /** Commandes proposées à l'écran : escale près du quai, pêche près d'un banc. */
+  /** Commandes proposées à l'écran : barre (la quitter, la reprendre, haubans), escale près du quai, pêche près d'un banc, trahison d'un allié à portée. */
   private updatePrompts() {
     const fishing = this.fishing.school !== null;
     const school = fishing ? null : this.fishing.schoolInRange(this.schools);
     const fish = fishing ? 'Arrêter la pêche' : school ? 'Pêcher' : null;
     const port = this.campaign.portInRange(this.fleet.leader);
-    this.prompts.update(port ? this.campaign.islands[port.id].info.portName : null, fish, this.fishing.status() ?? this.repairStatus);
+    const view = this.chaseCamera.firstPerson;
+    const look = view.active && !view.locked ? 'Clique dans la vue pour regarder autour de toi' : null;
+    const status = this.betrayal.status ?? this.fishing.status() ?? this.repairStatus ?? this.campaign.navy.status(this.fleet.leader) ?? look;
+    const helm = ParchmentMenu.anyOpen() ? null : this.onFoot.prompt(this.fleet.leader);
+    this.prompts.update({ helm, port: port ? this.campaign.islands[port.id].info.portName : null, fish, betray: this.betrayal.prompt }, status);
   }
 
   private toggleFishing() {
@@ -253,7 +431,7 @@ export class Game {
     const switched = this.fleet.autoSwitch();
     if (switched) {
       this.controller.controls = switched.ship.controls;
-      this.hud.message(`Tu prends la barre de ${switched.name}`, 3);
+      this.hud.toast(`Tu prends la barre de ${switched.name}`, 3);
       return;
     }
     if (!this.fleet.leader.sunk || this.fleet.anyAlive()) return;
@@ -267,23 +445,51 @@ export class Game {
     if (!this.fleet.takeControl(member)) return;
     member.station = null;
     this.controller.controls = member.ship.controls;
-    this.hud.message(`Tu prends la barre de ${member.name}`, 2.5);
+    this.hud.toast(`Tu prends la barre de ${member.name}`, 2.5);
   }
 
-  private onBallHit(ship: Ship, ball: Ball) {
-    this.effects.impact(ball.position);
-    this.applyDamage(ship, ball.damage, ball.owner);
+  /** `rigging` : le boulet est passé dans les voiles ou les mâts (dégâts réduits, seule une voile peut tomber). */
+  private onBallHit(ship: Ship, ball: Ball, rigging: boolean) {
+    // Un obus fait sa propre explosion (Projectiles), et secoue plus fort.
+    if (ball.shell) this.shellShake(ship);
+    else if (rigging) this.effects.riggingHit(ball.position);
+    else this.effects.impact(ball.position);
+    sound.at(rigging ? 'combat/rigging_hit' : 'combat/hit_wood', ball.position, { ref: AUDIO.refs.hit });
+    this.applyDamage(ship, ball.damage * (rigging ? AIM.riggingDamage : 1), ball.owner);
+    if (this.criticals.strike(ship, rigging) === 'magazine') this.applyDamage(ship, ship.stats.maxHealth * CRIT.magazineDamage, ball.owner);
+  }
+
+  /** Souffle d'un obus qui a explosé près d'un navire ennemi (sans coup critique). */
+  private onShellBlast(ship: Ship, ball: Ball, damage: number) {
+    this.shellShake(ship);
+    this.applyDamage(ship, damage, ball.owner);
+  }
+
+  private shellShake(ship: Ship) {
+    if (ship === this.fleet.leader) this.chaseCamera.shake(COMBAT.shellShake);
   }
 
   /** `attacker` : qui a porté le coup (bateau, fort), pour savoir qui a coulé un ennemi ; null pour la foudre et la mer. */
   private applyDamage(ship: Ship, damage: number, attacker: Combatant | null = null) {
+    // Triche : ta flotte ne prend plus aucun dégât.
+    if (this.cheats.invincible && this.fleet.members.some((m) => m.ship === ship)) return;
     const sank = ship.damage(damage);
     const leader = this.fleet.leader;
     if (ship === leader) this.chaseCamera.shake(COMBAT.hitShake);
     if (!sank) return;
     this.effects.wreck(ship.position);
-    if (ship.faction === 'enemy') {
+    sound.at('combat/sinking', ship.position, { ref: AUDIO.refs.sinking });
+    // Ton équipage salue la victoire du navire qui a porté le coup.
+    const victor = this.fleet.members.find((m) => m.ship === attacker);
+    if (victor && ship.faction !== 'player') sound.at('crew/cheer', victor.ship.position);
+    if (ship.faction === 'cursed') {
       this.campaign.enemySunk(ship, attacker);
+      return;
+    }
+    if (ship.faction === 'enemy') {
+      if (this.spawner.enemies.some((e) => e.ship === ship && e.boss)) this.bossSinking.start(ship, leader);
+      this.campaign.enemySunk(ship, attacker);
+      this.planScrolls.claim(this.spawner.enemies.find((e) => e.ship === ship), this.fleet.members.some((m) => m.ship === attacker));
       return;
     }
     // Un navire allié hors de ta flotte (marchand escorté ou des îles) : sa mission ou le trafic s'en charge.
@@ -291,13 +497,21 @@ export class Game {
     if (!member) return;
     this.campaign.memberSunk(member);
     if (ship === leader) this.hud.message(`${this.fleet.controlled.name} sombre…`, 3);
-    else this.hud.message(`${member.name} a coulé. De retour dans ${Math.round(SHIP_TYPES[member.type].respawnTime * this.fleet.respawnFactor)} s.`, 3);
+    else this.hud.toast(`${member.name} a coulé. De retour dans ${Math.round(SHIP_TYPES[member.type].respawnTime * this.fleet.respawnFactor)} s.`, 3.5, 'danger');
+  }
+
+  /** Épave d'un allié hors de ta flotte (pirate, marchand des îles) : le butin d'un navire de son type, comme un ennemi. */
+  private wreckLoot(ship: Ship) {
+    this.loot.spawnWreckLoot(ship.position.x, ship.position.z, SHIP_TYPES[ship.type].lootFactor);
   }
 
   /** Un ennemi est-il dans la zone de tir d'un canon du bateau piloté ? */
   private inCombat(): boolean {
     const leader = this.fleet.leader;
-    return leader.alive && leader.model.cannons.some((m) => findTarget(leader, m.angle, this.ships, cannonStatsOf(leader, m)) !== null);
+    return leader.alive && leader.model.cannons.some((m) => {
+      const c = cannonStatsOf(leader, m);
+      return findTarget(leader, m.angle, this.ships, c, arcOf(m, c)) !== null;
+    });
   }
 
   private resize() {

@@ -27,6 +27,8 @@ class BossEncounter {
   private timer: number | null = null;
   /** Le boss est déjà venu pendant cet épisode. */
   private came = false;
+  /** Surgi par la triche, hors de son temps : il reste jusqu'à ce qu'il coule ou que ta flotte sombre. */
+  private forced = false;
 
   constructor(
     private readonly id: BossId,
@@ -39,7 +41,8 @@ class BossEncounter {
     const def = BOSSES[this.id];
     // Coulé (le spawner l'a retiré) : on l'oublie.
     if (this.boss && !this.spawner.enemies.includes(this.boss)) this.boss = null;
-    const active = weather.target === def.weather;
+    if (!this.boss) this.forced = false;
+    const active = this.forced || weather.target === def.weather;
     if (!active) {
       this.came = false;
       this.timer = null;
@@ -71,6 +74,16 @@ class BossEncounter {
     this.timer = null;
     this.events.appear(this.id);
   }
+
+  /** Triche : il surgit tout de suite, même hors de son temps. */
+  summon(leader: Ship): boolean {
+    if (this.boss) return false;
+    this.boss = this.spawner.spawnBoss(this.id, leader);
+    if (!this.boss) return false;
+    this.forced = true;
+    this.events.appear(this.id);
+    return true;
+  }
 }
 
 /** Tous les boss du jeu (BOSSES) : chacun guette son temps. */
@@ -79,6 +92,12 @@ export class Bosses {
 
   constructor(spawner: EnemySpawner, events: BossEvents) {
     this.encounters = BOSS_IDS.map((id) => new BossEncounter(id, spawner, events));
+  }
+
+  /** Triche : fait surgir ce boss tout de suite, même hors de son temps. */
+  summon(id: BossId, leader: Ship): boolean {
+    const e = this.encounters[BOSS_IDS.indexOf(id)];
+    return !!e && e.summon(leader);
   }
 
   update(dt: number, weather: Weather, leader: Ship, fleetAlive: boolean) {

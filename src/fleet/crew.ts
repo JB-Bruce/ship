@@ -4,6 +4,13 @@ import { gainXp, randomOfficer, type Officer } from './officers';
 
 const ISLAND_IDS = Object.keys(ISLAND_INFO) as IslandId[];
 
+/** Ce qu'une sauvegarde garde de l'équipage. */
+export interface CrewSnapshot {
+  officers: Officer[];
+  candidates: Record<IslandId, Officer[]>;
+  nextId: number;
+}
+
 /**
  * L'équipage de la flotte : les officiers engagés (à bord d'un navire ou à terre), et les candidats de chaque taverne,
  * renouvelés à chaque journée. Un navire a OFFICERS.slots places selon son type.
@@ -12,6 +19,17 @@ export class Crew {
   readonly officers: Officer[] = [];
   readonly candidates = Object.fromEntries(ISLAND_IDS.map((id) => [id, []])) as unknown as Record<IslandId, Officer[]>;
   private nextId = 1;
+
+  /** État à sauvegarder : officiers engagés (et leur navire), candidats des tavernes. */
+  snapshot(): CrewSnapshot {
+    return { officers: this.officers.map((o) => ({ ...o })), candidates: structuredClone(this.candidates), nextId: this.nextId };
+  }
+
+  restore(s: CrewSnapshot) {
+    this.officers.splice(0, this.officers.length, ...s.officers);
+    for (const id of ISLAND_IDS) this.candidates[id] = s.candidates[id] ?? [];
+    this.nextId = s.nextId;
+  }
 
   /** Complète les candidats d'une taverne. */
   fillCandidates(island: IslandId) {

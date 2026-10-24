@@ -2,7 +2,11 @@ import type * as THREE from 'three';
 import { DECK_CREW } from '../config';
 import { isHostile, type Ship } from '../ship/ship';
 import { SailorMeshes } from './sailorMeshes';
+import { hasDeckNav } from './deckNav';
+import type { Sailor } from './sailorMotion';
 import { ShipCrew } from './shipCrew';
+
+const NONE: readonly Sailor[] = [];
 
 /** Intervalle entre deux vérifications « un ennemi est-il proche ? » pour un navire (s). */
 const COMBAT_CHECK = 0.5;
@@ -18,6 +22,10 @@ export class DeckCrew {
   /** Un ennemi est-il proche du navire (vérifié de temps en temps) : prochaine vérification et résultat. */
   private readonly combat = new Map<Ship, { timer: number; value: boolean }>();
   private frame = 0;
+  /** Navire dont on ne dessine pas le barreur : on regarde par ses yeux (vue du barreur). */
+  hiddenHelm: Ship | null = null;
+  /** Le joueur à pied sur un pont (repère du navire) : son équipage s'écarte de lui. */
+  player: { ship: Ship; position: THREE.Vector3 } | null = null;
 
   constructor(
     scene: THREE.Scene,
@@ -29,6 +37,8 @@ export class DeckCrew {
   update(dt: number, camera: THREE.Camera, ships: readonly Ship[]) {
     this.frame++;
     this.meshes.begin();
+    // Calculer le pont d'un nouveau type de navire coûte quelques dizaines de ms : un seul par image.
+    let built = false;
     const range = DECK_CREW.drawDistance * DECK_CREW.drawDistance;
     for (const ship of ships) {
       if (!ship.model.deckPlan) continue;
@@ -36,17 +46,27 @@ export class DeckCrew {
       let crew = this.crews.get(ship);
       if (!crew) {
         if (!near) continue;
+        if (!hasDeckNav(ship.model.deckPlan)) {
+          if (built) continue;
+          built = true;
+        }
         crew = new ShipCrew(ship, this.splash);
         this.crews.set(ship, crew);
       }
       crew.lastSeen = this.frame;
       if (!near) continue;
+      crew.player = this.player?.ship === ship ? this.player.position : null;
       crew.update(dt, this.enemyNear(ship, ships, dt));
       ship.model.root.updateMatrixWorld();
-      crew.draw(this.meshes);
+      crew.draw(this.meshes, ship === this.hiddenHelm);
     }
     this.meshes.end();
     this.crews.forEach(this.forget);
+  }
+
+  /** Les marins de ce navire (aucun s'il n'a pas d'équipage animé en ce moment). */
+  sailorsOf(ship: Ship): readonly Sailor[] {
+    return this.crews.get(ship)?.sailors ?? NONE;
   }
 
   /** Oublie l'équipage d'un navire qui a quitté le monde (coulé, vendu, disparu au large). */

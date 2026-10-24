@@ -1,29 +1,62 @@
-import { BOSSES, ISLAND_INFO, OFFICERS, PORT, type BossId, type IslandId } from './config';
-import { Crew } from './fleet/crew';
+import { BOSSES, ISLAND_INFO, OFFICERS, PORT, TERRITORY, TREASURE, type BossId, type IslandId } from './config';
+import { Crew, type CrewSnapshot } from './fleet/crew';
 import { rankName, rankOf } from './fleet/officers';
 import { refit } from './fleet/refit';
-import { TradeRoutes } from './fleet/tradeRoutes';
+import { TradeRoutes, type RunnerSnapshot } from './fleet/tradeRoutes';
 import { factor } from './progression/modifiers';
+import { blueprints, labelFeminine, revealTypes, shipTypeLabel, type BlueprintsSnapshot } from './progression/blueprints';
 import type { Fleet, FleetMember } from './fleet/fleet';
 import { loseCargo, store } from './fleet/holds';
 import { MissionDirector } from './missions/missionDirector';
+import { TreasureDirector } from './missions/treasure/treasureDirector';
+import { treasures, type TreasuresSnapshot } from './progression/treasures';
 import type { MissionWorld } from './missions/mission';
-import { Contracts, fleetLevel, type Contract, type ContractOptions } from './progression/contracts';
+import { Contracts, fleetLevel, MISSION_KINDS, type Contract, type ContractOptions, type ContractsSnapshot } from './progression/contracts';
 import { Harbor } from './progression/harbor';
-import { IslandState } from './progression/islandState';
-import { Ledger } from './progression/ledger';
+import { IslandState, type IslandSnapshot } from './progression/islandState';
+import { Ledger, type LedgerSnapshot } from './progression/ledger';
+import { MapDiscovery } from './progression/mapDiscovery';
+import { PLAYER, Territory, type Guard } from './progression/territory';
+import { sizeRank } from './shipTypes';
+import { NavyIslands } from './progression/navyIslands';
+import { repairAtPort } from './progression/portRepair';
+import { visitedIslands } from './save/visitedIslands';
 import type { PlayerState } from './progression/playerState';
-import { isHostile, type Combatant, type Ship } from './ship/ship';
-import { SHIP_TYPES } from './shipTypes';
+import type { Combatant, Ship } from './ship/ship';
 import type { Hud } from './ui/hud';
 import type { EnemySpawner } from './world/enemySpawner';
+import type { Fort } from './world/fort';
+import { harbors } from './world/harbors';
 import { MerchantTraffic } from './world/merchantTraffic';
-import { ISLAND_LIST, islandById, type Island } from './world/island';
+import { ISLAND_LIST, islandById, tortuga, type Island } from './world/island';
 import type { Lighthouse } from './world/lighthouse';
 import type { LootKind } from './world/loot';
+import { sound } from './audio/sound';
 
 /** Délai entre deux avertissements « cale pleine » (s). */
 const FULL_WARNING_DELAY = 5;
+/** Volume du son d'une caisse repêchée (plus discret qu'un achat). */
+const PICKUP_VOLUME = 0.7;
+
+/** Ce qu'une sauvegarde garde de la campagne. */
+export interface CampaignSnapshot {
+  islands: Record<IslandId, IslandSnapshot>;
+  lastPort: IslandId;
+  ledger: LedgerSnapshot;
+  contracts: ContractsSnapshot;
+  crew: CrewSnapshot;
+  routes: RunnerSnapshot[];
+  /** Vie des forts de la Marine encore debout (part du maximum), par île qu'elle tient. */
+  navyForts?: Partial<Record<IslandId, number>>;
+  /** Ce que la carte a découvert (voir mapDiscovery.ts) ; absent d'une sauvegarde d'avant la brume de la carte. */
+  discovery?: string;
+  /** Plans de navires (absents avant la v4 : seuls les types de la flotte sont alors connus). */
+  blueprints?: BlueprintsSnapshot;
+  /** Chasses au trésor (absentes avant la v6 : aucune chasse). */
+  treasures?: TreasuresSnapshot;
+  /** Territoires de la mer (absents avant la v8 : partage de départ). */
+  territory?: string;
+}
 
 /**
  * La campagne du joueur, hors du combat lui-même : les îles et leurs ports (escales, rachat, améliorations), le
@@ -31,7 +64,7 @@ const FULL_WARNING_DELAY = 5;
  * navires coulés de part et d'autre).
  */
 export class Campaign {
-  readonly islands: Record<IslandId, IslandState> = { tortuga: new IslandState('tortuga'), sabre: new IslandState('sabre') };
+  readonly islands = Object.fromEntries(ISLAND_LIST.map((i) => [i.id, new IslandState(i.id)])) as Record<IslandId, IslandState>;
   readonly ledger = new Ledger();
   readonly contracts = new Contracts();
   /** Officiers engagés et candidats des tavernes. */
@@ -40,8 +73,19 @@ export class Campaign {
   /** Navires de ta flotte confiés à une route commerciale. */
   readonly routes: TradeRoutes;
   readonly missions: MissionDirector;
+  /** Chasses au trésor en cours. */
+  readonly treasure: TreasureDirector;
   /** Marchands alliés qui laissent de l'or dans la réserve de tes îles. */
   readonly merchants: MerchantTraffic;
+  /** Îles de la Marine (l'Île Royale) : fort, garnison, prise, contre-attaques. */
+  readonly navy: NavyIslands;
+  /** Ce que la carte connaît : au départ, la Tortue et ses abords. */
+  readonly discovery = new MapDiscovery();
+  /** Territoires de la mer : Marine, pirates, toi. */
+  readonly territory: Territory;
+  /** Positions de tes navires à flot et gardes des territoires, refaites à chaque image (sans allocation). */
+  private readonly presence: { x: number; z: number }[] = [];
+  private readonly guards: Guard[] = [{ x: 0, z: 0, radius: TERRITORY.push.guard }];
   /** Dernier port où la flotte a fait escale : elle y réapparaît si elle sombre tout entière. */
   lastPort: IslandId = 'tortuga';
   private fullWarning = 0;
@@ -54,96 +98,177 @@ export class Campaign {
     private readonly lighthouse: Lighthouse,
     private readonly spawner: EnemySpawner,
   ) {
+    this.territory = new Territory(this.islands, {
+      lost: (near) => hud.toast(`⚑ La Marine reprend des eaux au large de ${ISLAND_INFO[near].shortName}`, 4, 'danger'),
+    });
     this.missions = new MissionDirector(world, {
-      say: (text, danger) => hud.message(text, 4, danger),
+      // Les alertes de mission (embuscade, attaque) au centre ; le reste en petit message.
+      say: (text, danger) => (danger ? hud.message(text, 4, true) : hud.toast(text, 4)),
       succeeded: (c) => this.missionSucceeded(c),
       failed: (c, reason) => {
         this.contracts.remove(c);
         hud.message(reason, 4, true);
-        hud.notifications.kill(`✖ Contrat échoué : ${c.title}`);
+        hud.notifications.kill(`✖ Contrat échoué : ${revealTypes(c.title)}`);
       },
     });
+    this.treasure = new TreasureDirector(world, state, {
+      toast: (text, tone) => hud.toast(text, 4, tone),
+      alert: (text, danger) => hud.message(text, 5, danger),
+      log: (text) => hud.notifications.kill(text),
+    });
+    treasures.reset();
     this.routes = new TradeRoutes(fleet, state, this.ledger, this.islands, world.ships, (text) => hud.notifications.kill(text));
     this.harbor = new Harbor(state, fleet, this.islands.tortuga, this.contracts, this.ledger, this.crew, this.routes, {
-      say: (text) => hud.message(text, 2.5),
+      say: (text) => hud.toast(text, 2.5),
       log: (text) => hud.notifications.kill(text),
       islandChanged: (island) => this.applyIsland(island),
       contractOptions: () => this.contractOptions(),
       contractAccepted: (c) => this.missions.start(c),
       contractAbandoned: (c) => this.missions.cancel(c),
+      treasureRumor: (id) => this.treasure.start(id, 'rumor'),
     });
     this.merchants = new MerchantTraffic(world.scene, world.ships, (island) => this.islands[island.id], {
       deposited: () => this.ledger.merchantVisits++,
       sunk: (island) => hud.notifications.kill(`☠ Un marchand allié a sombré au large de ${island.info.shortName}`),
+      wrecked: (ship) => world.wreckLoot(ship),
+    });
+    this.merchants.bonus = () => TERRITORY.merchantBonus * this.territory.share(PLAYER);
+    this.navy = new NavyIslands(this.islands, world, {
+      alert: (text) => hud.message(text, 5, true),
+      toast: (text, tone) => hud.toast(text, 4, tone),
+      changed: (island, captured) => this.navyIslandChanged(island, captured),
+      fleetLevel: () => fleetLevel(fleet.members.map((m) => m.type)),
     });
     for (const island of ISLAND_LIST) {
       this.contracts.refresh(island.id, this.contractOptions());
       this.applyIsland(this.islands[island.id]);
     }
     this.crew.newDay();
+    this.discovery.revealLand(tortuga);
+    // Plans de navires : la chaloupe, et les types de la flotte (de départ, ou de la sauvegarde à reprendre).
+    blueprints.reset(fleet.members.map((m) => m.type));
+  }
+
+  /** Une île de la Marine prise, ou reprise par elle : son fort, sa taverne, et ce qui partait vers son port. */
+  private navyIslandChanged(island: Island, captured: boolean) {
+    this.applyIsland(this.islands[island.id]);
+    if (captured) {
+      this.contracts.refresh(island.id, this.contractOptions());
+      this.hud.notifications.kill(`⚑ ${ISLAND_INFO[island.id].portName} est à toi`);
+      return;
+    }
+    if (this.lastPort === island.id) this.lastPort = 'tortuga';
+    // Les navires en route commerciale vers ce port rejoignent la flotte.
+    for (const m of this.fleet.members) if (m.trade?.ports.includes(island.id)) this.routes.recall(m);
+    this.hud.notifications.kill(`⚑ La Marine a repris ${ISLAND_INFO[island.id].portName}`);
+  }
+
+  /** État à sauvegarder : îles, dernier port, registre, contrats, équipage, routes commerciales. */
+  snapshot(): CampaignSnapshot {
+    const islands = Object.fromEntries(ISLAND_LIST.map((i) => [i.id, this.islands[i.id].snapshot()])) as Record<IslandId, IslandSnapshot>;
+    const { lastPort, ledger, contracts, crew, routes, navy } = this;
+    return { islands, lastPort, ledger: ledger.snapshot(), contracts: contracts.snapshot(), crew: crew.snapshot(), routes: routes.snapshot(), navyForts: navy.snapshot(), discovery: this.discovery.snapshot(), blueprints: blueprints.snapshot(), treasures: treasures.snapshot(), territory: this.territory.snapshot() };
+  }
+
+  /** Reprend une sauvegarde, la flotte déjà rétablie. Les missions en cours (chasse, défense, escorte) recommencent. */
+  restore(s: CampaignSnapshot) {
+    for (const island of ISLAND_LIST) {
+      const state = this.islands[island.id];
+      if (s.islands[island.id]) state.restore(s.islands[island.id]);
+    }
+    this.navy.restore(s.navyForts);
+    for (const island of ISLAND_LIST) this.applyIsland(this.islands[island.id]);
+    if (!this.territory.restore(s.territory)) this.territory.reset();
+    this.lastPort = s.lastPort;
+    this.ledger.restore(s.ledger);
+    this.contracts.restore(s.contracts);
+    this.crew.restore(s.crew);
+    this.routes.restore(s.routes);
+    // Ancienne sauvegarde (ou grille illisible) : la carte connaît les îles déjà visitées.
+    if (!s.discovery || !this.discovery.restore(s.discovery)) for (const id of visitedIslands(s)) this.discovery.revealLand(islandById(id));
+    blueprints.restore(s.blueprints, this.fleet.members.map((m) => m.type));
+    treasures.restore(s.treasures);
+    this.treasure.restore();
+    for (const c of this.contracts.active) {
+      if (MISSION_KINDS.includes(c.kind) && !this.contracts.isDone(c)) this.missions.start(c);
+    }
   }
 
   /** Ce que les contrats peuvent demander, et le niveau de ta flotte (étoiles des offres). */
   private contractOptions(): ContractOptions {
-    return { ...this.spawner.contractOptions(), level: fleetLevel(this.fleet.members.map((m) => m.type)) };
+    return { ...this.spawner.contractOptions(), level: fleetLevel(this.fleet.members.map((m) => m.type)), best: this.fleet.strongest };
   }
 
   /** Les îles produisent même quand tu es au large ; le port où se trouve le bateau piloté devient l'escale. */
   update(dt: number, leader: Ship) {
+    this.ledger.logSailing(leader);
     for (const island of Object.values(this.islands)) island.update(dt);
-    // Nouvelle journée : les tavernes affichent de nouvelles offres du jour.
+    // Nouvelle journée (à l'aube) : les tavernes affichent de nouvelles offres du jour.
     if (this.contracts.tick(dt)) {
       for (const island of ISLAND_LIST) this.contracts.refresh(island.id, this.contractOptions());
       this.crew.newDay();
-      this.hud.notifications.kill('📜 Nouvelle journée : nouvelles offres et nouvelles recrues dans les tavernes');
+      this.hud.notifications.kill('🌅 L’aube se lève : nouvelles offres et nouvelles recrues dans les tavernes');
+      const income = this.territory.dawnIncome();
+      if (income > 0) this.hud.notifications.kill(`⚑ Tes eaux rapportent ${income} or (réserve de tes îles)`);
     }
     this.fullWarning = Math.max(0, this.fullWarning - dt);
     const port = this.portInRange(leader);
     if (port) this.lastPort = port.id;
     this.missions.update(dt);
+    this.treasure.update(dt);
+    this.navy.update(dt, leader);
     this.merchants.update(dt, leader);
     this.routes.update(dt);
+    this.updateTerritory(dt, leader);
   }
 
-  /** Navires alliés hors de ta flotte en jaune sur le radar et la carte : marchand escorté, marchands des îles. */
+  /** Tes navires à flot gagnent du terrain ; le bateau piloté garde ses eaux des poussées de la Marine. */
+  private updateTerritory(dt: number, leader: Ship) {
+    const presence = this.presence;
+    let n = 0;
+    for (const m of this.fleet.hand) {
+      if (!m.inWorld || !m.ship.alive) continue;
+      if (n === presence.length) presence.push({ x: 0, z: 0 });
+      presence[n].x = m.ship.position.x;
+      presence[n].z = m.ship.position.z;
+      n++;
+    }
+    presence.length = n;
+    this.guards[0].x = leader.position.x;
+    this.guards[0].z = leader.position.z;
+    this.territory.update(dt, presence, this.guards);
+  }
+
+  /** Navires à protéger (marchand escorté), en bleu ciel sur le radar et la carte. */
   escorts(): Ship[] {
-    return [...this.missions.escorts(), ...this.merchants.ships];
+    return this.missions.escorts();
   }
 
-  /** L'île dont le port est à portée du bateau (zone d'escale et de réparation), ou null. */
+  /** L'île dont le port (ouvert) est à portée du bateau (zone d'escale et de réparation), ou null. */
   portInRange(ship: Ship): Island | null {
     if (!ship.alive) return null;
-    return ISLAND_LIST.find((i) => Math.hypot(ship.position.x - i.port.x, ship.position.z - i.port.z) < PORT.repairRadius) ?? null;
+    return ISLAND_LIST.find((i) => harbors.isOpen(i.id) && Math.hypot(ship.position.x - i.port.x, ship.position.z - i.port.z) < PORT.repairRadius) ?? null;
   }
 
-  /**
-   * À quai, les navires de la flotte se réparent vite, mais seulement hors combat : aucun ennemi à moins de
-   * PORT.combatRadius du port. Renvoie l'état à afficher pour le bateau piloté abîmé au port, sinon null.
-   */
+  /** Ouvrages que les boulets peuvent toucher : forts assiégés (missions, contre-attaques) et forts de la Marine debout. */
+  besieged(): Fort[] {
+    return this.navy.besieged(this.missions.besieged());
+  }
+
+  /** Fort dont la barre de vie s'affiche : assiégé par une mission, sinon celui d'une île de la Marine. */
+  objectiveFort(eye: { x: number; z: number }, fog: { near: number; far: number }): Fort | null {
+    return this.missions.besieged()[0] ?? this.navy.barFort(eye, fog);
+  }
+
+  /** Réparation rapide à quai (voir portRepair.ts). Renvoie l'état à afficher pour le bateau piloté, sinon null. */
   repairAtPort(dt: number, ships: readonly Ship[], leader: Ship): string | null {
-    let status: string | null = null;
-    for (const island of ISLAND_LIST) {
-      const port = island.port;
-      const inPort = (ship: Ship) => Math.hypot(ship.position.x - port.x, ship.position.z - port.z) < PORT.repairRadius;
-      const threatened = ships.some(
-        (s) => s.alive && isHostile(leader, s) && Math.hypot(s.position.x - port.x, s.position.z - port.z) < PORT.combatRadius,
-      );
-      if (!threatened) {
-        const rate = this.islands[island.id].repairRate;
-        for (const ship of ships) {
-          if (ship.faction !== 'player' || !ship.alive || !inPort(ship)) continue;
-          ship.health = Math.min(ship.stats.maxHealth, ship.health + rate * ship.stats.maxHealth * dt);
-        }
-      }
-      if (leader.alive && inPort(leader) && leader.health < leader.stats.maxHealth) {
-        status = threatened ? 'Réparation suspendue : ennemis près du port' : 'Réparation au quai…';
-      }
-    }
-    return status;
+    return repairAtPort(dt, ships, leader, this.islands, this.spawner.enemies);
   }
 
   /** Effets des améliorations d'une île sur son fort, le phare de la Tortue et la flotte. */
-  private applyIsland(island: IslandState) {
+  applyIsland(island: IslandState) {
+    // Les abords de l'île suivent celui qui la tient (pendant le constructeur, la grille n'existe pas encore).
+    this.territory?.refreshIslands();
     const a = island.fortArmament;
     this.world.forts[island.id].setArmament(a.guns, a.range, a.damage);
     if (island.id === 'tortuga') {
@@ -170,11 +295,11 @@ export class Campaign {
     if (trophy && boss) this.hud.notifications.kill(`☠ Le pavillon de ${BOSSES[boss].name} flotte sous celui de ${member.name}`);
   }
 
-  /** Mission réussie : défense et escorte sont payées sur-le-champ, la chasse se paie à la taverne. */
+  /** Mission réussie : défense, escorte et aide au combat sont payées sur-le-champ, les chasses à la taverne. */
   private missionSucceeded(c: Contract) {
-    if (c.kind === 'hunt') {
+    if (c.kind === 'hunt' || c.kind === 'planHunt') {
       c.progress = c.target;
-      this.hud.notifications.kill(`✔ Contrat rempli : ${c.title} (prime à ${ISLAND_INFO[c.claimAt].portName})`);
+      this.hud.notifications.kill(`✔ Contrat rempli : ${revealTypes(c.title)} (prime à ${ISLAND_INFO[c.claimAt].portName})`);
       return;
     }
     this.contracts.complete(c);
@@ -182,8 +307,8 @@ export class Campaign {
     if (officer) this.hud.notifications.kill(`★ ${officer.name} (${OFFICERS.roles[officer.role].name.toLowerCase()}) rejoint ton équipage`);
     const info = ISLAND_INFO[c.from];
     const place = info.shortName.charAt(0).toUpperCase() + info.shortName.slice(1);
-    const thanks = c.kind === 'defend' ? `${place} a tenu ! ${info.holders} te remercient` : 'Le marchand est arrivé à bon port';
-    this.hud.message(`${thanks} : +${c.reward.gold} or${c.reward.wood ? `, +${c.reward.wood} bois` : ''}`, 4);
+    const thanks = c.kind === 'defend' ? `${place} a tenu ! ${info.holders} te remercient` : c.kind === 'battle' ? 'Victoire ! Les pirates te remercient' : 'Le marchand est arrivé à bon port';
+    this.hud.toast(`${thanks} : +${c.reward.gold} or${c.reward.wood ? `, +${c.reward.wood} bois` : ''}`, 4, 'good');
   }
 
   /** Port de réapparition de la flotte (le dernier port visité). */
@@ -206,10 +331,14 @@ export class Campaign {
       taken = member ? store(member, kind, value) : 0;
       if (taken === 0 && member && this.fullWarning === 0) {
         this.fullWarning = FULL_WARNING_DELAY;
-        this.hud.message(`${member.name} a la cale pleine`, 2);
+        this.hud.toast(`${member.name} a la cale pleine`, 2.5);
       }
     }
-    if (taken > 0) this.hud.notifications.pickup(kind, taken);
+    if (taken > 0) {
+      this.hud.notifications.pickup(kind, taken);
+      // Une caisse repêchée : les pièces tintent, une caisse de marchandises ou de bois craque en s'ouvrant.
+      sound.play(kind === 'gold' ? 'ui/coins' : 'ui/chest_open', { volume: PICKUP_VOLUME });
+    }
     return taken;
   }
 
@@ -233,30 +362,39 @@ export class Campaign {
     const boss = enemy?.boss ?? null;
     const killer = this.fleet.members.find((m) => m.ship === attacker);
     if (killer) this.creditKill(killer, enemy?.boss ?? null);
+    // Une victoire dans les eaux de la Marine fait reculer sa frontière.
+    if (killer && !enemy?.cursed) this.territory.victory(ship.position.x, ship.position.z, sizeRank(ship.type));
     const forts = this.world.forts;
     // Coulé par un allié hors de ta flotte (pirate) : le fil l'indique, mais ce n'est pas ta victoire.
-    const byPirates = !killer && attacker?.faction === 'ally';
+    // Un navire maudit coulé par la Marine n'est pas non plus ta victoire.
+    const byNavy = !killer && !!enemy?.cursed && attacker?.faction === 'enemy';
+    const byPirates = (!killer && attacker?.faction === 'ally') || byNavy;
     const fort = Object.values(forts).find((f) => f === attacker);
     const fortInfo = fort ? ISLAND_INFO[fort.island].fort : null;
     const byFort = fortInfo ? ` par ${fortInfo.feminine ? 'la' : 'le'} ${fortInfo.noun}` : '';
-    const by = killer ? ` par ${killer.name}` : fortInfo ? byFort : byPirates ? ' par des pirates' : '';
+    const by = killer ? ` par ${killer.name}` : fortInfo ? byFort : byNavy ? ' par la Marine' : byPirates ? ' par des pirates' : '';
     if (byPirates && enemy) enemy.uncounted = true;
     if (!byPirates) this.ledger.recordSunk(ship.type, elite, boss);
-    const def = SHIP_TYPES[ship.type];
-    const e = def.feminine ? 'e' : '';
+    const e = labelFeminine(ship.type) ? 'e' : '';
     if (boss) {
       const b = BOSSES[boss];
       const be = b.feminine ? 'e' : '';
       this.hud.notifications.kill(`☠ ${b.name} coulé${be}${by}`);
       this.hud.message(`${b.name} est coulé${be} ! Son pavillon rejoint ton registre.`, 5);
+    } else if (enemy?.cursed) {
+      this.hud.notifications.kill(`☠ ${shipTypeLabel(ship.type)} maudit${e} renvoyé${e} aux abysses${by}`);
     } else if (enemy?.name) {
       this.hud.notifications.kill(`☠ ${enemy.name} coulé${by}`);
     } else {
-      this.hud.notifications.kill(`☠ ${def.name} ennemi${e}${elite ? " d'élite" : ''} coulé${e}${by}`);
+      this.hud.notifications.kill(`☠ ${shipTypeLabel(ship.type)} ennemi${e}${elite ? " d'élite" : ''} coulé${e}${by}`);
     }
-    if (byPirates) return;
+    // Un navire maudit n'est pas de la Marine : il ne compte pas pour les contrats.
+    if (byPirates || enemy?.cursed) return;
+    // Une élite coulée par ta flotte lâche parfois le début d'une chasse au trésor.
+    const hunt = treasures.untouched()[0];
+    if (killer && elite && !boss && hunt && Math.random() < TREASURE.eliteStart) this.treasure.start(hunt, 'elite');
     for (const c of this.contracts.onSunk(ship.type, elite, boss)) {
-      this.hud.notifications.kill(`✔ Contrat rempli : ${c.title} (prime à la taverne)`);
+      this.hud.notifications.kill(`✔ Contrat rempli : ${revealTypes(c.title)} (prime à la taverne)`);
     }
   }
 }

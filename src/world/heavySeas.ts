@@ -17,8 +17,11 @@ export class HeavySeas {
 
   constructor(private readonly onHit: (ship: Ship, bow: THREE.Vector3, damage: number) => void) {}
 
-  /** `intensity` : 0 = mer normale, 1 = grosse tempête (WeatherProfile.seaDamage). */
-  update(dt: number, intensity: number, ships: readonly Ship[], waves: Waves) {
+  /**
+   * `intensity` : 0 = mer normale, 1 = grosse tempête (WeatherProfile.seaDamage) ; `power` multiplie les dégâts d'un
+   * paquet de mer (WeatherProfile.seaPower : vagues de la grande tempête).
+   */
+  update(dt: number, intensity: number, power: number, ships: readonly Ship[], waves: Waves) {
     if (intensity <= 0.05) return;
     const h = WEATHER.heavySeas;
     const crest = waves.maxHeight * h.crest;
@@ -38,7 +41,7 @@ export class HeavySeas {
         continue;
       }
       const scale = Math.min(h.maxScale, h.referenceLength / ship.stats.length);
-      this.onHit(ship, bow, ship.stats.maxHealth * h.damage * scale * intensity);
+      this.onHit(ship, bow, ship.stats.maxHealth * h.damage * scale * intensity * power);
       this.timers.set(ship, rand(h.interval[0], h.interval[1]));
     }
   }

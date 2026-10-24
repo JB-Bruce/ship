@@ -1,0 +1,241 @@
+/* Socle commun des menus refaits (Cabine, lieux du port) : pièces d'interface et effets. */
+
+.kit-icon {
+  width: 1.1em;
+  height: 1.1em;
+  vertical-align: -0.18em;
+  flex: none;
+}
+
+/* Bulle d'aide (kit/tooltip.ts) : une seule, dans sa propre couche. */
+.kit-tip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: none;
+  max-width: 280px;
+  padding: 7px 10px;
+  border-radius: 4px;
+  background: #2a1d12;
+  color: #f1dfb4;
+  font: 15px/1.25 'IM Fell English', Georgia, serif;
+  text-align: center;
+  z-index: 70;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Pastilles de niveau. */
+.kit-pips {
+  display: inline-flex;
+  gap: 4px;
+}
+.kit-pip {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid #5a3b22;
+  box-sizing: border-box;
+}
+.kit-pip.on {
+  background: #c9a24a;
+}
+
+/* Barres de caractéristiques (aperçu après amélioration en vert clair). */
+.kit-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.kit-stat-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 16px;
+}
+.kit-bar {
+  position: relative;
+  height: 9px;
+  border-radius: 5px;
+  background: #d6c49c;
+  overflow: hidden;
+}
+.kit-bar > span {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 5px;
+  transition: width 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+.kit-bar-fill {
+  background: #5a3b22;
+}
+.kit-bar-next {
+  background: rgba(63, 122, 58, 0.45);
+}
+
+/* Jauges pleine largeur. */
+.kit-gauge {
+  display: block;
+  height: 10px;
+  border-radius: 5px;
+  background: #d6c49c;
+  overflow: hidden;
+}
+.kit-gauge > span {
+  display: block;
+  height: 100%;
+  transition: width 0.5s ease;
+}
+.kit-gauge.life > span {
+  background: #3f7a3a;
+}
+.kit-gauge.life.low > span {
+  background: #a8321f;
+}
+.kit-gauge.hold > span {
+  background: #b8862e;
+}
+.kit-gauge.plan > span {
+  background: #9b2f7f;
+}
+.kit-gauge.mission > span {
+  background: #1f4f7a;
+}
+
+/* Prix et coffre. */
+.kit-price {
+  display: inline-flex;
+  gap: 8px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.kit-price-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.kit-price-part.short {
+  color: #a8321f;
+}
+.kit-coffer {
+  display: inline-flex;
+  gap: 16px;
+  font-size: 20px;
+}
+.kit-coffer-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.kit-stars {
+  color: #b07d18;
+  letter-spacing: 1px;
+}
+.kit-stars .off {
+  color: rgba(90, 59, 34, 0.25);
+}
+
+/* Boutons des menus refaits. */
+.kit-btn {
+  font: inherit;
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: 5px;
+  border: 2px solid #5a3b22;
+  background: #5a3b22;
+  color: #f1dfb4;
+  cursor: pointer;
+  transition: filter 0.1s ease, transform 0.1s ease;
+}
+.kit-btn:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+.kit-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+.kit-btn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.kit-btn.red {
+  background: #7a2b1c;
+  border-color: #7a2b1c;
+  color: #f7eed8;
+}
+.kit-btn.ghost {
+  background: transparent;
+  color: #7a2b1c;
+  border-color: #7a2b1c;
+}
+.kit-btn.on {
+  background: #c9a24a;
+  border-color: #f1dfb4;
+  color: #2a1d12;
+}
+
+/* Effets : pièce qui vole, chiffre qui s'envole, coup de tampon. */
+.kit-flying {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  z-index: 60;
+  pointer-events: none;
+}
+.kit-flying .kit-icon {
+  width: 24px;
+  height: 24px;
+}
+.kit-rise {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  pointer-events: none;
+  font: 700 24px 'IM Fell English', Georgia, serif;
+  text-shadow: 0 1px 0 #f7eed8, 0 0 6px rgba(247, 238, 216, 0.9);
+  white-space: nowrap;
+}
+.kit-rise.good {
+  color: #2f6a2a;
+}
+.kit-rise.bad {
+  color: #a8321f;
+}
+.kit-rise.info {
+  color: #5a3b22;
+}
+@keyframes kit-stamp {
+  0% {
+    transform: scale(2.3) rotate(-12deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(0.88);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.fx-stamp {
+  animation: kit-stamp 0.45s ease-out both;
+}
+@keyframes kit-land {
+  0% {
+    transform: translateY(-10px) scale(1.06);
+    opacity: 0;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+.fx-land {
+  animation: kit-land 0.35s ease-out both;
+}

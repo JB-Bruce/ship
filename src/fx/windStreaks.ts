@@ -38,10 +38,11 @@ void main() {
 
 const fragmentShader = /* glsl */ `
 uniform float uOpacity;
+uniform float uBrightness;
 varying float vAlpha;
 void main() {
   if (vAlpha <= 0.0) discard;
-  gl_FragColor = vec4(vec3(1.0), uOpacity * vAlpha);
+  gl_FragColor = vec4(vec3(uBrightness), uOpacity * vAlpha);
   #include <colorspace_fragment>
 }
 `;
@@ -60,6 +61,8 @@ export class WindStreaks {
     uTravel: { value: WEATHER.streakSpeed * WEATHER.streakLife },
     uLength: { value: WEATHER.streakLength },
     uOpacity: { value: WEATHER.streakOpacity },
+    /** Blancheur des filets (1 de jour, moins la nuit : ils ne reçoivent pas les lumières de la scène). */
+    uBrightness: { value: 1 },
   };
 
   constructor() {
@@ -99,10 +102,11 @@ export class WindStreaks {
     this.mesh.geometry.setDrawRange(0, Math.round(WEATHER.streaks * density) * (POINTS - 1) * 2);
   }
 
-  /** `windDirection` : direction vers laquelle souffle le vent (comme Wind.direction). */
-  update(dt: number, camera: THREE.Camera, amount: number, windDirection: number) {
+  /** `windDirection` : direction vers laquelle souffle le vent (comme Wind.direction). `light` : blancheur (plus faible la nuit). */
+  update(dt: number, camera: THREE.Camera, amount: number, windDirection: number, light: number) {
     const u = this.uniforms;
     u.uAmount.value = amount;
+    u.uBrightness.value = light;
     this.mesh.visible = amount > 0.01;
     if (!this.mesh.visible) return;
     // Le temps est compté en vies de filet, et ramené entre 0 et 1 : les nombres restent petits.

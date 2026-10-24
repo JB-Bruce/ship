@@ -15,6 +15,9 @@ export const COLORS = {
   sawdust: new THREE.Color(0xf0c890),
   earth: new THREE.Color(0x6a5034),
   dust: new THREE.Color(0xc9b48a),
+  canvas: new THREE.Color(0xe6dcc4),
+  /** Brume des navires maudits : gris-vert pâle, faiblement lumineux. */
+  mist: new THREE.Color(0x7d9a8a),
 };
 
 export const rand = (min: number, max: number) => min + Math.random() * (max - min);

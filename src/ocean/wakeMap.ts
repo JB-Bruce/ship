@@ -192,6 +192,8 @@ export class WakeMap {
   private collectStamps(ships: readonly Ship[], crates: readonly Crate[], schools: readonly FishSchool[]) {
     this.count = 0;
     for (const ship of ships) {
+      // Un navire maudit sous l'eau (il surgit ou replonge) ne laisse pas de sillage.
+      if (ship.intangible) continue;
       const halfLength = ship.stats.length / 2;
       const halfWidth = ship.stats.width / 2;
       if (!ship.alive) {
@@ -266,7 +268,7 @@ export class WakeMap {
     const distance = this.nearDistance;
     let count = 0;
     for (const ship of ships) {
-      if (!ship.alive) continue;
+      if (!ship.alive || ship.intangible) continue;
       const half = ship.stats.length / 2;
       toShip.subVectors(ship.position, camera.position);
       const d = toShip.length() - half;
@@ -286,10 +288,15 @@ export class WakeMap {
     for (let n = 0; n < count; n++) {
       const ship = near[n]!;
       const strength = wakeStrength(ship);
-      u.uWakeShips.value[n].set(ship.position.x, ship.position.z, Math.sin(ship.heading), Math.cos(ship.heading));
-      u.uWakeHulls.value[n].set(ship.stats.length / 2, ship.stats.width / 2, strength, turnOf(ship));
-      u.uWakeAttitudes.value[n].set(ship.position.y, Math.sin(ship.pitch), Math.sin(ship.roll), (ship.stats.width / 2) * WAKE.hullDraft);
-      const w = ship.model.waterline;
+      // Le liseré suit la partie mouillée de la coque (son centre n'est pas toujours celui du navire).
+      const line = ship.model.waterline;
+      const sin = Math.sin(ship.heading);
+      const cos = Math.cos(ship.heading);
+      const pitch = Math.sin(ship.pitch);
+      u.uWakeShips.value[n].set(ship.position.x + sin * line.center, ship.position.z + cos * line.center, sin, cos);
+      u.uWakeHulls.value[n].set(line.half, line.maxWidth, strength, turnOf(ship));
+      u.uWakeAttitudes.value[n].set(ship.position.y + pitch * line.center, pitch, Math.sin(ship.roll), (ship.stats.width / 2) * WAKE.hullDraft);
+      const w = line.widths;
       u.uWakeProfiles.value[n * 2].set(w[0], w[1], w[2], w[3]);
       u.uWakeProfiles.value[n * 2 + 1].set(w[4], w[5], w[6], w[7]);
     }

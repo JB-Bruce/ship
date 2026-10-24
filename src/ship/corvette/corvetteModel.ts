@@ -1,8 +1,13 @@
 import * as THREE from 'three';
-import type { Livery, ShipStats } from '../../config';
+import { ShipLamps } from '../parts/shipLamps';
+import { corvetteLamps } from './corvetteLamps';
+import { Staysails } from '../parts/staysails';
+import type { Waterline } from '../parts/hullShape';
+import { SAIL_BILLOW, type Livery, type ShipStats, HELM_WHEEL } from '../../config';
 import { wrapAngle } from '../../utils/math';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import { armorFor, cannonMount, fireSpots, mastheadStaff, riggingMaterial, waterMaskMaterial, WavingFlag } from '../parts/common';
+import { addStatics, type LanternSpot } from '../parts/nightGlow';
 import { TornSail } from '../parts/tornSail';
 import type { DeckPlan } from '../deckPlan';
 import type { CannonMount, EnsignStaff, FlagMount, ShipModel } from '../shipModel';
@@ -11,8 +16,6 @@ import { corvetteTemplateFor, type CorvetteTemplate } from './corvetteTemplate';
 
 const { damp } = THREE.MathUtils;
 const RUDDER_MAX_ANGLE = 0.5;
-/** Tours de roue pour un coup de barre complet (rad). */
-const WHEEL_TURNS = 2.6;
 /** Élargissement des voiles carrées par niveau de voilure (en largeur seulement). */
 const SAIL_GROWTH = 0.08;
 /** Bouche des canons : fût de batterie (pivot au sabord), canon sur affût du pont. */
@@ -31,14 +34,17 @@ export class CorvetteModel implements ShipModel {
   readonly root = new THREE.Group();
   readonly cannons: CannonMount[] = [];
   readonly barHeight = 22;
-  waterline!: readonly number[];
+  waterline!: Waterline;
   flagMount!: FlagMount;
   ensignStaff!: EnsignStaff;
   fireSpots!: THREE.Vector3[];
+  lanterns!: LanternSpot[];
   deckPlan!: DeckPlan;
   private layout!: CorvetteLayout;
   /** Tout le navire (le plan courant) ; les drapeaux de rang et les trophées sont posés à côté, sur `root`. */
   private readonly body = new THREE.Group();
+  /** Voiles d'étai entre les mâts (parts/staysails.ts), recréées avec le modèle. */
+  private staysails!: Staysails;
   private tornSail!: TornSail;
   private readonly sails: THREE.Mesh[] = [];
   private readonly yards: THREE.Mesh[] = [];
@@ -53,6 +59,8 @@ export class CorvetteModel implements ShipModel {
   private armor: THREE.Mesh | null = null;
   private sailAmount = 0;
   private sailWidth = 1;
+  /** Niveau de voilure : les voiles d'étai se débloquent avec lui. */
+  private sailLevel = 0;
   /** Côté sous le vent (+1 bâbord, -1 tribord) : focs et brigantine se creusent de ce côté. */
   private leeSide = 1;
   private boomTarget = 0;
@@ -61,6 +69,9 @@ export class CorvetteModel implements ShipModel {
   private armorLevel = 0;
   private damage = 0;
   private flagLift = 0;
+
+  /** Appliques, lampadaires et lanternes suspendues (parts/shipLamps.ts), recréés avec le modèle. */
+  private lamps!: ShipLamps;
 
   constructor(
     stats: ShipStats,
@@ -82,23 +93,27 @@ export class CorvetteModel implements ShipModel {
 
   setSailAmount(amount: number) {
     this.sailAmount = amount;
+    this.tornSail.setDeployment(amount);
     this.applySails();
   }
 
   setSailLevel(level: number) {
     this.sailWidth = 1 + SAIL_GROWTH * level;
+    this.sailLevel = level;
+    this.staysails.setLevel(level);
     this.applySails();
   }
 
   /** Le safran suit la barre, et la roue tourne avec. */
   setRudder(rudder: number) {
     this.rudder.rotation.y = -rudder * RUDDER_MAX_ANGLE;
-    this.wheel.rotation.z = rudder * WHEEL_TURNS;
+    this.wheel.rotation.z = -rudder * HELM_WHEEL.turns;
   }
 
   /** La bôme d'artimon part du côté où va le vent : presque dans l'axe au près, très ouverte au vent arrière. */
   setWind(relativeDirection: number, strength: number) {
     this.flag.setWind(relativeDirection, strength);
+    this.tornSail.setWind(relativeDirection, strength);
     const s = Math.sin(relativeDirection);
     // Hystérésis : au vent arrière pile, rien ne change de bord sans arrêt.
     if (s > 0.15) this.leeSide = 1;
@@ -138,6 +153,8 @@ export class CorvetteModel implements ShipModel {
   }
 
   animate(dt: number) {
+    this.lamps.animate(dt, this.root);
+    this.staysails.apply(this.sailAmount, this.leeSide);
     this.flag.update(dt);
     this.mizzenRig.rotation.y = damp(this.mizzenRig.rotation.y, this.boomTarget, 1.2, dt);
     this.hoist.scale.x = this.leeSide;
@@ -180,11 +197,16 @@ export class CorvetteModel implements ShipModel {
       ] as const).map(([u, side, y]) => [L.base(u), side, y] as const),
     );
     this.tornSail = new TornSail(t.sailMaterial, this.livery.sailEmblem);
-    for (const { geometry, material } of t.statics) this.body.add(new THREE.Mesh(geometry, material));
+    this.lamps = new ShipLamps(corvetteLamps(L), t.palette);
+    this.body.add(this.lamps.object);
+    this.lanterns = [...addStatics(this.body, t.statics), ...this.lamps.lanterns];
+    this.staysails = new Staysails(this.tornSail, [L.foreMast, L.mainMast]);
+    this.body.add(this.staysails.group);
+    this.staysails.setLevel(this.sailLevel);
 
     L.squareSails.forEach((s, i) => {
       // La grand-voile (la plus grande) porte l'emblème de la livrée, s'il y en a un.
-      const sail = new THREE.Mesh(t.squareSails[i], this.tornSail.material(i === MAIN_COURSE ? t.squareSails[i] : undefined));
+      const sail = new THREE.Mesh(t.squareSails[i], this.tornSail.material(t.squareSails[i], 'z', i === MAIN_COURSE));
       sail.position.set(0, s.yardY, s.mastZ + 0.22);
       const yard = new THREE.Mesh(t.yards[i], t.palette.wood);
       yard.position.set(0, s.yardY, s.mastZ + 0.1);
@@ -193,13 +215,13 @@ export class CorvetteModel implements ShipModel {
       this.body.add(sail, yard);
     });
     L.jibs.forEach((j, i) => {
-      const jib = new THREE.Mesh(t.jibs[i], this.tornSail.material());
+      const jib = new THREE.Mesh(t.jibs[i], this.tornSail.material(t.jibs[i], 'x'));
       jib.position.copy(j.tack);
       this.jibs.push(jib);
       this.body.add(jib);
     });
     this.hoist = new THREE.Group();
-    this.hoist.add(new THREE.Mesh(t.mizzenSail, this.tornSail.material()), new THREE.Mesh(t.mizzenGaff, t.palette.wood));
+    this.hoist.add(new THREE.Mesh(t.mizzenSail, this.tornSail.material(t.mizzenSail, 'x', false, SAIL_BILLOW.aftSailCurve)), new THREE.Mesh(t.mizzenGaff, t.palette.wood));
     this.mizzenRig = new THREE.Group();
     this.mizzenRig.add(new THREE.Mesh(t.mizzenBoom, t.palette.wood), this.hoist);
     this.mizzenRig.position.set(0, L.mizzenBoomY, L.mizzenMast.z);
@@ -218,11 +240,14 @@ export class CorvetteModel implements ShipModel {
     this.setCannons(this.perSide);
     this.setArmorLevel(this.armorLevel);
     this.tornSail.setDamage(this.damage);
+    this.tornSail.setDeployment(this.sailAmount);
     this.applySails();
   }
 
   /** Défait ce qui est propre à cette instance (le gabarit, partagé, reste en cache). */
   private disposeParts() {
+    this.lamps.dispose();
+    this.staysails.dispose();
     this.flag.dispose();
     this.tornSail.dispose();
     this.body.clear();
@@ -234,6 +259,7 @@ export class CorvetteModel implements ShipModel {
 
   /** Voiles carrées carguées vers leur vergue (et élargies avec la voilure) ; focs et brigantine réduits. */
   private applySails() {
+    this.staysails.apply(this.sailAmount, this.leeSide);
     const hoisted = 0.1 + 0.9 * this.sailAmount;
     for (const sail of this.sails) sail.scale.set(this.sailWidth, hoisted, 1);
     for (const yard of this.yards) yard.scale.x = this.sailWidth;

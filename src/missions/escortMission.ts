@@ -33,7 +33,7 @@ export class EscortMission implements Mission {
     contract: Contract,
     private readonly onAmbush: () => void,
   ) {
-    this.stars = contract.stars;
+    this.stars = contract.tier ?? contract.stars;
     const from = islandById(contract.from);
     const to = islandById(contract.claimAt);
     this.destination = ISLAND_INFO[to.id].shortName;
@@ -66,8 +66,8 @@ export class EscortMission implements Mission {
     return `${MERCHANT.name} : vie ${health} % · ${Math.round(this.ai.remaining)} m de ${this.destination}`;
   }
 
-  zone(): MapZone | null {
-    return null;
+  zones(): readonly MapZone[] {
+    return [];
   }
 
   /** Une escadre surgit devant le marchand, un peu sur le côté, cap sur lui. */

@@ -2,6 +2,25 @@ import * as THREE from 'three';
 
 /** Nombre de points du profil de flottaison d'une coque (le shader de l'eau en dépend). */
 export const WATERLINE_SAMPLES = 8;
+/** Pas (en u) de la recherche de la partie mouillée d'une coque. */
+const WET_STEP = 0.01;
+
+/**
+ * Flottaison d'une coque, là où elle trempe vraiment (quille sous l'eau) : centre et demi-longueur (m, repère du
+ * bateau), et demi-largeur à y = 0 en WATERLINE_SAMPLES points de la poupe à la proue de cette partie.
+ */
+export interface Waterline {
+  readonly center: number;
+  readonly half: number;
+  readonly widths: readonly number[];
+  /** La plus grande des demi-largeurs. */
+  readonly maxWidth: number;
+}
+/**
+ * Coque à rentrée mesurée en hauteur (flûte) dont la quille remonte au-dessus de l'eau : hauteur (m) du bas arrondi de
+ * la section au-dessus de sa quille, puis du bouchain au-dessus de ce bas.
+ */
+const OVERHANG = { rounding: 0.5, bilge: 0.4 };
 
 /** Une section de coque : [u (-1 poupe → 1 proue), demi-largeur (fraction), hauteur du plat-bord (m), profondeur de quille (m)]. */
 export type StationRow = readonly [number, number, number, number];
@@ -32,6 +51,12 @@ export class HullShape {
      * fraction. 0 = flancs droits (par défaut).
      */
     private readonly tumblehome = 0,
+    /**
+     * Hauteur (m) où la rentrée atteint `tumblehome` : la largeur du bordé ne dépend alors que de la hauteur, pas du
+     * plat-bord, et les flancs restent lisses le long des paliers (dunette, gaillards). Au-dessus, ils continuent de
+     * rentrer, plus doucement. Sans elle, la rentrée se mesure au plat-bord de chaque section.
+     */
+    private readonly tumbleHeight?: number,
   ) {}
 
   /** Gabarit interpolé à la position u ∈ [-1, 1]. */
@@ -144,11 +169,14 @@ export class HullShape {
    * Couvercle invisible tendu sur l'ouverture de la coque, à hauteur du plat-bord.
    * Dessiné dans le tampon de profondeur avant l'océan, il empêche l'eau d'apparaître dans la coque.
    */
-  buildWaterMask(): THREE.BufferGeometry {
+  buildWaterMask(maxHeight = Infinity): THREE.BufferGeometry {
+    // Navire ponté : le masque ne monte pas au-dessus du pont principal (+ une marge). Plus haut, il cacherait l'eau
+    // vue par-dessus un pavois bas (le milieu, entre un gaillard et un château) ; sous lui, le pont cache l'eau.
     const rims = this.rows.map(([u]) => {
       const s = this.stationAt(u);
-      const y = s.gunwale - 0.02;
-      const w = this.halfWidthAt(s, s.gunwale);
+      const top = Math.min(s.gunwale, maxHeight);
+      const y = top - 0.02;
+      const w = this.halfWidthAt(s, top);
       return [new THREE.Vector3(w, y, s.z), new THREE.Vector3(-w, y, s.z)];
     });
     const points: THREE.Vector3[] = [];
@@ -160,20 +188,46 @@ export class HullShape {
   }
 
   /**
-   * Demi-largeur de la coque à la ligne de flottaison (y = 0), en `count` points régulièrement répartis
-   * de la poupe (u = -1) à la proue (u = 1). Sert à faire épouser la coque au liseré d'écume du shader de l'eau.
+   * Flottaison de la coque, pour que le liseré d'écume du shader de l'eau épouse la vraie coque : seulement la partie
+   * qui trempe (une voûte ou un avant dont la quille sort de l'eau n'en fait pas partie), avec sa demi-largeur à
+   * y = 0 (même profil que ring()) en `count` points régulièrement répartis.
    */
-  waterlineProfile(count = WATERLINE_SAMPLES): number[] {
-    // Même profil que ring() : la largeur du bordé à y = 0.
-    return Array.from({ length: count }, (_, i) => this.halfWidthAt(this.stationAt(-1 + (2 * i) / (count - 1)), 0));
+  waterlineProfile(count = WATERLINE_SAMPLES): Waterline {
+    let from = -1;
+    let to = 1;
+    while (from < 1 && this.stationAt(from).keel >= 0) from += WET_STEP;
+    while (to > from && this.stationAt(to).keel >= 0) to -= WET_STEP;
+    const zFrom = this.stationAt(from).z;
+    const zTo = this.stationAt(to).z;
+    const widths = Array.from({ length: count }, (_, i) => this.halfWidthAt(this.stationAt(from + ((to - from) * i) / (count - 1)), 0));
+    return { center: (zFrom + zTo) / 2, half: Math.max(0.5, (zTo - zFrom) / 2), widths, maxWidth: Math.max(...widths) };
   }
 
   /** Profil d'une section (bâbord), du plat-bord vers la quille : [demi-largeur, hauteur]. */
   private profile({ halfWidth: w, gunwale: g, keel: k }: Station): [number, number][] {
     const bilge = this.upperBilge ?? g * 0.35;
     const th = this.tumblehome;
+    const bottom: [number, number][] = [[w * 0.86, k * 0.45], [w * 0.5, k * 0.85]];
+    if (th > 0 && this.tumbleHeight !== undefined) {
+      // Rentrée selon la hauteur : de plus en plus forte jusqu'à tumbleHeight, puis trois fois moins vite.
+      const span = this.tumbleHeight - bilge;
+      const width = (y: number) => {
+        const t = Math.max(0, (y - bilge) / span);
+        return w * Math.max(0.2, 1 - th * (t <= 1 ? t ** 1.5 : 1 + 0.5 * (t - 1)));
+      };
+      // Une quille qui remonte au-dessus de l'eau (voûte de la poupe, avant arrondi) relève le bouchain avec elle : le
+      // bas de la section reste arrondi sous lui.
+      const floor = Math.max(0, k + OVERHANG.rounding);
+      const low = Math.max(bilge, floor + OVERHANG.bilge);
+      const side = (f: number): [number, number] => {
+        const y = low + (g - low) * f;
+        return [width(y), y];
+      };
+      const wb = width(low);
+      return [side(1), side(2 / 3), side(1 / 3), [wb, low], [wb * 0.86, k + (floor - k) * 0.55], [wb * 0.5, k + (floor - k) * 0.15]];
+    }
     const top: [number, number][] = th > 0 ? [[w * (1 - th), g], [w * (1 - th * 0.35), (bilge + g) / 2], [w, bilge]] : [[w, g], [w * 0.98, bilge]];
-    return [...top, [w * 0.86, k * 0.45], [w * 0.5, k * 0.85]];
+    return [...top, ...bottom];
   }
 
   /** Profil d'une section : du plat-bord bâbord au plat-bord tribord, en passant par la quille. */

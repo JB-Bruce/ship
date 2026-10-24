@@ -1,0 +1,455 @@
+/*
+ * Style d'époque, lieu par lieu (voir epoque.css) : chaque menu garde sa matière (livre de bord, mur de planches et
+ * avis cloués, échoppe, carte de l'île, enseignes, roue), passée au parchemin, à l'encre, à la cire et au bois goudronné.
+ */
+
+/* Cadres de bois goudronné et feuilles de parchemin, communs aux lieux. */
+.parchment.cabin-sheet-frame,
+.parchment.tav-frame,
+.parchment.mk-frame,
+.parchment.hm-frame {
+  background: var(--wood);
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.65), inset 0 0 0 3px #150c05, inset 0 0 60px rgba(0, 0, 0, 0.5);
+}
+.cabin-page,
+.yard-panel,
+.tav-slot,
+.tav-recruit,
+.tav-poster,
+.mk-crate,
+.mk-holds,
+.mk-routes,
+.hm-card,
+.hm-pin {
+  color: var(--ink);
+  background: var(--paper);
+  background-size: auto, auto, auto, auto, auto;
+}
+.cabin-page,
+.yard-panel,
+.mk-holds,
+.mk-routes,
+.hm-card {
+  border: none;
+  border-radius: 3px 9px 4px 7px;
+  box-shadow: var(--paper-edge), 0 8px 22px rgba(0, 0, 0, 0.55);
+}
+.cabin-head,
+.tav-head,
+.mk-head,
+.hm-head,
+.yard-top,
+.hub-head {
+  background: rgba(14, 8, 3, 0.7);
+  border-bottom: 1px solid rgba(168, 132, 58, 0.35);
+  color: #e8d3a6;
+}
+.cabin-title,
+.tav-name,
+.mk-title,
+.hm-title,
+.yard-title,
+.hub-title {
+  font-family: 'Pirata One', Georgia, serif;
+  color: #e8d3a6;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Cabine : livre de bord, rubans marque-pages. */
+.cabin-card,
+.cabin-upgrade,
+.cabin-route,
+.cabin-post,
+.cabin-formation,
+.cabin-plan,
+.cabin-trophy {
+  color: var(--ink);
+  background: rgba(255, 246, 220, 0.28);
+  border: 1px solid rgba(58, 36, 18, 0.4);
+  border-radius: 2px 6px 3px 5px;
+  box-shadow: none;
+}
+.cabin-card.here,
+.cabin-formation.on,
+.cabin-trophy.on,
+.cabin-contract.ready {
+  border: 1.5px solid var(--ink-red);
+  background: rgba(168, 40, 28, 0.07);
+}
+.cabin-tab {
+  color: #ecd9b0;
+  background: var(--grain), linear-gradient(#5a3a20, #3e2614);
+  border-radius: 0;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 50%, 100% 100%, 0 100%);
+  font-family: 'IM Fell English SC', Georgia, serif;
+  font-weight: 400;
+}
+.cabin-tab.on {
+  color: #f3dcc4;
+  background: var(--grain), linear-gradient(#8e2418, #6a140c);
+  box-shadow: none;
+}
+.cabin-pick {
+  color: #e8d3a6;
+  background: transparent;
+  border: 1px solid rgba(168, 132, 58, 0.5);
+}
+.cabin-pick.on {
+  color: #2a1a0a;
+  background: linear-gradient(#c9a456, #93722c);
+}
+.cabin-deck {
+  background: var(--grain), repeating-linear-gradient(90deg, #8a6236 0 22px, #7a5430 22px 23px);
+  border: 2px solid #3a2412;
+}
+.cabin-chip,
+.cabin-medal {
+  color: #f3d9c8;
+  background: radial-gradient(circle at 40% 35%, #a8281c, #5a0c06);
+  border-color: #3a0804;
+}
+
+/* Chantier : panneau de parchemin, points de laiton sur le navire. */
+.yard-spot {
+  color: #2a1a0a;
+  background: var(--grain), linear-gradient(#c9a456, #8e6c28);
+  border: 2px solid #3a2810;
+  font-family: 'IM Fell English SC', Georgia, serif;
+  font-weight: 400;
+}
+.yard-spot.on {
+  color: #f3dcc4;
+  background: var(--grain), radial-gradient(circle at 40% 35%, #a8281c, #6a1008);
+}
+.yard-tab,
+.yard-member,
+.yard-shop,
+.yard-choice,
+.yard-part {
+  color: var(--ink);
+  background: rgba(255, 246, 220, 0.3);
+  border: 1px solid rgba(58, 36, 18, 0.45);
+  border-radius: 2px 6px 3px 5px;
+}
+.yard-top .yard-tab {
+  color: #e8d3a6;
+  background: transparent;
+  border-color: rgba(168, 132, 58, 0.5);
+}
+.yard-top .yard-tab.on,
+.yard-member.here,
+.yard-emblem.on {
+  color: #2a1a0a;
+  background: linear-gradient(#c9a456, #93722c);
+}
+
+/* Taverne : mur de planches goudronnées, avis cloués au papier déchiré. */
+.tav-board {
+  border: none;
+  border-radius: 0;
+  background: var(--woodgrain), repeating-linear-gradient(#4a2f1a 0 86px, #1a0f07 86px 89px);
+  box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.6);
+}
+.tav-poster,
+.tav-poster.special {
+  clip-path: polygon(0 3%, 6% 0, 40% 2%, 70% 0, 100% 2%, 98% 40%, 100% 72%, 97% 100%, 60% 97%, 30% 100%, 2% 98%, 0 60%);
+  box-shadow: var(--paper-edge);
+  filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.5));
+}
+.tav-pin {
+  background: radial-gradient(circle at 35% 35%, #6a625a, #2a2420 60%);
+  border-color: #0d0a08;
+}
+.tav-ribbon {
+  color: #f3d9c8;
+  background: var(--wax);
+}
+.tav-kind {
+  font-family: 'IM Fell English SC', Georgia, serif;
+  letter-spacing: 0.14em;
+  color: var(--ink) !important;
+  border-bottom: 1px solid rgba(58, 36, 18, 0.5);
+}
+.tav-seal {
+  background: radial-gradient(circle at 40% 35%, #a8281c, #5a0c06);
+  border-radius: 48% 52% 50% 50%;
+}
+.tav-slot,
+.tav-recruit {
+  border: none;
+  border-radius: 2px 6px 3px 5px;
+  box-shadow: var(--paper-edge);
+}
+.tav-slot.empty {
+  color: #c6a878;
+  background: transparent;
+  border: 1.5px dashed rgba(198, 168, 120, 0.55);
+  box-shadow: none;
+}
+
+/* Comptoir : auvent délavé, caisses étiquetées, cales et routes au parchemin. */
+.mk-frame > .menu-body::before {
+  background: var(--grain), repeating-linear-gradient(90deg, #6e2a1c 0 56px, #cdb98a 56px 112px);
+  opacity: 0.9;
+}
+.mk-crate {
+  border: none;
+  border-radius: 2px 6px 3px 5px;
+  box-shadow: var(--paper-edge), 0 6px 14px rgba(0, 0, 0, 0.45);
+}
+.mk-prices > span {
+  background: rgba(255, 246, 220, 0.35);
+  border-color: rgba(58, 36, 18, 0.45);
+}
+.mk-crate .kit-btn:not(.red),
+.upgrade-menu .kit-btn.mk-trace,
+.mk-plan-foot .kit-btn:not(.ghost) {
+  color: #e6dcc0;
+  background: var(--grain), linear-gradient(#3e5a30, #24381c);
+  border-color: #121c0c;
+}
+.mk-hold-bar {
+  background: transparent;
+  border: 1.4px solid var(--ink);
+  border-radius: 2px 6px 3px 5px;
+}
+.mk-map {
+  border: 1.5px solid var(--ink);
+  background: var(--grain), radial-gradient(ellipse at 50% 50%, #c4c7a4, #a9ac86);
+}
+.mk-land {
+  fill: #dcc28a;
+  stroke: var(--ink);
+}
+.mk-route {
+  stroke: var(--ink-red);
+}
+.mk-route-card {
+  color: var(--ink);
+  background: rgba(255, 246, 220, 0.3);
+  border-color: rgba(58, 36, 18, 0.4);
+}
+.mk-choices .kit-btn:not(.on) {
+  color: var(--ink);
+  background: rgba(255, 246, 220, 0.4);
+  border-color: rgba(58, 36, 18, 0.5);
+}
+
+/* Capitainerie : carte de l'île à l'encre sur parchemin, étiquettes de papier. */
+.hm-mapbox {
+  border: 6px solid #1e120a;
+  background: var(--paper);
+  box-shadow: var(--paper-edge);
+}
+.hm-shallows {
+  fill: rgba(140, 150, 120, 0.25);
+  stroke: var(--ink-soft);
+}
+.hm-sand {
+  fill: #dcc28a;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.hm-green {
+  fill: #c4b178;
+}
+.hm-hill {
+  fill: #ae9860;
+  stroke: var(--ink-soft);
+}
+.hm-pin {
+  border: 1.5px solid var(--ink);
+  border-radius: 2px 6px 3px 5px;
+  box-shadow: var(--paper-edge), 0 3px 6px rgba(0, 0, 0, 0.35);
+}
+.hm-pin.empty,
+.hm-pin.locked {
+  color: var(--ink-pale);
+  border-style: dashed;
+}
+.hm-pin.on {
+  color: #f3dcc4;
+  background: var(--grain), radial-gradient(circle at 40% 35%, #a8281c, #6a1008);
+  border-color: #3a0804;
+}
+.hm-chip {
+  color: #e8d3a6;
+  border-color: rgba(168, 132, 58, 0.6);
+}
+.upgrade-menu .kit-btn.hm-build {
+  color: #f3d9c8;
+  background: var(--grain), radial-gradient(circle at 40% 35%, #a8281c, #6a1008);
+  border-color: #4a0a04;
+}
+.hm-berth {
+  color: var(--ink);
+  background: rgba(47, 74, 36, 0.12);
+  border: 1.5px solid var(--ink-green);
+}
+
+/* Enseignes du port : bois patiné, ferrures aux coins. */
+.hub-sign {
+  color: #ecd9b0;
+  background: radial-gradient(circle at 10px 10px, #2a2420 3px, transparent 4px), radial-gradient(circle at calc(100% - 10px) 10px, #2a2420 3px, transparent 4px),
+    var(--woodgrain), repeating-linear-gradient(0deg, #6e4826 0 26px, #5e3c1e 27px, #6e4826 28px);
+  border: 3px solid #1e120a;
+  border-radius: 4px 10px 6px 8px;
+}
+.hub-sign svg {
+  stroke: #e0c890;
+}
+.hub-sign b {
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+}
+.hub-badge {
+  background: radial-gradient(circle at 40% 35%, #a8281c, #5a0c06);
+  border: 2px solid #3a0804;
+  border-radius: 47% 53% 49% 51% / 52% 46% 54% 48%;
+}
+.hub-chip,
+.hub-keys {
+  border-color: rgba(168, 132, 58, 0.6);
+}
+.hub-bar {
+  background: transparent;
+  border: 1.4px solid #c9a868;
+  border-radius: 2px 6px 3px 5px;
+}
+.hub-bar > span {
+  color: #a8c08a;
+  background: var(--hatch);
+}
+
+/* Roue d'ordres : couronne de bois cerclée de laiton, moyeu de parchemin. */
+.wheel-ring {
+  fill: rgba(30, 18, 8, 0.85);
+  stroke: var(--brass);
+}
+.wheel-hub {
+  fill: #e4cf9c;
+  stroke: var(--brass);
+}
+.wheel-pointer {
+  fill: var(--wax);
+}
+.wheel-seg {
+  color: #e8d3a6;
+  background: var(--woodgrain), radial-gradient(circle at 40% 35%, #5a3a20, #2e1d10);
+  border: 2px solid #6e5428;
+  font-family: 'IM Fell English SC', Georgia, serif;
+  font-weight: 400;
+}
+.wheel-seg.current {
+  border-color: var(--brass);
+}
+.wheel-seg.on {
+  color: #f3dcc4;
+  background: var(--grain), radial-gradient(circle at 40% 35%, #a8281c, #6a1008);
+  border-color: #e0c890;
+  box-shadow: 0 0 18px rgba(168, 40, 28, 0.6);
+}
+.wheel-center {
+  color: var(--ink);
+}
+.wheel-help {
+  color: #e8d3a6;
+  background: rgba(14, 8, 3, 0.75);
+  border: 1px solid rgba(168, 132, 58, 0.4);
+}
+
+/*
+ * Page de la Cabine (elle défile) : sans ombre, qui y laisse des morceaux de l'écran répétés à l'affichage ; le dégradé
+ * du parchemin assombrit déjà les bords, un filet sombre la détache du bois.
+ */
+.cabin-page {
+  box-shadow: none;
+  outline: 2px solid rgba(20, 10, 4, 0.6);
+}
+
+/*
+ * Avis de la taverne : le papier déchiré est dessiné par un fond découpé (::before), pour que la punaise, posée sur le
+ * bord, ne soit pas coupée avec lui.
+ */
+.tav-poster,
+.tav-poster.special {
+  clip-path: none;
+  background: none;
+  box-shadow: none;
+  isolation: isolate;
+}
+.tav-poster::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--paper);
+  box-shadow: var(--paper-edge);
+  clip-path: polygon(0 3%, 6% 0, 40% 2%, 70% 0, 100% 2%, 98% 40%, 100% 72%, 97% 100%, 60% 97%, 30% 100%, 2% 98%, 0 60%);
+}
+.tav-poster.special::before {
+  background: var(--grain), radial-gradient(ellipse at 50% 40%, #f3e6c2, #dcc28c 70%, #b08a48);
+}
+.tav-pin {
+  z-index: 2;
+}
+.tav-trait {
+  font-weight: 700;
+  color: var(--wax);
+}
+.tav-trait-fx {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--ink-green);
+  text-align: center;
+  line-height: 1.15;
+}
+
+/* Un élément qui tremble (refus) ne fait plus apparaître de barre de défilement horizontale. */
+.hm-side,
+.tav-side,
+.mk-route-list,
+.mk-holds,
+.mk-plan,
+.cabin-page,
+.yard-panel {
+  overflow-x: hidden;
+}
+
+/* Taverne : icône à l'encre du genre de mission, à côté de son nom ; pictogramme des recrues sans cadre. */
+.tav-kind,
+.tav-slot-kind {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.tav-type-icon {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tav-slot-kind .tav-type-icon {
+  width: 16px;
+  height: 16px;
+}
+.tav-medal {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Rumeur de trésor : un vieux bout de carte, plus sombre et taché, ruban de cire. */
+.tav-poster.rumor::before {
+  background: var(--grain), radial-gradient(circle at 70% 75%, rgba(90, 50, 16, 0.3) 0, transparent 22%),
+    radial-gradient(ellipse at 50% 40%, #e2cc96, #c2a060 70%, #8a6430);
+}
+.tav-rumor-note {
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-soft);
+}

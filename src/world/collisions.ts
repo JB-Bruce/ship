@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import { RAM } from '../config';
+import { AUDIO, RAM } from '../config';
 import type { Effects } from '../fx/effects';
 import { factor } from '../progression/modifiers';
 import { isHostile, type Ship } from '../ship/ship';
+import { sound } from '../audio/sound';
 
 /** Chaque coque est approchée par 3 cercles le long de la quille (fractions de la longueur). */
 const CIRCLES = [-1 / 3, 0, 1 / 3];
@@ -19,7 +20,7 @@ export function resolveCollisions(ships: readonly Ship[], effects: Effects, onRa
     for (let j = i + 1; j < ships.length; j++) {
       const a = ships[i];
       const b = ships[j];
-      if (!a.alive || !b.alive || a.distanceTo(b) > (a.stats.length + b.stats.length) / 2) continue;
+      if (!a.alive || !b.alive || a.intangible || b.intangible || a.distanceTo(b) > (a.stats.length + b.stats.length) / 2) continue;
       collide(a, b, effects, onRam);
     }
   }
@@ -74,4 +75,5 @@ function collide(a: Ship, b: Ship, effects: Effects, onRam: (ship: Ship, damage:
   a.speed *= Math.max(0, 1 - lost * shareA);
   b.speed *= Math.max(0, 1 - lost * shareB);
   effects.impact(contact);
+  sound.at('combat/ram_crash', contact, { ref: AUDIO.refs.hit });
 }

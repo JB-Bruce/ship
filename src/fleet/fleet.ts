@@ -1,6 +1,7 @@
 import type * as THREE from 'three';
 import { AllyAI } from '../ai/allyAI';
-import { ALLY, FLEET, FORMATION_NAMES, LAND, type BossId, type Cost } from '../config';
+import { FleetOrders } from './fleetOrders';
+import { ALLY, FLEET, FORMATION_NAMES, LAND, type BossId, type Cost, type EmblemId } from '../config';
 import { emptyCargo, type Cargo } from '../progression/goods';
 import { factor, standardGuns, type Guns } from '../progression/modifiers';
 import { noUpgrades, type UpgradeLevels } from '../progression/upgrades';
@@ -8,6 +9,8 @@ import { createShip, type Ship } from '../ship/ship';
 import { SHIP_TYPES, sizeRank, type ShipType } from '../shipTypes';
 import { islandById, land } from '../world/island';
 import type { Crate } from '../world/loot';
+import { guardSlot } from './escortGuard';
+import { formationOffset } from './formations';
 import { freeSpace } from './holds';
 import type { TradeOrder } from './tradeRoutes';
 
@@ -48,6 +51,9 @@ export interface FleetMember {
   readonly hiddenTrophies: Set<BossId>;
   /** Route commerciale confiée à ce navire (il a quitté la flotte et navigue seul), ou null. */
   trade: TradeOrder | null;
+  /** Emblème peint sur sa grande voile (null : aucun), et ceux déjà payés pour lui (y revenir est gratuit). */
+  emblem: EmblemId | null;
+  readonly ownedEmblems: Set<EmblemId>;
 }
 
 /**
@@ -57,21 +63,37 @@ export interface FleetMember {
  */
 export class Fleet {
   readonly members: FleetMember[] = [];
-  /** Les navires qui naviguent avec toi (pas en commerce), tenus à jour sans allocation par image. */
+  /**
+   * Les navires qui naviguent avec toi (pas en commerce), tenus à jour sans allocation par image : ce sont eux qui
+   * occupent tes places de flotte (`PlayerState.slots`) ; ceux en commerce occupent un emplacement de leur île.
+   */
   readonly hand: FleetMember[] = [];
+  /** Les navires en commerce (carte, radar), tenus à jour avec `hand`. */
+  readonly traders: Ship[] = [];
   controlled!: FleetMember;
   formation: Formation = 'vee';
   /** Multiplicateur du délai de réapparition (chantier du port amélioré). */
   respawnFactor = 1;
+  /** Navire à protéger (escorte en cours), ou null : les suiveurs l'entourent au lieu de suivre le bateau piloté. */
+  guarded: Ship | null = null;
+  /** Ordres donnés depuis la roue (T) : attaque d'une cible, ralliement. */
+  readonly orders: FleetOrders;
   private nextId = 1;
 
   constructor(
     private readonly scene: THREE.Scene,
     private readonly ships: Ship[],
-  ) {}
+  ) {
+    this.orders = new FleetOrders(ships);
+  }
 
   get leader(): Ship {
     return this.controlled.ship;
+  }
+
+  /** Ce qu'accompagnent les suiveurs : le navire à protéger s'il y en a un, sinon le bateau piloté. */
+  get anchor(): Ship {
+    return this.guarded ?? this.leader;
   }
 
   /** Ajoute un bateau : le premier est piloté, les suivants arrivent à leur place dans la formation. */
@@ -96,6 +118,8 @@ export class Fleet {
       trophies: [],
       hiddenTrophies: new Set(),
       trade: null,
+      emblem: null,
+      ownedEmblems: new Set(),
     };
     this.members.push(member);
     this.hand.push(member);
@@ -106,6 +130,21 @@ export class Fleet {
       this.respawn(member, 40);
     }
     return member;
+  }
+
+  /**
+   * Reprend un navire d'une sauvegarde (même identifiant) : à flot à `at`, ou en attente de réapparition (null).
+   * Le premier repris devient le bateau piloté, jusqu'à ce que la sauvegarde désigne le bon.
+   */
+  adopt(member: FleetMember, at: { x: number; z: number; heading: number } | null) {
+    this.members.push(member);
+    this.refreshHand();
+    this.nextId = Math.max(this.nextId, member.id + 1);
+    if (this.members.length === 1) this.controlled = member;
+    if (!at) return;
+    this.enterWorld(member);
+    member.ship.respawn(at.x, at.z);
+    member.ship.heading = at.heading;
   }
 
   /** Vend un bateau (jamais celui qu'on pilote). Renvoie ce qu'il rapporte, ou null si impossible. */
@@ -165,8 +204,12 @@ export class Fleet {
     return this.hand.some((m) => m.inWorld && m.ship.alive);
   }
 
-  /** `crates` : le butin qui flotte, que les suiveurs vont ramasser quand il est proche et qu'ils ne se battent pas. */
-  update(dt: number, crates: readonly Crate[]) {
+  /**
+   * `crates` : le butin qui flotte, que les suiveurs vont ramasser quand il est proche et qu'ils ne se battent pas ;
+   * `scrolls` : les rouleaux de plan de navire, qu'ils vont chercher de même.
+   */
+  update(dt: number, crates: readonly Crate[], scrolls: readonly THREE.Vector3[] = []) {
+    this.orders.update(dt, this.leader);
     for (const m of this.members) {
       if (!m.inWorld) {
         m.respawnIn -= dt;
@@ -181,26 +224,34 @@ export class Fleet {
       }
       // Un navire en commerce est mené par sa route (TradeRoutes).
       if (m === this.controlled || !m.ship.alive || m.trade) continue;
-      if (m.station) {
+      // L'escorte passe avant la pêche : le poste est gardé pour après.
+      if (m.station && !this.guarded) {
         m.ai.holdStation(m.station.x, m.station.z, this.ships);
         continue;
       }
       const slot = this.slotPosition(m, dt);
-      m.ai.update(this.leader, slot.x, slot.z, this.ships, this.pickupFor(m, crates));
+      m.ai.update(this.anchor, slot.x, slot.z, this.ships, this.pickupFor(m, crates, scrolls), this.orders);
     }
   }
 
-  /** Le butin le plus proche d'un suiveur, à moins de ALLY.lootRange de lui et pas trop loin du chef, ou null. */
-  private pickupFor(member: FleetMember, crates: readonly Crate[]): THREE.Vector3 | null {
+  /** Le butin le plus proche d'un suiveur, à moins de ALLY.lootRange de lui et pas trop loin de ce qu'il accompagne, ou null. */
+  private pickupFor(member: FleetMember, crates: readonly Crate[], scrolls: readonly THREE.Vector3[]): THREE.Vector3 | null {
     let best: THREE.Vector3 | null = null;
     let bestDistance = ALLY.lootRange;
     const ship = member.ship;
+    const anchor = this.anchor;
     for (const { mesh, kind } of crates) {
       const p = mesh.position;
       // Rhum et épices : seulement s'il reste de la place dans sa cale.
       if ((kind === 'rum' || kind === 'spices') && freeSpace(member) === 0) continue;
       const d = Math.hypot(p.x - ship.position.x, p.z - ship.position.z);
-      if (d >= bestDistance || Math.hypot(p.x - this.leader.position.x, p.z - this.leader.position.z) > ALLY.leash) continue;
+      if (d >= bestDistance || Math.hypot(p.x - anchor.position.x, p.z - anchor.position.z) > ALLY.leash) continue;
+      best = p;
+      bestDistance = d;
+    }
+    for (const p of scrolls) {
+      const d = Math.hypot(p.x - ship.position.x, p.z - ship.position.z);
+      if (d >= bestDistance || Math.hypot(p.x - anchor.position.x, p.z - anchor.position.z) > ALLY.leash) continue;
       best = p;
       bestDistance = d;
     }
@@ -217,41 +268,14 @@ export class Fleet {
   }
 
   /**
-   * Place d'un bateau dans la formation, en coordonnées monde.
+   * Place d'un bateau dans la formation, en coordonnées monde (pendant une escorte : son poste autour du navire protégé).
    * Le décalage est exprimé dans le repère du bateau piloté : vers l'arrière et vers bâbord.
    */
   slotPosition(member: FleetMember, dt = 0): { x: number; z: number } {
     const others = this.hand.filter((m) => m !== this.controlled && m.inWorld);
+    if (this.guarded) return guardSlot(Math.max(0, others.indexOf(member)), others.length, this.guarded, member.ship);
     const rank = Math.max(1, others.indexOf(member) + 1);
-    const pair = Math.ceil(rank / 2);
-    const alternate = rank % 2 === 1 ? 1 : -1;
-    const s = FLEET.spacing;
-    let back = 0;
-    let side = 0;
-    switch (this.formation) {
-      case 'column':
-        back = s * rank;
-        break;
-      case 'line':
-        side = alternate * s * pair;
-        back = 2;
-        break;
-      case 'vee':
-        side = alternate * s * 0.75 * pair;
-        back = s * 0.85 * pair;
-        break;
-      case 'free': {
-        const f = member.freeSlot;
-        f.timer -= dt;
-        if (f.timer <= 0) {
-          f.side = (Math.random() * 2 - 1) * 55;
-          f.back = -25 + Math.random() * 85;
-          f.timer = 15 + Math.random() * 10;
-        }
-        side = f.side;
-        back = f.back;
-      }
-    }
+    const { back, side } = formationOffset(this.formation, rank, member.freeSlot, dt);
     const leader = this.leader;
     const fx = Math.sin(leader.heading);
     const fz = Math.cos(leader.heading);
@@ -270,7 +294,7 @@ export class Fleet {
       return;
     }
     const slot = this.slotPosition(member);
-    const leader = this.leader;
+    const leader = this.anchor;
     const spot = land.keepOffshore(slot.x - Math.sin(leader.heading) * extraBack, slot.z - Math.cos(leader.heading) * extraBack, LAND.allyMargin + 6);
     member.ship.respawn(spot.x, spot.z);
     member.ship.heading = leader.heading;
@@ -291,7 +315,11 @@ export class Fleet {
 
   private refreshHand() {
     this.hand.length = 0;
-    for (const m of this.members) if (!m.trade) this.hand.push(m);
+    this.traders.length = 0;
+    for (const m of this.members) {
+      if (m.trade) this.traders.push(m.ship);
+      else this.hand.push(m);
+    }
   }
 
   private pickName(): string {
