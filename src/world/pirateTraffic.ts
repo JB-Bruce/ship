@@ -29,6 +29,8 @@ export class PirateTraffic {
   readonly pirates: Pirate[] = [];
   private wanted = randInt(PIRATES.count);
   private timer = 0;
+  /** Part de pirates en plus selon les eaux où se trouve le bateau piloté (territoires, posé par `Game`). */
+  bonusAt: (x: number, z: number) => number = () => 0;
 
   constructor(
     private readonly scene: THREE.Scene,
@@ -75,7 +77,7 @@ export class PirateTraffic {
       }
       if (ship.alive) ai.update(dt, this.ships, crates, schools);
     }
-    if (this.pirates.length >= this.wanted) return;
+    if (this.pirates.length >= Math.round(this.wanted * (1 + this.bonusAt(leader.position.x, leader.position.z)))) return;
     this.timer -= dt;
     if (this.timer > 0) return;
     this.timer = this.spawn(leader) ? rand(PIRATES.respawnDelay) : 5;

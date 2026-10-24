@@ -56,6 +56,8 @@ export class EnemySpawner {
   /** Ennemis coulés depuis le début : plus il y en a, plus les nouveaux sont nombreux, améliorés et souvent d'élite. */
   kills = 0;
   private timer = ENEMIES.firstSpawnDelay;
+  /** Rythme des apparitions selon les eaux où se trouve le bateau piloté (territoires, posé par `Game`). */
+  rateAt: (x: number, z: number) => number = () => 1;
 
   constructor(
     private readonly scene: THREE.Scene,
@@ -82,7 +84,7 @@ export class EnemySpawner {
     const room = this.ordinaryGroups() >= this.encounter.groups ? 0 : closeness > 0 ? near.maxAlive - this.ordinaryCount() : Infinity;
     if (room > 0) {
       const night = 1 + (DAY_NIGHT.encounterSlowdown - 1) * conditions.night;
-      this.timer -= dt / ((1 + (near.slowdown - 1) * closeness) * night);
+      this.timer -= (dt * this.rateAt(center.position.x, center.position.z)) / ((1 + (near.slowdown - 1) * closeness) * night);
       if (this.timer <= 0) this.timer = this.spawn(center, room) ? this.nextInterval() : 2;
     }
     for (let i = this.enemies.length - 1; i >= 0; i--) {

@@ -2159,3 +2159,25 @@ body.welcome-open .hud {
 .spyglass.on {
   display: block;
 }
+
+/* Carte M : bouton et légende des territoires. */
+.map-territory-btn {
+  display: block;
+  margin: 4px auto 6px;
+}
+
+.map-territory-legend {
+  margin-bottom: 6px;
+}
+
+.map-territory-legend .t-navy {
+  color: rgb(150, 40, 35);
+}
+
+.map-territory-legend .t-pirate {
+  color: rgb(40, 34, 30);
+}
+
+.map-territory-legend .t-player {
+  color: rgb(40, 110, 70);
+}

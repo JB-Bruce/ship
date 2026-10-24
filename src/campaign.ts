@@ -1,4 +1,4 @@
-import { BOSSES, ISLAND_INFO, OFFICERS, PORT, TREASURE, type BossId, type IslandId } from './config';
+import { BOSSES, ISLAND_INFO, OFFICERS, PORT, TERRITORY, TREASURE, type BossId, type IslandId } from './config';
 import { Crew, type CrewSnapshot } from './fleet/crew';
 import { rankName, rankOf } from './fleet/officers';
 import { refit } from './fleet/refit';
@@ -16,6 +16,8 @@ import { Harbor } from './progression/harbor';
 import { IslandState, type IslandSnapshot } from './progression/islandState';
 import { Ledger, type LedgerSnapshot } from './progression/ledger';
 import { MapDiscovery } from './progression/mapDiscovery';
+import { PLAYER, Territory, type Guard } from './progression/territory';
+import { sizeRank } from './shipTypes';
 import { NavyIslands } from './progression/navyIslands';
 import { repairAtPort } from './progression/portRepair';
 import { visitedIslands } from './save/visitedIslands';
@@ -52,6 +54,8 @@ export interface CampaignSnapshot {
   blueprints?: BlueprintsSnapshot;
   /** Chasses au trésor (absentes avant la v6 : aucune chasse). */
   treasures?: TreasuresSnapshot;
+  /** Territoires de la mer (absents avant la v8 : partage de départ). */
+  territory?: string;
 }
 
 /**
@@ -77,6 +81,11 @@ export class Campaign {
   readonly navy: NavyIslands;
   /** Ce que la carte connaît : au départ, la Tortue et ses abords. */
   readonly discovery = new MapDiscovery();
+  /** Territoires de la mer : Marine, pirates, toi. */
+  readonly territory: Territory;
+  /** Positions de tes navires à flot et gardes des territoires, refaites à chaque image (sans allocation). */
+  private readonly presence: { x: number; z: number }[] = [];
+  private readonly guards: Guard[] = [{ x: 0, z: 0, radius: TERRITORY.push.guard }];
   /** Dernier port où la flotte a fait escale : elle y réapparaît si elle sombre tout entière. */
   lastPort: IslandId = 'tortuga';
   private fullWarning = 0;
@@ -89,6 +98,9 @@ export class Campaign {
     private readonly lighthouse: Lighthouse,
     private readonly spawner: EnemySpawner,
   ) {
+    this.territory = new Territory(this.islands, {
+      lost: (near) => hud.toast(`⚑ La Marine reprend des eaux au large de ${ISLAND_INFO[near].shortName}`, 4, 'danger'),
+    });
     this.missions = new MissionDirector(world, {
       // Les alertes de mission (embuscade, attaque) au centre ; le reste en petit message.
       say: (text, danger) => (danger ? hud.message(text, 4, true) : hud.toast(text, 4)),
@@ -120,6 +132,7 @@ export class Campaign {
       sunk: (island) => hud.notifications.kill(`☠ Un marchand allié a sombré au large de ${island.info.shortName}`),
       wrecked: (ship) => world.wreckLoot(ship),
     });
+    this.merchants.bonus = () => TERRITORY.merchantBonus * this.territory.share(PLAYER);
     this.navy = new NavyIslands(this.islands, world, {
       alert: (text) => hud.message(text, 5, true),
       toast: (text, tone) => hud.toast(text, 4, tone),
@@ -154,7 +167,7 @@ export class Campaign {
   snapshot(): CampaignSnapshot {
     const islands = Object.fromEntries(ISLAND_LIST.map((i) => [i.id, this.islands[i.id].snapshot()])) as Record<IslandId, IslandSnapshot>;
     const { lastPort, ledger, contracts, crew, routes, navy } = this;
-    return { islands, lastPort, ledger: ledger.snapshot(), contracts: contracts.snapshot(), crew: crew.snapshot(), routes: routes.snapshot(), navyForts: navy.snapshot(), discovery: this.discovery.snapshot(), blueprints: blueprints.snapshot(), treasures: treasures.snapshot() };
+    return { islands, lastPort, ledger: ledger.snapshot(), contracts: contracts.snapshot(), crew: crew.snapshot(), routes: routes.snapshot(), navyForts: navy.snapshot(), discovery: this.discovery.snapshot(), blueprints: blueprints.snapshot(), treasures: treasures.snapshot(), territory: this.territory.snapshot() };
   }
 
   /** Reprend une sauvegarde, la flotte déjà rétablie. Les missions en cours (chasse, défense, escorte) recommencent. */
@@ -165,6 +178,7 @@ export class Campaign {
     }
     this.navy.restore(s.navyForts);
     for (const island of ISLAND_LIST) this.applyIsland(this.islands[island.id]);
+    if (!this.territory.restore(s.territory)) this.territory.reset();
     this.lastPort = s.lastPort;
     this.ledger.restore(s.ledger);
     this.contracts.restore(s.contracts);
@@ -194,6 +208,8 @@ export class Campaign {
       for (const island of ISLAND_LIST) this.contracts.refresh(island.id, this.contractOptions());
       this.crew.newDay();
       this.hud.notifications.kill('🌅 L’aube se lève : nouvelles offres et nouvelles recrues dans les tavernes');
+      const income = this.territory.dawnIncome();
+      if (income > 0) this.hud.notifications.kill(`⚑ Tes eaux rapportent ${income} or (réserve de tes îles)`);
     }
     this.fullWarning = Math.max(0, this.fullWarning - dt);
     const port = this.portInRange(leader);
@@ -203,6 +219,24 @@ export class Campaign {
     this.navy.update(dt, leader);
     this.merchants.update(dt, leader);
     this.routes.update(dt);
+    this.updateTerritory(dt, leader);
+  }
+
+  /** Tes navires à flot gagnent du terrain ; le bateau piloté garde ses eaux des poussées de la Marine. */
+  private updateTerritory(dt: number, leader: Ship) {
+    const presence = this.presence;
+    let n = 0;
+    for (const m of this.fleet.hand) {
+      if (!m.inWorld || !m.ship.alive) continue;
+      if (n === presence.length) presence.push({ x: 0, z: 0 });
+      presence[n].x = m.ship.position.x;
+      presence[n].z = m.ship.position.z;
+      n++;
+    }
+    presence.length = n;
+    this.guards[0].x = leader.position.x;
+    this.guards[0].z = leader.position.z;
+    this.territory.update(dt, presence, this.guards);
   }
 
   /** Navires à protéger (marchand escorté), en bleu ciel sur le radar et la carte. */
@@ -233,6 +267,8 @@ export class Campaign {
 
   /** Effets des améliorations d'une île sur son fort, le phare de la Tortue et la flotte. */
   applyIsland(island: IslandState) {
+    // Les abords de l'île suivent celui qui la tient (pendant le constructeur, la grille n'existe pas encore).
+    this.territory?.refreshIslands();
     const a = island.fortArmament;
     this.world.forts[island.id].setArmament(a.guns, a.range, a.damage);
     if (island.id === 'tortuga') {
@@ -326,6 +362,8 @@ export class Campaign {
     const boss = enemy?.boss ?? null;
     const killer = this.fleet.members.find((m) => m.ship === attacker);
     if (killer) this.creditKill(killer, enemy?.boss ?? null);
+    // Une victoire dans les eaux de la Marine fait reculer sa frontière.
+    if (killer && !enemy?.cursed) this.territory.victory(ship.position.x, ship.position.z, sizeRank(ship.type));
     const forts = this.world.forts;
     // Coulé par un allié hors de ta flotte (pirate) : le fil l'indique, mais ce n'est pas ta victoire.
     // Un navire maudit coulé par la Marine n'est pas non plus ta victoire.

@@ -51,6 +51,8 @@ export class MerchantTraffic {
     private readonly islands: (island: Island) => IslandState,
     private readonly events: MerchantEvents,
   ) {}
+  /** Part de marchands en plus (selon l'étendue de tes eaux, posé par `Campaign`). */
+  bonus: () => number = () => 0;
 
   /**
    * Retire un marchand encore à flot sans naufrage ni épave (il passe à l'ennemi : trahison) ; sa place au mouillage
@@ -88,8 +90,10 @@ export class MerchantTraffic {
         continue;
       }
       const count = this.merchants.filter((m) => m.island === island).length;
-      const spawned = count < ISLAND_TRADE.maxPerIsland && this.spawn(island, leader);
-      this.timers.set(island, spawned ? state.merchantInterval : 5);
+      // Plus tes eaux s'étendent, plus les marchands sont nombreux.
+      const more = 1 + this.bonus();
+      const spawned = count < Math.round(ISLAND_TRADE.maxPerIsland * more) && this.spawn(island, leader);
+      this.timers.set(island, spawned ? state.merchantInterval / more : 5);
     }
   }
 

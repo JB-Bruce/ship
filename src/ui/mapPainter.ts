@@ -8,6 +8,7 @@ import { LANDMARKS } from '../world/landmarks';
 import type { Crate, LootKind } from '../world/loot';
 import type { Wind } from '../world/wind';
 import type { MapFog } from './mapFog';
+import type { TerritoryLayer } from './territoryLayer';
 import type { MapFrame } from './mapView';
 import { INK, paintCompass, paintDiamond, paintLandmark, paintScale, paintShip } from './mapGlyphs';
 
@@ -37,6 +38,8 @@ export interface MapData {
   known: { minX: number; maxX: number; minZ: number; maxZ: number } | null;
   /** Ports où toucher une prime ou que vise un contrat suivi : dessinés par-dessus la brume, comme les zones et les escortes. */
   objectivePorts: readonly IslandId[];
+  /** Calque des territoires (montré ou non par le bouton « Territoires »). */
+  territory: TerritoryLayer;
 }
 
 const COLORS = {
@@ -128,6 +131,7 @@ export function paintMap(ctx: CanvasRenderingContext2D, width: number, height: n
   }
   ctx.stroke();
 
+  data.territory.paint(ctx, width, height, { midX, midZ, scale });
   for (const land of LAND_LIST) paintIsland(ctx, land, toX, toY, scale);
   paintStormEdge(ctx, toX, toY, scale);
   // Une seule écriture par île : le nom de son port (sinon celui de l'île, voir paintIsland). Port de la Marine en rouge.

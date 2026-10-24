@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { fragmentHtml } from './ui/unlockPanel';
-import { AIM, AUDIO, BLUEPRINTS, BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, CURSED, HELM_VIEW, ISLAND_INFO, OCEAN, SKY, WORLD, WORLD_EDGE, type IslandId } from './config';
+import { AIM, AUDIO, BLUEPRINTS, BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, CURSED, HELM_VIEW, ISLAND_INFO, OCEAN, SKY, TERRITORY, WORLD, WORLD_EDGE, type IslandId } from './config';
+import { NAVY, OWNER_KEYS } from './progression/territory';
 import { Campaign } from './campaign';
 import { ChaseCamera } from './camera/chaseCamera';
 import { arcOf, cannonStatsOf, findTarget, updateCannons } from './combat/cannons';
@@ -224,6 +225,10 @@ export class Game {
     };
     this.campaign = new Campaign(this.state, this.fleet, this.hud, world, this.lighthouse, this.spawner);
     this.campaign.routes.fishers.schools = this.schools;
+    // Territoires : la Marine apparaît plus souvent dans ses eaux, les pirates sont plus nombreux hors d'elles.
+    const territory = this.campaign.territory;
+    this.spawner.rateAt = (x, z) => TERRITORY.enemyRate[OWNER_KEYS[territory.ownerAt(x, z)]];
+    this.pirates.bonusAt = (x, z) => (territory.ownerAt(x, z) === NAVY ? 0 : TERRITORY.pirateBonus);
     this.fishing = new Fishing(this.fleet, { caught: () => this.campaign.fishCaught(), say: (text) => this.hud.toast(text, 2.5) });
     this.bosses = new Bosses(this.spawner, {
       appear: (id) => this.hud.message(`☠ ${BOSSES[id].name} approche !`, 5, true),

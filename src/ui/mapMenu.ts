@@ -3,6 +3,8 @@ import type { Fleet } from '../fleet/fleet';
 import type { Ship } from '../ship/ship';
 import type { MapZone } from '../missions/mission';
 import type { MapDiscovery } from '../progression/mapDiscovery';
+import { NAVY, PIRATE, PLAYER, type Territory } from '../progression/territory';
+import { TerritoryLayer } from './territoryLayer';
 import type { Enemy } from '../world/enemySpawner';
 import type { FishSchool } from '../world/fishSchools';
 import { tortuga } from '../world/island';
@@ -41,6 +43,8 @@ export interface MapSource {
   readonly discovery: MapDiscovery;
   /** Ports où toucher une prime ou que vise un contrat suivi. */
   objectivePorts(): readonly IslandId[];
+  /** Territoires de la mer (Marine, pirates, toi). */
+  readonly territory: Territory;
 }
 
 /** Texte sous la carte : commandes, puis part de la mer découverte. */
@@ -56,6 +60,9 @@ export class MapMenu extends ParchmentMenu {
   private readonly hint = document.createElement('p');
   private readonly view: MapView;
   private readonly fog: MapFog;
+  private readonly territory: TerritoryLayer;
+  private readonly territoryButton = document.createElement('button');
+  private readonly territoryLegend = document.createElement('div');
 
   constructor(
     parent: HTMLElement,
@@ -84,7 +91,14 @@ export class MapMenu extends ParchmentMenu {
       <span><b class="navy">♛</b> Port de la Marine</span>
       <span><b class="unknown">▒</b> Mer inconnue</span>`;
     this.hint.className = 'map-hint';
-    this.body.append(this.canvas, this.hint, legend);
+    this.territory = new TerritoryLayer(source.territory);
+    this.territoryButton.className = 'kit-btn small ghost map-territory-btn';
+    this.territoryButton.addEventListener('click', () => {
+      this.territory.shown = !this.territory.shown;
+      this.render();
+    });
+    this.territoryLegend.className = 'map-legend map-territory-legend';
+    this.body.append(this.canvas, this.hint, this.territoryButton, this.territoryLegend, legend);
     this.fog = new MapFog(source.discovery);
     this.view = new MapView(this.canvas, () => this.render(), () => this.source.fleet.leader.position);
     window.addEventListener('keydown', (e) => {
@@ -124,6 +138,13 @@ export class MapMenu extends ParchmentMenu {
     const source = this.source;
     const discovery = source.discovery;
     this.hint.textContent = `${HINT} · mer découverte : ${Math.round(discovery.share * 100)} %`;
+    const shown = this.territory.shown;
+    const t = source.territory;
+    const pct = (k: typeof NAVY) => `${Math.round(t.share(k) * 100)} %`;
+    this.territoryButton.textContent = shown ? 'Cacher les territoires' : 'Territoires';
+    this.territoryButton.classList.toggle('on', shown);
+    this.territoryLegend.hidden = !shown;
+    this.territoryLegend.innerHTML = `<span><b class="t-player">■</b> Tes eaux ${pct(PLAYER)}</span><span><b class="t-pirate">■</b> Pirates ${pct(PIRATE)}</span><span><b class="t-navy">■</b> Marine ${pct(NAVY)}</span>`;
     this.view.frame = paintMap(ctx, width, height, {
       leader,
       allies,
@@ -142,6 +163,7 @@ export class MapMenu extends ParchmentMenu {
       fog: this.fog,
       known: discovery.bounds(),
       objectivePorts: source.objectivePorts(),
+      territory: this.territory,
     });
   }
 

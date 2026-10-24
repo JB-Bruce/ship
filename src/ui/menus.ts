@@ -156,6 +156,7 @@ export function createMenus(w: MenuWorld): PortMenu {
     pirates: () => [...w.pirates.pirates.map((p) => p.ship), ...campaign.merchants.ships, ...campaign.missions.allies()],
     discovery: campaign.discovery,
     objectivePorts: () => contracts.active.map((c) => c.claimAt),
+    territory: campaign.territory,
   });
   new SettingsMenu(container, { settings: w.settings, display: w.display, saves: w.saves, clock: w.dayCycle, cheats: w.cheats });
   return portMenu;

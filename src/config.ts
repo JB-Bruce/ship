@@ -3068,6 +3068,46 @@ export const ISLAND_UPGRADES = {
  * Routes commerciales confiées à tes navires (Comptoir du port). Un navire en commerce quitte tes places de flotte
  * et prend un emplacement de l'île d'où il part (une île à toi) ; on le reprend à son port, s'il reste une place.
  */
+/**
+ * Territoires de la mer (`progression/territory.ts`, carte M : `ui/territoryLayer.ts`) : une grille de cases de `cell` m,
+ * chacune à la Marine, aux pirates ou à toi. Les abords de chaque île à port (jusqu'à `islandHold` m de sa côte) sont à
+ * celui qui tient l'île, et ne changent qu'avec elle. Au départ : une zone à toi autour de la Tortue, une zone pirate autour
+ * de Port-Sabre (rayons `start`, en m depuis le centre de l'île, rendus irréguliers par `noise`), la Marine partout ailleurs.
+ */
+export const TERRITORY = {
+  cell: 80,
+  islandHold: 350,
+  start: { player: { island: 'tortuga', radius: 1100 }, pirate: { island: 'sabre', radius: 1600 } } as const,
+  /** Bruit qui déforme les zones et les cercles d'influence : [longueur d'onde (m), poids] par octave ; `amount` : part du rayon. */
+  noise: { octaves: [[700, 1], [260, 0.45]] as const, amount: 0.4 },
+  /**
+   * Présence de ta flotte (navires à flot de `Fleet.hand`) : chaque case de la Marine à moins de `radius` m se remplit
+   * de `rate` par seconde au centre (moins au bord, inégalement), et bascule à toi une fois pleine ; une case laissée
+   * se vide de `decay` par seconde. Calculé toutes les `step` s.
+   */
+  presence: { radius: 320, rate: 1 / 75, decay: 1 / 400, step: 0.5 },
+  /** Un navire de la Marine coulé dans ses eaux pousse la frontière : remplissage `amount` sur `radius` m + `perRank` × son rang. */
+  victory: { amount: 0.7, radius: 150, perRank: 45 },
+  /**
+   * Poussées : toutes les `interval` s, un morceau de frontière au hasard avance (rayon `radius` m). D'abord, la Marine
+   * contre toi (chance `player`) ou entre Marine et pirates ; là, la Marine gagne `navyWins` fois sur 1. Rien ne bouge à
+   * moins de `guard` m du bateau piloté (ni, plus tard, de tes navires de garde). Recherche : `tries` cases tirées.
+   */
+  push: { interval: [120, 240] as const, radius: [100, 220] as const, player: 0.55, navyWins: 0.6, guard: 450, tries: 600 },
+  /** Revenu de tes eaux, à l'aube : `perCell` or par case, entre `min` et `max`, dans la réserve de l'île à toi la plus proche. */
+  income: { perCell: 0.5, min: 50, max: 2000 },
+  /** Apparitions des ennemis ordinaires selon les eaux où tu navigues (× le rythme). */
+  enemyRate: { navy: 1.3, pirate: 0.6, player: 0.4 },
+  /** Pirates alliés en plus selon ta part et celle des pirates (× `PIRATES.count`) ; marchands alliés en plus selon ta part. */
+  pirateBonus: 1.2,
+  merchantBonus: 2,
+  /**
+   * Calque de la carte (`ui/territoryLayer.ts`) : texel du dessin (m), flou de la limite (en cases), lavis et encre de
+   * chaque camp, largeur du trait de frontière (en part du champ flouté).
+   */
+  map: { texel: 20, blur: 1.2, line: 0.07, wash: 0.22, colors: { navy: [150, 40, 35], pirate: [40, 34, 30], player: [40, 110, 70] } as const },
+};
+
 export const TRADE_ROUTES = {
   /** Emplacements d'une île à toi sans Mouillage (ISLAND_UPGRADES.moorings ensuite). */
   islandSlots: 1,

@@ -20,8 +20,9 @@ import type { WeatherKind } from '../world/weather';
  * quelle : ses routes continuent.
  * v6 : chasses au trésor (`CampaignSnapshot.treasures`, optionnel). Une v5 se charge telle quelle : aucune chasse.
  * v7 : navires de pêche (`TradeOrder.fishing`, optionnel). Une v6 se charge telle quelle : aucun pêcheur.
+ * v8 : territoires de la mer (`CampaignSnapshot.territory`, optionnel). Une v7 se charge avec le partage de départ.
  */
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 /** Facteur appliqué au chargement à la vie à flot d'une sauvegarde de cette version. */
 export const healthScaleOf = (version: number) => (version < 3 ? 2 : 1);
 /** Marque des fichiers de sauvegarde du jeu (pour refuser un fichier qui n'en est pas une). */
