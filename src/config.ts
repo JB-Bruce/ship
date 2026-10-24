@@ -3077,6 +3077,12 @@ export const TRADE_ROUTES = {
   stay: [10, 16] as const,
   /** Voilure en route (fraction). */
   sail: 0.8,
+  /**
+   * Navires de pêche (`fleet/fishingRuns.ts`) : ils vont au banc le plus proche de leur port d'attache, à moins de
+   * `range` m, et pêchent comme ta flotte (FISHING.catchInterval × filets) jusqu'à cale pleine ; sans banc à portée, ils
+   * attendent au port `retry` s avant de chercher encore. Le poisson est vendu au port d'attache, l'or va dans sa réserve.
+   */
+  fishing: { range: 1800, retry: 20 },
 };
 
 /**

@@ -11,6 +11,7 @@ import type { Ship } from '../ship/ship';
 import { SHIP_TYPES } from '../shipTypes';
 import { islandById } from '../world/island';
 import type { Fleet, FleetMember } from './fleet';
+import { FishingRuns, type FishingRunner } from './fishingRuns';
 import { freeSpace, store } from './holds';
 
 /** Route confiée à un navire : ses deux ports, la marchandise chargée à chacun pour l'autre (null = à vide), l'étape en cours. */
@@ -23,19 +24,20 @@ export interface TradeOrder {
   returning?: boolean;
   /** Nouvelle destination choisie de loin pendant le retour : elle prend effet à son île d'attache. */
   nextTo?: IslandId;
+  /** Navire de pêche (`fleet/fishingRuns.ts`) : ses deux ports sont son île d'attache, il va au banc et revient. */
+  fishing?: boolean;
 }
 
 /** Ce qu'une sauvegarde garde d'un navire en commerce (sa route est dans `FleetMember.trade`). */
 export interface RunnerSnapshot {
   memberId: number;
-  phase: 'docked' | 'sailing' | 'lost';
+  phase: 'docked' | 'sailing' | 'fishing' | 'lost';
   stay: number;
   load: { good: Good; amount: number; cost: number } | null;
 }
 
-interface Runner {
+interface Runner extends FishingRunner {
   readonly member: FleetMember;
-  phase: 'docked' | 'sailing' | 'lost';
   ai: MerchantAI | null;
   /** Temps restant à quai (chargement). */
   stay: number;
@@ -56,6 +58,8 @@ const rand = ([min, max]: readonly [number, number]) => min + Math.random() * (m
  */
 export class TradeRoutes {
   private readonly runners: Runner[] = [];
+  /** Les navires de pêche (leurs bancs sont posés par `Game` : `fishers.schools`). */
+  readonly fishers: FishingRuns;
 
   constructor(
     private readonly fleet: Fleet,
@@ -64,7 +68,9 @@ export class TradeRoutes {
     private readonly islands: Record<IslandId, IslandState>,
     private readonly ships: readonly Ship[],
     private readonly say: (text: string) => void,
-  ) {}
+  ) {
+    this.fishers = new FishingRuns(islands, ledger, ships, say);
+  }
 
   /** État à sauvegarder : où en est chaque navire en commerce. */
   snapshot(): RunnerSnapshot[] {
@@ -79,8 +85,12 @@ export class TradeRoutes {
     for (const s of list) {
       const member = this.fleet.members.find((m) => m.id === s.memberId);
       if (!member?.trade || this.runner(member)) continue;
-      const r: Runner = { member, phase: s.phase, ai: null, stay: s.stay, load: s.load && { ...s.load } };
+      const r: Runner = { member, phase: s.phase, ai: null, stay: s.stay, load: s.load && { ...s.load }, trip: null };
       this.runners.push(r);
+      if (member.trade.fishing) {
+        this.fishers.restore(r, member.trade.ports[0]);
+        continue;
+      }
       if (r.phase !== 'sailing') continue;
       const to = islandById(member.trade.ports[1 - member.trade.leg]);
       const here = { x: member.ship.position.x, z: member.ship.position.z };
@@ -136,7 +146,15 @@ export class TradeRoutes {
   start(member: FleetMember, from: IslandId, to: IslandId, out: Good | null, back: Good | null): boolean {
     if (from === to || this.runner(member) || this.freeSlots(from) <= 0) return false;
     if (!this.fleet.setTrade(member, { ports: [from, to], goods: [out, back], leg: 0 })) return false;
-    this.runners.push({ member, phase: 'docked', ai: null, stay: TRADE_ROUTES.loadTime, load: null });
+    this.runners.push({ member, phase: 'docked', ai: null, stay: TRADE_ROUTES.loadTime, load: null, trip: null });
+    return true;
+  }
+
+  /** Confie un navire pêcheur (`canFish`, pas celui qu'on pilote) à la pêche depuis le port `from`, où il se trouve. */
+  startFishing(member: FleetMember, from: IslandId): boolean {
+    if (!SHIP_TYPES[member.type].canFish || this.runner(member) || this.freeSlots(from) <= 0) return false;
+    if (!this.fleet.setTrade(member, { ports: [from, from], goods: [null, null], leg: 0, fishing: true })) return false;
+    this.runners.push({ member, phase: 'docked', ai: null, stay: TRADE_ROUTES.loadTime, load: null, trip: null });
     return true;
   }
 
@@ -172,7 +190,7 @@ export class TradeRoutes {
   modify(member: FleetMember, to: IslandId, out: Good | null, back: Good | null): boolean {
     const order = member.trade;
     const r = this.runner(member);
-    if (!order || !r) return false;
+    if (!order || !r || order.fishing) return false;
     const home = order.ports[0];
     if (to === home) return false;
     const rerouted = to !== order.ports[1] && order.leg === 0;
@@ -192,6 +210,7 @@ export class TradeRoutes {
     const r = this.runner(member);
     const order = member.trade;
     if (!r || !order) return '';
+    if (order.fishing && member.inWorld && member.ship.alive) return this.fishers.status(r, order.ports[0]);
     const here = ISLAND_INFO[order.ports[order.leg]].shortName;
     const there = ISLAND_INFO[order.ports[1 - order.leg]].shortName;
     if (!member.inWorld) return `Coulé · de retour à ${here} dans ${Math.ceil(member.respawnIn)} s`;
@@ -215,17 +234,23 @@ export class TradeRoutes {
         if (r.phase !== 'lost') releaseMooring(m.ship);
         r.phase = 'lost';
         r.load = null;
+        this.fishers.lost(r);
         continue;
       }
       if (r.phase === 'lost') {
         r.phase = 'docked';
         r.stay = TRADE_ROUTES.loadTime;
       }
+      if (m.trade.fishing && !(r.phase === 'docked' && m.trade.returning)) {
+        this.fishers.update(r, m.trade.ports[0], dt);
+        continue;
+      }
       if (r.phase === 'docked') {
         steerTo(m.ship, m.ship.heading, 0);
         // Arrêtée de loin : il vend ce qu'il a apporté et rejoint la flotte dès qu'il y a une place.
         if (m.trade.returning) {
-          this.sell(r, m.trade);
+          if (m.trade.fishing) this.fishers.sell(m, m.trade.ports[0]);
+          else this.sell(r, m.trade);
           if (this.fleetHasRoom) {
             this.recall(m);
             this.say(`⚖ ${m.name} quitte sa route et met le cap sur ta flotte`);

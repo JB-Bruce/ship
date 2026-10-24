@@ -27,7 +27,7 @@ export function snapshotMember(m: FleetMember, respawnFactor: number): MemberSna
     hiddenTrophies: [...m.hiddenTrophies],
     emblem: m.emblem,
     ownedEmblems: [...m.ownedEmblems],
-    trade: m.trade && { ports: [...m.trade.ports], goods: [...m.trade.goods], leg: m.trade.leg, returning: m.trade.returning, nextTo: m.trade.nextTo },
+    trade: m.trade && { ports: [...m.trade.ports], goods: [...m.trade.goods], leg: m.trade.leg, returning: m.trade.returning, nextTo: m.trade.nextTo, fishing: m.trade.fishing },
     afloat: afloat ? { x: ship.position.x, z: ship.position.z, heading: ship.heading, health: ship.health, sail: ship.controls.sail } : null,
     respawnIn: afloat ? 0 : m.inWorld ? SHIP_TYPES[m.type].respawnTime * respawnFactor : m.respawnIn,
   };
@@ -58,7 +58,7 @@ export function rebuildFleet(fleet: Fleet, saved: SaveData['fleet']) {
       hiddenTrophies: new Set(s.hiddenTrophies),
       emblem: s.emblem ?? null,
       ownedEmblems: new Set(s.ownedEmblems ?? []),
-      trade: s.trade && { ports: [...s.trade.ports], goods: [...s.trade.goods], leg: s.trade.leg, returning: s.trade.returning, nextTo: s.trade.nextTo },
+      trade: s.trade && { ports: [...s.trade.ports], goods: [...s.trade.goods], leg: s.trade.leg, returning: s.trade.returning, nextTo: s.trade.nextTo, fishing: s.trade.fishing },
     };
     fleet.adopt(member, s.afloat && { x: s.afloat.x, z: s.afloat.z, heading: s.afloat.heading });
   }

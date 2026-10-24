@@ -106,6 +106,9 @@ export class MarketMenu extends PlaceMenu {
       case 'route-start':
         this.start();
         break;
+      case 'fish-start':
+        a.startFishing(Number(arg));
+        break;
       case 'route-recall': {
         const member = this.ctx.fleet.members.find((m) => m.id === Number(arg));
         a.recallRoute(Number(arg));

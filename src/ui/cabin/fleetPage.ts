@@ -62,7 +62,6 @@ function shipCard(ctx: CabinContext, m: FleetMember): string {
 function routeCard(ctx: CabinContext, m: FleetMember): string {
   const order = m.trade!;
   const [home, dest] = order.ports;
-  const estimate = ctx.routes.estimate(m, order.ports, order.goods);
   const notes = [
     order.returning ? '<span class="cabin-warn">Rejoint ta flotte après la vente au prochain port</span>' : '',
     order.nextTo ? `<span class="cabin-warn">Ira à ${name(order.nextTo)} à son retour à ${name(home)}</span>` : '',
@@ -70,6 +69,17 @@ function routeCard(ctx: CabinContext, m: FleetMember): string {
   const stop = order.returning
     ? `<button class="kit-btn ghost" data-action="route-resume" data-arg="${m.id}">Reprendre la route</button>`
     : `<button class="kit-btn red" data-action="route-stop" data-arg="${m.id}"${ctx.routes.fleetHasRoom ? '' : ` disabled${tip('Flotte pleine : il faut une place libre')}`}>Arrêter</button>`;
+  if (order.fishing)
+    return `
+    <div class="cabin-card cabin-route">
+      <div class="cabin-route-body">
+        <b>🐟 ${m.name} : pêche depuis ${name(home)}</b>
+        <span>Poisson vendu à ${name(home)}, or dans la réserve de l’île</span>
+        <span class="cabin-muted">${ctx.routes.status(m)}</span>${notes}
+      </div>
+      <div class="cabin-route-actions">${stop}</div>
+    </div>`;
+  const estimate = ctx.routes.estimate(m, order.ports, order.goods);
   return `
     <div class="cabin-card cabin-route">
       <svg class="cabin-route-art" viewBox="0 0 160 50" aria-hidden="true"><path d="M14 36 C50 6 110 6 146 22" class="sea-line"/><circle cx="14" cy="36" r="7"/><circle cx="146" cy="22" r="7"/></svg>

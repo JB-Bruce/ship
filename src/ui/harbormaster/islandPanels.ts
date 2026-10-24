@@ -66,12 +66,12 @@ export function mooringHtml(ctx: PortContext): string {
   const homed = routes.homedAt(island.id);
   const places = Array.from({ length: Math.max(island.tradeSlots, homed.length) }, (_, i) => {
     const m = homed[i];
-    if (!m) return '<div class="hm-berth free">Place libre<small>Comptoir : « Tracer une route »</small></div>';
+    if (!m) return '<div class="hm-berth free">Place libre<small>Comptoir : route ou pêche</small></div>';
     const order = m.trade!;
     const recall = routes.fleetHasRoom
       ? `<button class="kit-btn small ghost" data-action="route-recall" data-arg="${m.id}">Reprendre</button>`
       : `<small${tip('Il faut une place libre dans ta flotte')}>Flotte pleine</small>`;
-    return `<div class="hm-berth" data-berth="${m.id}"${tip(routes.status(m))}><b>${m.name}</b><small>vers ${ISLAND_INFO[order.ports[1]].shortName}</small>${recall}</div>`;
+    return `<div class="hm-berth" data-berth="${m.id}"${tip(routes.status(m))}><b>${m.name}</b><small>${order.fishing ? 'à la pêche' : `vers ${ISLAND_INFO[order.ports[1]].shortName}`}</small>${recall}</div>`;
   });
   return `
     <div class="hm-card hm-moorings">

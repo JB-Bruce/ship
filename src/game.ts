@@ -223,6 +223,7 @@ export class Game {
       adoptPirate: (ship: Ship) => this.pirates.adopt(ship),
     };
     this.campaign = new Campaign(this.state, this.fleet, this.hud, world, this.lighthouse, this.spawner);
+    this.campaign.routes.fishers.schools = this.schools;
     this.fishing = new Fishing(this.fleet, { caught: () => this.campaign.fishCaught(), say: (text) => this.hud.toast(text, 2.5) });
     this.bosses = new Bosses(this.spawner, {
       appear: (id) => this.hud.message(`☠ ${BOSSES[id].name} approche !`, 5, true),

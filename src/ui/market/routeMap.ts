@@ -81,7 +81,7 @@ export function routeMapHtml(ctx: MarketContext, state: MapState): string {
     if (!order) continue;
     // La route n'est tracée que si ses deux ports sont découverts (une ancienne partie peut aller ailleurs) ; son
     // navire reste montré tant qu'il est dans des eaux connues.
-    const drawn = shown(order.ports[0]) && shown(order.ports[1]);
+    const drawn = !order.fishing && shown(order.ports[0]) && shown(order.ports[1]);
     if (drawn) {
       const d = curve(portOf(order.ports[0]), portOf(order.ports[1]));
       routes += `<path class="mk-route${order.returning ? ' back' : ''}" d="${d}"/>`;

@@ -68,7 +68,7 @@ export function shipPage(ctx: CabinContext, view: CabinView, fx: ShipPageFx): st
   const stars = rankOf(m.kills);
   const atHelm = m === ctx.fleet.controlled;
   const afloat = m.inWorld && ship.alive;
-  const status = m.trade ? 'En route commerciale' : !m.inWorld ? `Coulé : de retour dans ${Math.ceil(m.respawnIn)} s` : !ship.alive ? 'En train de couler…' : atHelm ? 'Tu es à la barre' : 'Suit la flotte';
+  const status = m.trade?.fishing ? 'À la pêche' : m.trade ? 'En route commerciale' : !m.inWorld ? `Coulé : de retour dans ${Math.ceil(m.respawnIn)} s` : !ship.alive ? 'En train de couler…' : atHelm ? 'Tu es à la barre' : 'Suit la flotte';
   const helm = !atHelm && afloat && !m.trade ? `<button class="kit-btn" data-action="helm" data-arg="${m.id}">Prendre la barre</button>` : '';
   const next = RANKS.levels[stars + 1];
   const rankTip = `${rankName(stars)}${next ? ` · ${next.name} à ${next.kills} victoires` : ''}`;

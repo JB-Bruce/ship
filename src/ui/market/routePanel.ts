@@ -2,6 +2,7 @@ import { ISLAND_INFO, type IslandId } from '../../config';
 import type { FleetMember } from '../../fleet/fleet';
 import { freeSpace } from '../../fleet/holds';
 import type { Good } from '../../progression/goods';
+import { SHIP_TYPES } from '../../shipTypes';
 import { COIN_ICON, tip } from '../kit/kit';
 import { knownPorts, portLabel, type MarketContext } from './marketContext';
 import { GOOD_LABELS } from './marketStall';
@@ -20,6 +21,12 @@ const places = (n: number) => (n > 1 ? `${n} places libres` : n === 1 ? '1 place
 /** Navires qu'on peut confier au commerce : ceux de la flotte à flot, sauf celui qu'on pilote. */
 export function routeShips(ctx: MarketContext): FleetMember[] {
   return ctx.fleet.hand.filter((m) => m !== ctx.fleet.controlled && m.inWorld && m.ship.alive);
+}
+
+/** Navires qu'on peut envoyer pêcher d'ici : ceux qui savent pêcher (`canFish`), s'il reste une place au Mouillage. */
+export function fishShips(ctx: MarketContext): FleetMember[] {
+  if (!ctx.island.owned || ctx.routes.freeSlots(ctx.island.id) <= 0) return [];
+  return routeShips(ctx).filter((m) => SHIP_TYPES[m.type].canFish);
 }
 
 /** Pourquoi on ne peut pas tracer de route d'ici (null : on peut). */
@@ -64,25 +71,37 @@ function listHtml(ctx: MarketContext): string {
   const button = blocker
     ? `<span class="mk-blocked">${blocker}</span>`
     : '<button class="kit-btn mk-trace" data-action="route-plan">Tracer une route</button>';
-  return `<div class="mk-route-list">${cards}</div>${mooring}${button}`;
+  const fish = fishShips(ctx)
+    .map((m) => `<button class="kit-btn small ghost" data-action="fish-start" data-arg="${m.id}"${tip('Il va au banc le plus proche, pêche jusqu’à cale pleine et revient vendre ici : l’or va dans la réserve de l’île')}>🐟 Envoyer pêcher ${m.name}</button>`)
+    .join('');
+  return `<div class="mk-route-list">${cards}</div>${mooring}${button}${fish ? `<div class="mk-choices">${fish}</div>` : ''}`;
 }
 
 /** Une route en cours : où elle va, ce qu'elle porte, où en est le navire, et sa reprise (au port de son île). */
 function routeCard(ctx: MarketContext, m: FleetMember): string {
   const order = m.trade!;
   const [home, dest] = order.ports;
-  const estimate = ctx.routes.estimate(m, order.ports, order.goods);
+  const status = `<span class="mk-muted">${order.returning ? 'Rejoint ta flotte après la vente au prochain port' : ctx.routes.status(m)}</span>`;
   const recall =
     home !== ctx.island.id
       ? `<span class="mk-muted"${tip('Arrêter ou modifier de loin : Cabine du capitaine (Tab), page Flotte')}>À reprendre à ${ISLAND_INFO[home].shortName}</span>`
       : ctx.routes.fleetHasRoom
         ? `<button class="kit-btn small ghost" data-action="route-recall" data-arg="${m.id}">Reprendre</button>`
         : `<span class="mk-muted"${tip('Il faut une place libre dans ta flotte')}>Flotte pleine</span>`;
+  if (order.fishing)
+    return `
+    <div class="mk-route-card" data-route="${m.id}">
+      <b>🐟 ${m.name} : pêche depuis ${portLabel(home)}</b>
+      <span>Poisson vendu à ${ISLAND_INFO[home].shortName}, or dans la réserve de l’île</span>
+      ${status}
+      <div class="mk-route-foot">${recall}</div>
+    </div>`;
+  const estimate = ctx.routes.estimate(m, order.ports, order.goods);
   return `
     <div class="mk-route-card" data-route="${m.id}">
       <b>${m.name} : ${portLabel(home)} ⇄ ${portLabel(dest)}</b>
       <span>Aller : ${goodName(order.goods[0])} · retour : ${goodName(order.goods[1])} · ≈ ${COIN_ICON}${estimate}</span>
-      <span class="mk-muted">${order.returning ? 'Rejoint ta flotte après la vente au prochain port' : ctx.routes.status(m)}</span>
+      ${status}
       <div class="mk-route-foot">${recall}</div>
     </div>`;
 }

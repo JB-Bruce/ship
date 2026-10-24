@@ -67,6 +67,13 @@ export class Harbor {
     if (this.routes.start(member, this.island.id, to, out, back)) this.events.say(`${member.name} part commercer avec ${ISLAND_INFO[to].shortName}`);
   }
 
+  /** Envoie un navire pêcheur pêcher depuis ce port (il y prend un emplacement du Mouillage). */
+  startFishing(memberId: number) {
+    const member = this.fleet.members.find((m) => m.id === memberId);
+    if (!member || !member.inWorld || !member.ship.alive) return;
+    if (this.routes.startFishing(member, this.island.id)) this.events.say(`${member.name} part pêcher depuis ${ISLAND_INFO[this.island.id].shortName}`);
+  }
+
   /** Rappelle un navire en commerce dans la flotte : seulement au port de son île, s'il reste une place. */
   recallRoute(memberId: number) {
     const member = this.fleet.members.find((m) => m.id === memberId);

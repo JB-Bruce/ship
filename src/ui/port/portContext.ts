@@ -48,6 +48,8 @@ export interface PortActions {
   /** Confie un navire à une route commerciale entre ce port et `to` (marchandise de l'aller, du retour). */
   startRoute(memberId: number, to: IslandId, out: Good | null, back: Good | null): void;
   recallRoute(memberId: number): void;
+  /** Envoie un navire pêcheur au banc le plus proche ; il revient vendre le poisson ici. */
+  startFishing(memberId: number): void;
 }
 
 export interface PortContext {
