@@ -229,7 +229,7 @@ export class Campaign {
   }
 
   /** Effets des améliorations d'une île sur son fort, le phare de la Tortue et la flotte. */
-  private applyIsland(island: IslandState) {
+  applyIsland(island: IslandState) {
     const a = island.fortArmament;
     this.world.forts[island.id].setArmament(a.guns, a.range, a.damage);
     if (island.id === 'tortuga') {

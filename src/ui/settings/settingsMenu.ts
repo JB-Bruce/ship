@@ -1,10 +1,12 @@
-import { GRAPHICS, type GraphicsSettings, type QualityPreset } from '../../config';
+import { GRAPHICS, type BossId, type GraphicsSettings, type QualityPreset } from '../../config';
 import type { Display } from '../../render/display';
 import type { SaveManager } from '../../save/saveManager';
 import type { Settings } from '../../settings/settings';
 import type { DayCycle } from '../../world/dayCycle';
 import { clockLabel } from '../dayClock';
 import { ParchmentMenu } from '../parchmentMenu';
+import type { CheatActions } from '../../cheats';
+import { cheatTab } from './cheatTab';
 import { gameTab } from './gameTab';
 import { graphicsTab } from './graphicsTab';
 import { HourDial } from './hourDial';
@@ -17,19 +19,22 @@ export interface SettingsContext {
   readonly saves: SaveManager;
   /** Heure du jour (curseur de l'onglet Jeu). */
   readonly clock: DayCycle;
+  /** Onglet Triche. */
+  readonly cheats: CheatActions;
 }
 
-type SettingsTab = 'game' | 'save' | 'graphics';
+type SettingsTab = 'game' | 'save' | 'graphics' | 'cheats';
 
 const TABS: { id: SettingsTab; name: string; render: (ctx: SettingsContext, view: SaveView) => string }[] = [
   { id: 'game', name: 'Jeu', render: gameTab },
   { id: 'save', name: 'Partie', render: saveTab },
   { id: 'graphics', name: 'Graphismes', render: graphicsTab },
+  { id: 'cheats', name: 'Triche', render: cheatTab },
 ];
 
 /**
  * Paramètres (Échap, le jeu est en pause) : onglet Jeu (reprendre, compteur d'images, touches), onglet Partie
- * (sauvegardes, nouvelle partie) et onglet Graphismes (préréglages de qualité et chaque réglage). Les réglages
+ * (sauvegardes, nouvelle partie), onglet Graphismes (préréglages de qualité et chaque réglage) et onglet Triche (tests). Les réglages
  * s'appliquent tout de suite et restent d'une partie à l'autre.
  */
 export class SettingsMenu extends ParchmentMenu {
@@ -98,6 +103,9 @@ export class SettingsMenu extends ParchmentMenu {
       case 'resume':
         this.setOpen(false);
         break;
+      case 'cheat':
+        this.cheat(arg);
+        break;
       case 'fps':
         settings.setShowFps(arg === 'true');
         break;
@@ -112,6 +120,26 @@ export class SettingsMenu extends ParchmentMenu {
         settings.set(key, value as never);
         break;
       }
+    }
+  }
+
+  /** Boutons de l'onglet Triche : « action » ou « action:argument ». */
+  private cheat(arg: string) {
+    const c = this.ctx.cheats;
+    const [what, value = ''] = arg.split(':');
+    switch (what) {
+      case 'resources': return c.resources();
+      case 'plans': return c.unlockPlans();
+      case 'map': return c.revealMap();
+      case 'invincible': return c.setInvincible(value === 'on');
+      case 'repair': return c.repairFleet();
+      case 'upgrades': return c.maxUpgrades();
+      case 'islands': return c.maxIslands();
+      case 'rank': return c.nextRank();
+      case 'chaser': return c.spawnChaser();
+      case 'cursed': return c.spawnCursed();
+      case 'boss': return c.spawnBoss(value as BossId);
+      case 'teleport': return c.teleport(value);
     }
   }
 

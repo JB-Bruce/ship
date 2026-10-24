@@ -2198,6 +2198,12 @@ export const LIGHTNING = {
   mastHeight: 0.7,
 };
 
+/**
+ * Onglet Triche du menu Échap (`cheats.ts`) : or et bois donnés d'un coup, mer libre autour d'un point de
+ * téléportation au large d'un îlot (m depuis sa côte).
+ */
+export const CHEATS = { resources: 100000, isletOffshore: 70 };
+
 /** Taverne : l'affiche arrachée s'envole vers tes contrats en `tear` ms, en tournant de `tearTilt` degrés. */
 export const TAVERN_FX = { tear: 420, tearTilt: 9 };
 

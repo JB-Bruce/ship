@@ -1,3 +1,4 @@
+import type { CheatActions } from '../cheats';
 import type { Campaign } from '../campaign';
 import type { IslandId, TradeGood } from '../config';
 import type { Fleet, FleetMember } from '../fleet/fleet';
@@ -33,6 +34,8 @@ import { installTextures } from './kit/textures';
 /** Ce que les menus parchemin lisent du jeu. */
 export interface MenuWorld {
   readonly container: HTMLElement;
+  /** Onglet Triche du menu Échap. */
+  readonly cheats: CheatActions;
   readonly state: PlayerState;
   readonly fleet: Fleet;
   readonly campaign: Campaign;
@@ -154,6 +157,6 @@ export function createMenus(w: MenuWorld): PortMenu {
     discovery: campaign.discovery,
     objectivePorts: () => contracts.active.map((c) => c.claimAt),
   });
-  new SettingsMenu(container, { settings: w.settings, display: w.display, saves: w.saves, clock: w.dayCycle });
+  new SettingsMenu(container, { settings: w.settings, display: w.display, saves: w.saves, clock: w.dayCycle, cheats: w.cheats });
   return portMenu;
 }

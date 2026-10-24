@@ -57,6 +57,7 @@ import { Loot } from './world/loot';
 import { PirateTraffic } from './world/pirateTraffic';
 import { PlanScrolls } from './world/planScrolls';
 import { CursedTide } from './world/cursedTide';
+import { Cheats } from './cheats';
 import { treasures } from './progression/treasures';
 import { Sky } from './world/sky';
 import { Weather } from './world/weather';
@@ -126,6 +127,8 @@ export class Game {
   private readonly schoolFx = new FishSchoolFx();
   private readonly fishing: Fishing;
   private readonly bosses: Bosses;
+  /** Onglet Triche du menu Échap (et l'invincibilité de la flotte). */
+  private readonly cheats: Cheats;
   private readonly campaign: Campaign;
   private readonly controller: KeyboardController;
   private readonly chaseCamera: ChaseCamera;
@@ -226,7 +229,8 @@ export class Game {
     if (loaded) this.hud.toast(`Partie chargée : « ${loaded} »`, 3, 'good');
 
     const { state, fleet, campaign, hud, wind, spawner, loot, planScrolls, schools, radar, pirates, settings, display, saves, dayCycle } = this;
-    this.portMenu = createMenus({ container, state, fleet, campaign, hud, wind, spawner, loot, planScrolls, schools, radar, pirates, settings, display, saves, dayCycle, chaseCamera: this.chaseCamera, takeHelm: (m) => this.takeHelm(m) });
+    this.cheats = new Cheats({ state, fleet, campaign, spawner, cursed: this.cursed, bosses: this.bosses, hud });
+    this.portMenu = createMenus({ container, cheats: this.cheats, state, fleet, campaign, hud, wind, spawner, loot, planScrolls, schools, radar, pirates, settings, display, saves, dayCycle, chaseCamera: this.chaseCamera, takeHelm: (m) => this.takeHelm(m) });
     this.weatherButtons = new WeatherButtons(container, this.weather);
     this.dayClock = new DayClock(container, this.dayCycle);
     this.fpsCounter = new FpsCounter(container, this.settings, this.display);
@@ -449,6 +453,8 @@ export class Game {
 
   /** `attacker` : qui a porté le coup (bateau, fort), pour savoir qui a coulé un ennemi ; null pour la foudre et la mer. */
   private applyDamage(ship: Ship, damage: number, attacker: Combatant | null = null) {
+    // Triche : ta flotte ne prend plus aucun dégât.
+    if (this.cheats.invincible && this.fleet.members.some((m) => m.ship === ship)) return;
     const sank = ship.damage(damage);
     const leader = this.fleet.leader;
     if (ship === leader) this.chaseCamera.shake(COMBAT.hitShake);

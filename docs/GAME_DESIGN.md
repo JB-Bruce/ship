@@ -165,6 +165,12 @@ Les envoyés du dieu des océans (voir « Histoire »). N'importe quel type de n
 - **Départ** : ils piquent du nez et replongent la proue la première au lever du jour, quand toute ta flotte est à plus de 900 m, ou au bout de 4 min.
 - **Coulés** : aucun butin, aucun plan (des éléments spéciaux viendront peut-être plus tard). Ils comptent dans le registre et le rang du navire qui les coule, pas pour les contrats ; coulés par la Marine ou des pirates, ce n'est pas ta victoire.
 
+## Onglet Triche (fait, 2026-10-24)
+Dans le menu Échap, pour tester : +100 000 or et bois, tous les plans, toute la carte, invincibilité de la flotte, réparation, ennemi en chasse, navire maudit (de nuit), chaque boss même hors de son temps (il reste jusqu'à ce qu'il coule), téléportation vers chaque port et îlot, navire piloté au maximum (allongements compris), bâtiments des îles au maximum, rang suivant.
+
+## Son (prévu, 2026-10-24)
+De vrais enregistrements (pas de synthèse), pour une ambiance pirate cohérente : le joueur télécharge des banques libres (Sonniss GDC, Freesound CC0, Kenney, OpenGameArt) selon `docs/SOUNDS.md`, puis le moteur son les branche. Contenu : ambiance de mer selon la météo, combat, navires maudits, menus et vie à bord, musique (port, mer, nuit, combat, boss, maudits, trésor).
+
 ## Port et escale (fait)
 - **Touches (2026-10-21)** : le port s'ouvre par **P** près d'un quai ; **Tab** ouvre la Cabine du capitaine, partout.
 - À moins de 150 m d'un port (la Tortue ou Port-Sabre), un bouton « E · <nom du port> » apparaît en bas de l'écran ; E (ou un clic) ouvre le panneau du port (parchemin, jeu en pause). Tab y ouvre directement le chantier ; loin du port, Tab rappelle qu'il faut faire escale.
