@@ -3102,10 +3102,20 @@ export const TERRITORY = {
   pirateBonus: 1.2,
   merchantBonus: 2,
   /**
-   * Calque de la carte (`ui/territoryLayer.ts`) : texel du dessin (m), flou de la limite (en cases), lavis et encre de
-   * chaque camp, largeur du trait de frontière (en part du champ flouté).
+   * Calque de la carte (`ui/territoryLayer.ts`, en vecteurs) : pas de la grille des contours (m), flou de la limite (en
+   * cases) ; opacité du lavis de chaque camp ; liseré de sa couleur le long de l'intérieur de sa frontière (largeur en
+   * px, opacité) ; trait d'encre de la frontière (couleur, largeur en px).
    */
-  map: { texel: 20, blur: 1.2, line: 0.07, wash: 0.22, colors: { navy: [150, 40, 35], pirate: [40, 34, 30], player: [40, 110, 70] } as const },
+  map: {
+    step: 20,
+    blur: 1.2,
+    wash: 0.14,
+    band: 5,
+    bandAlpha: 0.38,
+    ink: 'rgba(52, 34, 18, 0.85)',
+    inkWidth: 1.3,
+    colors: { navy: [165, 42, 36], pirate: [55, 45, 38], player: [36, 118, 72] } as const,
+  },
 };
 
 export const TRADE_ROUTES = {
