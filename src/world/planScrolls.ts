@@ -8,6 +8,7 @@ import type { Ship } from '../ship/ship';
 import type { ShipType } from '../shipTypes';
 import type { Enemy } from './enemySpawner';
 import { passesOver } from './loot';
+import { sound } from '../audio/sound';
 
 /** Un rouleau de plan qui flotte, en attendant qu'un navire de ta flotte passe dessus. */
 interface PlanScroll {
@@ -171,6 +172,7 @@ export class PlanScrolls {
   private collect(i: number) {
     const { type, position } = this.scrolls[i];
     this.effects.sparkle(position, 'gold');
+    sound.play('ui/paper');
     this.removeAt(i);
     if (blueprints.isUnlocked(type)) return;
     const progress = blueprints.addFragment(type);

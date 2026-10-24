@@ -182,9 +182,9 @@ export class Radar {
       ctx.stroke();
       ctx.lineWidth = 1;
     }
-    for (const { ship, ai, boss } of enemies) {
-      // Un boss caché dans la brume (harcèlement) n'apparaît pas.
-      if (!ship.alive || ai.hidden) continue;
+    for (const { ship, ai, boss, cursed } of enemies) {
+      // Un boss caché dans la brume (harcèlement) n'apparaît pas, ni un navire maudit (il ne se voit qu'à l'œil).
+      if (!ship.alive || ai.hidden || cursed) continue;
       const p = place(ship.position.x, ship.position.z);
       ctx.fillStyle = boss ? COLORS.boss : ai.state === 'patrol' ? COLORS.patrolling : ai.state === 'flee' ? COLORS.fleeing : COLORS.hunting;
       this.circle(p.x, p.y, boss ? 6.5 : p.outside ? 3 : 4.5);

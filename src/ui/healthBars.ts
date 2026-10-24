@@ -58,8 +58,8 @@ export class HealthBars {
       const transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
       bar.root.style.transform = transform;
       bar.fill.style.width = `${(ship.health / ship.stats.maxHealth) * 100}%`;
-      if (ship.faction === 'enemy' || ship.faction === 'cursed') this.updateTag(bar, bar.tag!, transform, ship, player, enemies);
-      else this.updateMine(bar, transform, ship, fleet);
+      if (ship.faction === 'enemy') this.updateTag(bar, bar.tag!, transform, ship, player, enemies);
+      else if (ship.faction !== 'cursed') this.updateMine(bar, transform, ship, fleet);
       bar.crits.style.transform = transform;
       const icons = ship.crits.icons;
       if (icons !== bar.critIcons) bar.crits.textContent = bar.critIcons = icons;
@@ -139,11 +139,12 @@ export class HealthBars {
   private create(ship: Ship): Bar {
     const root = document.createElement('div');
     const foe = ship.faction === 'enemy' || ship.faction === 'cursed';
-    root.className = foe ? 'ship-bar' : 'ship-bar ally';
+    root.className = ship.faction === 'cursed' ? 'ship-bar cursed' : foe ? 'ship-bar' : 'ship-bar ally';
     const fill = root.appendChild(document.createElement('div'));
     fill.className = 'ship-bar-fill';
     this.parent.appendChild(root);
-    const tag = foe ? this.tagElement('ship-tag') : null;
+    // Un navire maudit n'a pas de nom au-dessus de lui : seulement sa barre, plus sombre.
+    const tag = foe && ship.faction !== 'cursed' ? this.tagElement('ship-tag') : null;
     const crits = this.parent.appendChild(document.createElement('div'));
     crits.className = 'ship-crits';
     const bar: Bar = { root, fill, tag, threat: null, plans: blueprints.version, label: '', crits, critIcons: '', seen: this.frame, mark: 0 };

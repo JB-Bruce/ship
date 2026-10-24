@@ -416,6 +416,14 @@ body {
   background: linear-gradient(#ff7a5a, #c0392b);
 }
 
+/* Navire maudit : barre sombre, d'un rouge sang presque noir, sans nom au-dessus. */
+.ship-bar.cursed {
+  background: rgba(0, 0, 0, 0.7);
+}
+.ship-bar.cursed .ship-bar-fill {
+  background: linear-gradient(#5a2a2a, #2a1414);
+}
+
 /* Avaries d'un navire (coups critiques) : pictogrammes à droite de sa barre de vie. */
 .ship-crits {
   position: fixed;

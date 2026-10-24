@@ -118,7 +118,7 @@ export class MapMenu extends ParchmentMenu {
     const coverage = this.source.coverage();
     const enemies = this.source
       .enemies()
-      .filter((e) => !e.ai.hidden)
+      .filter((e) => !e.ai.hidden && !e.cursed)
       .map((e) => e.ship)
       .filter((s) => s.alive && (s.distanceTo(leader) <= range || tortuga.sdf(s.position.x, s.position.z) < coverage));
     const source = this.source;

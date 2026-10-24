@@ -29,7 +29,7 @@ export class EncounterAlerts {
   update(enemies: readonly Enemy[], leader: Ship) {
     for (const enemy of enemies) {
       const { ai, ship } = enemy;
-      if (enemy.boss || !ship.alive || ai.hidden || ai.state === 'patrol' || ai.target?.faction !== 'player') continue;
+      if (enemy.boss || enemy.cursed || !ship.alive || ai.hidden || ai.state === 'patrol' || ai.target?.faction !== 'player') continue;
       const key = ai.group ?? ship;
       if (this.announced.has(key)) continue;
       this.announced.add(key);

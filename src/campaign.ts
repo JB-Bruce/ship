@@ -29,9 +29,12 @@ import { MerchantTraffic } from './world/merchantTraffic';
 import { ISLAND_LIST, islandById, tortuga, type Island } from './world/island';
 import type { Lighthouse } from './world/lighthouse';
 import type { LootKind } from './world/loot';
+import { sound } from './audio/sound';
 
 /** Délai entre deux avertissements « cale pleine » (s). */
 const FULL_WARNING_DELAY = 5;
+/** Volume du son d'une caisse repêchée (plus discret qu'un achat). */
+const PICKUP_VOLUME = 0.7;
 
 /** Ce qu'une sauvegarde garde de la campagne. */
 export interface CampaignSnapshot {
@@ -295,7 +298,11 @@ export class Campaign {
         this.hud.toast(`${member.name} a la cale pleine`, 2.5);
       }
     }
-    if (taken > 0) this.hud.notifications.pickup(kind, taken);
+    if (taken > 0) {
+      this.hud.notifications.pickup(kind, taken);
+      // Une caisse repêchée : les pièces tintent, une caisse de marchandises ou de bois craque en s'ouvrant.
+      sound.play(kind === 'gold' ? 'ui/coins' : 'ui/chest_open', { volume: PICKUP_VOLUME });
+    }
     return taken;
   }
 
