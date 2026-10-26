@@ -10,6 +10,8 @@ import { INK, paintShip } from '../mapGlyphs';
 import { paintMap } from '../mapPainter';
 import type { MapFrame } from '../mapView';
 import { TerritoryLayer } from '../territoryLayer';
+import { shipIcon } from '../shipIcons';
+import { shipIconImage } from '../shipIconImage';
 
 /** Couleur du cercle d'un garde selon sa tendance (vert : il gagne, gris : il tient, rouge : trop faible). */
 const TREND_COLORS: Record<GuardTrend, string> = { up: '#2f7a3c', flat: '#6b6157', down: '#b3261c' };
@@ -17,8 +19,8 @@ const TREND_COLORS: Record<GuardTrend, string> = { up: '#2f7a3c', flat: '#6b6157
 const TREND_GLYPHS: Record<GuardTrend, string> = { up: '▲', flat: '▬', down: '▼' };
 /** Taille de la carte à l'écran (px). */
 const SIZE = { width: 640, height: 380 };
-/** Icône d'un garde au centre de son cercle : taille, et rayon où on peut la saisir (px). */
-const ICON = { size: 10, grab: 14 };
+/** Silhouette d'un garde au centre de son cercle (gravure de shipIcons.ts) : taille, et rayon du disque où on peut la saisir (px). */
+const ICON = { size: 30, grab: 18 };
 /** Au-delà de cette part du rayon de son cercle, le navire est dessiné à sa vraie place (en route). */
 const AWAY = 0.6;
 
@@ -159,7 +161,8 @@ export class GuardMap {
       ctx.beginPath();
       ctx.arc(x, y, ICON.grab - 2, 0, Math.PI * 2);
       ctx.fill();
-      paintShip(ctx, x, y, m.inWorld ? m.ship.heading : 0, ICON.size, color);
+      const icon = shipIconImage(shipIcon(m.type, m.levels), color, () => this.paint());
+      if (icon) ctx.drawImage(icon, x - ICON.size / 2, y - ICON.size / 2, ICON.size, ICON.size);
       const ship = m.ship.position;
       if (m.inWorld && m.ship.alive && Math.hypot(ship.x - post.x, ship.z - post.z) > guardRadius(m.type) * AWAY) {
         ctx.globalAlpha = 0.55;

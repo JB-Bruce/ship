@@ -1,7 +1,7 @@
 import type { MapZone } from '../missions/mission';
 import type { Ship } from '../ship/ship';
 import type { FishSchool } from '../world/fishSchools';
-import { BLUEPRINTS, ISLAND_INFO, WORLD_EDGE, type IslandId } from '../config';
+import { BLUEPRINTS, ISLAND_INFO, type IslandId } from '../config';
 import { harbors } from '../world/harbors';
 import { isIsland, LAND_LIST, type Islet, type Landmass } from '../world/island';
 import { LANDMARKS } from '../world/landmarks';
@@ -10,6 +10,7 @@ import type { Wind } from '../world/wind';
 import type { MapFog } from './mapFog';
 import type { TerritoryLayer } from './territoryLayer';
 import type { MapFrame } from './mapView';
+import { paintWorldEdge } from './mapEdge';
 import { INK, paintCompass, paintDiamond, paintLandmark, paintScale, paintShip } from './mapGlyphs';
 
 /** Ce que la carte montre. Les ennemis sont déjà filtrés : seulement ceux à portée du radar. */
@@ -53,9 +54,6 @@ const COLORS = {
   trader: '#1f5229',
   enemy: '#b3261c',
   radar: 'rgba(74, 46, 20, 0.45)',
-  /** Tempête du bord du monde, et tout ce qui est au-delà (personne n'y règne). */
-  storm: 'rgba(40, 44, 58, 0.45)',
-  beyond: '#15120f',
   /** Fond de la rose des vents et de l'échelle. */
   paper: 'rgba(240, 226, 192, 0.9)',
   fish: '#2d7f9a',
@@ -161,8 +159,8 @@ export function paintMap(ctx: CanvasRenderingContext2D, width: number, height: n
 
   // La mer inconnue cache tout ce qui précède ; tes objectifs restent visibles par-dessus.
   data.fog.paint(ctx, width, height, { midX, midZ, scale });
-  // Le bord du monde par-dessus la brume : sa bande de tempête, puis tout le reste en noir.
-  paintStormEdge(ctx, toX, toY, scale, width, height);
+  // Le bord du monde par-dessus la brume (au-delà, en gris avec les territoires).
+  paintWorldEdge(ctx, toX, toY, scale, width, height, data.territory.shown);
   for (const l of ports) paintLandmark(ctx, l.kind, l.name, toX(l.x), toY(l.z), !harbors.isOpen(l.island));
   for (const ship of data.escorts) paintShip(ctx, toX(ship.position.x), toY(ship.position.z), ship.heading, 8, COLORS.escort);
   for (const zone of data.zones) paintZone(ctx, zone, toX, toY, scale);
@@ -182,12 +180,14 @@ export function paintMap(ctx: CanvasRenderingContext2D, width: number, height: n
   ctx.fill();
   paintShip(ctx, px, py, leader.heading, 11, COLORS.player);
 
-  // Rose des vents et échelle sur un fond de parchemin : lisibles même sur le noir d'au-delà du monde.
-  ctx.fillStyle = COLORS.paper;
-  ctx.beginPath();
-  ctx.roundRect(width - COMPASS_BACK.width - COMPASS_BACK.margin, COMPASS_BACK.margin, COMPASS_BACK.width, COMPASS_BACK.height, COMPASS_BACK.round);
-  ctx.fill();
-  ctx.fillRect(SCALE_BACK.x, height - SCALE_BACK.top, step * scale + SCALE_BACK.width, SCALE_BACK.height);
+  // Rose des vents et échelle sur un fond de parchemin : lisibles même sur le gris d'au-delà du monde.
+  if (data.territory.shown) {
+    ctx.fillStyle = COLORS.paper;
+    ctx.beginPath();
+    ctx.roundRect(width - COMPASS_BACK.width - COMPASS_BACK.margin, COMPASS_BACK.margin, COMPASS_BACK.width, COMPASS_BACK.height, COMPASS_BACK.round);
+    ctx.fill();
+    ctx.fillRect(SCALE_BACK.x, height - SCALE_BACK.top, step * scale + SCALE_BACK.width, SCALE_BACK.height);
+  }
   paintCompass(ctx, width - 52, 56, data.wind);
   paintScale(ctx, 18, height - 18, step, scale);
   ctx.strokeStyle = INK;
@@ -279,31 +279,4 @@ function paintIsletName(ctx: CanvasRenderingContext2D, islet: Islet, toX: (x: nu
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
   ctx.fillText(islet.def.name, toX(islet.cx), toY(islet.cz) - Math.max(12, islet.reach * scale * 0.7));
-}
-
-/** La tempête du bord du monde : une large bande sombre au-delà du bord, le bord lui-même en tirets, et au-delà de la bande, tout en noir. */
-function paintStormEdge(ctx: CanvasRenderingContext2D, toX: (x: number) => number, toY: (z: number) => number, scale: number, width: number, height: number) {
-  const [cx, cz] = WORLD_EDGE.center;
-  const x = toX(cx);
-  const y = toY(cz);
-  const r = WORLD_EDGE.radius * scale;
-  const band = WORLD_EDGE.band * scale;
-  ctx.save();
-  ctx.fillStyle = COLORS.beyond;
-  ctx.beginPath();
-  ctx.rect(0, 0, width, height);
-  ctx.arc(x, y, r + band, 0, Math.PI * 2);
-  ctx.fill('evenodd');
-  ctx.strokeStyle = COLORS.storm;
-  ctx.lineWidth = band;
-  ctx.beginPath();
-  ctx.arc(x, y, r + band / 2, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.strokeStyle = INK;
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([8, 6]);
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.restore();
 }

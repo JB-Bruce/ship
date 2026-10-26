@@ -80,7 +80,7 @@ export class AmbienceDirector {
     if (t.creak <= 0) {
       t.creak = rand(a.creakEvery);
       const pick = Math.random();
-      sound.at(pick < 0.5 ? 'ambience/hull_creak' : pick < 0.8 ? 'ambience/rope_creak' : 'ambience/sail_flap', ship.position, { bus: 'ambience' });
+      sound.at(pick < 0.6 ? 'ambience/hull_creak' : 'ambience/rope_creak', ship.position, { bus: 'ambience' });
     }
     t.splash -= dt;
     if (t.splash <= 0) {

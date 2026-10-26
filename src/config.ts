@@ -1693,6 +1693,20 @@ export const EMBLEMS = {
 export const MAP_VIEW = { maxZoom: 8, wheelSpeed: 0.0015 };
 
 /**
+ * Bout de la carte (`ui/mapEdge.ts`), quand les territoires sont montrés : au-delà du bord du monde, le gris de la
+ * tempête, limite repoussée vers le large de 0 à `wobble` m par un bruit ([longueur d'onde (m), poids] par octave),
+ * floutée de `blur` px, et bord plus foncé (`rim`, `rimWidth` px).
+ */
+export const MAP_EDGE = {
+  color: 'rgb(124, 121, 112)',
+  rim: 'rgba(70, 66, 58, 0.55)',
+  rimWidth: 7,
+  wobble: 220,
+  octaves: [[800, 1], [260, 0.5]] as const,
+  blur: 6,
+};
+
+/**
  * Brume de découverte de la carte (M) : la carte ne montre que ce que le radar du bateau piloté a balayé
  * (`progression/mapDiscovery.ts`), le reste est un lavis de parchemin vierge (`ui/mapFog.ts`), sauf tes objectifs.
  * La grille couvre le cercle du bord du monde et sa tempête (WORLD_EDGE.radius + band) plus `margin` m, en cases de
@@ -1987,6 +2001,15 @@ export interface WeatherProfile {
 export const WEATHER = {
   /** Durée d'un changement de temps, quel qu'il soit (s). */
   transitionTime: 20,
+  /**
+   * Changements automatiques (`world/weatherCycle.ts`) : beau temps pendant `clear` s, puis un autre temps tiré au sort
+   * (poids `weights`) pendant `other` s, puis de nouveau le beau temps. Avec ces durées, 75 % du temps environ est clair.
+   */
+  cycle: {
+    clear: [600, 1200] as const,
+    other: [180, 420] as const,
+    weights: { fog: 0.25, windy: 0.25, rain: 0.2, storm: 0.15, tempest: 0.1, greatStorm: 0.05 },
+  },
   /**
    * Houle du beau temps : de temps en temps (interval, s), une nouvelle houle est tirée au hasard entre quasi plate
    * (min, en fraction de la houle normale) et la houle normale, et la mer y passe en changeTime secondes au plus.

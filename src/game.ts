@@ -39,6 +39,7 @@ import { ParchmentMenu } from './ui/parchmentMenu';
 import type { PortMenu } from './ui/port/portMenu';
 import { Radar } from './ui/radar';
 import { WeatherButtons } from './ui/weatherButtons';
+import { WeatherCycle } from './world/weatherCycle';
 import { Bosses } from './world/bossEncounter';
 import { DayCycle } from './world/dayCycle';
 import { DayClock } from './ui/dayClock';
@@ -88,6 +89,7 @@ export class Game {
   /** La foudre de la tempête du bord du monde (sans message). */
   private readonly edgeStorm: EdgeStorm;
   private readonly weatherButtons: WeatherButtons;
+  private readonly weatherCycle: WeatherCycle;
   private readonly dayClock: DayClock;
   private readonly state = new PlayerState();
   /** Heure du jour : suit la journée des contrats (la campagne est créée plus loin, d'où les rappels). */
@@ -246,6 +248,7 @@ export class Game {
     this.cheats = new Cheats({ state, fleet, campaign, spawner, cursed: this.cursed, bosses: this.bosses, hud });
     this.portMenu = createMenus({ container, cheats: this.cheats, state, fleet, campaign, hud, wind, spawner, loot, planScrolls, schools, radar, pirates, settings, display, saves, dayCycle, chaseCamera: this.chaseCamera, takeHelm: (m) => this.takeHelm(m) });
     this.weatherButtons = new WeatherButtons(container, this.weather);
+    this.weatherCycle = new WeatherCycle(this.weather);
     this.dayClock = new DayClock(container, this.dayCycle);
     this.fpsCounter = new FpsCounter(container, this.settings, this.display);
     this.betrayal = new BetrayalPicker(this.display.viewport, new Betrayal(pirates, campaign.merchants, spawner), hud, radar);
@@ -367,6 +370,7 @@ export class Game {
     this.chaseCamera.update(elapsed, leader, this.waves, this.onFoot.footEye());
     // Au Chantier, la vitrine montre le navire de l'extérieur : le barreur reste visible.
     this.deckCrew.hiddenHelm = view.active && !this.onFoot.walking && !this.chaseCamera.showcase.active ? leader : null;
+    this.weatherCycle.update(dt);
     this.weather.update(dt, this.camera, this.wind, this.ships, leader);
     this.edgeStorm.update(dt, this.ships);
     this.fogCulling.update(this.camera, (this.scene.fog as THREE.Fog).far, this.ships);
