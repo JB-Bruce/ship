@@ -698,3 +698,73 @@
   border: 1.4px solid #3a2412;
   border-radius: 3px 6px 4px 5px;
 }
+
+/* Page Garde : carte de déploiement, navires à poster, gardes en poste. */
+.cabin-guard .guard-map {
+  display: block;
+  margin: 4px auto 2px;
+  border: 1px solid rgba(74, 46, 20, 0.5);
+  cursor: crosshair;
+}
+
+.guard-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.guard-trend.up,
+.guard-legend .up {
+  color: #2f7a3c;
+}
+
+.guard-trend.flat,
+.guard-legend .flat {
+  color: #6b6157;
+}
+
+.guard-trend.down,
+.guard-legend .down {
+  color: #b3261c;
+}
+
+.guard-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.guard-cards {
+  display: grid;
+  gap: 8px;
+}
+
+.guard-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.guard-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.guard-power {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.guard-trend {
+  margin-right: 6px;
+  font-size: 16px;
+}
+
+.guard-actions {
+  display: flex;
+  gap: 6px;
+}

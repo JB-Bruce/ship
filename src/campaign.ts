@@ -16,7 +16,8 @@ import { Harbor } from './progression/harbor';
 import { IslandState, type IslandSnapshot } from './progression/islandState';
 import { Ledger, type LedgerSnapshot } from './progression/ledger';
 import { MapDiscovery } from './progression/mapDiscovery';
-import { PLAYER, Territory, type Guard } from './progression/territory';
+import { PLAYER, Territory } from './progression/territory';
+import { Guards } from './fleet/guards';
 import { sizeRank } from './shipTypes';
 import { NavyIslands } from './progression/navyIslands';
 import { repairAtPort } from './progression/portRepair';
@@ -83,9 +84,10 @@ export class Campaign {
   readonly discovery = new MapDiscovery();
   /** Territoires de la mer : Marine, pirates, toi. */
   readonly territory: Territory;
-  /** Positions de tes navires à flot et gardes des territoires, refaites à chaque image (sans allocation). */
+  /** Navires de ta flotte mis en garde d'une zone. */
+  readonly guards: Guards;
+  /** Positions de tes navires à flot, refaites à chaque image (sans allocation). */
   private readonly presence: { x: number; z: number }[] = [];
-  private readonly guards: Guard[] = [{ x: 0, z: 0, radius: TERRITORY.push.guard }];
   /** Dernier port où la flotte a fait escale : elle y réapparaît si elle sombre tout entière. */
   lastPort: IslandId = 'tortuga';
   private fullWarning = 0;
@@ -100,6 +102,10 @@ export class Campaign {
   ) {
     this.territory = new Territory(this.islands, {
       lost: (near) => hud.toast(`⚑ La Marine reprend des eaux au large de ${ISLAND_INFO[near].shortName}`, 4, 'danger'),
+    });
+    this.guards = new Guards(fleet, state, this.territory, this.islands, spawner, world.ships, {
+      help: (text) => hud.message(text, 4, true),
+      say: (text) => hud.toast(text, 3),
     });
     this.missions = new MissionDirector(world, {
       // Les alertes de mission (embuscade, attaque) au centre ; le reste en petit message.
@@ -234,9 +240,8 @@ export class Campaign {
       n++;
     }
     presence.length = n;
-    this.guards[0].x = leader.position.x;
-    this.guards[0].z = leader.position.z;
-    this.territory.update(dt, presence, this.guards);
+    this.guards.update(dt, leader);
+    this.territory.update(dt, presence, this.guards.shields(leader));
   }
 
   /** Navires à protéger (marchand escorté), en bleu ciel sur le radar et la carte. */

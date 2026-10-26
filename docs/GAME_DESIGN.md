@@ -425,3 +425,14 @@ Chaque navire suit le même schéma : un modèle `ShipModel` + une entrée dans 
 - **Ce que ça change** : les ennemis ordinaires apparaissent 1,3 × plus souvent dans les eaux de la Marine, 0,6 × dans celles des pirates et 0,4 × dans les tiennes (tes routes y sont donc plus sûres). Hors des eaux de la Marine, il y a plus de pirates alliés en mer (× 2,2). Plus tes eaux sont grandes, plus les marchands alliés viennent à tes îles (jusqu'à × 3).
 - **Revenu** : à l'aube, tes eaux rapportent 0,5 or par case de 80 m (au moins 50, au plus 2 000 or), versés dans la réserve de l'île à toi la plus proche de chaque case.
 - **Carte M** : le bouton « Territoires » montre un lavis léger (Marine en rouge, pirates à l'encre, toi en vert) et des frontières courbes, avec la part de chacun. Cachés sous la mer inconnue.
+
+## Navires de garde (fait le 2026-10-26)
+
+- Depuis la Cabine (Tab, partout), page **Garde** : la carte de déploiement montre les territoires et tes gardes. On choisit un navire de la flotte (pas celui qu'on pilote), puis on clique en mer découverte (à plus de 60 m d'une côte) pour le poster ; « Déplacer » le change de poste.
+- Il quitte la flotte (sa place se libère), navigue jusqu'à son poste, y fait sa ronde, et combat tout ennemi qui entre dans son cercle. Coulé, il réapparaît au port ouvert le plus proche après le délai habituel et retourne à son poste. On ne le rappelle que s'il reste une place dans la flotte ; il rejoint alors la flotte en naviguant.
+- **Cercle** : 200 m + 70 m par rang du type (chaloupe 270 m … galion 690 m).
+- **Puissance** : menace du type × part de vie × (1 + 0,03 par niveau d'amélioration + 0,1 par rang du navire). Les gardes à leur poste dont les postes sont à moins du plus grand de leurs rayons additionnent leur puissance.
+- **Pression du front** : 1 + 4 × part des eaux de la Marine à moins de 900 m + 3 × proximité des îles de la Marine (1 au port, 0 à 1 600 m).
+- Puissance ≥ pression : la Marine ne repousse plus la frontière dans son cercle. Puissance ≥ 1,5 × la pression : il gagne du terrain petit à petit, d'autant plus vite que son avance est nette. Sinon, il demande de l'aide (au plus toutes les 4 minutes), comme quand il est attaqué.
+- Quand tu passes à moins de 1 500 m d'un garde sur un front où la pression atteint 2, une escadre de la Marine vient parfois l'attaquer (toutes les 4 à 7 minutes au plus), d'autant plus forte que la pression est grande (deux navires au-delà de 4).
+- Tendance affichée : ▲ vert (il gagne du terrain), ▬ gris (il tient), ▼ rouge (trop faible).

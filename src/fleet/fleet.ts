@@ -13,6 +13,16 @@ import { guardSlot } from './escortGuard';
 import { formationOffset } from './formations';
 import { freeSpace } from './holds';
 import type { TradeOrder } from './tradeRoutes';
+import { harbors } from '../world/harbors';
+
+/** Poste d'un navire de garde (`fleet/guards.ts`) : le centre du cercle qu'il protège. */
+export interface GuardPost {
+  x: number;
+  z: number;
+}
+
+/** Hors de la flotte : en commerce ou en garde. */
+export const away = (m: FleetMember) => m.trade !== null || m.guard !== null;
 
 export type Formation = keyof typeof FORMATION_NAMES;
 
@@ -51,6 +61,8 @@ export interface FleetMember {
   readonly hiddenTrophies: Set<BossId>;
   /** Route commerciale confiée à ce navire (il a quitté la flotte et navigue seul), ou null. */
   trade: TradeOrder | null;
+  /** Poste de garde confié à ce navire (il a quitté la flotte et protège une zone), ou null. */
+  guard: GuardPost | null;
   /** Emblème peint sur sa grande voile (null : aucun), et ceux déjà payés pour lui (y revenir est gratuit). */
   emblem: EmblemId | null;
   readonly ownedEmblems: Set<EmblemId>;
@@ -68,7 +80,7 @@ export class Fleet {
    * occupent tes places de flotte (`PlayerState.slots`) ; ceux en commerce occupent un emplacement de leur île.
    */
   readonly hand: FleetMember[] = [];
-  /** Les navires en commerce (carte, radar), tenus à jour avec `hand`. */
+  /** Les navires hors de la flotte, en commerce ou en garde (carte, radar), tenus à jour avec `hand`. */
   readonly traders: Ship[] = [];
   controlled!: FleetMember;
   formation: Formation = 'vee';
@@ -118,6 +130,7 @@ export class Fleet {
       trophies: [],
       hiddenTrophies: new Set(),
       trade: null,
+      guard: null,
       emblem: null,
       ownedEmblems: new Set(),
     };
@@ -166,9 +179,18 @@ export class Fleet {
     return true;
   }
 
+  /** Met un navire en garde à un poste (null = il revient dans la flotte). Jamais celui qu'on pilote. */
+  setGuard(member: FleetMember, post: GuardPost | null): boolean {
+    if (post && (member === this.controlled || member.trade)) return false;
+    member.guard = post;
+    member.station = null;
+    this.refreshHand();
+    return true;
+  }
+
   /** Prend la barre d'un autre bateau à flot (pas d'un navire en commerce). */
   takeControl(member: FleetMember): boolean {
-    if (!member.inWorld || !member.ship.alive || member.trade) return false;
+    if (!member.inWorld || !member.ship.alive || away(member)) return false;
     this.controlled = member;
     return true;
   }
@@ -182,7 +204,7 @@ export class Fleet {
     if (ship.alive || (ship.sinkTime ?? 0) < FLEET.switchDelay) return null;
     let best: FleetMember | null = null;
     for (const m of this.members) {
-      if (m === this.controlled || !m.inWorld || !m.ship.alive || m.trade) continue;
+      if (m === this.controlled || !m.inWorld || !m.ship.alive || away(m)) continue;
       if (!best || m.ship.distanceTo(ship) < best.ship.distanceTo(ship)) best = m;
     }
     if (best) this.controlled = best;
@@ -222,8 +244,8 @@ export class Fleet {
         m.respawnIn = SHIP_TYPES[m.type].respawnTime * this.respawnFactor;
         continue;
       }
-      // Un navire en commerce est mené par sa route (TradeRoutes).
-      if (m === this.controlled || !m.ship.alive || m.trade) continue;
+      // Un navire en commerce est mené par sa route (TradeRoutes), un navire de garde par les gardes (Guards).
+      if (m === this.controlled || !m.ship.alive || away(m)) continue;
       // L'escorte passe avant la pêche : le poste est gardé pour après.
       if (m.station && !this.guarded) {
         m.ai.holdStation(m.station.x, m.station.z, this.ships);
@@ -293,6 +315,14 @@ export class Fleet {
       member.ship.heading = start.heading;
       return;
     }
+    if (member.guard) {
+      // Un navire de garde coulé repart du port ouvert le plus proche de son poste.
+      const post = member.guard;
+      const port = harbors.open().reduce((a, b) => (Math.hypot(b.port.x - post.x, b.port.z - post.z) < Math.hypot(a.port.x - post.x, a.port.z - post.z) ? b : a));
+      member.ship.respawn(port.portSpawn.x, port.portSpawn.z);
+      member.ship.heading = port.portSpawn.heading;
+      return;
+    }
     const slot = this.slotPosition(member);
     const leader = this.anchor;
     const spot = land.keepOffshore(slot.x - Math.sin(leader.heading) * extraBack, slot.z - Math.cos(leader.heading) * extraBack, LAND.allyMargin + 6);
@@ -317,7 +347,7 @@ export class Fleet {
     this.hand.length = 0;
     this.traders.length = 0;
     for (const m of this.members) {
-      if (m.trade) this.traders.push(m.ship);
+      if (away(m)) this.traders.push(m.ship);
       else this.hand.push(m);
     }
   }

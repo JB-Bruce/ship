@@ -26,6 +26,9 @@ import { MarketMenu } from './market/marketMenu';
 import { ShipyardMenu } from './shipyard/shipyardMenu';
 import { TavernMenu } from './tavern/tavernMenu';
 import type { DayCycle } from '../world/dayCycle';
+import { land } from '../world/island';
+import { worldEdge } from '../world/worldEdge';
+import { TERRITORY } from '../config';
 // Style d'époque, chargé après les feuilles des menus pour en reprendre les surfaces.
 import './kit/epoque.css';
 import './kit/epoqueMenus.css';
@@ -104,6 +107,10 @@ export function createMenus(w: MenuWorld): PortMenu {
     contracts,
     ledger,
     routes: campaign.routes,
+    guards: campaign.guards,
+    territory: campaign.territory,
+    discovery: campaign.discovery,
+    wind: w.wind,
     actions: {
       buyUpgrade: (id) => harbor.buyUpgrade(id),
       assignOfficer: (officer, member) => harbor.assignOfficer(officer, member),
@@ -114,6 +121,7 @@ export function createMenus(w: MenuWorld): PortMenu {
     atPort: () => campaign.portInRange(fleet.leader) !== null,
     missionStatus: (c) => campaign.missions.status(c),
     known,
+    atSea: (x, z) => land.sdf(x, z) > TERRITORY.guard.shore && worldEdge.room(x, z) > 0,
   });
   const afloat = () => fleet.hand.filter((m) => m.inWorld && m.ship.alive);
   // Barre de la roue : le navire à flot qui suit le bateau piloté dans l'ordre de la flotte (on boucle).

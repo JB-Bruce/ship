@@ -10,6 +10,8 @@ import { ParchmentMenu } from '../parchmentMenu';
 import { viewedMember, type CabinContext, type CabinPage, type CabinView } from './cabinContext';
 import { crewPage } from './crewPage';
 import { fleetPage } from './fleetPage';
+import { GuardMap } from './guardMap';
+import { guardPage } from './guardPage';
 import { logPage } from './logPage';
 import { shipPage, statRatios } from './shipPage';
 import './cabin.css';
@@ -19,6 +21,7 @@ const PAGES: { id: CabinPage; name: string; icon: string }[] = [
   { id: 'ship', name: 'Navire', icon: 'M3 17h18l-2 4H5z M12 3v14 M12 4l7 11h-7z M11 6l-5 9h5z' },
   { id: 'crew', name: 'Équipage', icon: 'M8 5a3 3 0 1 0 0.01 0 M16 5a3 3 0 1 0 0.01 0 M3 20c0-3 2.5-6 5-6s5 3 5 6 M11 20c0-3 2.5-6 5-6s5 3 5 6' },
   { id: 'fleet', name: 'Flotte', icon: 'M2 18h9l-1.5 3h-6z M6.5 8v10 M6.5 9l4 7h-4z M13 15h9l-1.5 3h-6z M17.5 5v10 M17.5 6l4 7h-4z' },
+  { id: 'guard', name: 'Garde', icon: 'M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z M8 12l3 3 5-6' },
   { id: 'log', name: 'Journal', icon: 'M5 3h11l3 3v15H5z M8 8h8 M8 12h8 M8 16h5' },
 ];
 
@@ -39,7 +42,8 @@ interface PendingFx extends MenuFx {
  * Chaque action a son retour : tampon, pièces qui volent, barres qui glissent, refus qui tremble.
  */
 export class CabinMenu extends ParchmentMenu {
-  private readonly view: CabinView = { page: 'ship', memberId: -1, edit: null, confirmAbandon: null };
+  private readonly view: CabinView = { page: 'ship', memberId: -1, edit: null, confirmAbandon: null, deploy: null };
+  private readonly guardMap: GuardMap;
   private fx: PendingFx = {};
 
   constructor(
@@ -48,6 +52,32 @@ export class CabinMenu extends ParchmentMenu {
   ) {
     super(parent, 'Cabine du capitaine', 'Tab ou Échap pour reprendre la mer', ['Tab']);
     this.body.parentElement!.classList.add('cabin-sheet-frame');
+    this.guardMap = new GuardMap(ctx);
+    // Page Garde : un clic sur la carte poste le navire choisi.
+    this.body.addEventListener('click', (e) => {
+      const canvas = e.target instanceof HTMLCanvasElement && e.target.classList.contains('guard-map') ? e.target : null;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      this.deployAt(e.clientX - rect.left, e.clientY - rect.top);
+    });
+  }
+
+  /** Poste le navire choisi au point cliqué de la carte, s'il est en mer découverte. */
+  private deployAt(px: number, py: number) {
+    const { ctx, view } = this;
+    const member = ctx.fleet.members.find((m) => m.id === view.deploy);
+    const p = this.guardMap.toWorld(px, py);
+    if (!member || !p) return;
+    if (!ctx.known(p.x, p.z) || !ctx.atSea(p.x, p.z)) {
+      this.fx = { shake: '.guard-map' };
+      this.render();
+      return;
+    }
+    if (ctx.guards.deploy(member, p.x, p.z)) {
+      view.deploy = null;
+      this.fx = { glow: '.guard-cards' };
+    }
+    this.render();
   }
 
   /** Ouvre la Cabine sur une page (roue d'ordres : page Flotte). */
@@ -62,6 +92,7 @@ export class CabinMenu extends ParchmentMenu {
       this.view.memberId = this.ctx.fleet.controlled.id;
       this.view.edit = null;
       this.view.confirmAbandon = null;
+      this.view.deploy = null;
     }
     if (!open) hideTip();
     super.setOpen(open);
@@ -84,10 +115,14 @@ export class CabinMenu extends ParchmentMenu {
           ? crewPage(ctx, view, fx.officer ?? null)
           : view.page === 'fleet'
             ? fleetPage(ctx, view)
-            : logPage(ctx, view);
+            : view.page === 'guard'
+              ? guardPage(ctx, view)
+              : logPage(ctx, view);
     this.body.innerHTML = `
       <div class="cabin-head"><span class="cabin-title">Cabine du capitaine</span><div class="cabin-picks">${ships}</div>${cofferHtml({ gold: ctx.state.gold, wood: ctx.state.wood })}</div>
       <div class="cabin-main"><nav class="cabin-tabs">${tabs}</nav><section class="cabin-page">${page}</section></div>`;
+    const map = this.body.querySelector<HTMLCanvasElement>('.guard-map');
+    if (map) this.guardMap.paint(map);
     this.play();
   }
 
@@ -206,6 +241,12 @@ export class CabinMenu extends ParchmentMenu {
       }
       case 'route-cancel':
         view.edit = null;
+        break;
+      case 'guard-pick':
+        view.deploy = view.deploy === Number(arg) ? null : Number(arg);
+        break;
+      case 'guard-recall':
+        if (member && ctx.guards.recall(member)) this.fx.rise = { at: '.guard-cards', text: `${member.name} rejoint ta flotte`, tone: 'good' };
         break;
     }
   }

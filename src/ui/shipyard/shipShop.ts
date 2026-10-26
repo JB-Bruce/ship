@@ -13,12 +13,12 @@ const MS_TO_KNOTS = 1.944;
 function memberCard(ctx: PortContext, m: FleetMember): string {
   const atHelm = m === ctx.fleet.controlled;
   const refund = { gold: Math.floor(m.spent.gold * FLEET.sellRatio), wood: Math.floor(m.spent.wood * FLEET.sellRatio) };
-  const canSell = !atHelm && !m.trade && ctx.fleet.members.length > 1;
-  const why = atHelm ? 'On ne vend pas le navire qu’on commande' : m.trade ? 'Reprends-le d’abord de sa route' : 'Sa cargaison part avec lui, ses officiers débarquent';
+  const canSell = !atHelm && !m.trade && !m.guard && ctx.fleet.members.length > 1;
+  const why = atHelm ? 'On ne vend pas le navire qu’on commande' : m.trade ? 'Reprends-le d’abord de sa route' : m.guard ? 'Rappelle-le d’abord de sa garde (Cabine)' : 'Sa cargaison part avec lui, ses officiers débarquent';
   return `
     <div class="yard-member${atHelm ? ' here' : ''}">
       <span class="yard-member-icon">${shipIcon(m.type, m.levels)}</span>
-      <span class="yard-member-body"><b>${m.name}</b><span>${typeName(m.type, m.levels.extension)}${atHelm ? ' · à la barre' : m.trade ? ' · en commerce' : ''}</span></span>
+      <span class="yard-member-body"><b>${m.name}</b><span>${typeName(m.type, m.levels.extension)}${atHelm ? ' · à la barre' : m.trade ? ' · en commerce' : m.guard ? ' · en garde' : ''}</span></span>
       <button class="kit-btn ghost small" data-action="sell" data-arg="${m.id}" data-sell="${m.id}"${canSell ? '' : ' disabled'}${tip(why)}>Vendre ${priceHtml(refund, refund)}</button>
     </div>`;
 }

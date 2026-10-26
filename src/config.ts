@@ -3094,6 +3094,36 @@ export const TERRITORY = {
    * moins de `guard` m du bateau piloté (ni, plus tard, de tes navires de garde). Recherche : `tries` cases tirées.
    */
   push: { interval: [120, 240] as const, radius: [100, 220] as const, player: 0.55, navyWins: 0.6, guard: 450, tries: 600 },
+  /**
+   * Navires de garde (`fleet/guards.ts`, page Garde de la Cabine). Cercle protégé : `radius` m + `perRank` × le rang du
+   * type. Puissance : menace du type × part de vie × (1 + `upgrade` × niveaux d'amélioration + `rank` × rang du navire) ;
+   * les gardes dont les postes sont à moins du plus grand de leurs rayons additionnent leur puissance. Pression du front :
+   * `front.base` + `front.navy` × part des eaux de la Marine à moins de `front.radius` m + `front.island` × proximité des
+   * îles de la Marine (1 au port, 0 à `front.islandReach` m). Puissance ≥ pression : la Marine ne pousse plus dans le
+   * cercle ; ≥ `conquer` × la pression : il gagne du terrain (présence × `conquerRate`, de 0 à 1 selon l'avance). Sinon
+   * il demande de l'aide (au plus une fois par `helpInterval` s). Le bateau piloté à moins de `attack.range` m : toutes
+   * les `attack.interval` s, si la pression dépasse `attack.minPressure`, une escadre de la Marine vient l'attaquer, de
+   * menace `attack.strength` × la pression (deux navires au-delà de `attack.pairFrom`), à `attack.distance` m.
+   * En route : voile `sail` ; ronde à `patrol` × le rayon, voile `patrolSail` ; combat à moins de `engage` m.
+   */
+  guard: {
+    radius: 200,
+    perRank: 70,
+    upgrade: 0.03,
+    rank: 0.1,
+    front: { base: 1, navy: 4, island: 3, radius: 900, islandReach: 1600 },
+    conquer: 1.5,
+    conquerRate: 0.5,
+    helpInterval: 240,
+    attack: { range: 1500, interval: [240, 420] as const, minPressure: 2, strength: 0.8, pairFrom: 4, distance: [280, 380] as const, clearance: 40 },
+    sail: 0.7,
+    patrol: 0.4,
+    patrolSail: 0.3,
+    engage: 220,
+    step: 1,
+    /** Un poste doit être à au moins cette distance de la côte (m). */
+    shore: 60,
+  },
   /** Revenu de tes eaux, à l'aube : `perCell` or par case, entre `min` et `max`, dans la réserve de l'île à toi la plus proche. */
   income: { perCell: 0.5, min: 50, max: 2000 },
   /** Apparitions des ennemis ordinaires selon les eaux où tu navigues (× le rythme). */

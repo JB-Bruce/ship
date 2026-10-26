@@ -2,6 +2,10 @@ import type { BossId, IslandId } from '../../config';
 import type { Crew } from '../../fleet/crew';
 import type { Fleet, FleetMember } from '../../fleet/fleet';
 import type { TradeRoutes } from '../../fleet/tradeRoutes';
+import type { Guards } from '../../fleet/guards';
+import type { MapDiscovery } from '../../progression/mapDiscovery';
+import type { Territory } from '../../progression/territory';
+import type { Wind } from '../../world/wind';
 import type { Contract, Contracts } from '../../progression/contracts';
 import type { Good } from '../../progression/goods';
 import type { Ledger } from '../../progression/ledger';
@@ -9,7 +13,7 @@ import type { PlayerState } from '../../progression/playerState';
 import type { UpgradeId } from '../../progression/upgrades';
 
 /** Pages de la Cabine du capitaine. */
-export type CabinPage = 'ship' | 'crew' | 'fleet' | 'log';
+export type CabinPage = 'ship' | 'crew' | 'fleet' | 'guard' | 'log';
 
 /** Ce que la Cabine fait faire au jeu (le port paie, la flotte change de barre…). */
 export interface CabinActions {
@@ -31,6 +35,11 @@ export interface CabinContext {
   readonly contracts: Contracts;
   readonly ledger: Ledger;
   readonly routes: TradeRoutes;
+  /** Navires de garde, territoires et carte (page Garde). */
+  readonly guards: Guards;
+  readonly territory: Territory;
+  readonly discovery: MapDiscovery;
+  readonly wind: Wind;
   readonly actions: CabinActions;
   /** Le bateau piloté est-il à quai (achats possibles) ? */
   atPort(): boolean;
@@ -38,6 +47,8 @@ export interface CabinContext {
   missionStatus(contract: Contract): string | null;
   /** Ce point de la carte est-il découvert ? (une route ne va que vers un port découvert) */
   known(x: number, z: number): boolean;
+  /** Ce point est-il en mer, en deçà du bord du monde ? (poste d'un garde) */
+  atSea(x: number, z: number): boolean;
 }
 
 /** Choix en cours dans la Cabine, gardés d'une ouverture à l'autre. */
@@ -49,6 +60,8 @@ export interface CabinView {
   edit: { memberId: number; to: IslandId; out: Good | null; back: Good | null } | null;
   /** Contrat dont l'abandon attend une confirmation (second clic). */
   confirmAbandon: number | null;
+  /** Navire choisi pour être posté (page Garde) : le prochain clic sur la carte le poste là. */
+  deploy: number | null;
 }
 
 /** Le navire consulté, ou celui qu'on pilote s'il n'existe plus (vendu). */

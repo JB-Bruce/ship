@@ -158,6 +158,23 @@ export class Territory {
     this.fill(x, z, v.radius + v.perRank * rank, v.amount);
   }
 
+  /** Un navire de garde assez fort gagne du terrain dans son cercle (remplissage `amount` au centre). */
+  conquer(x: number, z: number, radius: number, amount: number) {
+    this.fill(x, z, radius, amount);
+  }
+
+  /** Part des cases jouables à moins de `radius` m de (x, z) qui sont à `who` (0 à 1). */
+  fractionAround(x: number, z: number, radius: number, who: Owner): number {
+    let mine = 0;
+    let all = 0;
+    this.cells(x, z, radius, (i) => {
+      if (this.lock[i] === OUTSIDE) return;
+      all++;
+      if (this.owner[i] === who) mine++;
+    });
+    return all ? mine / all : 0;
+  }
+
   /** Revenu de tes eaux pour une journée, réparti entre tes îles (la plus proche de chaque case). Renvoie le total. */
   dawnIncome(): number {
     const owned = ISLAND_LIST.filter((i) => this.islands[i.id].owned);

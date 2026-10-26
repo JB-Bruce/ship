@@ -1,5 +1,5 @@
 import type { IslandId } from '../config';
-import type { Fleet } from '../fleet/fleet';
+import { away, type Fleet } from '../fleet/fleet';
 import type { Ship } from '../ship/ship';
 import type { MapZone } from '../missions/mission';
 import type { MapDiscovery } from '../progression/mapDiscovery';
@@ -126,7 +126,7 @@ export class MapMenu extends ParchmentMenu {
     const leader = fleet.leader;
     const allies: Ship[] = [];
     const traders: Ship[] = [];
-    for (const m of fleet.members) if (m !== fleet.controlled && m.inWorld && m.ship.alive) (m.trade ? traders : allies).push(m.ship);
+    for (const m of fleet.members) if (m !== fleet.controlled && m.inWorld && m.ship.alive) (away(m) ? traders : allies).push(m.ship);
     // Seuls les ennemis que ton radar voit sont connus (pas un boss caché dans la brume), plus ceux qui approchent de l'île (vigies du phare).
     const range = this.source.radarRange();
     const coverage = this.source.coverage();
