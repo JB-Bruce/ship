@@ -1,8 +1,8 @@
-import { BOSSES, RANKS } from '../../config';
+import { BOSSES, FISHING, RANKS } from '../../config';
 import type { FleetMember } from '../../fleet/fleet';
 import { capacityOf } from '../../fleet/holds';
 import { rankName, rankOf } from '../../fleet/officers';
-import { cannonCount, deriveStats, describeLevel, holdCapacity, maxLevel, maxLevels, nextCost, UPGRADE_IDS, type UpgradeId } from '../../progression/upgrades';
+import { cannonCount, catchFactor, deriveStats, describeLevel, holdCapacity, maxLevel, maxLevels, nextCost, UPGRADE_IDS, type UpgradeId } from '../../progression/upgrades';
 import type { ShipStats } from '../../config';
 import { SHIP_SIZE_ORDER, SHIP_TYPES, typeName, UPGRADE_INFO } from '../../shipTypes';
 import { gaugeHtml, pipsHtml, priceHtml, statBarHtml, tip } from '../kit/kit';
@@ -79,10 +79,11 @@ export function shipPage(ctx: CabinContext, view: CabinView, fx: ShipPageFx): st
       return `<button class="cabin-trophy${shown ? ' on' : ''}" data-action="trophy" data-arg="${m.id}:${id}"${tip(`Pavillon de ${BOSSES[id].name} : ${shown ? 'hissé (clic pour le retirer)' : 'retiré (clic pour le hisser)'}`)}>☠</button>`;
     })
     .join('');
-  const bars = LINES.map((line, i) => {
-    const v = line.value(ship.stats, capacityOf(m));
-    return statBarHtml(line.label, line.text(v), v / t[i], undefined, fx.before?.[line.label]);
-  }).join('');
+  const bars =
+    LINES.map((line, i) => {
+      const v = line.value(ship.stats, capacityOf(m));
+      return statBarHtml(line.label, line.text(v), v / t[i], undefined, fx.before?.[line.label]);
+    }).join('') + fishingBar(m);
   const canBuy = ctx.atPort() && atHelm;
   const have = { gold: ctx.state.gold, wood: ctx.state.wood };
   const upgrades = UPGRADE_IDS.filter((id) => maxLevel(m.type, id, m.levels) > 0)
@@ -122,4 +123,13 @@ export function shipPage(ctx: CabinContext, view: CabinView, fx: ShipPageFx): st
         <div class="cabin-upgrades">${upgrades}</div>
       </div>
     </div>`;
+}
+
+/** Pêche d'un navire pêcheur (filets compris), en poissons par minute, rapportée au meilleur filet de son type. */
+function fishingBar(m: FleetMember): string {
+  if (!SHIP_TYPES[m.type].canFish) return '';
+  const perMinute = (factor: number) => 60 / (FISHING.catchInterval * factor);
+  const best = Math.min(1, ...SHIP_TYPES[m.type].upgrades.nets.catchFactor);
+  const now = perMinute(catchFactor(m.type, m.levels));
+  return statBarHtml('Pêche', `${now.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} poissons / min`, now / perMinute(best));
 }

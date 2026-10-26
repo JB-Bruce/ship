@@ -1,9 +1,9 @@
-import { EMBLEMS, GUNS, type EmblemId, type GunType } from '../../config';
+import { EMBLEMS, FISHING, GUNS, type EmblemId, type GunType } from '../../config';
 import type { FleetMember } from '../../fleet/fleet';
 import { capacityOf } from '../../fleet/holds';
 import { gunCost } from '../../progression/modifiers';
-import { cannonCount, deriveStats, describeLevel, extensionLevels, holdCapacity, maxLevel, nextCost, type UpgradeId, type UpgradeLevels } from '../../progression/upgrades';
-import { SHIP_TYPES, UPGRADE_INFO } from '../../shipTypes';
+import { cannonCount, catchFactor, deriveStats, describeLevel, extensionLevels, holdCapacity, maxLevel, nextCost, type UpgradeId, type UpgradeLevels } from '../../progression/upgrades';
+import { SHIP_TYPES, UPGRADE_INFO, type ShipType } from '../../shipTypes';
 import type { ShipStats } from '../../config';
 import { pipsHtml, priceHtml, statBarHtml, tip } from '../kit/kit';
 import { emblemPreview } from '../emblemPreview';
@@ -29,13 +29,14 @@ export const PART_UPGRADES: Record<ShipPart, readonly UpgradeId[]> = {
 export const PART_NAMES: Record<ShipPart, string> = { sails: 'Voiles', emblem: 'Emblème', cannons: 'Canons', hull: 'Coque', hold: 'Cale' };
 
 /** La caractéristique qu'une amélioration fait monter, avec sa valeur d'après les stats (null : seulement le texte). */
-const GAUGES: Partial<Record<UpgradeId, { label: string; value: (s: ShipStats, hold: number) => number; text: (v: number) => string }>> = {
+const GAUGES: Partial<Record<UpgradeId, { label: string; value: (s: ShipStats, hold: number, type: ShipType, levels: UpgradeLevels) => number; text: (v: number) => string }>> = {
   sails: { label: 'Vitesse', value: (s) => s.maxSpeed * MS_TO_KNOTS, text: (v) => `${v.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} nœuds` },
   cannons: { label: 'Canons', value: (s) => cannonCount(s), text: (v) => `${v}` },
   range: { label: 'Portée', value: (s) => s.cannon.range, text: (v) => `${Math.round(v)} m` },
   accuracy: { label: 'Précision', value: (s) => 1 / s.cannon.spread, text: (v) => `${Math.round(v)}` },
   hull: { label: 'Vie', value: (s) => s.maxHealth, text: (v) => `${Math.round(v)}` },
   hold: { label: 'Cale', value: (_s, hold) => hold, text: (v) => `${v} places` },
+  nets: { label: 'Pêche', value: (_s, _h, type, levels) => 60 / (FISHING.catchInterval * catchFactor(type, levels)), text: (v) => `${v.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} poissons / min` },
 };
 
 /**
@@ -164,8 +165,8 @@ function gaugeValues(m: FleetMember, id: UpgradeId): { now: number; after: numbe
   if (!gauge) return null;
   const { type, levels } = m;
   const def = SHIP_TYPES[type];
-  const value = (l: UpgradeLevels) => gauge.value(deriveStats(type, def.stats, l), holdCapacity(type, l));
-  const now = gauge.value(m.ship.stats, capacityOf(m));
+  const value = (l: UpgradeLevels) => gauge.value(deriveStats(type, def.stats, l), holdCapacity(type, l), type, l);
+  const now = gauge.value(m.ship.stats, capacityOf(m), type, levels);
   const nowBase = value(levels);
   const k = nowBase ? now / nowBase : 1;
   const after = nextCost(type, id, levels) ? k * value({ ...levels, [id]: levels[id] + 1 }) : now;

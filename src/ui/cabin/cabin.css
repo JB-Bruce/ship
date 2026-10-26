@@ -324,10 +324,7 @@
   justify-content: center;
   gap: 12px;
   min-height: 360px;
-  padding: 70px 34px 40px;
-  border-radius: 50% 50% 24% 24% / 34% 34% 9% 9%;
-  background: repeating-linear-gradient(0deg, #c8a46a 0, #c8a46a 22px, #b8945a 23px, #c8a46a 24px);
-  border: 4px solid #5a3b22;
+  padding: 26% 14% 12%;
 }
 .cabin-post {
   display: flex;

@@ -21,6 +21,8 @@ const TREND_GLYPHS: Record<GuardTrend, string> = { up: '▲', flat: '▬', down:
 const SIZE = { width: 640, height: 380 };
 /** Silhouette d'un garde au centre de son cercle (gravure de shipIcons.ts) : taille, et rayon du disque où on peut la saisir (px). */
 const ICON = { size: 30, grab: 18 };
+/** Lavis de parchemin derrière l'icône d'un garde (centre, milieu, bord transparent) et son trait d'encre. */
+const ICON_WASH = { center: 'rgba(236, 219, 180, 0.8)', middle: 'rgba(226, 205, 160, 0.55)', edge: 'rgba(226, 205, 160, 0)', ring: 'rgba(74, 46, 20, 0.35)' };
 /** Au-delà de cette part du rayon de son cercle, le navire est dessiné à sa vraie place (en route). */
 const AWAY = 0.6;
 
@@ -157,10 +159,20 @@ export class GuardMap {
       ctx.stroke();
       ctx.setLineDash([]);
       // L'icône au centre du cercle (on la saisit pour déplacer le garde) ; en route, le navire aussi, plus pâle, là où il est.
-      ctx.fillStyle = 'rgba(255, 245, 220, 0.85)';
+      // Fond de l'icône : un lavis de parchemin qui s'efface vers son bord, cerclé d'un trait d'encre léger.
+      const wash = ctx.createRadialGradient(x, y, 0, x, y, ICON.grab);
+      wash.addColorStop(0, ICON_WASH.center);
+      wash.addColorStop(0.7, ICON_WASH.middle);
+      wash.addColorStop(1, ICON_WASH.edge);
+      ctx.fillStyle = wash;
       ctx.beginPath();
-      ctx.arc(x, y, ICON.grab - 2, 0, Math.PI * 2);
+      ctx.arc(x, y, ICON.grab, 0, Math.PI * 2);
       ctx.fill();
+      ctx.strokeStyle = ICON_WASH.ring;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(x, y, ICON.grab - 3, 0, Math.PI * 2);
+      ctx.stroke();
       const icon = shipIconImage(shipIcon(m.type, m.levels), color, () => this.paint());
       if (icon) ctx.drawImage(icon, x - ICON.size / 2, y - ICON.size / 2, ICON.size, ICON.size);
       const ship = m.ship.position;
@@ -245,7 +257,10 @@ export class GuardMap {
       if (d.kind === 'pan' && this.frame) {
         const f = this.frame;
         this.center = { x: f.midX + dx / f.scale, z: f.midZ + dy / f.scale };
-      } else if (d.kind === 'guard') this.ghost = this.toWorld(px, py);
+      } else if (d.kind === 'guard') {
+        const p = this.toWorld(px, py);
+        if (p && this.hooks.valid(p.x, p.z)) this.ghost = p;
+      }
       this.paint();
     }
     this.showLabel(px, py);
@@ -258,9 +273,11 @@ export class GuardMap {
     const [px, py] = this.local(e);
     const p = this.toWorld(px, py);
     const click = d.moved <= CAMERA.clickSlop && performance.now() - d.at <= CAMERA.clickTime;
+    const ghost = this.ghost;
     this.ghost = null;
-    if (d.kind === 'guard' && d.member && p && !click) {
-      if (this.hooks.valid(p.x, p.z)) this.hooks.place(d.member, p.x, p.z);
+    if (d.kind === 'guard' && d.member && !click) {
+      // Il est posé à la dernière place valable par où le glisser est passé.
+      if (ghost) this.hooks.place(d.member, ghost.x, ghost.z);
     } else if (click && p) {
       const member = this.hooks.picking();
       if (member && this.hooks.valid(p.x, p.z)) this.hooks.place(member, p.x, p.z);
@@ -281,7 +298,7 @@ export class GuardMap {
     let bad = false;
     if (member && p && (moving || !d)) {
       bad = !this.hooks.valid(p.x, p.z);
-      text = bad ? 'Pas ici : terre, côte ou mer inconnue' : moving ? `Déplacer ${member.name} ici` : `Poster ${member.name} ici`;
+      text = bad ? (moving ? `${member.name} reste dans tes eaux` : 'Seulement dans tes eaux, loin des côtes') : moving ? `Déplacer ${member.name} ici` : `Poster ${member.name} ici`;
     } else if (hover) text = `Glisser pour déplacer ${hover.name}`;
     this.label.hidden = !text;
     this.label.textContent = text;

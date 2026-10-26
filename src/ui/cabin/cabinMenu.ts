@@ -12,6 +12,7 @@ import { viewedMember, type CabinContext, type CabinPage, type CabinView } from 
 import { crewPage } from './crewPage';
 import { fleetPage } from './fleetPage';
 import { GuardMap } from './guardMap';
+import { PLAYER } from '../../progression/territory';
 import { guardPage } from './guardPage';
 import { logPage } from './logPage';
 import { shipPage, statRatios } from './shipPage';
@@ -55,7 +56,8 @@ export class CabinMenu extends ParchmentMenu {
     this.body.parentElement!.classList.add('cabin-sheet-frame');
     this.guardMap = new GuardMap(ctx, {
       picking: () => ctx.fleet.members.find((m) => m.id === this.view.deploy) ?? null,
-      valid: (x, z) => ctx.known(x, z) && ctx.atSea(x, z),
+      // Un garde ne se poste que dans tes eaux, en mer découverte et loin des côtes.
+      valid: (x, z) => ctx.known(x, z) && ctx.atSea(x, z) && ctx.territory.ownerAt(x, z) === PLAYER,
       place: (member, x, z) => this.deploy(member, x, z),
     });
   }

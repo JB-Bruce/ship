@@ -68,7 +68,7 @@ export class BattleMission implements Mission {
     this.orders = { sailing: false, leader: this.pirates[0].ship, objective: null };
 
     const enemyTypes = squadronTypes(b.enemyLeader[s], b.enemies[s] - 1, b.enemyMin[s]);
-    this.enemies = world.spawner.spawnSquadron(enemyTypes, foe.x, foe.z, toFoe + Math.PI, null, { home: { ...foe, radius: b.enemyRadius } });
+    this.enemies = world.spawner.spawnSquadron(enemyTypes, foe.x, foe.z, toFoe + Math.PI, null, { home: { ...foe, radius: b.enemyRadius }, stand: true });
   }
 
   update(): MissionOutcome {

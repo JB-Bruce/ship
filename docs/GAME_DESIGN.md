@@ -429,7 +429,7 @@ Chaque navire suit le même schéma : un modèle `ShipModel` + une entrée dans 
 
 ## Navires de garde (fait le 2026-10-26)
 
-- Depuis la Cabine (Tab, partout), page **Garde** : la carte de déploiement montre les territoires et tes gardes (cercle, silhouette gravée du navire au centre, puissance / pression, tendance). Molette : zoom ; glisser : déplacer la carte ; glisser l'icône d'un garde : le changer de poste. On choisit un navire de la flotte (pas celui qu'on pilote), puis on clique en mer découverte (à plus de 60 m d'une côte) pour le poster. Un petit texte près du curseur dit ce que fera le clic ou le glisser (« Poster … ici », « Déplacer … ici », ou pourquoi c'est impossible).
+- Depuis la Cabine (Tab, partout), page **Garde** : la carte de déploiement montre les territoires et tes gardes (cercle, silhouette gravée du navire au centre, puissance / pression, tendance). Molette : zoom ; glisser : déplacer la carte ; glisser l'icône d'un garde : le changer de poste. On choisit un navire de la flotte (pas celui qu'on pilote), puis on clique dans tes eaux, en mer découverte (à plus de 60 m d'une côte), pour le poster. Un garde glissé ne peut pas sortir de tes eaux : il s'arrête à la dernière place valable. Un petit texte près du curseur dit ce que fera le clic ou le glisser (« Poster … ici », « Déplacer … ici », ou pourquoi c'est impossible).
 - Il quitte la flotte (sa place se libère), navigue jusqu'à son poste, y fait sa ronde, et combat tout ennemi qui entre dans son cercle. Coulé, il réapparaît au port ouvert le plus proche après le délai habituel et retourne à son poste. On ne le rappelle que s'il reste une place dans la flotte ; il rejoint alors la flotte en naviguant.
 - **Cercle** : 200 m + 70 m par rang du type (chaloupe 270 m … galion 690 m).
 - **Puissance** : menace du type × part de vie × (1 + 0,03 par niveau d'amélioration + 0,1 par rang du navire). Les gardes à leur poste dont les postes sont à moins du plus grand de leurs rayons additionnent leur puissance.
@@ -441,3 +441,9 @@ Chaque navire suit le même schéma : un modèle `ShipModel` + une entrée dans 
 ## Météo automatique (fait le 2026-10-26)
 
 - Le temps change de lui-même : beau temps pendant 10 à 20 minutes, puis un autre temps tiré au sort pendant 3 à 7 minutes (brouillard 25 %, grand vent 25 %, pluie 20 %, orage 15 %, grosse tempête 10 %, grande tempête 5 %), puis le beau temps revient. En moyenne, environ 75 % du temps est clair. Un temps choisi aux boutons dure sa durée habituelle avant que le cycle reprenne.
+
+## Retours divers (fait le 2026-10-26)
+
+- **Fuite des ennemis** : seule la moitié des navires de la Marine (tirée à leur apparition) prend la fuite quand elle est très abîmée ; l'autre moitié se bat jusqu'à couler. L'escadre d'une mission « aide au combat » ne fuit jamais. Les pirates alliés ne changent pas.
+- **Filets de pêche** : une jauge « poissons par minute » au Chantier (avant / après le niveau suivant) et sur la page Navire de la Cabine.
+- **Page Équipage** : le fond est le pont du navire consulté, vu de dessus, propre à chaque type (forme de la proue et de la poupe, châteaux, mâts, sabords, avirons), plus long avec les allongements.

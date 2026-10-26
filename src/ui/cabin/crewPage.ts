@@ -2,6 +2,17 @@ import { OFFICERS } from '../../config';
 import { effectText, roleEffect, starProgress, type Officer } from '../../fleet/officers';
 import { gaugeHtml, starsHtml, tip } from '../kit/kit';
 import { viewedMember, type CabinContext, type CabinView } from './cabinContext';
+import { deckArt } from './deckArt';
+import type { ShipType } from '../../shipTypes';
+
+/** Hauteur de la page Équipage par unité de longueur du navire (px) : un navire long a un pont plus haut. */
+const DECK_HEIGHT_PER_RATIO = 112;
+
+/** Fond de la page Équipage : le pont du navire vu de dessus, à sa forme (deckArt.ts). */
+function deckStyle(type: ShipType, extension: number): string {
+  const { svg, ratio } = deckArt(type, extension);
+  return `background-image:url(&quot;data:image/svg+xml,${encodeURIComponent(svg)}&quot;);min-height:${Math.round(ratio * DECK_HEIGHT_PER_RATIO)}px`;
+}
 
 /** Talent maximal d'un officier (étoiles affichées). */
 const MAX_TALENT = OFFICERS.maxTalent;
@@ -58,7 +69,7 @@ export function crewPage(ctx: CabinContext, view: CabinView, fresh: number | nul
     <div class="cabin-crew">
       <div class="cabin-crew-left">
         <div class="cabin-section-head"><h2>À bord de ${m.name}</h2><span>${aboard.length} / ${slots} postes</span></div>
-        <div class="cabin-deck">${posts}</div>
+        <div class="cabin-deck" style="${deckStyle(m.type, m.levels.extension)}">${posts}</div>
       </div>
       <div class="cabin-crew-right">
         <div class="cabin-section-head"><h2>Officiers de la flotte</h2><span>Recrutement : à la Taverne d’un port</span></div>

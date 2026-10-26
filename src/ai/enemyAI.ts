@@ -29,6 +29,8 @@ export interface EnemyAIOptions {
   moored?: { x: number; z: number };
   /** Garnison en patrouille : il tourne autour de ce point à `radius` m, dans le sens `turn` (+1 ou -1). */
   orbit?: { x: number; z: number; radius: number; turn: number };
+  /** Escadre qui tient bon (aide au combat) : elle ne fuit jamais. */
+  stand?: boolean;
   /** Laisse (garnison) : au-delà de cette distance de son poste (mouillage ou centre de sa ronde), il lâche sa proie et rentre. */
   leash?: number;
 }
@@ -76,6 +78,9 @@ export class EnemyAI {
   private anchorHealth: number;
   /** Garnison qui a dépassé sa laisse : il rentre à son poste sans plus chasser. */
   private returning = false;
+
+  /** Ce navire fuit-il quand il est très abîmé ? (tiré à son apparition, `COMBAT.fleeChance`) */
+  private readonly coward = Math.random() < COMBAT.fleeChance;
 
   constructor(
     private readonly ship: Ship,
@@ -171,8 +176,8 @@ export class EnemyAI {
       this.state = target ? 'chase' : 'patrol';
       return;
     }
-    // Le boss et les assiégeants ne fuient jamais.
-    const brave = this.options.relentless || this.options.siege;
+    // Le boss, les assiégeants et les escadres qui tiennent bon ne fuient jamais ; des autres, seule une part fuit.
+    const brave = this.options.relentless || this.options.siege || this.options.stand || !this.coward;
     if (!brave && this.ship.health < this.ship.stats.maxHealth * COMBAT.fleeHealth) this.state = 'flee';
     else if (!target) this.state = 'patrol';
     else if (this.state === 'patrol') this.state = 'chase';

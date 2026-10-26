@@ -192,8 +192,9 @@ export const COMBAT = {
   gravity: 9.8,
   /** Durée du naufrage avant disparition (s). */
   sinkDuration: 7,
-  /** Sous cette fraction de vie, un ennemi prend la fuite. */
+  /** Sous cette fraction de vie, un ennemi prend la fuite… s'il est de ceux qui fuient (une chance sur `fleeChance`, tirée à son apparition ; les autres se battent jusqu'à couler). */
   fleeHealth: 0.2,
+  fleeChance: 0.5,
   /** Un fuyard qui s'est réparé jusqu'à cette fraction de sa vie revient au combat. */
   rallyHealth: 0.8,
   /** Secousse de caméra quand le joueur est touché (0..1), et en plus quand c'est par un obus de mortier (coup ou souffle). */
