@@ -24,7 +24,7 @@ export function guardPage(ctx: CabinContext, view: CabinView): string {
   const guards = g.members;
   const free = ctx.fleet.hand.filter((m) => g.canDeploy(m));
   const picking = ctx.fleet.members.find((m) => m.id === view.deploy);
-  const hint = picking ? `Clique sur la carte pour poster <b>${picking.name}</b> (mer découverte).` : 'Choisis un navire, puis clique sur la carte où le poster.';
+  const hint = picking ? `Clique sur la carte pour poster <b>${picking.name}</b> (mer découverte).` : 'Molette : zoom · glisser : déplacer la carte · glisser un garde : le déplacer';
   const cards = guards.length ? guards.map((m) => guardCard(ctx, view, m)).join('') : '<p class="cabin-muted">Aucun navire en garde.</p>';
   const picks = free.length
     ? free
@@ -37,7 +37,7 @@ export function guardPage(ctx: CabinContext, view: CabinView): string {
   return `
     <div class="cabin-guard">
       <div class="cabin-section-head"><h2>Carte de déploiement</h2><span>${hint}</span></div>
-      <canvas class="guard-map"></canvas>
+      <div class="guard-map-slot"></div>
       <div class="guard-legend"><span><b class="up">▲</b> gagne du terrain</span><span><b class="flat">▬</b> tient</span><span><b class="down">▼</b> trop faible</span><span>Puissance / pression du front</span></div>
       <div class="cabin-section-head"><h2>Poster un navire</h2><span>Il quitte ta flotte ; on ne le reprend que s’il reste une place</span></div>
       <div class="guard-picks">${picks}</div>

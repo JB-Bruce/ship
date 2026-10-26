@@ -179,9 +179,7 @@ export class Game {
     this.chaseCamera = new ChaseCamera(this.camera, this.display.viewport, (x, y) => this.betrayal.click(x, y, this.camera));
     this.bossSinking = new BossSinking(this.effects, this.chaseCamera);
     this.hud = new Hud(container);
-    this.cursed = new CursedTide(this.spawner, this.effects, () => this.fleetPower().best, {
-      toast: (text) => this.hud.toast(text, 3),
-    });
+    this.cursed = new CursedTide(this.spawner, this.effects, () => this.fleetPower().best);
     // On commence la partie à la barre, à la première personne.
     this.chaseCamera.firstPerson.setActive(true);
     // Échap souris capturée : le menu s'ouvre dans le même appui ; refermé, on reprend la souris.

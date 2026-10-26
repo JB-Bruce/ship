@@ -1661,16 +1661,19 @@ body {
  * Barre de défilement des parchemins, « trait d'encre » : une fine rainure brune dans la marge, un curseur arrondi
  * brun encre (plus foncé au survol), sans flèches, tenu à l'écart des coins arrondis.
  */
-.parchment::-webkit-scrollbar {
+.parchment::-webkit-scrollbar,
+.parchment *::-webkit-scrollbar {
   width: 16px;
 }
 
-.parchment::-webkit-scrollbar-track {
+.parchment::-webkit-scrollbar-track,
+.parchment *::-webkit-scrollbar-track {
   margin: 14px 0;
   background: linear-gradient(90deg, transparent 7px, rgba(110, 70, 30, 0.35) 7px, rgba(110, 70, 30, 0.35) 9px, transparent 9px);
 }
 
-.parchment::-webkit-scrollbar-thumb {
+.parchment::-webkit-scrollbar-thumb,
+.parchment *::-webkit-scrollbar-thumb {
   min-height: 40px;
   border: 4px solid transparent;
   border-radius: 8px;
@@ -1679,19 +1682,24 @@ body {
 }
 
 .parchment::-webkit-scrollbar-thumb:hover,
-.parchment::-webkit-scrollbar-thumb:active {
+.parchment::-webkit-scrollbar-thumb:active,
+.parchment *::-webkit-scrollbar-thumb:hover,
+.parchment *::-webkit-scrollbar-thumb:active {
   background: #3e2610 padding-box;
 }
 
 .parchment::-webkit-scrollbar-button,
-.parchment::-webkit-scrollbar-corner {
+.parchment::-webkit-scrollbar-corner,
+.parchment *::-webkit-scrollbar-button,
+.parchment *::-webkit-scrollbar-corner {
   display: none;
   background: transparent;
 }
 
 /* Navigateurs sans ::-webkit-scrollbar (Firefox) : barre fine aux couleurs de l'encre. */
 @supports not selector(::-webkit-scrollbar) {
-  .parchment {
+  .parchment,
+  .parchment * {
     scrollbar-width: thin;
     scrollbar-color: rgba(70, 40, 15, 0.75) transparent;
   }

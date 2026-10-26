@@ -700,11 +700,33 @@
 }
 
 /* Page Garde : carte de déploiement, navires à poster, gardes en poste. */
+.guard-map-wrap {
+  position: relative;
+  width: fit-content;
+  margin: 4px auto 2px;
+}
+
 .cabin-guard .guard-map {
   display: block;
-  margin: 4px auto 2px;
   border: 1px solid rgba(74, 46, 20, 0.5);
-  cursor: crosshair;
+  touch-action: none;
+}
+
+/* Petit texte qui suit le curseur sur la carte de déploiement. */
+.guard-cursor {
+  position: absolute;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(244, 232, 205, 0.95);
+  box-shadow: 0 1px 4px rgba(40, 20, 5, 0.4);
+  color: #3a2410;
+  font-size: 13px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.guard-cursor.bad {
+  color: #9a1f17;
 }
 
 .guard-legend {

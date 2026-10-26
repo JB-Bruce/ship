@@ -23,11 +23,6 @@ interface Ghost {
   mist: number;
 }
 
-/** Ce que la marée maudite fait savoir. */
-export interface CursedEvents {
-  toast(text: string): void;
-}
-
 /** Mer libre autour du point où surgit un navire maudit (m). */
 const ROOM = 30;
 /** Seuil de `conditions.night` au-delà duquel il fait nuit. */
@@ -54,7 +49,6 @@ export class CursedTide {
     private readonly spawner: EnemySpawner,
     private readonly effects: Effects,
     private readonly best: () => ShipType,
-    private readonly events: CursedEvents,
   ) {}
 
   get night(): boolean {
@@ -132,7 +126,6 @@ export class CursedTide {
       g.age += dt;
       const away = !fleet.some((m) => m.ship.alive && m.ship.distanceTo(ship) < CURSED.leaveDistance);
       if (night && !away && g.age < CURSED.lifetime) return false;
-      if (!night) this.events.toast('Le jour se lève : les maudits retournent aux abysses');
       g.phase = 'dive';
       g.t = 0;
       sound.at('cursed/dive', ship.position);

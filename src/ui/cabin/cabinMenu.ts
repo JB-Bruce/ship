@@ -1,3 +1,4 @@
+import type { FleetMember } from '../../fleet/fleet';
 import type { Formation } from '../../fleet/fleet';
 import type { Good } from '../../progression/goods';
 import type { BossId, IslandId } from '../../config';
@@ -52,31 +53,18 @@ export class CabinMenu extends ParchmentMenu {
   ) {
     super(parent, 'Cabine du capitaine', 'Tab ou Échap pour reprendre la mer', ['Tab']);
     this.body.parentElement!.classList.add('cabin-sheet-frame');
-    this.guardMap = new GuardMap(ctx);
-    // Page Garde : un clic sur la carte poste le navire choisi.
-    this.body.addEventListener('click', (e) => {
-      const canvas = e.target instanceof HTMLCanvasElement && e.target.classList.contains('guard-map') ? e.target : null;
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      this.deployAt(e.clientX - rect.left, e.clientY - rect.top);
+    this.guardMap = new GuardMap(ctx, {
+      picking: () => ctx.fleet.members.find((m) => m.id === this.view.deploy) ?? null,
+      valid: (x, z) => ctx.known(x, z) && ctx.atSea(x, z),
+      place: (member, x, z) => this.deploy(member, x, z),
     });
   }
 
-  /** Poste le navire choisi au point cliqué de la carte, s'il est en mer découverte. */
-  private deployAt(px: number, py: number) {
-    const { ctx, view } = this;
-    const member = ctx.fleet.members.find((m) => m.id === view.deploy);
-    const p = this.guardMap.toWorld(px, py);
-    if (!member || !p) return;
-    if (!ctx.known(p.x, p.z) || !ctx.atSea(p.x, p.z)) {
-      this.fx = { shake: '.guard-map' };
-      this.render();
-      return;
-    }
-    if (ctx.guards.deploy(member, p.x, p.z)) {
-      view.deploy = null;
-      this.fx = { glow: '.guard-cards' };
-    }
+  /** Poste (ou déplace) un navire de garde, depuis la carte de la page Garde. */
+  private deploy(member: FleetMember, x: number, z: number) {
+    if (!this.ctx.guards.deploy(member, x, z)) return;
+    if (this.view.deploy === member.id) this.view.deploy = null;
+    this.fx = { glow: '.guard-cards' };
     this.render();
   }
 
@@ -93,6 +81,7 @@ export class CabinMenu extends ParchmentMenu {
       this.view.edit = null;
       this.view.confirmAbandon = null;
       this.view.deploy = null;
+      this.guardMap.reset();
     }
     if (!open) hideTip();
     super.setOpen(open);
@@ -121,8 +110,8 @@ export class CabinMenu extends ParchmentMenu {
     this.body.innerHTML = `
       <div class="cabin-head"><span class="cabin-title">Cabine du capitaine</span><div class="cabin-picks">${ships}</div>${cofferHtml({ gold: ctx.state.gold, wood: ctx.state.wood })}</div>
       <div class="cabin-main"><nav class="cabin-tabs">${tabs}</nav><section class="cabin-page">${page}</section></div>`;
-    const map = this.body.querySelector<HTMLCanvasElement>('.guard-map');
-    if (map) this.guardMap.paint(map);
+    const map = this.body.querySelector<HTMLElement>('.guard-map-slot');
+    if (map) this.guardMap.mount(map);
     this.play();
   }
 
