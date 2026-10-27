@@ -1,0 +1,157 @@
+/* Boîte de dialogue : un parchemin en bas de l'écran, le buste du personnage dans un cadre de bois à gauche. */
+.dialogue {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  z-index: 60;
+  display: flex;
+  gap: 18px;
+  align-items: flex-end;
+  width: min(940px, calc(100vw - 32px));
+  transform: translate(-50%, 24px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.dialogue.on {
+  transform: translate(-50%, 0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dialogue-frame {
+  flex: none;
+  padding: 7px;
+  border-radius: 6px;
+  background: var(--wood);
+  border: 2px solid #1e1209;
+  box-shadow: inset 0 0 0 2px var(--brass), 0 8px 22px rgba(0, 0, 0, 0.55);
+}
+
+.dialogue-portrait {
+  display: block;
+  width: 200px;
+  height: 240px;
+  border-radius: 3px;
+  background: radial-gradient(ellipse at 50% 38%, #6a5236 0%, #3a2a1a 70%, #241810 100%);
+}
+
+.dialogue-body {
+  position: relative;
+  flex: 1;
+  min-height: 190px;
+  padding: 20px 28px 34px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid rgba(58, 36, 18, 0.55);
+  border-radius: 4px 7px 5px 6px;
+  box-shadow: var(--paper-edge), 0 8px 22px rgba(0, 0, 0, 0.5);
+  font-family: 'IM Fell English', Georgia, serif;
+  cursor: pointer;
+}
+
+.dialogue-name {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(58, 36, 18, 0.35);
+}
+
+.dialogue-name b {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--wax);
+}
+
+.dialogue-name span {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.dialogue-text {
+  margin: 0;
+  min-height: 3.2em;
+  font-size: 19px;
+  line-height: 1.5;
+}
+
+.dialogue-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.dialogue-choice {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 12px;
+  text-align: left;
+  color: var(--ink);
+  background: rgba(255, 245, 220, 0.35);
+  border: 1px solid rgba(58, 36, 18, 0.35);
+  border-radius: 3px;
+  font: inherit;
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.dialogue-choice:hover {
+  background: rgba(255, 245, 220, 0.7);
+  border-color: var(--ink);
+}
+
+.dialogue-choice span {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #f3dcc4;
+  background: radial-gradient(circle at 40% 35%, #a8281c, #5a0c06);
+  font-size: 13px;
+  line-height: 20px;
+  text-align: center;
+}
+
+.dialogue-next {
+  position: absolute;
+  right: 22px;
+  bottom: 10px;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ink-pale);
+  animation: dialogue-blink 1.4s ease-in-out infinite;
+}
+
+@keyframes dialogue-blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (max-width: 700px) {
+  .dialogue-portrait {
+    width: 120px;
+    height: 144px;
+  }
+}
+
+.dialogue-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 59;
+  background: linear-gradient(transparent 45%, rgba(6, 10, 14, 0.55));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+.dialogue-veil.on {
+  opacity: 1;
+  pointer-events: auto;
+}

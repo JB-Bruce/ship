@@ -60,7 +60,7 @@ export interface MenuWorld {
 }
 
 /** Crée les menus parchemin (Cabine, port, flotte, carte, paramètres). Renvoie celui du port, qu'ouvrent les commandes à l'écran. */
-export function createMenus(w: MenuWorld): PortMenu {
+export function createMenus(w: MenuWorld): { portMenu: PortMenu; settings: SettingsMenu } {
   installTextures();
   const { container, campaign, fleet } = w;
   const { ledger, contracts, harbor } = campaign;
@@ -163,9 +163,12 @@ export function createMenus(w: MenuWorld): PortMenu {
     escorts: () => campaign.escorts(),
     pirates: () => [...w.pirates.pirates.map((p) => p.ship), ...campaign.merchants.ships, ...campaign.missions.allies()],
     discovery: campaign.discovery,
-    objectivePorts: () => contracts.active.map((c) => c.claimAt),
+    objectivePorts: () => {
+      const story = campaign.story.port;
+      return story ? [...contracts.active.map((c) => c.claimAt), story] : contracts.active.map((c) => c.claimAt);
+    },
     territory: campaign.territory,
   });
-  new SettingsMenu(container, { settings: w.settings, display: w.display, saves: w.saves, clock: w.dayCycle, cheats: w.cheats });
-  return portMenu;
+  const settings = new SettingsMenu(container, { settings: w.settings, display: w.display, saves: w.saves, clock: w.dayCycle, cheats: w.cheats });
+  return { portMenu, settings };
 }

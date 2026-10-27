@@ -62,7 +62,7 @@ function mapSvg(id: TreasureHuntId, h: HuntState): string {
     </svg>`;
 }
 
-/** Une chasse en cours : sa carte, l'indice une fois le journal de Lagrange trouvé, l'étape en cours. */
+/** Une chasse en cours : sa carte, l'indice une fois le journal de Vasseur trouvé, l'étape en cours. */
 function huntCard(id: TreasureHuntId, h: HuntState): string {
   const def = TREASURE_HUNTS[id];
   const step = def.steps[h.step];

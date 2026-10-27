@@ -12,6 +12,8 @@ const INDEX_KEY = 'bateau.saves';
 const DATA_PREFIX = 'bateau.save.';
 /** Sauvegarde à charger au prochain démarrage (le chargement recharge la page). */
 const PENDING_KEY = 'bateau.pendingLoad';
+/** Nouvelle partie demandée en jeu : au prochain démarrage, on passe le menu principal (scène d'ouverture tout de suite). */
+const FRESH_KEY = 'bateau.newGame';
 
 /**
  * Sauvegardes gardées dans le navigateur (localStorage), en nombre illimité : la liste, et chaque partie à part.
@@ -84,7 +86,15 @@ export class SaveStore {
   /** Nouvelle partie : la page est rechargée sans sauvegarde. */
   newGame() {
     sessionStorage.removeItem(PENDING_KEY);
+    sessionStorage.setItem(FRESH_KEY, '1');
     location.reload();
+  }
+
+  /** Au démarrage : une nouvelle partie a-t-elle été demandée en jeu (une seule fois) ? */
+  takeFresh(): boolean {
+    const fresh = sessionStorage.getItem(FRESH_KEY) !== null;
+    sessionStorage.removeItem(FRESH_KEY);
+    return fresh;
   }
 
   /** Au démarrage : la sauvegarde à charger, s'il y en a une (une seule fois). */

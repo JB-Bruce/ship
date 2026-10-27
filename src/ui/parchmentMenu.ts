@@ -23,6 +23,9 @@ export abstract class ParchmentMenu {
   private readonly root: HTMLElement;
   private readonly titleElement: HTMLElement;
 
+  /** Une conversation (ou le menu principal) est en cours : les touches des menus se taisent. */
+  static locked = false;
+
   /** Un menu est-il ouvert (jeu en pause) ? */
   static anyOpen(): boolean {
     return ParchmentMenu.all.some((m) => m.isOpen);
@@ -54,7 +57,7 @@ export abstract class ParchmentMenu {
     ParchmentMenu.all.push(this);
 
     window.addEventListener('keydown', (e) => {
-      if (!hotkeys.includes(e.code)) return;
+      if (!hotkeys.includes(e.code) || ParchmentMenu.locked) return;
       e.preventDefault();
       if (!e.repeat) this.toggle(e.code);
     });
@@ -74,7 +77,7 @@ export abstract class ParchmentMenu {
     if (ParchmentMenu.escapeListening) return;
     ParchmentMenu.escapeListening = true;
     window.addEventListener('keydown', (e) => {
-      if (e.code !== 'Escape' || e.repeat) return;
+      if (e.code !== 'Escape' || e.repeat || ParchmentMenu.locked) return;
       e.preventDefault();
       if (ParchmentMenu.sameEscape()) return;
       const open = ParchmentMenu.all.find((m) => m.isOpen);
@@ -88,7 +91,8 @@ export abstract class ParchmentMenu {
    * comme Échap quand aucun menu n'est ouvert (visée annulée, sinon menu Échap), dans le même appui.
    */
   static pressEscape() {
-    if (ParchmentMenu.sameEscape() || ParchmentMenu.anyOpen()) return;
+    // Une conversation rend elle-même la souris : ce n'est pas un Échap.
+    if (ParchmentMenu.locked || ParchmentMenu.sameEscape() || ParchmentMenu.anyOpen()) return;
     if (!ParchmentMenu.escapeHandler?.()) ParchmentMenu.escapeMenu?.setOpen(true);
   }
 

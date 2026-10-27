@@ -13,6 +13,8 @@ export class SaveManager {
   /** Sauvegarde à reprendre à ce démarrage, ou null (nouvelle partie). */
   private pending: SaveData | null = this.store.takePending();
   private targets: SaveTargets | null = null;
+  /** Nouvelle partie demandée en jeu (onglet Partie) : elle commence sans repasser par le menu principal. */
+  readonly freshStart = this.store.takeFresh();
 
   /** Au démarrage, avant la campagne : la flotte de la sauvegarde, ou la chaloupe de départ au port de la Tortue. */
   start(fleet: SaveTargets['fleet']) {

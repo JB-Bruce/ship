@@ -44,7 +44,7 @@ export class OnFoot {
   ) {
     window.addEventListener('keydown', (e) => {
       // Dans un menu (le jeu est en pause), les touches ne font pas marcher.
-      if (!this.body || ParchmentMenu.anyOpen()) return;
+      if (!this.body || ParchmentMenu.anyOpen() || ParchmentMenu.locked) return;
       if (e.code === JUMP) {
         e.preventDefault();
         if (!e.repeat) this.jumpQueued = true;

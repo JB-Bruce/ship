@@ -81,13 +81,21 @@ class Treasures {
   restore(s: TreasuresSnapshot | undefined) {
     this.reset();
     if (!s) return;
-    for (const id of s.done ?? []) if (isHuntId(id)) this.done.add(id);
-    for (const [id, h] of Object.entries(s.active ?? {})) {
+    for (const old of s.done ?? []) {
+      const id = renamedHunt(old);
+      if (isHuntId(id)) this.done.add(id);
+    }
+    for (const [old, h] of Object.entries(s.active ?? {})) {
+      const id = renamedHunt(old);
       if (!isHuntId(id) || this.done.has(id) || !h) continue;
       const steps = TREASURE_HUNTS[id].steps.length;
       this.active.set(id, { step: Math.min(steps - 1, Math.max(0, Math.floor(h.step))), pieces: Math.max(0, Math.floor(h.pieces)), progress: 0 });
     }
   }
 }
+
+/** Chasses renommées depuis leur sortie : « L'or de Lagrange » est devenue celle de Vasseur (Lagrange est le capitaine de la quête principale). */
+const RENAMED_HUNTS: Record<string, string> = { lagrange: 'vasseur' };
+const renamedHunt = (id: string) => RENAMED_HUNTS[id] ?? id;
 
 export const treasures = new Treasures();

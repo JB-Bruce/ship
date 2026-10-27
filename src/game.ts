@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { fragmentHtml } from './ui/unlockPanel';
-import { AIM, AUDIO, BLUEPRINTS, BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, CURSED, HELM_VIEW, ISLAND_INFO, OCEAN, SKY, TERRITORY, WORLD, WORLD_EDGE, type IslandId } from './config';
+import { AIM, AUDIO, BLUEPRINTS, BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, CURSED, HELM_VIEW, ISLAND_INFO, OCEAN, SKY, STORY_SCENES, TERRITORY, WORLD, WORLD_EDGE, type IslandId } from './config';
 import { NAVY, OWNER_KEYS } from './progression/territory';
 import { Campaign } from './campaign';
 import { ChaseCamera } from './camera/chaseCamera';
@@ -62,7 +62,10 @@ import { CursedTide } from './world/cursedTide';
 import { Cheats } from './cheats';
 import { GameAudio } from './audio/gameAudio';
 import { sound } from './audio/sound';
-import { showWelcome } from './ui/welcomeScreen';
+import { DialogueBox } from './ui/dialogue/dialogueBox';
+import { GameStart } from './story/gameStart';
+import { StoryDirector } from './story/storyDirector';
+import { storyHooks } from './story/storyHooks';
 import { treasures } from './progression/treasures';
 import { Sky } from './world/sky';
 import { Weather } from './world/weather';
@@ -154,6 +157,8 @@ export class Game {
   /** Visée « Trahir » : un clic fait passer un pirate ou un marchand allié à l'ennemi. */
   private readonly betrayal: BetrayalPicker;
   private readonly portMenu: PortMenu;
+  /** Menu principal, scène d'ouverture et conversations de l'histoire. */
+  private readonly start: GameStart;
   private readonly fpsCounter: FpsCounter;
   /** Décor et navires noyés dans la brume : pas dessinés. */
   private readonly fogCulling = new FogCulling();
@@ -186,7 +191,9 @@ export class Game {
     this.chaseCamera.firstPerson.setActive(true);
     // Échap souris capturée : le menu s'ouvre dans le même appui ; refermé, on reprend la souris.
     this.chaseCamera.firstPerson.onEscape = () => ParchmentMenu.pressEscape();
-    ParchmentMenu.onAllClosed = () => this.chaseCamera.firstPerson.capture();
+    ParchmentMenu.onAllClosed = () => {
+      if (!this.start.menusClosed()) this.chaseCamera.firstPerson.capture();
+    };
     this.chaseCamera.firstPerson.onCaptureRefused = () => {
       if (!ParchmentMenu.anyOpen()) this.hud.toast('Clique dans la vue pour reprendre la barre', 3);
     };
@@ -244,9 +251,17 @@ export class Game {
     const applyVolumes = () => sound.setVolumes(settings.volumes, settings.muted);
     applyVolumes();
     settings.onChange(applyVolumes);
-    showWelcome(container, () => this.chaseCamera.firstPerson.capture());
     this.cheats = new Cheats({ state, fleet, campaign, spawner, cursed: this.cursed, bosses: this.bosses, hud });
-    this.portMenu = createMenus({ container, cheats: this.cheats, state, fleet, campaign, hud, wind, spawner, loot, planScrolls, schools, radar, pirates, settings, display, saves, dayCycle, chaseCamera: this.chaseCamera, takeHelm: (m) => this.takeHelm(m) });
+    const menus = createMenus({ container, cheats: this.cheats, state, fleet, campaign, hud, wind, spawner, loot, planScrolls, schools, radar, pirates, settings, display, saves, dayCycle, chaseCamera: this.chaseCamera, takeHelm: (m) => this.takeHelm(m) });
+    this.portMenu = menus.portMenu;
+    const story = new StoryDirector(campaign.story, new DialogueBox(container), {
+      chapter: (title, note) => {
+        hud.message(title, STORY_SCENES.chapterBanner);
+        hud.toast(note, STORY_SCENES.chapterBanner);
+      },
+    });
+    storyHooks.tavernOpened = (island) => void story.tavernOpened(island);
+    this.start = new GameStart({ container, saves, camera: this.chaseCamera, dayCycle, story, openOptions: () => menus.settings.setOpen(true) }, loaded !== null);
     this.weatherButtons = new WeatherButtons(container, this.weather);
     this.weatherCycle = new WeatherCycle(this.weather);
     this.dayClock = new DayClock(container, this.dayCycle);
@@ -265,7 +280,7 @@ export class Game {
     }
 
     addEventListener('keydown', (e) => {
-      if (e.repeat) return;
+      if (e.repeat || this.start.busy) return;
       // Triche de test : B donne 10 000 or et 10 000 bois.
       if (e.code === 'KeyB') {
         this.state.earn({ gold: 10000, wood: 10000 });
@@ -318,7 +333,7 @@ export class Game {
     this.waves.time += dt;
     this.wind.update(dt);
     // À pied, un matelot tient la barre : cap droit, même voilure.
-    this.controller.enabled = !paused && !this.onFoot.walking;
+    this.controller.enabled = !paused && !this.onFoot.walking && !this.start.busy;
     this.controller.update(dt);
     this.spawner.update(dt, this.fleet.leader);
     this.cursed.update(dt, this.fleet.leader, this.fleet.hand);
@@ -386,7 +401,7 @@ export class Game {
     this.lamps.update(dt, this.camera, this.ships, dark, (this.scene.fog as THREE.Fog).far);
     this.hud.update(dt, leader, this.state, this.inCombat(), this.fleet);
     this.hud.search.update(this.campaign.treasure.gauge());
-    this.hud.quests.update(dt, this.campaign.contracts, this.fleet, (c) => this.campaign.missions.status(c), () => [...this.campaign.navy.objectives(), ...this.campaign.treasure.objectives()]);
+    this.hud.quests.update(dt, this.campaign.contracts, this.fleet, (c) => this.campaign.missions.status(c), () => [...this.campaign.story.objectives(), ...this.campaign.navy.objectives(), ...this.campaign.treasure.objectives()]);
     this.radar.range = this.campaign.islands.tortuga.radarRange(tortuga.sdf(leader.position.x, leader.position.z)) * this.fleet.radarFactor() * (1 + treasures.radarBonus());
     // Ce que le radar balaie est découvert sur la carte, pour toujours.
     this.campaign.discovery.update(leader.position.x, leader.position.z, this.radar.range);

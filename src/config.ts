@@ -652,7 +652,7 @@ export const OFFICERS = {
   /** Candidats par taverne, renouvelés à chaque journée (CONTRACTS.dayLength). */
   candidates: 3,
   firstNames: ['Jacques', 'Anne', 'Thomas', 'Marie', 'Pierre', 'Samuel', 'Jeanne', 'Henri', 'Louis', 'Grace', 'William', 'Diego', 'Nicolas', 'Benjamin', 'Isabeau', 'Mathurin', 'Olivier', 'Rose'],
-  lastNames: ['Le Borgne', 'Morgan', 'Duval', 'Barbe-Grise', 'Lafitte', 'Main-de-Fer', 'Le Breton', 'La Rousse', 'Cœur-de-Chêne', 'Bonnet', 'Lagrange', 'Fer-Blanc', 'Le Normand', 'Sans-Peur', 'Dutertre', 'Mainvielle'],
+  lastNames: ['Le Borgne', 'Morgan', 'Duval', 'Barbe-Grise', 'Lafitte', 'Main-de-Fer', 'Le Breton', 'La Rousse', 'Cœur-de-Chêne', 'Bonnet', 'Lacroix', 'Fer-Blanc', 'Le Normand', 'Sans-Peur', 'Dutertre', 'Mainvielle'],
   /** Officiers uniques, gagnés en réussissant une mission spéciale (son identifiant). */
   unique: [
     { special: 'crownFleet', name: 'Mary Read', role: 'masterAtArms', talent: 3, trait: 'hothead' },
@@ -1685,12 +1685,38 @@ export const EMBLEMS = {
     anchor: { name: 'Ancre', main: 0x1d2a44, second: 0xb08a3a },
     raven: { name: 'Corbeau', main: 0x141210, second: 0xc23a22 },
     mermaid: { name: 'Sirène', main: 0x1e4a5a, second: 0xb8542a },
-    /** Emblème du trésor de Lagrange : jamais en vente, offert à toute la flotte par le coffre. */
-    goldSkull: { name: 'Crâne d’or de Lagrange', main: 0x1d1714, second: 0xd8a830 },
+    /** Emblème du trésor de Vasseur : jamais en vente, offert à toute la flotte par le coffre. */
+    goldSkull: { name: 'Crâne d’or de Vasseur', main: 0x1d1714, second: 0xd8a830 },
   } satisfies Record<EmblemId, { name: string; main: number; second: number }>,
 };
 
 /** Carte (M) : zoom au plus (× le cadrage d'ensemble), vitesse de la molette (par unité de défilement). */
+/**
+ * Dialogues (`ui/dialogue/`) : vitesse du texte qui s'écrit (lettres par seconde) ; portrait 3D du personnage (taille de
+ * sa toile en px, champ de vision, place de la caméra et point visé) ; mouvements au repos (respiration, tête qui tourne
+ * et hoche, bouche qui remue en parlant : vitesse et amplitude) et clignements (intervalle, s ; durée, s).
+ */
+/**
+ * Menu principal et scène d'ouverture (story/gameStart.ts) : vues de la caméra « vitrine » autour du bateau piloté
+ * (`point` : hauteur visée au-dessus de la flottaison, m ; `yaw`, `pitch`, `distance` comme SHOWCASE.views ; la vue du
+ * menu tourne lentement), heure de la scène sur le quai, pause avant la première réplique (s), durée du bandeau de
+ * chapitre (s).
+ */
+export const STORY_SCENES = {
+  menuView: { height: 2, yaw: 2.4, pitch: 0.16, distance: 4.2 },
+  openingView: { height: 1.6, yaw: 1.2, pitch: 0.1, distance: 2.4 },
+  openingHour: 5.7,
+  openingDelay: 1.4,
+  chapterBanner: 5,
+};
+
+export const DIALOGUE = {
+  charsPerSecond: 45,
+  portrait: { width: 200, height: 240, fov: 26, camera: [0, 1.02, 2.75] as [number, number, number], lookAt: 0.98 },
+  idle: { breath: 1.6, breathAmount: 0.012, turn: 0.5, turnAmount: 0.12, nod: 0.8, nodAmount: 0.04, talk: 18, talkAmount: 2.2, blinkTime: 0.12 },
+  blink: [2, 5] as const,
+};
+
 export const MAP_VIEW = { maxZoom: 8, wheelSpeed: 0.0015 };
 
 /**
@@ -2375,26 +2401,26 @@ export interface TreasureHuntDef {
  * déterrer sous la menace). Une chasse s'ouvre par une rumeur à la taverne ou un bout de carte lâché par une élite.
  */
 export const TREASURE_HUNTS = {
-  lagrange: {
-    title: 'L’or de Lagrange',
-    intro: 'On raconte que le capitaine Lagrange a caché l’or de la Compagnie avant de sombrer. Sa chaloupe s’est échouée sur le Banc du Naufragé : son journal y serait encore.',
+  vasseur: {
+    title: 'L’or de Vasseur',
+    intro: 'On raconte que le capitaine Vasseur a caché l’or de la Compagnie avant de sombrer. Sa chaloupe s’est échouée sur le Banc du Naufragé : son journal y serait encore.',
     rumor: { island: 'tortuga', price: 150 },
     pieces: 3,
     clue: '« Trois encablures sous le fortin du Dauphin, mon gardien veille ; mon or dort dans la gueule du Crâne. »',
     islet: 'skull',
     steps: [
-      { kind: 'search', at: [905, 1084], radius: 80, time: 20, piece: true, title: 'Fouiller la chaloupe de Lagrange', note: 'Banc du Naufragé : jette l’ancre près de la chaloupe échouée', found: 'Le journal de Lagrange et un morceau de sa carte !' },
-      { kind: 'reach', at: [1240, -410], radius: 110, title: 'Résoudre l’énigme', note: '« Trois encablures sous le fortin du Dauphin »', found: 'Une voile noire surgit de la brume : le gardien de Lagrange !' },
-      { kind: 'guardian', at: [1240, -410], captain: 'Le Gardien de Lagrange', squadron: ['sloop', 'longboat'], title: 'Couler le gardien', note: 'Il porte un morceau de la carte', found: 'Le gardien sombre : un deuxième morceau de carte flotte dans l’épave !' },
+      { kind: 'search', at: [905, 1084], radius: 80, time: 20, piece: true, title: 'Fouiller la chaloupe de Vasseur', note: 'Banc du Naufragé : jette l’ancre près de la chaloupe échouée', found: 'Le journal de Vasseur et un morceau de sa carte !' },
+      { kind: 'reach', at: [1240, -410], radius: 110, title: 'Résoudre l’énigme', note: '« Trois encablures sous le fortin du Dauphin »', found: 'Une voile noire surgit de la brume : le gardien de Vasseur !' },
+      { kind: 'guardian', at: [1240, -410], captain: 'Le Gardien de Vasseur', squadron: ['sloop', 'longboat'], title: 'Couler le gardien', note: 'Il porte un morceau de la carte', found: 'Le gardien sombre : un deuxième morceau de carte flotte dans l’épave !' },
       { kind: 'roamer', at: [-450, 1250], radius: 380, type: 'sloop', captain: 'Le Corbeau', title: 'Retrouver le dernier morceau', note: 'Le Corbeau le garde, quelque part dans la zone marquée', found: 'Le dernier morceau ! La croix apparaît sur la carte : le Crâne.' },
-      { kind: 'dig', at: [-1000, 1665], radius: 60, time: 40, waves: [['longboat', 'longboat'], ['sloop']], title: 'Déterrer le trésor', note: 'Le Crâne : jette l’ancre dans sa crique et fouille', found: 'Le coffre de Lagrange !' },
+      { kind: 'dig', at: [-1000, 1665], radius: 60, time: 40, waves: [['longboat', 'longboat'], ['sloop']], title: 'Déterrer le trésor', note: 'Le Crâne : jette l’ancre dans sa crique et fouille', found: 'Le coffre de Vasseur !' },
     ],
     reward: {
       gold: 1500,
       wood: 400,
       emblem: 'goldSkull',
       planFragments: 2,
-      relic: { name: 'La boussole de Lagrange', description: 'Le radar de ta flotte porte plus loin.', radar: 0.1 },
+      relic: { name: 'La boussole de Vasseur', description: 'Le radar de ta flotte porte plus loin.', radar: 0.1 },
     },
   },
 } satisfies Record<string, TreasureHuntDef>;
@@ -2739,7 +2765,7 @@ export const ISLETS: Record<IsletId, IsletDef> = {
   },
   /**
    * Le Crâne : un rocher nu au nord-ouest de l'archipel, à falaises, dont la forme (crâne arrondi, mâchoire) se
-   * reconnaît sur la carte au trésor de Lagrange ; quelques palmiers dans sa crique, où dort le trésor.
+   * reconnaît sur la carte au trésor de Vasseur ; quelques palmiers dans sa crique, où dort le trésor.
    */
   skull: {
     name: 'Le Crâne',

@@ -7,6 +7,7 @@ import { boardHtml, recruitsHtml, slotsHtml, TAVERNS } from './tavernBoard';
 import './tavern.css';
 import { audioPlaces } from '../../audio/audioView';
 import { sound } from '../../audio/sound';
+import { storyHooks } from '../../story/storyHooks';
 
 /**
  * Taverne du port : un tableau de liège couvert d'affiches (offres du jour et missions spéciales), qu'on arrache d'un
@@ -34,6 +35,7 @@ export class TavernMenu extends PlaceMenu {
     this.confirm = null;
     this.busy = false;
     audioPlaces.tavern = true;
+    storyHooks.tavernOpened(this.ctx.island.id);
   }
 
   protected closed() {

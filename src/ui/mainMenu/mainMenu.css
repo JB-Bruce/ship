@@ -1,0 +1,210 @@
+/* Menu principal : le monde en direct derrière, assombri sur les bords ; titre gravé, parchemin cloué à droite. */
+.main-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: grid;
+  grid-template-columns: 1fr minmax(300px, 380px);
+  align-items: center;
+  gap: 24px;
+  padding: 6vh 7vw;
+  background:
+    radial-gradient(ellipse 85% 75% at 42% 55%, transparent 40%, rgba(6, 10, 14, 0.62) 100%),
+    linear-gradient(90deg, rgba(6, 10, 14, 0.45), transparent 45%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.8s ease;
+}
+.main-menu.on {
+  opacity: 1;
+  pointer-events: auto;
+}
+body:is(.main-menu-open, .dialogue-open) :is(.hud, .weather-buttons, .day-clock, .action-prompts, #app .radar, .radar-wind, .quest-tracker, .ship-bar, .ship-tag) {
+  display: none;
+}
+
+.mm-title {
+  align-self: start;
+  margin-top: 4vh;
+  color: #f1e2bb;
+  text-shadow: 0 2px 0 #1c1008, 0 0 24px rgba(0, 0, 0, 0.75);
+  animation: mm-rise 1.6s ease both;
+}
+.mm-title h1 {
+  margin: 0;
+  font-family: 'Pirata One', 'IM Fell English SC', Georgia, serif;
+  font-size: clamp(64px, 10vw, 136px);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+}
+.mm-title p {
+  margin: 10px 0 0 6px;
+  font-family: 'IM Fell English', Georgia, serif;
+  font-style: italic;
+  font-size: clamp(17px, 1.6vw, 23px);
+  color: #d9c08a;
+}
+.mm-title p::before {
+  content: '';
+  display: block;
+  width: 220px;
+  height: 2px;
+  margin-bottom: 10px;
+  background: linear-gradient(90deg, #a8843a, transparent);
+}
+
+.mm-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 34px 30px 30px;
+  color: var(--ink);
+  background: var(--paper);
+  border-radius: 4px 9px 5px 7px;
+  box-shadow: var(--paper-edge), 0 18px 40px rgba(0, 0, 0, 0.6);
+  font-family: 'IM Fell English', Georgia, serif;
+  transform: rotate(0.8deg);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  animation: mm-unroll 0.9s 0.4s ease both;
+}
+/* Deux clous de laiton en haut du parchemin. */
+.mm-panel::before,
+.mm-panel::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f0d27a, #8a6524 60%, #3e2a0c);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.mm-panel::before {
+  left: 12px;
+}
+.mm-panel::after {
+  right: 12px;
+}
+.main-menu.dimmed .mm-panel {
+  opacity: 0;
+  transform: rotate(0.8deg) translateY(16px);
+  pointer-events: none;
+}
+.mm-panel h2 {
+  margin: 0 0 8px;
+  text-align: center;
+  font-family: 'IM Fell English SC', Georgia, serif;
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.mm-item {
+  position: relative;
+  padding: 10px 14px 10px 38px;
+  text-align: left;
+  font-family: 'IM Fell English SC', Georgia, serif;
+  font-size: 27px;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid rgba(58, 36, 18, 0.22);
+  cursor: pointer;
+  transition: color 0.2s ease, padding-left 0.2s ease;
+}
+.mm-item:last-child {
+  border-bottom: 0;
+}
+.mm-item::before {
+  content: '✠';
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  font-size: 18px;
+  color: var(--wax);
+  opacity: 0;
+  transform: translateY(-50%) scale(0.6);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.mm-item:hover:not(:disabled) {
+  color: var(--wax);
+  padding-left: 44px;
+}
+.mm-item:hover:not(:disabled)::before {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+.mm-item:disabled {
+  color: rgba(58, 36, 18, 0.4);
+  cursor: default;
+}
+.mm-item small {
+  display: block;
+  font-family: 'IM Fell English', Georgia, serif;
+  font-style: italic;
+  font-size: 14px;
+}
+.mm-item.small {
+  margin-top: 8px;
+  font-size: 20px;
+  text-align: center;
+  padding-left: 14px;
+}
+
+.mm-saves {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+.mm-save {
+  display: grid;
+  gap: 1px;
+  padding: 8px 12px;
+  text-align: left;
+  color: var(--ink);
+  font-family: 'IM Fell English', Georgia, serif;
+  background: rgba(255, 245, 215, 0.35);
+  border: 1px solid rgba(58, 36, 18, 0.3);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.mm-save:hover {
+  background: rgba(255, 245, 215, 0.7);
+  border-color: var(--wax);
+}
+.mm-save b {
+  font-size: 18px;
+  font-weight: 400;
+}
+.mm-save span,
+.mm-save i {
+  font-size: 13px;
+  color: rgba(58, 36, 18, 0.7);
+}
+
+@keyframes mm-rise {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+}
+@keyframes mm-unroll {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@media (max-width: 760px) {
+  .main-menu {
+    grid-template-columns: 1fr;
+    align-content: center;
+  }
+}

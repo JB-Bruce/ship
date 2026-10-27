@@ -33,6 +33,7 @@ import { ISLAND_LIST, islandById, tortuga, type Island } from './world/island';
 import type { Lighthouse } from './world/lighthouse';
 import type { LootKind } from './world/loot';
 import { sound } from './audio/sound';
+import { MainQuest, type StorySnapshot } from './story/mainQuest';
 
 /** Délai entre deux avertissements « cale pleine » (s). */
 const FULL_WARNING_DELAY = 5;
@@ -57,6 +58,8 @@ export interface CampaignSnapshot {
   treasures?: TreasuresSnapshot;
   /** Territoires de la mer (absents avant la v8 : partage de départ). */
   territory?: string;
+  /** Quête principale (absente avant la v10 : elle reprend à la recherche d'Isaure). */
+  story?: StorySnapshot;
 }
 
 /**
@@ -82,6 +85,8 @@ export class Campaign {
   readonly navy: NavyIslands;
   /** Ce que la carte connaît : au départ, la Tortue et ses abords. */
   readonly discovery = new MapDiscovery();
+  /** Quête principale : étape et choix faits dans les conversations. */
+  readonly story = new MainQuest();
   /** Territoires de la mer : Marine, pirates, toi. */
   readonly territory: Territory;
   /** Navires de ta flotte mis en garde d'une zone. */
@@ -173,7 +178,7 @@ export class Campaign {
   snapshot(): CampaignSnapshot {
     const islands = Object.fromEntries(ISLAND_LIST.map((i) => [i.id, this.islands[i.id].snapshot()])) as Record<IslandId, IslandSnapshot>;
     const { lastPort, ledger, contracts, crew, routes, navy } = this;
-    return { islands, lastPort, ledger: ledger.snapshot(), contracts: contracts.snapshot(), crew: crew.snapshot(), routes: routes.snapshot(), navyForts: navy.snapshot(), discovery: this.discovery.snapshot(), blueprints: blueprints.snapshot(), treasures: treasures.snapshot(), territory: this.territory.snapshot() };
+    return { islands, lastPort, ledger: ledger.snapshot(), contracts: contracts.snapshot(), crew: crew.snapshot(), routes: routes.snapshot(), navyForts: navy.snapshot(), discovery: this.discovery.snapshot(), blueprints: blueprints.snapshot(), treasures: treasures.snapshot(), territory: this.territory.snapshot(), story: this.story.snapshot() };
   }
 
   /** Reprend une sauvegarde, la flotte déjà rétablie. Les missions en cours (chasse, défense, escorte) recommencent. */
@@ -195,6 +200,7 @@ export class Campaign {
     blueprints.restore(s.blueprints, this.fleet.members.map((m) => m.type));
     treasures.restore(s.treasures);
     this.treasure.restore();
+    this.story.restore(s.story);
     for (const c of this.contracts.active) {
       if (MISSION_KINDS.includes(c.kind) && !this.contracts.isDone(c)) this.missions.start(c);
     }

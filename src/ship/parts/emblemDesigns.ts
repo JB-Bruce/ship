@@ -46,7 +46,7 @@ function skull(g: Pen) {
   for (const x of [54, 62, 70]) g.fillRect(x, 86, 4, 10);
 }
 
-/** Crâne d'or de Lagrange : tête de mort dans un anneau de pièces (anneau et crâne en seconde couleur). */
+/** Crâne d'or de Vasseur : tête de mort dans un anneau de pièces (anneau et crâne en seconde couleur). */
 function goldSkull(g: Pen) {
   g.fillStyle = SECOND;
   for (let i = 0; i < 12; i++) {

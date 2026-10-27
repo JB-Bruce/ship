@@ -108,7 +108,7 @@ export class OrderWheel {
 
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Escape') this.close();
-      if (e.code !== 'KeyT' || e.repeat || this.open || ParchmentMenu.anyOpen()) return;
+      if (e.code !== 'KeyT' || e.repeat || this.open || ParchmentMenu.anyOpen() || ParchmentMenu.locked) return;
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       this.show();
     });

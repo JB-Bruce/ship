@@ -10,8 +10,8 @@ export function showWelcome(parent: HTMLElement, onStart: () => void) {
   root.className = 'welcome';
   root.innerHTML = `
     <div class="welcome-card">
-      <h1>Bateau</h1>
-      <p class="welcome-sub">Combat naval au temps des pirates</p>
+      <h1>Pirate’s life</h1>
+      <p class="welcome-sub">Au temps des flibustiers</p>
       <button class="welcome-go">Larguer les amarres</button>
       <p class="welcome-hint">Le son s’allume en larguant les amarres. Échap : paramètres et volumes.</p>
     </div>`;
