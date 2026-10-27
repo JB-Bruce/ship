@@ -47,6 +47,11 @@ export class GameStart {
     else this.showMenu();
   }
 
+  /** Menu principal ouvert : la partie n'a pas commencé, le temps de la campagne (heure du jour, journées) est arrêté. */
+  get inMenu(): boolean {
+    return this.menu.active;
+  }
+
   /** Menu principal ou scène d'ouverture en cours : pas de barre, pas de touches du jeu. */
   get busy(): boolean {
     return this.menu.active || this.inOpening || this.d.story.talking;

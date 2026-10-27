@@ -350,7 +350,8 @@ export class Game {
     resolveCollisions(this.ships, this.effects, (ship, damage, other) => this.applyDamage(ship, damage, other));
     resolveLandCollisions(this.ships);
     this.repairStatus = this.campaign.repairAtPort(dt, this.ships, this.fleet.leader);
-    this.campaign.update(dt, this.fleet.leader);
+    // Au menu principal, la partie n'a pas commencé : ni l'heure ni les journées n'avancent (le monde vit quand même).
+    this.campaign.update(this.start.inMenu ? 0 : dt, this.fleet.leader);
     for (const fort of Object.values(this.forts)) fort.update(dt, this.ships, this.projectiles, this.effects, this.wind);
     updateCannons(dt, this.ships, this.projectiles, this.effects, this.waves);
     const besieged = this.campaign.besieged();
