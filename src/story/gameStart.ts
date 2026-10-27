@@ -14,8 +14,8 @@ export interface GameStartDeps {
   camera: ChaseCamera;
   dayCycle: DayCycle;
   story: StoryDirector;
-  /** Ouvre le menu des paramètres (Options du menu principal). */
-  openOptions(): void;
+  /** Monte les réglages dans le parchemin du menu principal (Options), ou les rend à leur menu avec null. */
+  embedOptions(host: HTMLElement | null): void;
 }
 
 type View = (typeof STORY_SCENES)['menuView'];
@@ -40,11 +40,7 @@ export class GameStart {
       newGame: () => this.newGame(),
       saves: () => d.saves.entries(),
       load: (id) => d.saves.load(id),
-      options: () => {
-        this.menu.dimmed = true;
-        ParchmentMenu.locked = false;
-        d.openOptions();
-      },
+      options: (host) => d.embedOptions(host),
     });
     if (loaded) showWelcome(d.container, () => d.camera.firstPerson.capture());
     else if (d.saves.freshStart) void this.opening();
@@ -54,17 +50,6 @@ export class GameStart {
   /** Menu principal ou scène d'ouverture en cours : pas de barre, pas de touches du jeu. */
   get busy(): boolean {
     return this.menu.active || this.inOpening || this.d.story.talking;
-  }
-
-  /**
-   * Tous les menus parchemin viennent de se fermer. Renvoie true si c'est le menu principal qui reprend (Options
-   * refermées) : la souris n'est alors pas capturée.
-   */
-  menusClosed(): boolean {
-    if (!this.menu.active) return false;
-    this.menu.dimmed = false;
-    ParchmentMenu.locked = true;
-    return true;
   }
 
   private showMenu() {

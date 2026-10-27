@@ -1,6 +1,7 @@
 /* Boîte de dialogue : un parchemin en bas de l'écran, le buste du personnage dans un cadre de bois à gauche. */
 .dialogue {
   position: fixed;
+  user-select: none;
   left: 50%;
   bottom: 28px;
   z-index: 60;

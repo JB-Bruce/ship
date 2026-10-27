@@ -30,23 +30,14 @@ const VOLUMES: readonly [VolumeKey, string, string][] = [
   ['ambience', 'Ambiance', 'Mer, vent, pluie, tonnerre, grincements du navire.'],
 ];
 
-/** Onglet Jeu : reprendre la partie, heure du jour, volumes du son, affichage du compteur d'images, rappel des touches. */
-export function gameTab(ctx: SettingsContext): string {
+/**
+ * Onglet Jeu : reprendre la partie, heure du jour, volumes du son, affichage du compteur d'images, rappel des touches.
+ * `title` : dans le menu principal, sans partie en cours (ni pause, ni heure du jour).
+ */
+export function gameTab(ctx: SettingsContext, title = false): string {
   const showFps = ctx.settings.showFps;
   const controls = CONTROLS.map(([key, action]) => `<div><span>${action}</span><b>${key}</b></div>`).join('');
-  return `
-    <p class="subtitle">Le jeu est en pause.</p>
-    <div class="choices settings-resume"><button class="choice on" data-action="resume">Reprendre la partie</button></div>
-    <h3 class="section">Heure du jour</h3>
-    <div class="settings-list">
-      <div class="setting">
-        <div class="setting-label">
-          <b>Il est <span class="clock-label">${clockLabel(ctx.clock)}</span></b>
-          <p>Faites glisser le soleil (ou la lune) sur sa course, ou réglez-le aux flèches. De l’aube à l’aube suivante, sans changer de journée : les offres des tavernes restent celles du jour. La nuit, les rencontres sont plus rares.</p>
-        </div>
-        ${hourDialHtml(ctx.clock)}
-      </div>
-    </div>
+  return `${title ? '' : pauseHtml(ctx)}
     <h3 class="section">Son</h3>
     <div class="settings-list">
       ${VOLUMES.map(([key, label, about]) => `
@@ -75,4 +66,21 @@ export function gameTab(ctx: SettingsContext): string {
     <h3 class="section">Commandes</h3>
     <p class="effect">En QWERTY : W / S pour la voile, A / D pour la barre. Les canons tirent seuls.</p>
     <div class="island-facts">${controls}</div>`;
+}
+
+/** En partie : la pause, « Reprendre », et l'heure du jour. */
+function pauseHtml(ctx: SettingsContext): string {
+  return `
+    <p class="subtitle">Le jeu est en pause.</p>
+    <div class="choices settings-resume"><button class="choice on" data-action="resume">Reprendre la partie</button></div>
+    <h3 class="section">Heure du jour</h3>
+    <div class="settings-list">
+      <div class="setting">
+        <div class="setting-label">
+          <b>Il est <span class="clock-label">${clockLabel(ctx.clock)}</span></b>
+          <p>Faites glisser le soleil (ou la lune) sur sa course, ou réglez-le aux flèches. De l’aube à l’aube suivante, sans changer de journée : les offres des tavernes restent celles du jour. La nuit, les rencontres sont plus rares.</p>
+        </div>
+        ${hourDialHtml(ctx.clock)}
+      </div>
+    </div>`;
 }

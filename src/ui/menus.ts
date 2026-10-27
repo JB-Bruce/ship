@@ -111,6 +111,7 @@ export function createMenus(w: MenuWorld): { portMenu: PortMenu; settings: Setti
     territory: campaign.territory,
     discovery: campaign.discovery,
     wind: w.wind,
+    story: campaign.story,
     actions: {
       buyUpgrade: (id) => harbor.buyUpgrade(id),
       assignOfficer: (officer, member) => harbor.assignOfficer(officer, member),

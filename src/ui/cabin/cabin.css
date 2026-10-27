@@ -787,3 +787,79 @@
   display: flex;
   gap: 6px;
 }
+
+/* Journal : la trame principale, sur toute la largeur, au-dessus des contrats. */
+.cabin-story {
+  grid-column: 1 / -1;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed rgba(90, 55, 20, 0.4);
+}
+.cabin-story-goal {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: rgba(255, 245, 215, 0.35);
+  border: 1px solid rgba(90, 55, 20, 0.35);
+  border-radius: 3px;
+}
+.cabin-story-goal b {
+  display: block;
+  font-family: 'IM Fell English SC', Georgia, serif;
+  font-size: 19px;
+  font-weight: 400;
+}
+.cabin-story-goal span:not(.cabin-story-seal) {
+  font-style: italic;
+}
+.cabin-story-seal {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 47% 53% 49% 51% / 52% 46% 54% 48%;
+  color: #f3dcc4;
+  background: radial-gradient(circle at 40% 35%, #a8281c, #5a0c06);
+  box-shadow: 0 2px 0 #3a0804;
+  font-size: 18px;
+  line-height: 34px;
+  text-align: center;
+}
+.cabin-story-book {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 10px 22px;
+}
+.cabin-story-page h3 {
+  margin: 0 0 4px;
+  font-family: 'IM Fell English SC', Georgia, serif;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--wax);
+}
+.cabin-story-page p {
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.45;
+  text-align: justify;
+}
+.cabin-story-page p::first-letter {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 1.7em;
+  line-height: 1;
+}
+.cabin-story-people {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+  margin-top: 10px;
+}
+.cabin-story-person b {
+  margin-right: 6px;
+  font-weight: 400;
+}
+.cabin-story-person i {
+  color: #6a5032;
+  font-size: 14px;
+}

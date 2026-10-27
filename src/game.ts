@@ -191,9 +191,7 @@ export class Game {
     this.chaseCamera.firstPerson.setActive(true);
     // Échap souris capturée : le menu s'ouvre dans le même appui ; refermé, on reprend la souris.
     this.chaseCamera.firstPerson.onEscape = () => ParchmentMenu.pressEscape();
-    ParchmentMenu.onAllClosed = () => {
-      if (!this.start.menusClosed()) this.chaseCamera.firstPerson.capture();
-    };
+    ParchmentMenu.onAllClosed = () => this.chaseCamera.firstPerson.capture();
     this.chaseCamera.firstPerson.onCaptureRefused = () => {
       if (!ParchmentMenu.anyOpen()) this.hud.toast('Clique dans la vue pour reprendre la barre', 3);
     };
@@ -261,7 +259,7 @@ export class Game {
       },
     });
     storyHooks.tavernOpened = (island) => void story.tavernOpened(island);
-    this.start = new GameStart({ container, saves, camera: this.chaseCamera, dayCycle, story, openOptions: () => menus.settings.setOpen(true) }, loaded !== null);
+    this.start = new GameStart({ container, saves, camera: this.chaseCamera, dayCycle, story, embedOptions: (host) => menus.settings.embed(host) }, loaded !== null);
     this.weatherButtons = new WeatherButtons(container, this.weather);
     this.weatherCycle = new WeatherCycle(this.weather);
     this.dayClock = new DayClock(container, this.dayCycle);

@@ -1,3 +1,4 @@
+import type { MainQuest } from '../../story/mainQuest';
 import type { BossId, IslandId } from '../../config';
 import type { Crew } from '../../fleet/crew';
 import type { Fleet, FleetMember } from '../../fleet/fleet';
@@ -40,6 +41,8 @@ export interface CabinContext {
   readonly territory: Territory;
   readonly discovery: MapDiscovery;
   readonly wind: Wind;
+  /** Quête principale (Journal). */
+  readonly story: MainQuest;
   readonly actions: CabinActions;
   /** Le bateau piloté est-il à quai (achats possibles) ? */
   atPort(): boolean;

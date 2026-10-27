@@ -6,12 +6,13 @@ import { gaugeHtml, pipsHtml, skullsHtml, tip } from '../kit/kit';
 import { contractProgress } from '../contractProgress';
 import { SHIP_ICONS } from '../shipIcons';
 import type { CabinContext, CabinView } from './cabinContext';
+import { storyJournalHtml } from './storyJournal';
 import { treasureHtml } from './treasureMap';
 
 const MAX_STARS = 5;
 
 /**
- * Page Journal : les contrats en cours (avancement, où toucher la prime, abandon en deux clics), les chasses au trésor
+ * Page Journal : la trame principale (objectif en cours, carnet des étapes, rencontres), les contrats en cours (avancement, où toucher la prime, abandon en deux clics), les chasses au trésor
  * (carte, indice, étape ; reliques), les plans de navires
  * (bouts gagnés) et le registre (exploits et pavillons des boss).
  */
@@ -40,6 +41,7 @@ export function logPage(ctx: CabinContext, view: CabinView): string {
   }).join('');
   return `
     <div class="cabin-log">
+      ${storyJournalHtml(ctx.story)}
       <div class="cabin-log-col">
         <div class="cabin-section-head"><h2>Contrats</h2><span>${ctx.contracts.active.length} en cours</span></div>
         <div class="cabin-contracts">${contracts}</div>

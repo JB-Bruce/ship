@@ -1702,6 +1702,9 @@ export const EMBLEMS = {
  * menu tourne lentement), heure de la scène sur le quai, pause avant la première réplique (s), durée du bandeau de
  * chapitre (s).
  */
+/** Menu principal (ui/mainMenu/) : durée (s) pendant laquelle le parchemin grandit ou rapetisse d'une vue à l'autre. */
+export const MAIN_MENU = { morphTime: 0.5 };
+
 export const STORY_SCENES = {
   menuView: { height: 2, yaw: 2.4, pitch: 0.16, distance: 4.2 },
   openingView: { height: 1.6, yaw: 1.2, pitch: 0.1, distance: 2.4 },

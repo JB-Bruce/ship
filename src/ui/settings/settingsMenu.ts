@@ -25,12 +25,14 @@ export interface SettingsContext {
 
 type SettingsTab = 'game' | 'save' | 'graphics' | 'cheats';
 
-const TABS: { id: SettingsTab; name: string; render: (ctx: SettingsContext, view: SaveView) => string }[] = [
-  { id: 'game', name: 'Jeu', render: gameTab },
+const TABS: { id: SettingsTab; name: string; render: (ctx: SettingsContext, view: SaveView, title: boolean) => string }[] = [
+  { id: 'game', name: 'Jeu', render: (ctx, _view, title) => gameTab(ctx, title) },
   { id: 'save', name: 'Partie', render: saveTab },
   { id: 'graphics', name: 'Graphismes', render: graphicsTab },
   { id: 'cheats', name: 'Triche', render: cheatTab },
 ];
+/** Onglets montrés dans le menu principal (pas de partie en cours : ni sauvegarde ni triche). */
+const TITLE_TABS: readonly SettingsTab[] = ['game', 'graphics'];
 
 /**
  * Paramètres (Échap, le jeu est en pause) : onglet Jeu (reprendre, compteur d'images, touches), onglet Partie
@@ -42,13 +44,17 @@ export class SettingsMenu extends ParchmentMenu {
   private readonly saveView: SaveView = { notice: '', confirm: null };
   /** Choix d'un fichier à importer (hors du contenu, qui est redessiné à chaque clic). */
   private readonly fileInput = document.createElement('input');
+  /** Contenu monté dans le parchemin du menu principal (`embed`). */
+  private embedded = false;
+  private readonly home: HTMLElement;
 
   constructor(
     parent: HTMLElement,
     private readonly ctx: SettingsContext,
   ) {
     super(parent, 'Paramètres', 'Échap pour reprendre', []);
-    this.body.parentElement!.classList.add('settings-sheet');
+    this.home = this.body.parentElement!;
+    this.home.classList.add('settings-sheet');
     this.openOnEscape();
     this.fileInput.type = 'file';
     this.fileInput.accept = '.json,application/json';
@@ -89,10 +95,28 @@ export class SettingsMenu extends ParchmentMenu {
     });
   }
 
+  /**
+   * Menu principal : monte les onglets Jeu et Graphismes (sans pause ni heure du jour) dans `host`, ou, avec null, les
+   * rend à leur parchemin.
+   */
+  embed(host: HTMLElement | null) {
+    this.embedded = host !== null;
+    if (host) {
+      this.tab = 'game';
+      host.appendChild(this.body);
+      this.render();
+    } else this.home.insertBefore(this.body, this.home.querySelector('.hint'));
+  }
+
+  protected get live(): boolean {
+    return this.embedded;
+  }
+
   render() {
-    const bar = TABS.map((t) => `<button class="choice${t.id === this.tab ? ' on' : ''}" data-action="tab" data-arg="${t.id}">${t.name}</button>`).join('');
+    const tabs = this.embedded ? TABS.filter((t) => TITLE_TABS.includes(t.id)) : TABS;
+    const bar = tabs.map((t) => `<button class="choice${t.id === this.tab ? ' on' : ''}" data-action="tab" data-arg="${t.id}">${t.name}</button>`).join('');
     const current = TABS.find((t) => t.id === this.tab) ?? TABS[0];
-    this.body.innerHTML = `<div class="choices port-tabs">${bar}</div>${current.render(this.ctx, this.saveView)}`;
+    this.body.innerHTML = `<div class="choices port-tabs">${bar}</div>${current.render(this.ctx, this.saveView, this.embedded)}`;
   }
 
   setOpen(open: boolean) {

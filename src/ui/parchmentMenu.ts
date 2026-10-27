@@ -51,7 +51,7 @@ export abstract class ParchmentMenu {
       sound.play('ui/wood_click');
       this.onAction(button.dataset.action!, button.dataset.arg ?? '');
       // Un bouton qui ferme le menu (« Retour au port »…) ne le redessine pas : le Chantier y remettrait sa caméra.
-      if (this.isOpen) this.render();
+      if (this.isOpen || this.live) this.render();
     });
     parent.appendChild(this.root);
     ParchmentMenu.all.push(this);
@@ -62,6 +62,11 @@ export abstract class ParchmentMenu {
       if (!e.repeat) this.toggle(e.code);
     });
     ParchmentMenu.listenEscape();
+  }
+
+  /** Contenu montré ailleurs que dans son parchemin (menu principal) : redessiné après un clic même fermé. */
+  protected get live(): boolean {
+    return false;
   }
 
   /** Son à l'ouverture : un parchemin qu'on déplie (la carte a le sien). */
