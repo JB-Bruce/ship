@@ -1,5 +1,5 @@
 /** Qui parle : un personnage de l'histoire (voir characters.ts). */
-export type CharacterId = 'kerdal' | 'isaure';
+export type CharacterId = 'kerdal' | 'isaure' | 'gaspard';
 
 /** L'allure d'un personnage, pour son buste en 3D (ui/dialogue/portraitBust.ts). */
 export interface CharacterLook {

@@ -1,5 +1,6 @@
 import type { CharacterId } from './dialogueTypes';
-import type { MainQuest, QuestStep } from './mainQuest';
+import { STORY_QUEST } from '../config';
+import { QUEST_ORDER, type MainQuest, type QuestStep } from './mainQuest';
 
 /** Une page du carnet de l'histoire : son titre, et le récit de ce qui s'est passé (selon les choix du joueur). */
 export interface StoryEntry {
@@ -7,18 +8,15 @@ export interface StoryEntry {
   readonly text: string;
 }
 
-/** Ordre des étapes de la quête principale. */
-const ORDER: readonly QuestStep[] = ['intro', 'findIsaure', 'proveYourself'];
-
 /** Une page par étape franchie : celle dont l'étape est `after` s'écrit une fois l'étape suivante atteinte. */
-const PAGES: readonly { after: QuestStep; title: string; text: (flags: ReadonlySet<string>) => string; met: CharacterId }[] = [
+const PAGES: readonly { after: QuestStep; title: string; text: (flags: ReadonlySet<string>) => string; met?: CharacterId }[] = [
   {
     after: 'intro',
     title: 'Prologue : Le Vieux',
     met: 'kerdal',
     text: (f) =>
       [
-        'À l’aube, sur le quai de la Tortue, un vieil homme m’a abordé : Bastien Kerdal, ancien quartier-maître de la Sirène Noire. Il m’a confié sa chaloupe.',
+        'À l’aube, sur le quai de la Tortue, un vieil homme est venu me parler : Bastien Kerdal, ancien quartier-maître de la Sirène Noire. Il m’a confié sa chaloupe.',
         f.has('kerdalScoffed') ? 'Je l’ai d’abord pris pour un radoteur. Il ne s’est pas laissé démonter.' : '',
         'Il m’a parlé du capitaine Étienne Lagrange, parti chercher le Cœur des Abysses, et de la nuit où des navires morts sont sortis de l’eau au large de l’Île Royale. La Sirène Noire a sombré ; Lagrange a été pendu à Port-Royal, et son journal n’a jamais été retrouvé.',
         'La malédiction poursuit ceux qui cherchent le Cœur, et les capitaines du gouverneur suivent la même piste.',
@@ -39,9 +37,50 @@ const PAGES: readonly { after: QuestStep; title: string; text: (flags: ReadonlyS
         f.has('isaurePushed') ? 'J’ai réclamé son morceau trop tôt. Elle me le donnera quand la Marine tremblera devant mon pavillon, pas avant.' : 'Elle me donnera son morceau quand la Marine tremblera devant mon pavillon.',
       ].join(' '),
   },
+  {
+    after: 'aRealShip',
+    title: 'Un navire digne de ce nom',
+    text: () => 'La chaloupe de Kerdal avait fait son temps : il fallait mieux pour qu’on me prenne au sérieux. J’ai désormais un vrai navire sous les pieds, et un officier à mes côtés.',
+  },
+  {
+    after: 'hangman',
+    title: 'Le Pendeur',
+    text: () => 'Au sud de l’Île du Dauphin, le lieutenant Duroc pendait les pirates qu’il capturait. Son Faucon dort maintenant par le fond. À Port-Sabre, on commence à prononcer mon nom.',
+  },
+  {
+    after: 'medallion',
+    title: 'Les fanaux verts',
+    text: () => `Kerdal l’avait fait savoir : des fanaux verts au Banc du Naufragé. De nuit, des navires morts sont sortis de l’eau. J’en ai renvoyé ${STORY_QUEST.greenLights.target} aux abysses, et l’un d’eux a laissé flotter un médaillon d’or gravé d’une sirène.`,
+  },
+  {
+    after: 'returnIsaure',
+    title: 'Le médaillon',
+    met: 'gaspard',
+    text: (f) =>
+      [
+        'Isaure a reconnu le médaillon : celui de Jacquemin, le maître canonnier de la Sirène Noire. Les morts de Lagrange naviguent encore, et ils cherchent ceux qui cherchent le Cœur.',
+        'Elle accepte de me confier son morceau de carte, mais Gaspard, le patron du Sabre Rouillé, l’a reconnue.',
+        f.has('gaspardThreatened') ? 'J’ai voulu le faire taire à ma façon ; elle s’y est opposée.' : '',
+        `Son silence coûte ${STORY_QUEST.rum} caisses de rhum.`,
+      ]
+        .filter(Boolean)
+        .join(' '),
+  },
+  {
+    after: 'silence',
+    title: 'Le prix du silence',
+    text: (f) =>
+      [
+        'Gaspard a eu son rhum et oublié le visage d’Isa la Rousse.',
+        f.has('gaspardWarned') ? 'Je lui ai fait comprendre ce qu’il lui en coûterait de parler.' : '',
+        'Isaure m’a donné son morceau de la carte de Lagrange : le tracé des récifs au-delà des tempêtes. Les autres sont entre les mains des capitaines du gouverneur.',
+      ]
+        .filter(Boolean)
+        .join(' '),
+  },
 ];
 
-const reached = (quest: MainQuest, step: QuestStep) => ORDER.indexOf(quest.step) > ORDER.indexOf(step);
+const reached = (quest: MainQuest, step: QuestStep) => QUEST_ORDER.indexOf(quest.step) > QUEST_ORDER.indexOf(step);
 
 /** Les pages déjà écrites du carnet, de la plus ancienne à la plus récente. */
 export function storyEntries(quest: MainQuest): StoryEntry[] {
@@ -50,5 +89,5 @@ export function storyEntries(quest: MainQuest): StoryEntry[] {
 
 /** Les personnages déjà rencontrés. */
 export function storyPeople(quest: MainQuest): CharacterId[] {
-  return PAGES.filter((p) => reached(quest, p.after)).map((p) => p.met);
+  return PAGES.filter((p) => reached(quest, p.after)).flatMap((p) => (p.met ? [p.met] : []));
 }

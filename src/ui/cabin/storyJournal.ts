@@ -23,6 +23,7 @@ export function storyJournalHtml(quest: MainQuest): string {
       <div class="cabin-section-head"><h2>Le Cœur des Abysses</h2><span>Histoire principale</span></div>
       ${current}
       <div class="cabin-story-book">${entries || '<p class="cabin-muted">Rien d’écrit pour l’instant.</p>'}</div>
+      ${quest.flags.has('isaurePiece') ? '<div class="cabin-story-people"><span class="cabin-muted">Carte de Lagrange</span><span class="cabin-story-person"><b>🗺 1 morceau</b><i>celui d’Isaure : les récifs au-delà des tempêtes</i></span></div>' : ''}
       ${people ? `<div class="cabin-story-people"><span class="cabin-muted">Rencontres</span>${people}</div>` : ''}
     </section>`;
 }

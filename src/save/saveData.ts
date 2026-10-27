@@ -23,8 +23,10 @@ import type { WeatherKind } from '../world/weather';
  * v8 : territoires de la mer (`CampaignSnapshot.territory`, optionnel). Une v7 se charge avec le partage de départ.
  * v9 : navires de garde (`MemberSnapshot.guard`, optionnel). Une v8 se charge telle quelle : aucun garde.
  * v10 : quête principale (`CampaignSnapshot.story`, optionnel). Une v9 reprend à la recherche d'Isaure (chapitre I).
+ * v11 : suite du chapitre I (`StorySnapshot.count` et `relic`, optionnels) ; l'ancienne étape `proveYourself` devient
+ * `aRealShip`.
  */
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 11;
 /** Facteur appliqué au chargement à la vie à flot d'une sauvegarde de cette version. */
 export const healthScaleOf = (version: number) => (version < 3 ? 2 : 1);
 /** Marque des fichiers de sauvegarde du jeu (pour refuser un fichier qui n'en est pas une). */

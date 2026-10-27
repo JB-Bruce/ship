@@ -1705,6 +1705,23 @@ export const EMBLEMS = {
 /** Menu principal (ui/mainMenu/) : durée (s) pendant laquelle le parchemin grandit ou rapetisse d'une vue à l'autre. */
 export const MAIN_MENU = { morphTime: 0.5 };
 
+/**
+ * Étapes de la quête principale (story/questRun.ts). `ship` : rang de taille minimal d'un navire de la flotte (sloop) ;
+ * `reward` : or versé à la fin de chaque étape ; `duroc` : le lieutenant Duroc (zone de ronde au large de l'Île du
+ * Dauphin, distance à laquelle il sort de la brume (m), escadre, part de vie où il crie à ses hommes) ;
+ * `greenLights` : le Banc du Naufragé (zone, rayon où les maudits surgissent de nuit), maudits à couler, nombre surgis
+ * et délai entre deux apparitions au Banc (s) ; `relic` : médaillon à repêcher (distance de prise, m ; flottaison) ;
+ * `rum` : caisses de rhum pour le tavernier de Port-Sabre.
+ */
+export const STORY_QUEST = {
+  ship: 2,
+  reward: { aRealShip: 150, hangman: 400, greenLights: 300, silence: 250 },
+  duroc: { at: [950, -700] as [number, number], radius: 320, wake: 420, squadron: ['sloop', 'longboat'] as ShipType[], shout: 0.5 },
+  greenLights: { at: [900, 1100] as [number, number], radius: 380, target: 2, count: 2, cooldown: 90 },
+  relic: { reach: 14, bob: 0.25, spin: 0.8, size: 0.9 },
+  rum: 10,
+};
+
 export const STORY_SCENES = {
   menuView: { height: 2, yaw: 2.4, pitch: 0.16, distance: 4.2 },
   openingView: { height: 1.6, yaw: 1.2, pitch: 0.1, distance: 2.4 },

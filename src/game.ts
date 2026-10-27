@@ -159,6 +159,7 @@ export class Game {
   private readonly portMenu: PortMenu;
   /** Menu principal, scène d'ouverture et conversations de l'histoire. */
   private readonly start: GameStart;
+  private readonly story: StoryDirector;
   private readonly fpsCounter: FpsCounter;
   /** Décor et navires noyés dans la brume : pas dessinés. */
   private readonly fogCulling = new FogCulling();
@@ -253,12 +254,25 @@ export class Game {
     const menus = createMenus({ container, cheats: this.cheats, state, fleet, campaign, hud, wind, spawner, loot, planScrolls, schools, radar, pirates, settings, display, saves, dayCycle, chaseCamera: this.chaseCamera, takeHelm: (m) => this.takeHelm(m) });
     this.portMenu = menus.portMenu;
     const story = new StoryDirector(campaign.story, new DialogueBox(container), {
-      chapter: (title, note) => {
-        hud.message(title, STORY_SCENES.chapterBanner);
-        hud.toast(note, STORY_SCENES.chapterBanner);
+      world,
+      waves: this.waves,
+      fleet,
+      crew: campaign.crew,
+      state,
+      cursed: this.cursed,
+      hud: {
+        toast: (text, tone) => hud.toast(text, 4, tone),
+        alert: (text, danger) => hud.message(text, 5, danger),
+        log: (text) => hud.notifications.kill(text),
+        chapter: (title, note) => {
+          hud.message(title, STORY_SCENES.chapterBanner);
+          hud.toast(note, STORY_SCENES.chapterBanner);
+        },
       },
     });
+    this.story = story;
     storyHooks.tavernOpened = (island) => void story.tavernOpened(island);
+    storyHooks.enemySunk = (enemy, byFleet) => story.enemySunk(enemy, byFleet);
     this.start = new GameStart({ container, saves, camera: this.chaseCamera, dayCycle, story, embedOptions: (host) => menus.settings.embed(host) }, loaded !== null);
     this.weatherButtons = new WeatherButtons(container, this.weather);
     this.weatherCycle = new WeatherCycle(this.weather);
@@ -352,6 +366,7 @@ export class Game {
     this.repairStatus = this.campaign.repairAtPort(dt, this.ships, this.fleet.leader);
     // Au menu principal, la partie n'a pas commencé : ni l'heure ni les journées n'avancent (le monde vit quand même).
     this.campaign.update(this.start.inMenu ? 0 : dt, this.fleet.leader);
+    this.story.update(dt);
     for (const fort of Object.values(this.forts)) fort.update(dt, this.ships, this.projectiles, this.effects, this.wind);
     updateCannons(dt, this.ships, this.projectiles, this.effects, this.waves);
     const besieged = this.campaign.besieged();
@@ -410,7 +425,10 @@ export class Game {
     this.healthBars.update(this.camera, this.ships, leader, (this.scene.fog as THREE.Fog).far, this.spawner.enemies, this.fleet.members);
     this.healthBars.mark(this.betrayal.marked, this.betrayal.hovered);
     const boss = this.bosses.inSight(leader);
-    this.bossBar.update(boss?.boss ? `☠ ${BOSSES[boss.boss].name}` : null, boss ? boss.ship.health / boss.ship.stats.maxHealth : 0);
+    // Un boss d'abord ; sinon le navire de l'histoire (Le Faucon de Duroc).
+    const named = boss?.boss ? null : this.story.target();
+    const barShip = boss?.boss ? boss : named;
+    this.bossBar.update(boss?.boss ? `☠ ${BOSSES[boss.boss].name}` : named ? `⚔ ${named.name}` : null, barShip ? barShip.ship.health / barShip.ship.stats.maxHealth : 0);
     const fort = this.campaign.objectiveFort(this.camera.position, this.scene.fog as THREE.Fog);
     this.siegeBar.update(fort ? ISLAND_INFO[fort.island].fort.name : null, fort ? fort.health / fort.maxHealth : 0);
     this.updatePrompts();

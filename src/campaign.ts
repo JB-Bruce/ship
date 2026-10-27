@@ -34,6 +34,7 @@ import type { Lighthouse } from './world/lighthouse';
 import type { LootKind } from './world/loot';
 import { sound } from './audio/sound';
 import { MainQuest, type StorySnapshot } from './story/mainQuest';
+import { storyHooks } from './story/storyHooks';
 
 /** Délai entre deux avertissements « cale pleine » (s). */
 const FULL_WARNING_DELAY = 5;
@@ -373,6 +374,7 @@ export class Campaign {
     const boss = enemy?.boss ?? null;
     const killer = this.fleet.members.find((m) => m.ship === attacker);
     if (killer) this.creditKill(killer, enemy?.boss ?? null);
+    if (enemy) storyHooks.enemySunk(enemy, !!killer);
     // Une victoire dans les eaux de la Marine fait reculer sa frontière.
     if (killer && !enemy?.cursed) this.territory.victory(ship.position.x, ship.position.z, sizeRank(ship.type));
     const forts = this.world.forts;

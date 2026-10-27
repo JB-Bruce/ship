@@ -1861,6 +1861,14 @@ body {
   top: 70px;
 }
 
+/* Une barre en haut (boss, navire de l'histoire, fort) : les petits messages passent dessous. */
+body:has(.boss-bar.on:not(.siege)) .hud-toasts {
+  top: 66px;
+}
+body:has(.boss-bar.siege.on) .hud-toasts {
+  top: 118px;
+}
+
 .boss-bar.siege .boss-name {
   color: #e8e2d4;
 }

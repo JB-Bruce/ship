@@ -160,7 +160,7 @@ export function createMenus(w: MenuWorld): { portMenu: PortMenu; settings: Setti
     schools: () => w.schools.list,
     radarRange: () => w.radar.range,
     coverage: () => campaign.islands.tortuga.coverage,
-    zones: () => [...campaign.missions.zones(), ...campaign.treasure.zones()],
+    zones: () => [...campaign.story.zones(), ...campaign.missions.zones(), ...campaign.treasure.zones()],
     escorts: () => campaign.escorts(),
     pirates: () => [...w.pirates.pirates.map((p) => p.ship), ...campaign.merchants.ships, ...campaign.missions.allies()],
     discovery: campaign.discovery,

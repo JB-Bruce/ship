@@ -44,6 +44,8 @@ export class CursedTide {
   private wasNight = false;
   /** Temps avant l'apparition de cette nuit (s), ou null si cette nuit reste calme. */
   private pending: number | null = null;
+  /** Une étape de l'histoire les attend : ils viennent toutes les nuits (posé par story/questRun.ts). */
+  forceNights: () => boolean = () => false;
 
   constructor(
     private readonly spawner: EnemySpawner,
@@ -58,7 +60,7 @@ export class CursedTide {
   /** `fleet` : ta flotte en mer (pour savoir si tu t'es éloigné). */
   update(dt: number, leader: Ship, fleet: readonly FleetMember[]) {
     const night = this.night;
-    if (night && !this.wasNight) this.pending = Math.random() < CURSED.nightChance ? rand(CURSED.delay) : null;
+    if (night && !this.wasNight) this.pending = this.forceNights() || Math.random() < CURSED.nightChance ? rand(CURSED.delay) : null;
     if (!night) this.pending = null;
     this.wasNight = night;
     if (this.pending !== null) {

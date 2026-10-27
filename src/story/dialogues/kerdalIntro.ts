@@ -11,7 +11,7 @@ export const KERDAL_INTRO: Dialogue = {
     { say: 'kerdal', text: 'C’est toi qui traînes sur les quais depuis trois jours à demander un embarquement ?' },
     {
       say: 'kerdal',
-      text: 'Je t’ai vu essuyer refus sur refus. Les capitaines d’ici n’engagent plus personne qu’ils ne connaissent pas.',
+      text: 'J’ai vu les refus pleuvoir sur toi. Les capitaines d’ici n’engagent plus personne qu’ils ne connaissent pas.',
       choices: [
         { text: 'Qui le demande ?', goto: 'name' },
         { text: 'Si tu as une place à bord, je la prends.', goto: 'place' },
