@@ -89,6 +89,8 @@ export class Ship {
   sinkTime: number | null = null;
   /** Temps restant avant que chaque canon soit rechargé (s), dans l'ordre de model.cannons. */
   cannonCooldowns: number[];
+  /** Temps (s) pendant lequel le navire reste au branle-bas de combat : relancé par updateCannons dès qu'un canon a une cible. */
+  battleAlert = 0;
   /** Temps avant de pouvoir subir un nouvel éperonnage (s). */
   ramCooldown = 0;
   /** Masse (type, blindage, canons, voilure) : elle pèse dans les chocs. */
@@ -324,6 +326,8 @@ export class Ship {
   update(dt: number, waves: Waves, wind: Wind) {
     if (this.sinkTime !== null) this.sinkTime += dt;
     this.ramCooldown = Math.max(0, this.ramCooldown - dt);
+    this.battleAlert = Math.max(0, this.battleAlert - dt);
+    this.model.setGunports?.(this.alive && this.battleAlert > 0);
     this.calmTime += dt;
     const repairing = this.alive && this.calmTime > REPAIR.delay;
     if (repairing) {

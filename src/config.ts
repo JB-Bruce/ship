@@ -249,6 +249,13 @@ export const AIM = {
 
 /** Mortier du brick : obus en cloche (voir ShellStats) ; effets : traînée de fumée posée tous les `trailInterval` s, taille de l'explosion. */
 export const MORTAR_SHELL: ShellStats = { gravityFactor: 2, flightBase: 1.8, flightPerMeter: 0.0135, blastRadius: 12, blastShare: 0.5, size: 2.2 };
+/**
+ * Sabords qui s'ouvrent au combat (vaisseau de ligne, ship/parts/gunportLids.ts) : fermés en route, les mantelets se
+ * relèvent dès qu'un canon du navire a une cible, et se referment `hold` s après la dernière ; angle d'ouverture (rad),
+ * temps d'ouverture ou de fermeture (s), recul des fûts derrière un sabord fermé (m).
+ */
+export const GUNPORTS = { hold: 10, openAngle: 1.3, time: 1.4, runIn: 0.85 };
+
 export const MORTAR_FX = {
   trailInterval: 0.025,
   /** Taille de l'explosion d'un obus (Effects.explosion ; la sainte-barbe : CRIT.magazineScale). */
@@ -435,7 +442,7 @@ export const BLUEPRINTS = {
    * Bouts de plan à réunir pour chaque type. Un type absent de cette table est connu d'office : la chaloupe (le navire
    * de départ) et la barque (jamais à vendre). Les types de ta flotte au départ ou au chargement sont connus aussi.
    */
-  fragments: { senau: 4, galiot: 4, sloop: 2, cutter: 2, caravel: 2, schooner: 2, brigantine: 3, xebec: 3, fluyt: 4, brig: 4, corvette: 4, carrack: 5, galleass: 5, frigate: 5, galleon: 6 } as Partial<Record<ShipType, number>>,
+  fragments: { shipOfLine: 6, senau: 4, galiot: 4, sloop: 2, cutter: 2, caravel: 2, schooner: 2, brigantine: 3, xebec: 3, fluyt: 4, brig: 4, corvette: 4, carrack: 5, galleass: 5, frigate: 5, galleon: 6 } as Partial<Record<ShipType, number>>,
   /**
    * Chance qu'un navire coulé par ta flotte lâche un bout de son plan (un boss n'en lâche jamais), sauf si les bouts
    * gagnés et ceux qui flottent déjà suffisent à compléter le plan.
@@ -489,8 +496,8 @@ export const DECK_CREW = {
   /** Marins au plus dans le monde (taille des lots de dessin). */
   maxSailors: 400,
   /** Matelots à bord (en plus du barreur et de la vigie), et en plus à chaque allongement du navire. */
-  hands: { senau: 7, galiot: 7, sloop: 3, cutter: 3, caravel: 4, schooner: 4, brigantine: 5, xebec: 5, fluyt: 6, brig: 6, corvette: 7, carrack: 9, galleass: 10, frigate: 10, galleon: 12 },
-  handsPerExtension: { senau: 2, galiot: 2, cutter: 1, schooner: 1, brigantine: 2, xebec: 1, fluyt: 2, brig: 2, corvette: 3, carrack: 3, galleass: 3, frigate: 3, galleon: 3 },
+  hands: { shipOfLine: 14, senau: 7, galiot: 7, sloop: 3, cutter: 3, caravel: 4, schooner: 4, brigantine: 5, xebec: 5, fluyt: 6, brig: 6, corvette: 7, carrack: 9, galleass: 10, frigate: 10, galleon: 12 },
+  handsPerExtension: { shipOfLine: 3, senau: 2, galiot: 2, cutter: 1, schooner: 1, brigantine: 2, xebec: 1, fluyt: 2, brig: 2, corvette: 3, carrack: 3, galleass: 3, frigate: 3, galleon: 3 },
   walkSpeed: 1.1,
   runSpeed: 3,
   /**
@@ -674,7 +681,7 @@ export type OfficerTrait = 'lynx' | 'oldSalt' | 'ironArm' | 'resourceful' | 'luc
 /** Officiers de bord : recrutés à la taverne, affectés à un navire (places selon son type), ils progressent en combattant. */
 export const OFFICERS = {
   /** Places d'officiers par type de navire. */
-  slots: { senau: 2, galiot: 2, rowboat: 0, longboat: 1, sloop: 1, cutter: 1, caravel: 1, schooner: 1, brigantine: 2, xebec: 2, fluyt: 2, brig: 2, corvette: 2, carrack: 3, galleass: 3, frigate: 3, galleon: 4 } as Record<ShipType, number>,
+  slots: { shipOfLine: 4, senau: 2, galiot: 2, rowboat: 0, longboat: 1, sloop: 1, cutter: 1, caravel: 1, schooner: 1, brigantine: 2, xebec: 2, fluyt: 2, brig: 2, corvette: 2, carrack: 3, galleass: 3, frigate: 3, galleon: 4 } as Record<ShipType, number>,
   /** Fonctions : nom, symbole, et effet par étoile de talent. */
   roles: {
     gunner: { name: 'Canonnier', icon: '💥', perStar: { reload: -0.04, spread: -0.05 } },
@@ -737,6 +744,7 @@ export const GUNS = {
     cutter: { gold: 110, wood: 55 },
     galiot: { gold: 280, wood: 140 },
     senau: { gold: 270, wood: 135 },
+    shipOfLine: { gold: 560, wood: 280 },
     caravel: { gold: 160, wood: 80 },
     schooner: { gold: 150, wood: 75 },
     brigantine: { gold: 200, wood: 100 },
@@ -1137,7 +1145,7 @@ export const ENEMIES = {
     { minKills: 20, weights: { rowboat: 0.15, longboat: 0.3, sloop: 0.25, cutter: 0.1, caravel: 0.1, schooner: 0.05, brigantine: 0.12, xebec: 0.06 } },
     { minKills: 35, weights: { rowboat: 0.1, longboat: 0.2, sloop: 0.25, cutter: 0.1, caravel: 0.1, schooner: 0.05, brigantine: 0.15, xebec: 0.08, fluyt: 0.04, brig: 0.06, galiot: 0.05, senau: 0.06, corvette: 0.1 } },
     { minKills: 50, weights: { rowboat: 0.05, longboat: 0.1, sloop: 0.25, cutter: 0.1, caravel: 0.1, schooner: 0.05, brigantine: 0.15, xebec: 0.08, fluyt: 0.05, brig: 0.08, galiot: 0.05, senau: 0.06, corvette: 0.15, carrack: 0.06, galleass: 0.06, frigate: 0.1 } },
-    { minKills: 80, weights: { rowboat: 0.05, longboat: 0.1, sloop: 0.25, cutter: 0.1, caravel: 0.1, schooner: 0.05, brigantine: 0.15, xebec: 0.08, fluyt: 0.05, brig: 0.08, galiot: 0.05, senau: 0.06, corvette: 0.15, carrack: 0.06, galleass: 0.06, frigate: 0.1, galleon: 0.05 } },
+    { minKills: 80, weights: { rowboat: 0.05, longboat: 0.1, sloop: 0.25, cutter: 0.1, caravel: 0.1, schooner: 0.05, brigantine: 0.15, xebec: 0.08, fluyt: 0.05, brig: 0.08, galiot: 0.05, senau: 0.06, corvette: 0.15, carrack: 0.06, galleass: 0.06, frigate: 0.1, galleon: 0.05, shipOfLine: 0.03 } },
   ],
   /** Passes d'attaque (barques) : distance où l'on dégage (m), angle (rad) et durée (s) du dégagement. */
   veerDistance: 28,
@@ -1668,8 +1676,8 @@ export const STAYSAILS = {
  * l'on marche (les matelots et le joueur passent à travers elle, comme à travers toute lanterne suspendue).
  */
 export const SHIP_LAMPS = {
-  extra: { senau: 5, galiot: 4, sloop: 1, cutter: 1, schooner: 1, caravel: 3, brigantine: 3, xebec: 3, fluyt: 4, brig: 4, corvette: 4, carrack: 6, galleass: 6, frigate: 6, galleon: 8 } as Partial<Record<ShipType, number>>,
-  perExtension: { senau: 1, galiot: 1, cutter: 1, schooner: 1, brigantine: 1, xebec: 1, fluyt: 1, brig: 1, corvette: 1, carrack: 2, galleass: 2, frigate: 2, galleon: 2 } as Partial<Record<ShipType, number>>,
+  extra: { shipOfLine: 8, senau: 5, galiot: 4, sloop: 1, cutter: 1, schooner: 1, caravel: 3, brigantine: 3, xebec: 3, fluyt: 4, brig: 4, corvette: 4, carrack: 6, galleass: 6, frigate: 6, galleon: 8 } as Partial<Record<ShipType, number>>,
+  perExtension: { shipOfLine: 2, senau: 1, galiot: 1, cutter: 1, schooner: 1, brigantine: 1, xebec: 1, fluyt: 1, brig: 1, corvette: 1, carrack: 2, galleass: 2, frigate: 2, galleon: 2 } as Partial<Record<ShipType, number>>,
   headClear: 1.75,
   /**
    * Applique : hauteur du centre du verre au-dessus du pont (m), et écart au moins sous le pont du dessus (château bas) ;
@@ -3159,7 +3167,7 @@ export const ISLAND_UPGRADES = {
    */
   shipyard: {
     costs: [{ gold: 400, wood: 250 }, { gold: 1000, wood: 600 }, { gold: 2400, wood: 1400 }],
-    required: { senau: 1, galiot: 1, brigantine: 1, xebec: 1, fluyt: 1, brig: 1, corvette: 1, carrack: 2, galleass: 2, frigate: 2, galleon: 3 } as Partial<Record<ShipType, number>>,
+    required: { shipOfLine: 3, senau: 1, galiot: 1, brigantine: 1, xebec: 1, fluyt: 1, brig: 1, corvette: 1, carrack: 2, galleass: 2, frigate: 2, galleon: 3 } as Partial<Record<ShipType, number>>,
   },
   workshop: {
     costs: [{ gold: 100, wood: 60 }, { gold: 220, wood: 120 }, { gold: 400, wood: 220 }],

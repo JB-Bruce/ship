@@ -5,6 +5,9 @@ import { cylinderBetween } from '../parts/sails';
 import { DARK_WOOD, GILT, HULL_WOOD } from './galleonDecor';
 import type { GalleonLayout } from './galleonLayout';
 
+/** Ce que la proue lit du plan : celui du galion, ou d'un navire qui lui emprunte sa poulaine (vaisseau de ligne). */
+export type BowLayout = Pick<GalleonLayout, 'hull' | 'beak' | 'forecastle' | 'at' | 'station' | 'bowsprit' | 'spritsail'>;
+
 /** Étrave : sections (u de base) dont elle suit la quille, jusqu'au pied de l'éperon courbe de la poulaine. */
 const STEM_LINE = [0.82, 0.9, 0.96, 1];
 /** Caillebotis de la poulaine : écart des lattes (m). */
@@ -28,7 +31,7 @@ const identity = new THREE.Matrix4();
  * sort du pont du château avant et que des liures attachent à l'éperon, hune et petit mât de contre-civadière à sa
  * pointe, vergue de civadière.
  */
-export function addBow(batch: GeometryBatch, p: Palette, L: GalleonLayout) {
+export function addBow(batch: GeometryBatch, p: Palette, L: BowLayout) {
   const { hull, beak, forecastle } = L;
   const stem = hull.stationAt(1);
   const fig = beak.figurehead;

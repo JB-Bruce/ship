@@ -25,6 +25,12 @@ export const GRAND_GALIOT_ICON = `<svg viewBox="0 0 48 48"><path d="M0 26h9v3h29
 /** Grand senau : coque plus longue, dix sabords. */
 export const GRAND_SENAU_ICON = `<svg viewBox="0 0 48 48"><path d="M0 27h9v3h38l-4 9H5q-5-2-5-12z"/><path d="M3 33.5h41M6 33.5v2.5M10 33.5v2.5M14 33.5v2.5M18 33.5v2.5M22 33.5v2.5M26 33.5v2.5M30 33.5v2.5M34 33.5v2.5M38 33.5v2.5"/><path d="M34 30l-1-27M16 30l-1-28M14 29l-.5-17M28 6h11M27 12h13M26 19h15M25 26h17M10 5h11M9 11h13M8 18h15M7 25h17M13.5 14L0 11l1 15h13M47 29L34 6M34 17l12 11"/></svg>`;
 
+/** Vaisseau de 74 : coque plus longue, plus de sabords dans chaque batterie. */
+export const SHIP_OF_LINE_74_ICON = `<svg viewBox="0 0 48 48"><path d="M3 24h5v2h30l4-1-3 13H9q-6-2-6-14z"/><path d="M6 30h33M6 33.5h31M9.0 33.5v2M12.4 33.5v2M15.8 33.5v2M19.1 33.5v2M22.5 33.5v2M25.9 33.5v2M29.2 33.5v2M32.6 33.5v2M36.0 33.5v2M8.0 30v2M11.2 30v2M14.4 30v2M17.7 30v2M20.9 30v2M24.1 30v2M27.3 30v2M30.6 30v2M33.8 30v2M37.0 30v2"/><path d="M34 25V5M22 26V2M11 24V8M29 7h10M28 13h12M27 20h14M17 4h10M16 11h12M15 18h14M7 10h8M11 12L2 15v6h9M42 26l6-9"/></svg>`;
+
+/** Vaisseau de 80 : coque encore plus longue. */
+export const SHIP_OF_LINE_80_ICON = `<svg viewBox="0 0 48 48"><path d="M1 24h5v2h34l4-1-3 13H7q-6-2-6-14z"/><path d="M4 30h37M4 33.5h35M7.0 33.5v2M10.4 33.5v2M13.9 33.5v2M17.3 33.5v2M20.8 33.5v2M24.2 33.5v2M27.7 33.5v2M31.1 33.5v2M34.6 33.5v2M38.0 33.5v2M6.0 30v2M9.3 30v2M12.6 30v2M15.9 30v2M19.2 30v2M22.5 30v2M25.8 30v2M29.1 30v2M32.4 30v2M35.7 30v2M39.0 30v2"/><path d="M35 25V5M22 26V2M10 24V8M30 7h10M29 13h12M28 20h14M17 4h10M16 11h12M15 18h14M6 10h8M10 12L0 15v6h10M44 26l4-9"/></svg>`;
+
 /** Grand chébec : coque plus longue, quatre sabords, mâts plus espacés. */
 export const GRAND_XEBEC_ICON = `<svg viewBox="0 0 48 48"><path d="M1 30h40l7-2-6 4-4 7H9l-6-4z"/><path d="M0 30v-3h9v3M12 33.5h24M15 33.5v2M21 33.5v2M27 33.5v2M33 33.5v2"/><path d="M38 30l3-22M24 30l2-27M11 27l2-17M46 24L33 4M46 24L33 5l3 22zM18 8h13M17 16h16M18 17h15l-1 10H19zM19 8h11v7H19zM21 22L5 6M21 22L6 7l2 18z"/></svg>`;
 
@@ -61,6 +67,7 @@ const EXTENDED_ICONS: Partial<Record<ShipType, readonly string[]>> = {
   cutter: [ARMED_CUTTER_ICON],
   galiot: [GRAND_GALIOT_ICON],
   senau: [GRAND_SENAU_ICON],
+  shipOfLine: [SHIP_OF_LINE_74_ICON, SHIP_OF_LINE_80_ICON],
   xebec: [GRAND_XEBEC_ICON],
   fluyt: [LONG_FLUYT_ICON],
   carrack: [GRAND_CARRACK_ICON, ROYAL_CARRACK_ICON],
@@ -81,6 +88,7 @@ export function shipIcon(type: ShipType, levels: UpgradeLevels): string {
 
 /** Silhouettes des navires, dessinées au trait façon gravure (menus de flotte et du port). */
 export const SHIP_ICONS: Record<ShipType, string> = {
+  shipOfLine: `<svg viewBox="0 0 48 48"><path d="M4 24h5v2h27l4-1-3 13H10q-6-2-6-14z"/><path d="M7 30h30M7 33.5h28M10.0 33.5v2M13.4 33.5v2M16.9 33.5v2M20.3 33.5v2M23.7 33.5v2M27.1 33.5v2M30.6 33.5v2M34.0 33.5v2M9.0 30v2M12.7 30v2M16.4 30v2M20.1 30v2M23.9 30v2M27.6 30v2M31.3 30v2M35.0 30v2"/><path d="M33 25V5M21 26V2M11 24V8M28 7h10M27 13h12M26 20h14M16 4h10M15 11h12M14 18h14M7 10h8M11 12L3 15v6h8M40 26l7-9"/></svg>`,
   senau: `<svg viewBox="0 0 48 48"><path d="M1 27h9v3h35l-4 9H6q-5-2-5-12z"/><path d="M4 33.5h38M8 33.5v2.5M13 33.5v2.5M18 33.5v2.5M23 33.5v2.5M28 33.5v2.5M33 33.5v2.5M38 33.5v2.5"/><path d="M32 30l-1-27M16 30l-1-28M14 29l-.5-17M26 6h11M25 12h13M24 19h15M23 26h17M10 5h11M9 11h13M8 18h15M7 25h17M13.5 14L1 11l1 15h12M46 29L32 6M32 17l12 11"/></svg>`,
   galiot: `<svg viewBox="0 0 48 48"><path d="M1 26h10v3h26l9-2-4 10H8q-6-1-7-11z"/><path d="M45 27l3-4M24 29V3M11 26V9M17 7h14M16 13h16M15 20h18M25 4l20 22H33z"/><path d="M11 25H4l2-14 5-2zM34 28a2 2 0 0 1 4 0M39 28a2 2 0 0 1 4 0"/></svg>`,
   cutter: `<svg viewBox="0 0 48 48"><path d="M3 32h34l-5 6H9z"/><path d="M37 31h11M26 32V2M1 29h25"/><path d="M25 9L9 4 2 29h23zM27 6l20 25H35zM27 15l9 15h-9z"/></svg>`,

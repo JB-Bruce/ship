@@ -2,11 +2,11 @@
 // Un tableau d'amélioration = une valeur par niveau (le niveau 1 est la première case).
 
 import { UPGRADE_INFO, type ShipTypeDef } from './shipTypeDef';
-import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CARRACK_STATS, CORVETTE_STATS, CUTTER_STATS, FLUYT_STATS, GALIOT_STATS, SENAU_STATS, FRIGATE_STATS, GALLEASS_STATS, GALLEON_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, XEBEC_STATS } from './shipStats';
+import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CARRACK_STATS, CORVETTE_STATS, CUTTER_STATS, FLUYT_STATS, GALIOT_STATS, SENAU_STATS, SHIP_OF_LINE_STATS, FRIGATE_STATS, GALLEASS_STATS, GALLEON_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, XEBEC_STATS } from './shipStats';
 
-export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'cutter' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'fluyt' | 'brig' | 'senau' | 'galiot' | 'corvette' | 'carrack' | 'galleass' | 'frigate' | 'galleon';
+export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'cutter' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'fluyt' | 'brig' | 'senau' | 'galiot' | 'corvette' | 'carrack' | 'galleass' | 'frigate' | 'galleon' | 'shipOfLine';
 /** Du plus petit au plus gros (par rang de taille ; à rang égal, dans l'ordre d'affichage). */
-export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'cutter', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'senau', 'galiot', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon'];
+export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'cutter', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'senau', 'galiot', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon', 'shipOfLine'];
 /** Nom du type d'un navire selon ses allongements (« Frégate allongée », « Grande frégate »). */
 export function typeName(type: ShipType, extension = 0): string {
   return extension > 0 ? (SHIP_TYPES[type].extensions?.[extension - 1]?.name ?? SHIP_TYPES[type].name) : SHIP_TYPES[type].name;
@@ -30,7 +30,7 @@ export { UPGRADE_INFO };
 export type { ExtensionDef, MassTable, ShipTypeDef, UpgradeTable } from './shipTypeDef';
 
 /** Types que le joueur peut acheter (la barque est réservée aux ennemis). */
-export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'cutter', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'senau', 'galiot', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon'];
+export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'cutter', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'senau', 'galiot', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon', 'shipOfLine'];
 
 export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
   rowboat: {
@@ -821,6 +821,78 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
         turnFactor: 0.92,
         mass: 130,
         extraLevels: { cannons: 2, sails: 1, accuracy: 1, range: 1 },
+      },
+    ],
+  },
+  shipOfLine: {
+    name: 'Vaisseau de 64',
+    description: 'Le vaisseau de ligne de la Marine royale : coque large en bas aux flancs très rentrés, deux batteries couvertes serrées l’une sur l’autre et des pièces sur le pont, châteaux bas, poupe à deux galeries, lion de proue. Le plus solide et le plus armé : 64 canons, 74 puis 80 une fois allongé. Ses sabords restent fermés jusqu’au combat. Très lent à virer.',
+    armament: 'broadside',
+    rank: 8,
+    threat: 8,
+    lootFactor: 10,
+    price: { gold: 14000, wood: 7500 },
+    respawnTime: 120,
+    hold: 180,
+    upwindLoss: 1.2,
+    navyOnly: true,
+    stats: SHIP_OF_LINE_STATS,
+    enemyStats: SHIP_OF_LINE_STATS,
+    gunLabels: { main: 'Batteries', deck: 'Pièces du pont et des gaillards' },
+    upgrades: {
+      accuracy: {
+        costs: [{ gold: 120, wood: 0 }, { gold: 190, wood: 0 }, { gold: 270, wood: 0 }, { gold: 360, wood: 0 }],
+        spreadFactor: [0.8, 0.62, 0.46, 0.32],
+      },
+      range: { costs: [{ gold: 180, wood: 60 }, { gold: 270, wood: 85 }], rangeFactor: [1.1, 1.2] },
+      // Deux canons de plus par bord à chaque niveau (batteries basse et haute, pièces du pont : shipOfLineArmament) ;
+      // vaisseau de 74 : trois niveaux en plus (jusqu'à 37 par bord), vaisseau de 80 : deux (40 par bord).
+      cannons: {
+        costs: [
+          { gold: 300, wood: 170 }, { gold: 360, wood: 200 }, { gold: 430, wood: 240 }, { gold: 510, wood: 280 }, { gold: 600, wood: 330 },
+          { gold: 700, wood: 380 }, { gold: 800, wood: 440 }, { gold: 910, wood: 500 }, { gold: 1030, wood: 560 }, { gold: 1160, wood: 630 },
+          { gold: 1300, wood: 700 },
+        ],
+        cannonsPerSide: [22, 24, 26, 28, 30, 32, 34, 36, 37, 38, 40],
+      },
+      hull: {
+        costs: [{ gold: 100, wood: 100 }, { gold: 170, wood: 170 }, { gold: 240, wood: 240 }, { gold: 330, wood: 330 }],
+        healthFactor: [1.1, 1.2, 1.3, 1.4],
+      },
+      // Vaisseau de 74, puis de 80 : un niveau de voilure en plus chacun.
+      sails: {
+        costs: [{ gold: 130, wood: 35 }, { gold: 200, wood: 55 }, { gold: 280, wood: 80 }, { gold: 370, wood: 105 }, { gold: 470, wood: 130 }],
+        speedFactor: [1.06, 1.12, 1.18, 1.24, 1.3],
+      },
+      hold: {
+        costs: [{ gold: 120, wood: 70 }, { gold: 180, wood: 110 }, { gold: 250, wood: 160 }, { gold: 330, wood: 210 }],
+        capacity: [230, 280, 330, 380],
+      },
+      nets: { costs: [], catchFactor: [] },
+    },
+    mass: { base: 820, perExtraCannon: 8, hull: [26, 54, 84, 116], sails: [10, 20, 30, 40, 50], hold: [14, 28, 42, 56], speedLossPerUnit: 0.00022 },
+    extensions: [
+      {
+        name: 'Vaisseau de 74',
+        description: 'Le chantier rallonge la coque de quatre mètres au milieu : un sabord de plus par bord en batterie basse, deux en batterie haute et deux pièces de plus sur le pont (trois niveaux de canons en plus, jusqu’à 74 canons), des mâts plus hauts pour un niveau de voilure en plus.',
+        cost: { gold: 6000, wood: 3000 },
+        length: 4,
+        healthFactor: 1.12,
+        speedFactor: 1.03,
+        turnFactor: 0.94,
+        mass: 120,
+        extraLevels: { cannons: 3, sails: 1 },
+      },
+      {
+        name: 'Vaisseau de 80',
+        description: 'Le chantier rallonge encore la coque de quatre mètres : un sabord de plus par bord dans chaque batterie et une pièce de plus sur le pont (deux niveaux de canons en plus, jusqu’à 80 canons), un niveau de voilure et des membrures doublées.',
+        cost: { gold: 8000, wood: 4000 },
+        length: 4,
+        healthFactor: 1.12,
+        speedFactor: 1.02,
+        turnFactor: 0.94,
+        mass: 130,
+        extraLevels: { cannons: 2, sails: 1 },
       },
     ],
   },

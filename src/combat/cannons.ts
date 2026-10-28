@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COMBAT, type CannonStats } from '../config';
+import { COMBAT, GUNPORTS, type CannonStats } from '../config';
 import type { Effects } from '../fx/effects';
 import type { Waves } from '../ocean/waves';
 import { isHostile, type Ship } from '../ship/ship';
@@ -75,6 +75,8 @@ export function updateCannons(dt: number, ships: readonly Ship[], projectiles: P
         lastCalibre = c;
         lastArc = arc;
         target = findTarget(ship, mount.angle, ships, c, arc) ?? siegeTargetFor(ship, mount.angle, c, arc);
+        // Une cible : branle-bas de combat (les sabords qui ont des mantelets s'ouvrent, ShipModel.setGunports).
+        if (target) ship.battleAlert = GUNPORTS.hold;
       }
       // Nouvelle cible : un court délai propre à chaque canon, pour que la bordée parte en cascade, et un point visé à lui.
       const point = aimPointOf(mount);

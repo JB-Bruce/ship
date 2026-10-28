@@ -58,6 +58,28 @@ export const CUTTER_STATS: ShipStats = {
 };
 
 /**
+ * Vaisseau de ligne : coque large en bas, aux flancs très rentrés, deux batteries couvertes serrées l'une sur l'autre et
+ * des pièces légères sur le pont, châteaux bas ; trois mâts carrés et une brigantine. Le plus solide et le plus armé
+ * (de 64 à 80 canons selon ses allongements), le plus lent à virer. Deux calibres : les batteries (gros canons, angle de
+ * tir étroit) et les pièces du pont et des gaillards.
+ */
+export const SHIP_OF_LINE_STATS: ShipStats = {
+  length: 38,
+  width: 11.4,
+  maxSpeed: 10.5,
+  acceleration: 1.6,
+  deceleration: 2.4,
+  turnRate: 0.24,
+  rudderSpeed: 1.6,
+  turnHeel: 0.003,
+  maxHealth: 2800,
+  cannonsPerSide: 20,
+  cannon: { range: 165, reloadTime: 4.6, arcHalfAngle: 18 * DEG, spread: 3.2 * DEG, rangeError: 0.088, damage: 24, ballSpeed: 64 },
+  deckCannon: { range: 140, reloadTime: 2.5, arcHalfAngle: 40 * DEG, spread: 4 * DEG, rangeError: 0.106, damage: 11, ballSpeed: 58 },
+  buoyancy: { stiffness: 18, damping: 7, tiltResponse: 3.2 },
+};
+
+/**
  * Senau : deux-mâts carré comme le brick, mais plus grand et plus haut, avec un petit gaillard d'arrière ; sa grande
  * voile aurique est portée par un mât fin planté juste derrière le grand mât (le mât de senau). Solide, assez rapide,
  * bien armé, une bonne cale : un navire à tout faire.

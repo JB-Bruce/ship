@@ -17,6 +17,7 @@ import type { LanternSpot } from './parts/nightGlow';
 import { FrigateModel } from './frigate/frigateModel';
 import { GaliotModel } from './galiot/galiotModel';
 import { SenauModel } from './senau/senauModel';
+import { ShipOfLineModel } from './shipOfLine/shipOfLineModel';
 import { LongboatModel } from './longboat/longboatModel';
 import { RowboatModel } from './rowboat/rowboatModel';
 import { SloopModel } from './sloop/sloopModel';
@@ -93,6 +94,8 @@ export interface ShipModel {
    * galéasse) et `mortars` mortiers (galiote à bombes).
    */
   setCannons(perSide: number, chase?: number, mortars?: number): void;
+  /** Sabords à mantelets (vaisseau de ligne) : ouverts et fûts sortis au combat, fermés et fûts rentrés en route. */
+  setGunports?(open: boolean): void;
   /** Avirons (chébec, galéasse) : 0 = rentrés, 1 = sortis ; sortis, ils nagent en cadence. */
   setOars?(out: number): void;
   /** Niveau de renfort de coque (bandes de fer). */
@@ -123,6 +126,7 @@ export function createShipModel(type: ShipType, stats: ShipStats, livery: Livery
   if (type === 'carrack') return new CarrackModel(stats, livery);
   if (type === 'galleass') return new GalleassModel(stats, livery);
   if (type === 'galleon') return new GalleonModel(stats, livery);
+  if (type === 'shipOfLine') return new ShipOfLineModel(stats, livery);
   if (type === 'frigate') return new FrigateModel(stats, livery);
   return new LongboatModel(stats, livery);
 }
