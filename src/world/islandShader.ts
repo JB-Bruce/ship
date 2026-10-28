@@ -148,10 +148,11 @@ vec3 islandShore(vec2 p) {
   vec3 best = vec3(1e6, 1.0, 1.0);
   for (int i = 0; i < ISLAND_SLOTS; i++) {
     if (i >= uIslandCount) break;
-    // Loin de l'île, une borne inférieure suffit (seule une distance sous la largeur du lagon ou du ressac compte) :
-    // pas de calcul de la côte pour la plupart des pixels d'eau.
+    // Loin de l'île, une borne inférieure suffit (seule une distance sous la largeur du lagon et de son plateau, ou du
+    // ressac, compte) : pas de calcul de la côte pour la plupart des pixels d'eau. La borne doit couvrir le plateau,
+    // sinon il suivrait le cercle de l'île au-delà du ressac (un arc net dans l'eau).
     float bound = length(p - uIslandA[i].xy) - uIslandA[i].z;
-    float s = bound > max(uIslandB[i].y, uIslandB[i].z) ? bound : islandSdfOf(i, p);
+    float s = bound > max(uIslandB[i].y + ${OCEAN.shelfWidth.toFixed(1)}, uIslandB[i].z) ? bound : islandSdfOf(i, p);
     if (s < best.x) best = vec3(s, uIslandB[i].y, uIslandB[i].z);
   }
   return best;
