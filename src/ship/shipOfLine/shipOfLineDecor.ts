@@ -19,6 +19,10 @@ const WALES = [
 ] as const;
 /** Le haut du bordé peint s'arrête à cette distance sous le plat-bord (m). */
 const PAINT_BELOW_RAIL = 0.08;
+/** Sous la poupe, la quille remonte en voûte : bandes et préceintes s'arrêtent à cette hauteur au-dessus d'elle (m). */
+const COUNTER_CLEAR = 1;
+/** Bas d'une bande, relevé là où la voûte de la poupe remonte (la bande s'efface au lieu de passer dessous). */
+const aboveCounter = (y: number, s: Station) => Math.max(y, s.keel + COUNTER_CLEAR);
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 
@@ -35,14 +39,14 @@ export function addPlanking(batch: GeometryBatch, p: Palette, L: ShipOfLineLayou
   batch.add(p.hullInside, shell.clone(), identity);
   for (const y of [LOW_Y, HIGH_Y]) {
     const low = (_s: Station, u: number) => y + L.sheer(u) - BAND_HALF;
-    batch.add(OCHRE, hull.buildBand(low, (s, u) => low(s, u) + 2 * BAND_HALF, 0.015), identity);
+    batch.add(OCHRE, hull.buildBand((s, u) => aboveCounter(low(s, u), s), (s, u) => low(s, u) + 2 * BAND_HALF, 0.015), identity);
   }
   for (const w of WALES) {
     const low = (_s: Station, u: number) => w.y + w.sheer * L.sheer(u) - w.height / 2;
-    batch.add(DARK_WOOD, hull.buildBand(low, (s, u) => low(s, u) + w.height, 0.03), identity);
+    batch.add(DARK_WOOD, hull.buildBand((s, u) => aboveCounter(low(s, u), s), (s, u) => low(s, u) + w.height, 0.03), identity);
   }
   const top = WALES[2];
-  batch.add(p.hull, hull.buildBand((_s, u) => top.y + top.sheer * L.sheer(u) + top.height / 2, (s) => s.gunwale - PAINT_BELOW_RAIL, 0.012), identity);
+  batch.add(p.hull, hull.buildBand((s, u) => aboveCounter(top.y + top.sheer * L.sheer(u) + top.height / 2, s), (s) => s.gunwale - PAINT_BELOW_RAIL, 0.012), identity);
   for (const side of [1, -1] as const) batch.add(GILT, hull.buildRail(side, 1, 0, 0.1), identity);
 
   for (const side of [1, -1] as const) {

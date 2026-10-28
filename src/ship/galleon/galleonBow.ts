@@ -19,6 +19,11 @@ const CUTWATER = 0.32;
  * courbe de ce bord), à `inset` m au-dessus de lui et `below` m sous la plate-forme : de larges bords de bois tout autour.
  */
 const OPENINGS = { spans: [[0.17, 0.7]] as const, inset: 0.85, below: 0.85, steps: 8, frame: 0.05 };
+/**
+ * Éperon creusé (`beak.hollow`) : le milieu de son bord avant passe à `bulge` du chemin entre la corde (pied → pointe)
+ * et le coin du haut contre l'étrave ; son ajour suit ce bord à `inset` m en dedans, à `margin` m de l'étrave.
+ */
+const HOLLOW = { bulge: 0.3, inset: 0.6, margin: 0.7, steps: 16 };
 /** Lion de proue cabré : inclinaison de son corps vers le haut (rad). */
 const LION_REAR = 0.62;
 
@@ -44,18 +49,23 @@ export function addBow(batch: GeometryBatch, p: Palette, L: BowLayout) {
   const nose = new THREE.Vector2(fig.z - 0.3, fig.y - 0.25);
   const top = new THREE.Vector2(fig.z - 0.75, fig.y + 0.1);
   const root = new THREE.Vector2(stem.z - 0.2, beak.y);
-  const bottom = new THREE.QuadraticBezierCurve(foot, new THREE.Vector2(beak.tipZ - 0.9, foot.y + 0.2), nose);
+  // Bord avant : arrondi vers l'avant (contrôle bas et en avant), ou creusé vers le coin contre l'étrave.
+  const chord = foot.clone().add(nose).multiplyScalar(0.5);
+  const sag = beak.hollow ? chord.clone().lerp(root, HOLLOW.bulge).multiplyScalar(2).sub(chord) : new THREE.Vector2(beak.tipZ - 0.9, foot.y + 0.2);
+  const bottom = new THREE.QuadraticBezierCurve(foot, sag, nose);
   const cutwater = new THREE.Shape();
   cutwater.moveTo(foot.x, foot.y);
-  cutwater.quadraticCurveTo(beak.tipZ - 0.9, foot.y + 0.2, nose.x, nose.y);
+  cutwater.quadraticCurveTo(sag.x, sag.y, nose.x, nose.y);
   cutwater.lineTo(top.x, top.y);
   cutwater.quadraticCurveTo(beak.tipZ - 1.6, beak.y - 0.15, root.x, root.y);
   cutwater.lineTo(foot.x, foot.y);
-  const openings = OPENINGS.spans.map(([a, b]) => {
-    const along = Array.from({ length: OPENINGS.steps + 1 }, (_, i) => bottom.getPoint(a + ((b - a) * i) / OPENINGS.steps).add(new THREE.Vector2(0, OPENINGS.inset)));
-    const y = beak.y - OPENINGS.below;
-    return [...along, new THREE.Vector2(along[along.length - 1].x, y), new THREE.Vector2(along[0].x, y)];
-  });
+  const openings = beak.hollow
+    ? [hollowOpening(bottom, root, beak.y - OPENINGS.below)]
+    : OPENINGS.spans.map(([a, b]) => {
+        const along = Array.from({ length: OPENINGS.steps + 1 }, (_, i) => bottom.getPoint(a + ((b - a) * i) / OPENINGS.steps).add(new THREE.Vector2(0, OPENINGS.inset)));
+        const y = beak.y - OPENINGS.below;
+        return [...along, new THREE.Vector2(along[along.length - 1].x, y), new THREE.Vector2(along[0].x, y)];
+      });
   cutwater.holes = openings.map((outline) => new THREE.Path(outline));
   const plate = new THREE.ExtrudeGeometry(cutwater, { depth: CUTWATER, bevelEnabled: false, curveSegments: 10 });
   plate.rotateY(-Math.PI / 2);
@@ -131,6 +141,25 @@ export function addBow(batch: GeometryBatch, p: Palette, L: BowLayout) {
   batch.add(p.dark, new THREE.CylinderGeometry(0.09, 0.09, 0.1, 6), tf(0, topmast.y + 0.05, topmast.z));
   const sprit = L.spritsail;
   batch.add(p.wood, cylinderBetween(sprit.yard.clone().setX(-sprit.width / 2 - 0.2), sprit.yard.clone().setX(sprit.width / 2 + 0.2), 0.08), identity);
+}
+
+/**
+ * Ajour d'un éperon creusé : son bord avant suivi à HOLLOW.inset en dedans (vers le coin `root`, contre l'étrave),
+ * gardé à HOLLOW.margin de l'étrave et sous `top` ; le coin ferme le contour (de l'étrave vers l'avant, puis le haut).
+ */
+function hollowOpening(bottom: THREE.QuadraticBezierCurve, root: THREE.Vector2, top: number): THREE.Vector2[] {
+  const minZ = root.x + HOLLOW.margin;
+  const kept: THREE.Vector2[] = [];
+  for (let i = 0; i <= HOLLOW.steps; i++) {
+    const t = i / HOLLOW.steps;
+    const at = bottom.getPoint(t);
+    const tangent = bottom.getTangent(t);
+    const normal = new THREE.Vector2(-tangent.y, tangent.x);
+    if (normal.dot(root.clone().sub(at)) < 0) normal.negate();
+    const p = at.add(normal.multiplyScalar(HOLLOW.inset));
+    if (p.x >= minZ && p.y <= top) kept.push(p);
+  }
+  return [...kept, new THREE.Vector2(minZ, top)];
 }
 
 /**

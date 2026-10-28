@@ -176,8 +176,9 @@ export interface GalleonLayout {
   /**
    * Poulaine : hauteur de sa plate-forme, z de sa racine (l'étrave) et de sa pointe, demi-largeur à sa racine ; l'éperon
    * courbe qui la porte part de l'étrave à la hauteur `cutwaterFoot` ; le lion de proue se dresse en `figurehead`.
+   * `hollow` : le bord avant de l'éperon se creuse vers le navire (galion) au lieu de s'arrondir vers l'avant.
    */
-  readonly beak: { y: number; rootZ: number; tipZ: number; halfWidth: number; cutwaterFoot: number; figurehead: THREE.Vector3 };
+  readonly beak: { y: number; rootZ: number; tipZ: number; halfWidth: number; cutwaterFoot: number; figurehead: THREE.Vector3; hollow?: boolean };
   readonly wheel: { y: number; z: number };
   readonly flag: { length: number; height: number; y: number };
   /** Sabords des batteries (u de la coque) : `…Ports` de l'arrière vers l'avant, `…Slots` dans l'ordre d'achat. */
@@ -286,6 +287,7 @@ function createLayout(level: number): GalleonLayout {
       tipZ: stem.z + BEAK.reach,
       halfWidth: BEAK.halfWidth,
       cutwaterFoot: BEAK.cutwaterFoot,
+      hollow: true,
       figurehead: new THREE.Vector3(0, stem.gunwale - BEAK.below + BEAK.tip * 0.3, stem.z + BEAK.reach + BEAK.tip),
     },
     wheel,

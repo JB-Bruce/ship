@@ -27,8 +27,8 @@ const STRETCH = [
  * courbe sous les galeries, le tableau ne descend pas jusqu'à l'eau. Deux sections très proches font chaque marche.
  */
 const HULL_ROWS: [number, number, number, number][] = [
-  [-1, 0.6, 9.9, 4.2],
-  [-0.98, 0.7, 9.88, 3],
+  [-1, 0.68, 9.9, 4.2],
+  [-0.98, 0.72, 9.88, 3],
   [-0.95, 0.78, 9.85, 1.5],
   [-0.91, 0.85, 9.82, -0.2],
   [-0.86, 0.9, 9.8, -1.9],
@@ -63,22 +63,31 @@ export const HIGH_Y = 4.15;
 export const PORT = { low: [0.56, 0.6], high: [0.52, 0.56] } as const;
 /** Tonture des préceintes et des sabords (m) : `aft` × |u|^power vers la poupe, `fore` × u^power vers l'avant. */
 const SHEER = { aft: 0.45, fore: 0.4, power: 1.6 };
-/** Batteries (u de base) : sabords réguliers, de plus à chaque allongement, ceux du milieu achetés d'abord. */
-const LOW_SPAN = { from: -0.74, to: 0.8, slots: [13, 14, 15], first: 6 };
-const HIGH_SPAN = { from: -0.78, to: 0.84, slots: [13, 15, 16], first: 6 };
+/**
+ * Batteries (u de base) : sabords réguliers, de plus à chaque allongement, ceux du milieu achetés d'abord ; ni tout à
+ * l'avant ni tout à l'arrière (ces places-là sont des pièces légères sur le pont).
+ */
+const LOW_SPAN = { from: -0.612, to: 0.543, slots: [10, 11, 12], first: 6 };
+const HIGH_SPAN = { from: -0.645, to: 0.57, slots: [10, 12, 13], first: 6 };
 /** Pièces légères (second calibre, u de base) dans l'ordre d'achat, et combien en porte chaque taille (64, 74, 80). */
 const PIECE_SLOTS = [
   { u: -0.47, deck: 'quarterdeck' },
   { u: 0.78, deck: 'forecastle' },
-  { u: -0.55, deck: 'quarterdeck' },
+  { u: -0.56, deck: 'quarterdeck' },
   { u: 0.87, deck: 'forecastle' },
   { u: 0.32, deck: 'waist' },
   { u: -0.2, deck: 'waist' },
   { u: 0.45, deck: 'waist' },
+  { u: -0.07, deck: 'waist' },
+  { u: -0.8, deck: 'poop' },
+  { u: -0.9, deck: 'poop' },
+  { u: 0.19, deck: 'waist' },
+  { u: 0.06, deck: 'waist' },
+  { u: -0.65, deck: 'quarterdeck' },
+  { u: 0.7, deck: 'forecastle' },
   { u: -0.3, deck: 'waist' },
-  { u: 0.2, deck: 'waist' },
 ] as const;
-const PIECES = [6, 8, 9];
+const PIECES = [12, 14, 15];
 /** Fenêtres des flancs (u de base, hauteur) : chambre sous la dunette, devant les bouteilles. */
 const WINDOWS: readonly (readonly [number, number])[] = [
   [-0.82, 8],
@@ -98,7 +107,7 @@ const JIBS = [
   { along: 0.58, head: 24, clewY: 9.6, clewAhead: 4.2 },
 ];
 /** Roue : devant la cloison de la dunette (m). */
-const WHEEL_AHEAD = 0.95;
+const WHEEL_AHEAD = 1.5;
 /** Brigantine : hauteur de sa bôme au-dessus de la dunette (au-dessus des têtes), dépassement de la poupe (m). */
 const SPANKER = { boomAbovePoop: 2.1, overhang: 3.4 };
 
@@ -174,9 +183,9 @@ function createLayout(level: number): ShipOfLineLayout {
   const quarterdeck = { y: 7.05, from: base(-0.99), to: base(-0.42) };
   const poop = { y: 8.95, from: base(-0.99), to: base(-0.7) };
   const forecastle = { y: 6.95, from: base(0.61), to: base(0.97) };
-  const deckY = { quarterdeck: quarterdeck.y, forecastle: forecastle.y, waist: DECK_Y };
+  const deckY = { quarterdeck: quarterdeck.y, poop: poop.y, forecastle: forecastle.y, waist: DECK_Y };
   const foreMast = { z: at(0.7).z, base: forecastle.y, top: 36, topPlatform: 22.5 };
-  const mizzenMast = { z: at(-0.58).z, base: quarterdeck.y, top: 31, topPlatform: 20 };
+  const mizzenMast = { z: at(-0.54).z, base: quarterdeck.y, top: 31, topPlatform: 20 };
   const mainMast = { z: balancedMainMast(at(0.1).z, foreMast.z, mizzenMast.z, level), base: DECK_Y, top: 41, topPlatform: 26 };
   const stem = hull.stationAt(1);
   const bowTip = new THREE.Vector3(0, BOWSPRIT.tipY, BASE_HALF + BOWSPRIT.reach + bowShift);

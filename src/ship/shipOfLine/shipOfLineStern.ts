@@ -10,10 +10,11 @@ import { DECK_Y, type ShipOfLineLayout } from './shipOfLineLayout';
  */
 const GALLERIES = { depth: 0.9, rail: 0.8, spacing: 0.32, windowY: 0.75, windows: 6 };
 /**
- * Bouteilles : galeries fermées sur les hanches (étendue en u de base, saillie hors du bordé, bas et haut en m), avec
- * leur cul-de-lampe dessous et leur petit dôme dessus.
+ * Bouteilles : galeries fermées sur les hanches, jusqu'au tableau (étendue en u de base, saillie hors du bordé au milieu
+ * de la bouteille, bas et haut en m), avec leur cul-de-lampe dessous et leur petit dôme dessus. Le caisson rentre dans
+ * le bordé jusqu'à sa largeur au tableau : ni vide derrière, ni bordé qui dépasse vu de l'arrière.
  */
-const QUARTER = { from: -0.96, to: -0.86, depth: 0.7, low: DECK_Y - 0.1, high: 8.8 };
+const QUARTER = { from: -1, to: -0.88, depth: 0.7, low: DECK_Y - 0.1, high: 8.8 };
 /** Grands fanaux sur le couronnement (places en part de la demi-largeur, taille). */
 const LANTERNS = { xs: [-0.62, 0, 0.62], scale: 1.35 };
 
@@ -44,10 +45,11 @@ export function addStern(batch: GeometryBatch, p: Palette, L: ShipOfLineLayout) 
       batch.add(GILT, box(0.1, 1.05, 0.06), tf(-w / 2 + (w * k) / n, y, stern.z - 0.04));
     }
   }
-  // Couronnement, écusson et fanaux.
-  batch.add(GILT, box(2 * stern.halfWidth + 0.2, 0.18, 0.3), tf(0, stern.gunwale, stern.z + 0.06));
+  // Couronnement (à la largeur du tableau en haut, les flancs rentrent), écusson et fanaux.
+  const crown = hull.halfWidthAt(stern, stern.gunwale);
+  batch.add(GILT, box(2 * crown + 0.1, 0.18, 0.3), tf(0, stern.gunwale, stern.z + 0.06));
   batch.add(GILT, new THREE.CylinderGeometry(0.55, 0.55, 0.08, 10), tf(0, stern.gunwale - 0.6, stern.z - 0.04, Math.PI / 2));
-  for (const f of LANTERNS.xs) addLantern(batch, p, tf(f * stern.halfWidth, stern.gunwale + 0.09, stern.z + 0.1, 0, 0, 0, LANTERNS.scale));
+  for (const f of LANTERNS.xs) addLantern(batch, p, tf(f * crown, stern.gunwale + 0.09, stern.z + 0.1, 0, 0, 0, LANTERNS.scale));
   addQuarterGalleries(batch, p, L);
 }
 
@@ -61,14 +63,19 @@ function addQuarterGalleries(batch: GeometryBatch, p: Palette, L: ShipOfLineLayo
   const h = QUARTER.high - QUARTER.low;
   const y = (QUARTER.low + QUARTER.high) / 2;
   const mid = L.at((QUARTER.from + QUARTER.to) / 2);
+  const inner = hull.halfWidthAt(a, y) - 0.15;
+  const outer = hull.halfWidthAt(mid, y) + QUARTER.depth - 0.15;
+  const depth = outer - inner;
   for (const side of [1, -1]) {
-    const x = side * (hull.halfWidthAt(mid, y) + QUARTER.depth / 2 - 0.15);
-    batch.add(p.hull, box(QUARTER.depth, h, length), tf(x, y, z));
-    for (const dy of [-h / 2, h / 2, 0]) batch.add(GILT, box(QUARTER.depth + 0.12, 0.12, length + 0.12), tf(x, y + dy, z));
+    const x = (side * (inner + outer)) / 2;
+    batch.add(p.hull, box(depth, h, length), tf(x, y, z));
+    for (const dy of [-h / 2, h / 2, 0]) batch.add(GILT, box(depth + 0.12, 0.12, length + 0.12), tf(x, y + dy, z));
     for (const wy of [y - h / 4, y + h / 4]) {
-      for (const dz of [-length / 4, length / 4]) batch.add(p.window, box(0.05, 0.5, 0.4), tf(x + side * (QUARTER.depth / 2 + 0.01), wy, z + dz));
+      for (const dz of [-length / 4, length / 4]) batch.add(p.window, box(0.05, 0.5, 0.4), tf(x + side * (depth / 2 + 0.01), wy, z + dz));
     }
-    batch.add(GILT, new THREE.ConeGeometry(QUARTER.depth * 0.6, 1.1, 6), tf(x, QUARTER.low - 0.55, z, Math.PI));
-    batch.add(p.hull, new THREE.SphereGeometry(QUARTER.depth * 0.55, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), tf(x, QUARTER.high + 0.06, z));
+    // Cul-de-lampe et dôme sous et sur la partie qui sort du bordé.
+    const out = side * (outer - QUARTER.depth / 2);
+    batch.add(GILT, new THREE.ConeGeometry(QUARTER.depth * 0.6, 1.1, 6), tf(out, QUARTER.low - 0.55, z, Math.PI));
+    batch.add(p.hull, new THREE.SphereGeometry(QUARTER.depth * 0.55, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), tf(out, QUARTER.high + 0.06, z));
   }
 }
