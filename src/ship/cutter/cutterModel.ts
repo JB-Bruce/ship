@@ -5,6 +5,7 @@ import type { Waterline } from '../parts/hullShape';
 import type { Livery, ShipStats } from '../../config';
 import { wrapAngle } from '../../utils/math';
 import { RENDER_ORDER } from '../../utils/renderOrder';
+import { SHIP_TYPES } from '../../shipTypes';
 import type { DeckPlan } from '../deckPlan';
 import { armorFor, cannonMount, fireSpots, mastheadStaff, riggingMaterial, waterMaskMaterial, WavingFlag } from '../parts/common';
 import { addStatics, type LanternSpot } from '../parts/nightGlow';
@@ -18,6 +19,8 @@ const RUDDER_MAX_ANGLE = 0.55;
 const SAIL_GROWTH = 0.06;
 /** Élargissement du hunier par niveau de voilure. */
 const TOPSAIL_GROWTH = 0.04;
+/** Le hunier volant n'est gréé qu'au dernier niveau de voilure (qui ne s'ouvre qu'au cotre armé). */
+const TOPSAIL_LEVEL = SHIP_TYPES.cutter.upgrades.sails.speedFactor.length;
 const GUN_INSET = 0.6;
 const MUZZLE = new THREE.Vector3(1, 0.38, 0);
 /** Bouche du pierrier, dans le repère de la pièce (props.buildCannonGeometry). */
@@ -28,8 +31,8 @@ const { damp } = THREE.MathUtils;
  * Cotre : coque fine et basse, un seul mât très haut, immense grand-voile aurique dont la bôme déborde de la poupe (elle
  * pivote selon le vent, flèche au-dessus), trois voiles d'avant (trinquette, foc, clin-foc) sur un très long beaupré,
  * canons sur affût le long du pont et un pierrier par flanc sur le plat-bord, près de la poupe. Cotre armé
- * (setExtension) : reconstruit sur le plan rallongé, avec un hunier volant, voile carrée devant le mât qui se règle comme
- * les autres ; canons, renfort, voilure, dégâts et pavillon sont remis en place.
+ * (setExtension) : reconstruit sur le plan rallongé ; au dernier niveau de voilure (qu'il ouvre), un hunier volant,
+ * voile carrée devant le mât qui se règle comme les autres ; canons, renfort, voilure, dégâts et pavillon sont remis en place.
  */
 export class CutterModel implements ShipModel {
   readonly root = new THREE.Group();
@@ -49,7 +52,9 @@ export class CutterModel implements ShipModel {
   private rig!: THREE.Group;
   private hoist!: THREE.Group;
   private headsails: THREE.Mesh[] = [];
-  private topsail: THREE.Mesh | null = null;
+  private topsail!: THREE.Mesh;
+  /** Hunier volant et sa vergue. */
+  private topsailRig!: THREE.Group;
   private rudder!: THREE.Mesh;
   private flag!: WavingFlag;
   private gunports: THREE.Mesh[] = [];
@@ -78,7 +83,7 @@ export class CutterModel implements ShipModel {
     this.build(cutterLayout(0));
   }
 
-  /** Cotre armé (1) : reconstruit le navire sur le plan rallongé, avec son hunier volant. Renvoie true s'il a changé. */
+  /** Cotre armé (1) : reconstruit le navire sur le plan rallongé. Renvoie true s'il a changé. */
   setExtension(level: number): boolean {
     const layout = cutterLayout(level);
     if (layout === this.layout) return false;
@@ -218,19 +223,16 @@ export class CutterModel implements ShipModel {
       return sail;
     });
 
-    // Hunier volant du cotre armé : voile carrée sur sa vergue, devant le mât.
-    this.topsail = null;
-    if (L.level > 0) {
-      const mast = new THREE.Group();
-      mast.position.set(0, DECK_Y, L.mastZ);
-      mast.rotation.x = -RAKE;
-      this.topsail = new THREE.Mesh(t.topsail, this.tornSail.material(t.topsail, 'z'));
-      this.topsail.position.set(0, FLYING_TOPSAIL.along, 0.28);
-      const yard = new THREE.Mesh(t.topsailYard, t.palette.wood);
-      yard.position.set(0, FLYING_TOPSAIL.along, 0.2);
-      mast.add(this.topsail, yard);
-      this.body.add(mast);
-    }
+    // Hunier volant : voile carrée sur sa vergue, devant le mât, gréée seulement au dernier niveau de voilure.
+    this.topsailRig = new THREE.Group();
+    this.topsailRig.position.set(0, DECK_Y, L.mastZ);
+    this.topsailRig.rotation.x = -RAKE;
+    this.topsail = new THREE.Mesh(t.topsail, this.tornSail.material(t.topsail, 'z'));
+    this.topsail.position.set(0, FLYING_TOPSAIL.along, 0.28);
+    const yard = new THREE.Mesh(t.topsailYard, t.palette.wood);
+    yard.position.set(0, FLYING_TOPSAIL.along, 0.2);
+    this.topsailRig.add(this.topsail, yard);
+    this.body.add(this.topsailRig);
 
     this.rudder = new THREE.Mesh(t.rudder, t.palette.trim);
     this.rudder.position.set(0, 0.8, L.hull.stationAt(-1).z - 0.04);
@@ -266,6 +268,7 @@ export class CutterModel implements ShipModel {
     this.hoist.scale.set(this.leeSide, hoisted, 1);
     const head = 0.15 + 0.85 * this.sailAmount;
     for (const s of this.headsails) s.scale.set(head * this.leeSide, head, head);
-    this.topsail?.scale.set(1 + TOPSAIL_GROWTH * this.sailLevel, hoisted, 1);
+    this.topsailRig.visible = this.sailLevel >= TOPSAIL_LEVEL;
+    this.topsail.scale.set(1 + TOPSAIL_GROWTH * this.sailLevel, hoisted, 1);
   }
 }

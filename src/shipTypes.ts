@@ -139,7 +139,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     extensions: [
       {
         name: 'Cotre armé',
-        description: 'Le chantier rallonge la coque de trois mètres pour en faire un garde-côte : plus solide, un canon de plus par flanc, un niveau de voilure en plus et un hunier volant, une voile carrée devant le mât. Un peu moins vif.',
+        description: 'Le chantier rallonge la coque de trois mètres pour en faire un garde-côte : plus solide, un canon de plus par flanc, un niveau de voilure en plus, qui grée un hunier volant devant le mât. Un peu moins vif.',
         cost: { gold: 700, wood: 280 },
         length: 3,
         healthFactor: 1.25,
