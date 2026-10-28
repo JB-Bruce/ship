@@ -4,6 +4,7 @@ import { rankName, rankOf } from '../fleet/officers';
 import type { Ship } from '../ship/ship';
 import { blueprints, shipTypeLabel } from '../progression/blueprints';
 import type { Enemy } from '../world/enemySpawner';
+import { DamageLag } from './damageLag';
 import { enemyTagHtml, threatOf, type Threat } from './enemyTags';
 
 /** Distance au-delà de laquelle on n'affiche plus la barre (m). */
@@ -13,6 +14,8 @@ const projected = new THREE.Vector3();
 interface Bar {
   root: HTMLElement;
   fill: HTMLElement;
+  /** Part perdue qui reste un instant en clair derrière le remplissage. */
+  damage: DamageLag;
   /** Étiquette d'un ennemi (type, élite, menace) ou d'un navire de ta flotte (rang, nom) ; null pour un autre allié. */
   tag: HTMLElement | null;
   threat: Threat | null;
@@ -57,7 +60,9 @@ export class HealthBars {
       const y = (-projected.y * 0.5 + 0.5) * innerHeight;
       const transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
       bar.root.style.transform = transform;
-      bar.fill.style.width = `${(ship.health / ship.stats.maxHealth) * 100}%`;
+      const fraction = ship.health / ship.stats.maxHealth;
+      bar.fill.style.width = `${fraction * 100}%`;
+      bar.damage.set(fraction);
       if (ship.faction === 'enemy') this.updateTag(bar, bar.tag!, transform, ship, player, enemies);
       else if (ship.faction !== 'cursed') this.updateMine(bar, transform, ship, fleet);
       bar.crits.style.transform = transform;
@@ -72,15 +77,6 @@ export class HealthBars {
       bar.crits.remove();
       this.bars.delete(ship);
     }
-  }
-
-  /** Ton boulet vient de toucher `ship` : sa barre s'éclaire un instant (l'animation repart à chaque coup). */
-  flash(ship: Ship) {
-    const root = this.bars.get(ship)?.root;
-    if (!root) return;
-    root.classList.remove('hit');
-    void root.offsetWidth;
-    root.classList.add('hit');
   }
 
   /**
@@ -149,14 +145,17 @@ export class HealthBars {
     const root = document.createElement('div');
     const foe = ship.faction === 'enemy' || ship.faction === 'cursed';
     root.className = ship.faction === 'cursed' ? 'ship-bar cursed' : foe ? 'ship-bar' : 'ship-bar ally';
+    const lag = root.appendChild(document.createElement('div'));
+    lag.className = 'ship-bar-lag';
     const fill = root.appendChild(document.createElement('div'));
     fill.className = 'ship-bar-fill';
+    const damage = new DamageLag(fill, lag, ship.health / ship.stats.maxHealth);
     this.parent.appendChild(root);
     // Un navire maudit n'a pas de nom au-dessus de lui : seulement sa barre, plus sombre.
     const tag = foe && ship.faction !== 'cursed' ? this.tagElement('ship-tag') : null;
     const crits = this.parent.appendChild(document.createElement('div'));
     crits.className = 'ship-crits';
-    const bar: Bar = { root, fill, tag, threat: null, plans: blueprints.version, label: '', crits, critIcons: '', seen: this.frame, mark: 0 };
+    const bar: Bar = { root, fill, damage, tag, threat: null, plans: blueprints.version, label: '', crits, critIcons: '', seen: this.frame, mark: 0 };
     this.bars.set(ship, bar);
     return bar;
   }

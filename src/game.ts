@@ -539,7 +539,6 @@ export class Game {
   private hitFeedback(ship: Ship, ball: Ball) {
     const owner = ball.owner;
     if (!owner || owner.faction !== 'player' || ship.faction === 'player') return;
-    this.healthBars.flash(ship);
     if (owner !== this.fleet.leader || this.waves.time - this.lastHitSound < FEEDBACK.hit.gap) return;
     this.lastHitSound = this.waves.time;
     sound.play('combat/hit_wood', { volume: FEEDBACK.hit.volume });

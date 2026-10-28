@@ -286,7 +286,9 @@ export const RECOIL = {
 /** Dégâts visibles et leurs effets : voiles trouées, vitesse réduite, foyers de fumée puis de feu. */
 /**
  * Retours visuels et sonores (fx/hullHoles.ts, ship/ship.ts, ui/dangerVignette.ts, ui/screenSpray.ts…).
- * `hit` : ton boulet touche (son discret à plat, volume ; délai minimal entre deux sons, s ; éclair de la barre, s).
+ * `hit` : ton boulet touche (son discret à plat, volume ; délai minimal entre deux sons, s).
+ * `bars` : dégâts sur une barre de vie (ui/damageLag.ts) : la part perdue reste en clair `hold` s puis fond de `drain`
+ * (part de la barre par s) ; le remplissage s'éclaire `flash` s (luminosité `brightness`).
  * `holes` : trous dans la coque (au plus `max` par navire, taille en m pour un navire de `refLength` m, distance de la caméra au-delà de laquelle on
  * n'en pose pas, m ; ils se referment à mesure que la vie remonte : `max` × vie perdue / `fullAt`).
  * `list` : navire très abîmé (sous `at` de vie : il gîte jusqu'à `angle` rad et s'enfonce jusqu'à `settle` m, en
@@ -296,7 +298,8 @@ export const RECOIL = {
  * `ballGlow` : traînée lumineuse des boulets (chance par traînée de jour et de nuit, selon l'obscurité).
  */
 export const FEEDBACK = {
-  hit: { volume: 0.35, gap: 0.12, flash: 0.35 },
+  hit: { volume: 0.35, gap: 0.12 },
+  bars: { hold: 0.35, drain: 0.8, flash: 0.25, brightness: 1.9 },
   holes: { max: 12, size: [0.35, 0.65] as const, refLength: 20, range: 220, fullAt: 0.85 },
   list: { at: 0.25, angle: 0.13, settle: 0.45, rate: 2.5, debris: 3 },
   vignette: { at: 0.3, opacity: 0.55, pulse: 1.4, shout: [5, 11] as const },

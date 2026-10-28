@@ -56,6 +56,7 @@ body {
 }
 
 .hud-health {
+  position: relative;
   height: 10px;
   border-radius: 5px;
   background: rgba(0, 0, 0, 0.45);
@@ -64,6 +65,7 @@ body {
 }
 
 .hud-health-fill {
+  position: relative;
   height: 100%;
   width: 100%;
   background: linear-gradient(#7fdc6a, #3f9e3a);
@@ -72,6 +74,16 @@ body {
 
 .hud-health-fill.low {
   background: linear-gradient(#ff7a5a, #c0392b);
+}
+
+/* Dégâts reçus : la part perdue reste un instant en clair derrière le remplissage, puis fond (ui/damageLag.ts). */
+.hud-health-lag,
+.ship-bar-lag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: #f4dfb0;
 }
 
 .hud-resources {
@@ -411,18 +423,8 @@ body {
   pointer-events: none;
 }
 
-/* Ton boulet a touché : la barre s'éclaire et grossit un instant (HealthBars.flash). */
-.ship-bar.hit {
-  animation: ship-bar-hit 0.35s ease-out;
-}
-@keyframes ship-bar-hit {
-  0% {
-    filter: brightness(2.6);
-    scale: 1.25 1.6;
-  }
-}
-
 .ship-bar-fill {
+  position: relative;
   height: 100%;
   background: linear-gradient(#ff7a5a, #c0392b);
 }

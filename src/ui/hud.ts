@@ -6,6 +6,7 @@ import { rankName, rankOf } from '../fleet/officers';
 import type { PlayerState } from '../progression/playerState';
 import type { Ship } from '../ship/ship';
 import { typeName } from '../shipTypes';
+import { DamageLag } from './damageLag';
 import { Notifications } from './notifications';
 import { QuestTracker } from './questTracker';
 import { SearchGaugeView } from './searchGauge';
@@ -29,6 +30,8 @@ export class Hud {
   /** Jauge de fouille d'une chasse au trésor. */
   readonly search: SearchGaugeView;
   private readonly healthFill: HTMLElement;
+  private readonly healthDamage: DamageLag;
+  private healthShip: Ship | null = null;
   private readonly gold: HTMLElement;
   private readonly wood: HTMLElement;
   private readonly hold: HTMLElement;
@@ -51,7 +54,9 @@ export class Hud {
     const panel = el('div', 'hud-panel');
     this.shipName = el('div', 'hud-ship-name');
     const health = el('div', 'hud-health');
+    const healthLag = health.appendChild(el('div', 'hud-health-lag'));
     this.healthFill = health.appendChild(el('div', 'hud-health-fill'));
+    this.healthDamage = new DamageLag(this.healthFill, healthLag, 1);
     const resources = el('div', 'hud-resources');
     this.gold = resources.appendChild(el('span', 'hud-gold'));
     this.wood = resources.appendChild(el('span', 'hud-wood'));
@@ -124,6 +129,10 @@ export class Hud {
       this.healthFill.style.width = `${fraction * 100}%`;
       this.healthFill.classList.toggle('low', fraction < 0.3);
     }
+    const fraction = ship.health / ship.stats.maxHealth;
+    if (ship !== this.healthShip) this.healthDamage.reset(fraction);
+    else this.healthDamage.set(fraction);
+    this.healthShip = ship;
     const crits = critsText(ship);
     if (crits !== this.critText) this.crits.textContent = this.critText = crits;
     if (state.gold !== l.gold) {
