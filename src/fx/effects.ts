@@ -263,12 +263,12 @@ export class Effects {
   }
 
   /**
-   * Colonne de fumée d'une très grosse explosion (brûlot) : lourdes volutes sombres qui montent haut dans le ciel et
-   * s'élargissent longtemps (`scale` : taille).
+   * Nuage de fumée d'une très grosse explosion (brûlot) : lourdes volutes sombres qui montent peu à peu dans le ciel en
+   * s'étalant, puis disparaissent (`scale` : taille).
    */
-  smokeColumn(p: THREE.Vector3, scale = 1) {
-    const s = reset(p.x + rand(-1, 1) * scale, p.y + 1, p.z + rand(-1, 1) * scale, COLORS.darkSmoke);
-    Object.assign(s, { vx: rand(-0.6, 0.6), vy: rand(6, 8.5), vz: rand(-0.6, 0.6), life: rand(9, 13), size: rand(0.8, 1.3) * scale, sizeEnd: rand(4, 6) * scale, drag: 0.1, spin: rand(-0.2, 0.2) });
+  smokeCloud(p: THREE.Vector3, scale = 1) {
+    const s = reset(p.x + rand(-1.5, 1.5) * scale, p.y + rand(0, 2) * scale, p.z + rand(-1.5, 1.5) * scale, COLORS.darkSmoke);
+    Object.assign(s, { vx: rand(-1.6, 1.6), vy: rand(4.5, 7.5), vz: rand(-1.6, 1.6), life: rand(11, 16), size: rand(1, 1.6) * scale, sizeEnd: rand(4, 6) * scale, drag: 0.12, spin: rand(-0.2, 0.2) });
     this.lit.spawn(s);
   }
 
