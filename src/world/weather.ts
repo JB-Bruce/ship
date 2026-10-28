@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { OCEAN, SKY, WEATHER, WIND, WORLD, type WeatherProfile } from '../config';
+import { OCEAN, SKY, WEATHER, WIND, WORLD, type WeatherProfile, FIRESHIP } from '../config';
 import { Lightning, type LightningEvents } from '../fx/lightning';
 import { Rain } from '../fx/rain';
 import { WindStreaks } from '../fx/windStreaks';
@@ -86,6 +86,8 @@ export class Weather {
   private readonly rain = new Rain();
   private readonly streaks = new WindStreaks();
   private readonly lightning: Lightning;
+  /** Lueur d'une explosion géante (brûlot), qui s'éteint d'elle-même (flashBurst). */
+  private burst = 0;
   /** Temps actuel, et celui d'où l'on part pendant un changement. */
   private readonly current: WeatherProfile = { ...CLEAR };
   private readonly from: WeatherProfile = { ...CLEAR };
@@ -182,7 +184,13 @@ export class Weather {
     this.streaks.update(dt, camera, Math.max(p.windStreaks, this.gustStreaks(wind)), wind.direction, light);
     this.lightning.update(dt, p.lightning, p.strikeFactor, camera, this.waves, ships, focus);
     this.heavySeas.update(dt, p.seaDamage, p.seaPower, ships, this.waves);
-    this.applyFlash(this.lightning.flash);
+    this.burst *= Math.exp(-dt * FIRESHIP.flash.decay);
+    this.applyFlash(Math.max(this.lightning.flash, this.burst));
+  }
+
+  /** Une explosion géante illumine un instant le ciel, la brume et la lumière ambiante, comme un éclair. */
+  flashBurst(strength: number) {
+    this.burst = Math.max(this.burst, strength);
   }
 
   /**

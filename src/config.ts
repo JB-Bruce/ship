@@ -269,7 +269,18 @@ export const FIRESHIP = {
   blastShare: 0.5,
   edge: 0.5,
   igniteChance: 0.5,
-  flame: { color: 0x58d27a, core: 0xbff3b4, height: [0.6, 1.25] as const, flicker: 7, perKeg: 2 },
+  flame: { color: 0x58d27a, core: 0xbff3b4, height: [1.3, 2.7] as const, width: 1.6, flicker: 7, perKeg: 3 },
+  /**
+   * Explosion géante : boule de feu (`scale` × celle d'un obus, puis une seconde plus haute à `second` × sa taille),
+   * éclats et gerbes autour (`debris`, entre `debrisRange` m) ; colonne de fumée qui monte haut dans le ciel et persiste
+   * (`column` : durée s, volutes par seconde au début, taille ; le débit baisse peu à peu jusqu'à la fin) ; secousse de
+   * la caméra (`amount` tout près, `far` fois moins à `range` m, rien au-delà) ; flash de l'écran et de la scène (`flash` : force au
+   * plus près, portée m, durée de l'éclat à l'écran s, amortissement de la lueur de la scène /s).
+   */
+  blast: { scale: 4, second: 0.65, debris: 26, debrisRange: [6, 28] as const },
+  column: { time: 60, rate: 6, scale: 2.8 },
+  shake: { amount: 1, range: 700, far: 0.3 },
+  flash: { strength: 0.95, range: 1100, time: 0.9, decay: 3.2 },
   smoke: { rate: 1.4, scale: 0.85, range: 420 },
   /** L'IA vise où sera sa proie : avance de la visée (part du temps pour l'atteindre), au plus `maxLead` s. */
   lead: 0.8,

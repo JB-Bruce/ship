@@ -243,9 +243,13 @@ export class Game {
       struck: (ship) => this.critLoot(ship),
     });
     this.fireships = new Fireships({
+      container,
       effects: this.effects,
       criticals: this.criticals,
       applyDamage: (ship, damage, attacker, forced) => this.applyDamage(ship, damage, attacker, forced),
+      leader: () => this.fleet.leader,
+      shake: (amount) => this.chaseCamera.shake(amount),
+      sceneFlash: (strength) => this.weather.flashBurst(strength),
     });
     this.healthBars = new HealthBars(container);
     this.vignette = new DangerVignette(container);

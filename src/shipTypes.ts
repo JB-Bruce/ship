@@ -58,7 +58,7 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       nets: { costs: [], catchFactor: [] },
     },
     mass: { base: 190, perExtraCannon: 0, hull: [14], sails: [3, 6], hold: [], speedLossPerUnit: 0.0006 },
-    fireship: { damage: [350, 500], radius: [30, 40] },
+    fireship: { damage: [700, 1000], radius: [30, 40] },
     extensions: [
       {
         name: 'Grand brûlot',

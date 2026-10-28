@@ -189,11 +189,11 @@ export class FireshipModel implements ShipModel {
     // Le feu vert sur chaque tas de tonneaux : quelques flammes, chacune avec sa phase.
     this.flameSpots = L.kegs.flatMap((keg, k) =>
       Array.from({ length: FIRESHIP.flame.perKeg }, (_, i) => ({
-        x: keg.x + (i - (FIRESHIP.flame.perKeg - 1) / 2) * 0.3,
+        x: keg.x + (i - (FIRESHIP.flame.perKeg - 1) / 2) * 0.32,
         y: DECK_Y + 0.95,
-        z: keg.z + (i % 2 ? 0.12 : -0.1),
+        z: keg.z + (i % 2 ? 0.16 : -0.12),
         phase: k * 1.7 + i * 2.3,
-        width: 0.8 + 0.4 * ((k + i) % 2),
+        width: FIRESHIP.flame.width * (0.8 + 0.4 * ((k + i) % 2)),
       })),
     );
     this.flames = new THREE.InstancedMesh(t.flame, flameMaterial, this.flameSpots.length);

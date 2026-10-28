@@ -262,6 +262,16 @@ export class Effects {
     this.lit.spawn(s);
   }
 
+  /**
+   * Colonne de fumée d'une très grosse explosion (brûlot) : lourdes volutes sombres qui montent haut dans le ciel et
+   * s'élargissent longtemps (`scale` : taille).
+   */
+  smokeColumn(p: THREE.Vector3, scale = 1) {
+    const s = reset(p.x + rand(-1, 1) * scale, p.y + 1, p.z + rand(-1, 1) * scale, COLORS.darkSmoke);
+    Object.assign(s, { vx: rand(-0.6, 0.6), vy: rand(6, 8.5), vz: rand(-0.6, 0.6), life: rand(9, 13), size: rand(0.8, 1.3) * scale, sizeEnd: rand(4, 6) * scale, drag: 0.1, spin: rand(-0.2, 0.2) });
+    this.lit.spawn(s);
+  }
+
   /** Bouffée de fumée (incendie, gouvernail brisé) en `p`. */
   puff(p: THREE.Vector3, dark: boolean) {
     const s = reset(p.x + rand(-0.2, 0.2), p.y + 0.2, p.z + rand(-0.2, 0.2), dark ? COLORS.darkSmoke : COLORS.smoke);
