@@ -2620,7 +2620,7 @@ export const CAMERA = {
    * Décalage max de la secousse (m) et vitesse à laquelle elle s'éteint (/s) ; en première personne (à la barre ou à
    * pied), le décalage est multiplié par `firstPersonShake` : l'œil est tout près, la même secousse y paraît énorme.
    */
-  shakeOffset: 0.75,
+  shakeOffset: 0.9,
   firstPersonShake: 0.2,
   shakeDecay: 1.6,
   /** Un appui relâché sans avoir bougé de plus de `clickSlop` px (cumulés) en moins de `clickTime` ms est un clic, pas un glisser. */
