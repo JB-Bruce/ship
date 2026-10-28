@@ -74,6 +74,15 @@ export class HealthBars {
     }
   }
 
+  /** Ton boulet vient de toucher `ship` : sa barre s'éclaire un instant (l'animation repart à chaque coup). */
+  flash(ship: Ship) {
+    const root = this.bars.get(ship)?.root;
+    if (!root) return;
+    root.classList.remove('hit');
+    void root.offsetWidth;
+    root.classList.add('hit');
+  }
+
   /**
    * Visée « Trahir » : surligne la barre et l'étiquette des alliés qu'on peut trahir (`eligible`), davantage celui sous
    * le curseur (`aimed`). Les classes ne changent que quand le surlignage change.

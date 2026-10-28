@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import { DAMAGE, MORTAR_FX, SURF } from '../config';
+import { DAMAGE, FEEDBACK, MORTAR_FX, SURF } from '../config';
 import type { WakeMap } from '../ocean/wakeMap';
 import type { Waves } from '../ocean/waves';
 import type { Ship } from '../ship/ship';
+import { emitDamageTrail } from './damageTrail';
 import { HullFootprints } from './hullFootprints';
 import { COLORS, rand, reset } from './particleKit';
 import { ParticleSystem } from './particles';
@@ -29,6 +30,7 @@ const SPRAY = {
 interface ShipTimers {
   bow: number;
   sink: number;
+  debris: number;
   order: number[];
   smoke: number[];
   flame: number[];
@@ -40,7 +42,7 @@ function createTimers(spots: number): ShipTimers {
     const j = Math.floor(Math.random() * (i + 1));
     [order[i], order[j]] = [order[j], order[i]];
   }
-  return { bow: 0, sink: 0, order, smoke: new Array(spots).fill(0), flame: new Array(spots).fill(0) };
+  return { bow: 0, sink: 0, debris: 0, order, smoke: new Array(spots).fill(0), flame: new Array(spots).fill(0) };
 }
 
 const spot = new THREE.Vector3();
@@ -55,6 +57,8 @@ export class Effects {
   private readonly hulls = new HullFootprints();
   private readonly sea = new SeaSpray(this.lit);
   private readonly shells: ShellFx;
+  /** Obscurité (0 jour, 1 nuit ou orage), posée par `Game` : les boulets y laissent une traînée rougeoyante. */
+  darkness = 0;
 
   constructor(
     scene: THREE.Scene,
@@ -107,11 +111,16 @@ export class Effects {
     this.shells.waterColumn(x, y, z);
   }
 
-  /** Fine fumée laissée par un boulet en vol. */
+  /** Fine fumée laissée par un boulet en vol, et sa braise : à peine de jour, une vraie traînée rouge la nuit. */
   trail(p: THREE.Vector3) {
     const s = reset(p.x, p.y, p.z, COLORS.smoke);
     Object.assign(s, { vy: 0.3, life: rand(0.5, 0.8), size: 0.12, sizeEnd: 0.3, drag: 1 });
     this.lit.spawn(s);
+    const g = FEEDBACK.ballGlow;
+    if (Math.random() > g.day + (g.night - g.day) * this.darkness) return;
+    const e = reset(p.x, p.y, p.z, Math.random() < 0.4 ? COLORS.flash : COLORS.fire);
+    Object.assign(e, { life: rand(0.25, 0.4), size: 0.16, sizeEnd: 0.03 });
+    this.glow.spawn(e);
   }
 
   /** Boulet qui touche une coque : éclats de bois, étincelles et fumée sombre. */
@@ -316,6 +325,7 @@ export class Effects {
     }
 
     this.damageFires(dt, ship, t);
+    t.debris = emitDamageTrail(this.lit, dt, ship, waves, t.debris);
 
     if (!ship.alive) {
       // Naufrage : bouillonnement d'écume autour de la coque.

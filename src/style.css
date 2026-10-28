@@ -411,6 +411,17 @@ body {
   pointer-events: none;
 }
 
+/* Ton boulet a touché : la barre s'éclaire et grossit un instant (HealthBars.flash). */
+.ship-bar.hit {
+  animation: ship-bar-hit 0.35s ease-out;
+}
+@keyframes ship-bar-hit {
+  0% {
+    filter: brightness(2.6);
+    scale: 1.25 1.6;
+  }
+}
+
 .ship-bar-fill {
   height: 100%;
   background: linear-gradient(#ff7a5a, #c0392b);
@@ -2196,4 +2207,137 @@ body.welcome-open .hud {
 
 .map-territory-legend .t-player {
   color: rgb(40, 110, 70);
+}
+
+/* Navire piloté en danger (ui/dangerVignette.ts) : un liseré rouge qui bat sur les bords de l'écran. */
+.danger-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 55%, rgba(150, 10, 4, 0.55) 85%, rgba(110, 0, 0, 0.85) 100%);
+}
+body:is(.hub-open, .yard-open, .main-menu-open, .dialogue-open) .danger-vignette {
+  display: none;
+}
+
+/* Embruns sur l'écran (ui/screenSpray.ts), à demi-résolution, étirés à la taille de la vue. */
+.screen-spray {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+body:is(.hub-open, .yard-open, .main-menu-open, .dialogue-open) .screen-spray {
+  display: none;
+}
+
+/* Montée en rang (ui/rankBanner.ts) : le pavillon de rang se hisse en haut de l'écran, puis le nom et le titre. */
+.rank-banner {
+  position: fixed;
+  top: 92px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  opacity: 0;
+}
+.rank-banner.on {
+  animation: rank-banner 4.2s ease both;
+}
+.rank-flag {
+  width: 124px;
+  height: 90px;
+  overflow: visible;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6));
+}
+.rank-pole {
+  stroke: #c9a45a;
+  stroke-width: 3;
+}
+.rank-cloth {
+  fill: #1c1612;
+  stroke: #d8b664;
+  stroke-width: 1.5;
+}
+.rank-stars {
+  fill: #f3cf62;
+}
+.rank-banner.on .rank-cloth,
+.rank-banner.on .rank-stars {
+  animation: rank-hoist 1.1s 0.2s cubic-bezier(0.2, 0.8, 0.3, 1) both, rank-wave 1.6s 1.3s ease-in-out infinite alternate;
+  transform-origin: 6px 32px;
+}
+.rank-text {
+  display: flex;
+  flex-direction: column;
+  color: #f6e7c1;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  font-family: 'IM Fell English', Georgia, serif;
+  animation: rank-text 0.6s 0.9s ease both;
+}
+.rank-text b {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 36px;
+  font-weight: 400;
+}
+.rank-text span {
+  font-size: 19px;
+  font-style: italic;
+  color: #f3cf62;
+}
+@keyframes rank-banner {
+  0% { opacity: 0; }
+  6% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes rank-hoist {
+  from { translate: 0 60px; scale: 1 0.3; }
+}
+@keyframes rank-wave {
+  to { transform: skewY(-3deg) scaleX(0.96); }
+}
+@keyframes rank-text {
+  from { opacity: 0; translate: -10px 0; }
+}
+
+/* Naufrage de toute la flotte (ui/shipwreckMenu.ts). */
+.parchment.shipwreck-sheet {
+  width: min(560px, calc(100vw - 32px));
+  text-align: center;
+}
+.wreck-lead {
+  font-style: italic;
+  font-size: 18px;
+}
+.wreck-list {
+  margin: 12px auto;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+  max-width: 420px;
+}
+.wreck-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px dashed rgba(90, 55, 20, 0.35);
+}
+.wreck-list span {
+  font-style: italic;
+  opacity: 0.8;
+}
+.wreck-gold {
+  color: #8a1c14;
+}
+.wreck-actions {
+  justify-content: center;
+  margin-top: 14px;
 }

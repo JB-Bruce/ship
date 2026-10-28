@@ -1,5 +1,6 @@
 import type { Fleet } from '../fleet/fleet';
 import { UnlockPanel } from './unlockPanel';
+import { RankBanner } from './rankBanner';
 import { fleetHold } from '../fleet/holds';
 import { rankName, rankOf } from '../fleet/officers';
 import type { PlayerState } from '../progression/playerState';
@@ -23,6 +24,8 @@ export class Hud {
   readonly quests: QuestTracker;
   /** Grand panneau « Nouveau navire ! » quand un plan est complet. */
   readonly unlock: UnlockPanel;
+  /** Montée en rang d'un navire de ta flotte : son pavillon se hisse en haut de l'écran. */
+  readonly rank: RankBanner;
   /** Jauge de fouille d'une chasse au trésor. */
   readonly search: SearchGaugeView;
   private readonly healthFill: HTMLElement;
@@ -71,6 +74,7 @@ export class Hud {
     this.quests = new QuestTracker(topRight);
     this.notifications = new Notifications(topRight, panel);
     this.unlock = new UnlockPanel(root);
+    this.rank = new RankBanner(root);
     this.search = new SearchGaugeView(root);
   }
 
@@ -93,6 +97,7 @@ export class Hud {
   update(dt: number, ship: Ship, state: PlayerState, inCombat: boolean, fleet: Fleet) {
     this.notifications.update(dt);
     this.unlock.update(dt);
+    this.rank.update(dt);
     this.toasts.update(dt);
     this.fleetTimer -= dt;
     if (this.fleetTimer <= 0 || dt === 0) {

@@ -1,4 +1,4 @@
-import { BLUEPRINTS, RADAR, WIND } from '../config';
+import { BLUEPRINTS, RADAR, WIND, WRECKS } from '../config';
 import type { Ship } from '../ship/ship';
 import type { Enemy } from '../world/enemySpawner';
 import type { FishSchool } from '../world/fishSchools';
@@ -87,9 +87,9 @@ export class Radar {
   /** `ships` : tous les bateaux (les alliés y sont repérés par leur camp). */
   /**
    * `escorts` : navires à protéger (en bleu ciel) ; les autres alliés hors de ta flotte sont en bleu. `traders` : tes
-   * navires en commerce (vert plus foncé). `scrolls` : rouleaux de plan de navire qui flottent.
+   * navires en commerce (vert plus foncé). `scrolls` : rouleaux de plan de navire qui flottent ; `wrecks` : épaves à fouiller.
    */
-  update(dt: number, player: Ship, enemies: readonly Enemy[], wind: Wind, ships: readonly Ship[], schools: readonly FishSchool[], escorts: readonly Ship[], traders: readonly Ship[], scrolls: readonly { x: number; z: number }[] = []) {
+  update(dt: number, player: Ship, enemies: readonly Enemy[], wind: Wind, ships: readonly Ship[], schools: readonly FishSchool[], escorts: readonly Ship[], traders: readonly Ship[], scrolls: readonly { x: number; z: number }[] = [], wrecks: readonly { x: number; z: number }[] = []) {
     // Redessiner un dessin 2D à chaque image coûte cher : RADAR.refreshRate fois par seconde suffit.
     this.sinceDraw += dt;
     if (this.sinceDraw < 1 / RADAR.refreshRate) return;
@@ -166,6 +166,13 @@ export class Radar {
     for (const scroll of scrolls) {
       const p = place(scroll.x, scroll.z);
       paintDiamond(ctx, p.x, p.y, p.outside ? 3.5 : 5);
+    }
+    // Épaves à fouiller : un petit carré brun.
+    ctx.fillStyle = WRECKS.radarColor;
+    for (const wreck of wrecks) {
+      const p = place(wreck.x, wreck.z);
+      const r = p.outside ? 2.5 : 3.5;
+      ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2);
     }
     for (const ship of ships) {
       if (ship === player || ship.faction === 'enemy' || ship.faction === 'cursed' || !ship.alive) continue;

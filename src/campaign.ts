@@ -302,7 +302,10 @@ export class Campaign {
     if (trophy) member.trophies.push(boss);
     if (newRank === rank && !promoted.length && !trophy) return;
     refit(member, this.crew);
-    if (newRank > rank) this.hud.notifications.kill(`★ ${member.name} devient ${rankName(newRank)} (${'★'.repeat(newRank)})`);
+    if (newRank > rank) {
+      this.hud.notifications.kill(`★ ${member.name} devient ${rankName(newRank)} (${'★'.repeat(newRank)})`);
+      this.hud.rank.show(member.name, newRank);
+    }
     for (const o of promoted) this.hud.notifications.kill(`★ ${o.name} gagne une étoile de ${OFFICERS.roles[o.role].name.toLowerCase()}`);
     if (trophy && boss) this.hud.notifications.kill(`☠ Le pavillon de ${BOSSES[boss].name} flotte sous celui de ${member.name}`);
   }
@@ -360,11 +363,12 @@ export class Campaign {
     this.hud.notifications.pickup('fish', 1);
   }
 
-  /** Un navire de ta flotte a sombré : sa cargaison est perdue. */
-  memberSunk(member: FleetMember) {
+  /** Un navire de ta flotte a sombré : sa cargaison est perdue (renvoyée en texte, ou null). */
+  memberSunk(member: FleetMember): string | null {
     this.ledger.shipsLost++;
     const lost = loseCargo(member);
     if (lost) this.hud.notifications.kill(`⚓ ${member.name} a sombré avec sa cargaison (${lost})`);
+    return lost;
   }
 
   /** Un ennemi a coulé : fil des navires coulés, registre, contrats, et un point pour le navire qui l'a achevé. */

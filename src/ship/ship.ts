@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { AIM, COMBAT, CRIT, DAMAGE, LIVERIES, OARS, RECOIL, REPAIR, SURF, type Faction, type Livery, type ShipStats } from '../config';
+import { AIM, COMBAT, CRIT, DAMAGE, FEEDBACK, LIVERIES, OARS, RECOIL, REPAIR, SURF, type Faction, type Livery, type ShipStats } from '../config';
 import type { CannonTarget } from '../combat/cannons';
 import type { Waves } from '../ocean/waves';
 import { applyModifiers, factor, noModifiers, standardGuns, type Guns, type StatModifiers } from '../progression/modifiers';
@@ -116,6 +116,9 @@ export class Ship {
   plunge = 0;
   /** Sous l'eau : ni cible, ni tireur (voir isHostile). */
   intangible = false;
+  /** Très abîmé (sous FEEDBACK.list.at de vie) : part de la gîte et de l'enfoncement (0 à 1), et le bord qui plonge. */
+  listing = 0;
+  private readonly listSide = Math.random() < 0.5 ? 1 : -1;
   /** Point que ce bateau bombarde quand aucun ennemi n'est à portée (assiégeant d'une mission de défense), ou null. */
   siegeTarget: CannonTarget | null = null;
 
@@ -403,14 +406,18 @@ export class Ship {
     // En virage, un navire gîte vers l'extérieur.
     const heel = this.yawRate * this.speed * this.stats.turnHeel;
     this.buoyancy.update(dt, this.stats, this.position.x, this.position.z, this.heading, heel, sinking, waves);
-    this.position.y = this.buoyancy.y - this.drowned;
+    // Très abîmé, il prend l'eau : il gîte d'un bord et s'enfonce un peu (il se redresse quand on le répare).
+    const L = FEEDBACK.list;
+    const target = this.alive && !this.intangible ? THREE.MathUtils.smoothstep(L.at - this.health / this.stats.maxHealth, 0, L.at) : this.listing;
+    this.listing = moveTowards(this.listing, target, dt / L.rate);
+    this.position.y = this.buoyancy.y - this.drowned - this.listing * L.settle;
   }
 
   private syncModel(dt: number, controls: ShipControls, wind: Wind) {
     this.sailAmount = damp(this.sailAmount, controls.sail, 1.5, dt);
     this.model.root.position.copy(this.position);
     // Ordre YXZ : cap d'abord, puis tangage (proue haute = x négatif), puis roulis (bâbord haut = z positif).
-    this.model.root.rotation.set(this.plunge - this.buoyancy.pitch, this.heading, this.buoyancy.roll, 'YXZ');
+    this.model.root.rotation.set(this.plunge - this.buoyancy.pitch, this.heading, this.buoyancy.roll + this.listSide * this.listing * FEEDBACK.list.angle, 'YXZ');
     // Loin, ou noyé dans la brume (caché par FogCulling à l'image précédente) : rien à animer ; tout est remis à jour
     // dès qu'il réapparaît.
     if (this.far || !this.model.root.visible) return;

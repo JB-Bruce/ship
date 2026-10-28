@@ -48,7 +48,7 @@ export function selectIslands(x: number, z: number, list: readonly Landmass[] = 
   for (const island of list) {
     const { lagoonWidth, surfWidth } = island.def;
     const near = Math.hypot(island.cx - x, island.cz - z) - island.outerRadius;
-    if (near - Math.max(island.calmReach, lagoonWidth, surfWidth) > OCEAN_REACH) continue;
+    if (near - Math.max(island.calmReach, lagoonWidth + OCEAN.shelfWidth, surfWidth) > OCEAN_REACH) continue;
     let entry = entries.get(island);
     if (!entry) entries.set(island, (entry = { island, key: 0 }));
     entry.key = near;

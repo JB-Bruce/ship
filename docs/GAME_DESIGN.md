@@ -394,6 +394,18 @@ Chaque navire suit le même schéma : un modèle `ShipModel` + une entrée dans 
 
 **Gardés pour la suite (choix du 2026-10-28)** : cotre, brûlot, galiote à bombes, senau, vaisseau de ligne (74 canons, Marine), trois-ponts amiral (boss de fin d'histoire), jonque. Le navire de la Compagnie des Indes reste en question.
 
+## Retours visuels (fait, 2026-10-28)
+- Ton boulet touche : la barre de vie de la cible s'éclaire, et un petit son sec (seulement pour le navire piloté).
+- Trous de boulets sur les coques (12 au plus par navire), qui se referment à la réparation.
+- Navire sous 25 % de vie (tous) : il gîte, s'enfonce un peu et laisse des débris et une écume sale.
+- Liseré rouge qui bat et cris d'équipage sous 30 % de vie du navire piloté.
+- Boulets : traînée rougeoyante la nuit, très légère de jour.
+- Embruns sur l'écran quand l'étrave plonge dans une vague et sous la pluie (moins en vue de loin).
+- Eau plus claire sur le plateau autour des îles, bleu profond au large.
+- 4 à 6 épaves à fouiller en mer (jauge, navire presque arrêté) : or, bois, parfois des marchandises, rarement un bout de plan ; une fouille sur quatre attire un ennemi ; carré brun au radar.
+- Toute la flotte coule : page de naufrage (navires, cargaisons, or perdus, port de reprise).
+- Montée en rang de chaque navire de la flotte : son pavillon se hisse en haut de l'écran, acclamations et cloche.
+
 ## Effets et rendu gardés pour la suite (choix du 2026-10-28)
 - Vagues qui déferlent sur les plages (ressac blanc le long des côtes).
 - Ports vivants : fumée des cheminées, fenêtres allumées la nuit, barques dans la crique.

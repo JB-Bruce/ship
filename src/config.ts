@@ -284,6 +284,54 @@ export const RECOIL = {
 };
 
 /** Dégâts visibles et leurs effets : voiles trouées, vitesse réduite, foyers de fumée puis de feu. */
+/**
+ * Retours visuels et sonores (fx/hullHoles.ts, ship/ship.ts, ui/dangerVignette.ts, ui/screenSpray.ts…).
+ * `hit` : ton boulet touche (son discret à plat, volume ; délai minimal entre deux sons, s ; éclair de la barre, s).
+ * `holes` : trous dans la coque (au plus `max` par navire, taille en m pour un navire de `refLength` m, distance de la caméra au-delà de laquelle on
+ * n'en pose pas, m ; ils se referment à mesure que la vie remonte : `max` × vie perdue / `fullAt`).
+ * `list` : navire très abîmé (sous `at` de vie : il gîte jusqu'à `angle` rad et s'enfonce jusqu'à `settle` m, en
+ * `rate` s ; débris et écume sale par seconde à pleine gîte).
+ * `vignette` : liseré rouge sous `at` de vie du navire piloté (opacité max, battement par s) ; cris d'équipage tous les
+ * `shout` s (bornes).
+ * `ballGlow` : traînée lumineuse des boulets (chance par traînée de jour et de nuit, selon l'obscurité).
+ */
+export const FEEDBACK = {
+  hit: { volume: 0.35, gap: 0.12, flash: 0.35 },
+  holes: { max: 12, size: [0.35, 0.65] as const, refLength: 20, range: 220, fullAt: 0.85 },
+  list: { at: 0.25, angle: 0.13, settle: 0.45, rate: 2.5, debris: 3 },
+  vignette: { at: 0.3, opacity: 0.55, pulse: 1.4, shout: [5, 11] as const },
+  ballGlow: { day: 0.12, night: 1 },
+  /**
+   * Embruns sur l'écran (ui/screenSpray.ts) : gouttes au plus ; quand l'étrave plonge dans une vague (tangage qui
+   * baisse plus vite que `plunge` rad/s, au-dessus de `minSpeed` m/s), une gerbe de `burst` gouttes (au plus une par
+   * `cooldown` s) ; sous la pluie, `rain` gouttes/s à pleine pluie ; vue de loin : × `thirdPerson` ; durée de vie (s),
+   * rayon (px, à demi-résolution).
+   */
+  /** Houle (`waveFactor` du temps) qui compte comme « grosse mer » pour les embruns sur l'écran. */
+  screenSeas: 3,
+  screen: { max: 90, plunge: 0.16, minSpeed: 2.5, burst: [14, 26] as const, cooldown: 0.9, rain: 20, thirdPerson: 0.35, life: [1.2, 2.6] as const, size: [2, 6.5] as const },
+};
+
+/**
+ * Épaves à fouiller (world/floatingWrecks.ts) : nombre en mer, distance à la terre (m), écart aux ports et entre elles
+ * (m), distance minimale au navire piloté quand l'une apparaît (m), délai avant qu'une épave fouillée soit remplacée
+ * (s) ; fouille (rayon, durée, vitesse maximale) ; ce qu'on y trouve (or, bois, marchandises : chance et quantité,
+ * bout de plan : chance) ; embuscade quand la fouille commence (chance) ; message quand on approche (m).
+ */
+export const WRECKS = {
+  count: [4, 6] as const,
+  landDistance: [120, 900] as const,
+  portClearance: 450,
+  spacing: 500,
+  spawnAway: 350,
+  respawn: [90, 180] as const,
+  search: { radius: 24, time: 10, maxSpeed: 1.5 },
+  loot: { gold: [40, 140] as const, wood: [20, 70] as const, goodsChance: 0.5, goods: [3, 8] as const, planChance: 0.12 },
+  ambushChance: 0.25,
+  noticeRange: 90,
+  radarColor: '#a8763c',
+};
+
 export const DAMAGE = {
   /** Vitesse max perdue au plus fort des dégâts (fraction), atteinte à `fullDamageAt` de vie perdue. */
   maxSpeedLoss: 0.3,
@@ -1857,6 +1905,13 @@ export const OCEAN = {
   foamColor: 0xf4fbff,
   /** Eau peu profonde autour de l'île. */
   lagoonColor: 0x35c9c0,
+  /**
+   * Plateau autour des terres, au-delà du lagon : l'eau y passe peu à peu du bleu profond à un bleu-vert plus clair,
+   * sur `shelfWidth` m, avec la force `shelfStrength`.
+   */
+  shelfColor: 0x1d8a96,
+  shelfWidth: 260,
+  shelfStrength: 0.45,
   /** Force des petites rides de surface, et échelle (répétitions par mètre) de leurs deux couches. */
   rippleStrength: 0.08,
   rippleScales: [0.07, 0.18] as const,

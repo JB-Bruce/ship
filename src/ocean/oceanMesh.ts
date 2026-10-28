@@ -71,6 +71,7 @@ ${SKY_GLSL}
 ${ISLAND_GLSL}
 ${LAMP_GLSL}
 uniform vec3 uLagoon;
+uniform vec3 uShelf;
 uniform float uTime;
 uniform float uMaxHeight;
 uniform float uRippleStrength;
@@ -145,6 +146,9 @@ void main() {
   // Rivage le plus proche : (distance, largeur de son lagon, largeur de son ressac).
   vec3 coast = islandShore(vWorldPos.xz);
   float shore = coast.x;
+  // Plateau : au-delà du lagon, l'eau passe peu à peu du bleu profond à un bleu-vert plus clair près des terres.
+  float shelf = (1.0 - smoothstep(coast.y, coast.y + ${OCEAN.shelfWidth.toFixed(1)}, shore)) * ${OCEAN.shelfStrength.toFixed(2)};
+  body = mix(body, uShelf * (0.7 + 0.3 * max(dot(N, uSunDir), 0.0)), shelf);
   body = mix(body, uLagoon * (0.75 + 0.25 * max(dot(N, uSunDir), 0.0)), (1.0 - smoothstep(0.0, coast.y, shore)) * 0.8);
 
   // Eau brassée par un bateau : un peu plus claire et laiteuse.
@@ -208,6 +212,7 @@ export class Ocean {
     ...seaStateUniforms,
     ...lampUniforms,
     uLagoon: { value: new THREE.Color(OCEAN.lagoonColor) },
+    uShelf: { value: new THREE.Color(OCEAN.shelfColor) },
     uTime: { value: 0 },
     uWaves: { value: [] as THREE.Vector4[] },
     uMaxHeight: { value: 1 },

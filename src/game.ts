@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { fragmentHtml } from './ui/unlockPanel';
-import { AIM, AUDIO, BLUEPRINTS, BOSSES, CAMERA, COMBAT, CONTRACTS, CRIT, CURSED, HELM_VIEW, ISLAND_INFO, OCEAN, SKY, STORY_SCENES, TERRITORY, WORLD, WORLD_EDGE, type IslandId } from './config';
+import { AIM, AUDIO, BLUEPRINTS, BOSSES, FEEDBACK, CAMERA, COMBAT, CONTRACTS, CRIT, CURSED, HELM_VIEW, ISLAND_INFO, OCEAN, SKY, STORY_SCENES, TERRITORY, WORLD, WORLD_EDGE, type IslandId } from './config';
 import { NAVY, OWNER_KEYS } from './progression/territory';
 import { Campaign } from './campaign';
 import { ChaseCamera } from './camera/chaseCamera';
@@ -63,6 +63,11 @@ import { Cheats } from './cheats';
 import { GameAudio } from './audio/gameAudio';
 import { sound } from './audio/sound';
 import { DialogueBox } from './ui/dialogue/dialogueBox';
+import { HullHoles } from './fx/hullHoles';
+import { DangerVignette } from './ui/dangerVignette';
+import { ScreenSpray } from './ui/screenSpray';
+import { ShipwreckMenu } from './ui/shipwreckMenu';
+import { FloatingWrecks } from './world/floatingWrecks';
 import { GameStart } from './story/gameStart';
 import { StoryDirector } from './story/storyDirector';
 import { storyHooks } from './story/storyHooks';
@@ -122,6 +127,21 @@ export class Game {
     fragment: (progress) => this.hud.notifications.noticeHtml(fragmentHtml(progress), 'plan', BLUEPRINTS.noticeTime),
     unlocked: (type) => this.hud.unlock.show(type),
   });
+  /** Épaves à fouiller en mer. */
+  private readonly wrecks = new FloatingWrecks(this.scene, {
+    toast: (text, tone) => this.hud.toast(text, 3, tone),
+    alert: (text) => this.hud.message(text, 4, true),
+    log: (text) => this.hud.notifications.kill(text),
+    fragment: (progress) => this.hud.notifications.noticeHtml(fragmentHtml(progress), 'plan', BLUEPRINTS.noticeTime),
+    unlocked: (type) => this.hud.unlock.show(type),
+  });
+  private readonly wreckSpots: { x: number; z: number }[] = [];
+  /** Trous de boulets sur les coques proches. */
+  private readonly holes = new HullHoles();
+  /** Cargaison perdue par chaque navire de ta flotte qui a sombré (pour la page de naufrage), par identifiant. */
+  private readonly losses = new Map<number, string>();
+  /** Dernier son « touché » de tes boulets (s, horloge des vagues) : pas plus d'un toutes les FEEDBACK.hit.gap s. */
+  private lastHitSound = -Infinity;
   private readonly spawner = new EnemySpawner(this.scene, this.ships, (enemy) => {
     // Un navire maudit coulé ne laisse rien.
     if (enemy.cursed) return;
@@ -159,6 +179,9 @@ export class Game {
   private readonly portMenu: PortMenu;
   /** Menu principal, scène d'ouverture et conversations de l'histoire. */
   private readonly start: GameStart;
+  private readonly vignette: DangerVignette;
+  private readonly spray: ScreenSpray;
+  private readonly wreckScreen: ShipwreckMenu;
   private readonly story: StoryDirector;
   private readonly fpsCounter: FpsCounter;
   /** Décor et navires noyés dans la brume : pas dessinés. */
@@ -218,6 +241,9 @@ export class Game {
       struck: (ship) => this.critLoot(ship),
     });
     this.healthBars = new HealthBars(container);
+    this.vignette = new DangerVignette(container);
+    this.spray = new ScreenSpray(container);
+    this.wreckScreen = new ShipwreckMenu(container);
     this.bossBar = new ObjectiveBar(container, 'boss');
     this.siegeBar = new ObjectiveBar(container, 'siege');
     const world = {
@@ -383,7 +409,10 @@ export class Game {
       (ship, ball, damage) => this.onShellBlast(ship, ball, damage),
     );
     for (const ship of this.ships) this.effects.shipAmbient(dt, ship, this.waves);
+    this.effects.darkness = this.weather.darkness;
     this.effects.update(dt, this.waves, this.ships);
+    this.holes.update(this.ships);
+    this.wrecks.update(dt, this.waves, this.fleet.leader, this.fleet, this.state, this.spawner);
     this.bossSinking.update(dt);
     this.criticals.update(dt, this.ships, this.waves);
     this.schoolFx.update(dt, this.schools.list, this.waves);
@@ -416,13 +445,16 @@ export class Game {
     this.halos.update(this.camera, this.ships, dark, this.dayCycle.night, (this.scene.fog as THREE.Fog).far);
     this.lamps.update(dt, this.camera, this.ships, dark, (this.scene.fog as THREE.Fog).far);
     this.hud.update(dt, leader, this.state, this.inCombat(), this.fleet);
-    this.hud.search.update(this.campaign.treasure.gauge());
+    this.hud.search.update(this.campaign.treasure.gauge() ?? this.wrecks.gauge());
+    this.vignette.update(dt, leader);
+    const sea = this.weather.state;
+    this.spray.update(dt, this.chaseCamera.firstPerson.active, leader.pitch, leader.speed, sea.rain, Math.min(1, sea.waveFactor / FEEDBACK.screenSeas));
     this.hud.quests.update(dt, this.campaign.contracts, this.fleet, (c) => this.campaign.missions.status(c), () => [...this.campaign.story.objectives(), ...this.campaign.navy.objectives(), ...this.campaign.treasure.objectives()]);
     this.radar.range = this.campaign.islands.tortuga.radarRange(tortuga.sdf(leader.position.x, leader.position.z)) * this.fleet.radarFactor() * (1 + treasures.radarBonus());
     // Ce que le radar balaie est découvert sur la carte, pour toujours.
     this.campaign.discovery.update(leader.position.x, leader.position.z, this.radar.range);
     this.encounters.update(this.spawner.enemies, leader);
-    this.radar.update(dt, leader, this.spawner.enemies, this.wind, this.ships, this.schools.list, this.campaign.escorts(), this.fleet.traders, this.planScrolls.positions);
+    this.radar.update(dt, leader, this.spawner.enemies, this.wind, this.ships, this.schools.list, this.campaign.escorts(), this.fleet.traders, this.planScrolls.positions, this.wrecks.positions(this.wreckSpots));
     this.betrayal.update(this.camera, leader, (this.scene.fog as THREE.Fog).far);
     this.healthBars.update(this.camera, this.ships, leader, (this.scene.fog as THREE.Fog).far, this.spawner.enemies, this.fleet.members);
     this.healthBars.mark(this.betrayal.marked, this.betrayal.hovered);
@@ -472,9 +504,13 @@ export class Game {
     }
     if (!this.fleet.leader.sunk || this.fleet.anyAlive()) return;
     const lost = this.state.loseGoldOnDeath();
-    const start = this.campaign.respawnPort.portSpawn;
+    const port = this.campaign.respawnPort;
+    const ships = this.fleet.hand.map((m) => ({ name: m.name, cargo: this.losses.get(m.id) ?? '' }));
+    this.losses.clear();
+    const start = port.portSpawn;
     this.fleet.respawnAll(start.x, start.z, start.heading);
-    this.hud.message(lost > 0 ? `Toute ta flotte a sombré : −${lost} pièces d'or.` : 'Toute ta flotte a sombré…', 4);
+    this.hud.message('Toute ta flotte a sombré…', 4);
+    this.wreckScreen.show({ ships, gold: lost, port: ISLAND_INFO[port.id].portName });
   }
 
   private takeHelm(member: FleetMember) {
@@ -489,10 +525,24 @@ export class Game {
     // Un obus fait sa propre explosion (Projectiles), et secoue plus fort.
     if (ball.shell) this.shellShake(ship);
     else if (rigging) this.effects.riggingHit(ball.position);
-    else this.effects.impact(ball.position);
+    else {
+      this.effects.impact(ball.position);
+      this.holes.add(ship, ball.position, ball.velocity, this.camera);
+    }
     sound.at(rigging ? 'combat/rigging_hit' : 'combat/hit_wood', ball.position, { ref: AUDIO.refs.hit });
+    this.hitFeedback(ship, ball);
     this.applyDamage(ship, ball.damage * (rigging ? AIM.riggingDamage : 1), ball.owner);
     if (this.criticals.strike(ship, rigging) === 'magazine') this.applyDamage(ship, ship.stats.maxHealth * CRIT.magazineDamage, ball.owner);
+  }
+
+  /** Ton boulet a touché un adversaire : sa barre s'éclaire, et un petit son sec confirme le coup (navire piloté). */
+  private hitFeedback(ship: Ship, ball: Ball) {
+    const owner = ball.owner;
+    if (!owner || owner.faction !== 'player' || ship.faction === 'player') return;
+    this.healthBars.flash(ship);
+    if (owner !== this.fleet.leader || this.waves.time - this.lastHitSound < FEEDBACK.hit.gap) return;
+    this.lastHitSound = this.waves.time;
+    sound.play('combat/hit_wood', { volume: FEEDBACK.hit.volume });
   }
 
   /** Souffle d'un obus qui a explosé près d'un navire ennemi (sans coup critique). */
@@ -531,7 +581,8 @@ export class Game {
     // Un navire allié hors de ta flotte (marchand escorté ou des îles) : sa mission ou le trafic s'en charge.
     const member = this.fleet.members.find((m) => m.ship === ship);
     if (!member) return;
-    this.campaign.memberSunk(member);
+    const cargo = this.campaign.memberSunk(member);
+    this.losses.set(member.id, cargo ?? '');
     if (ship === leader) this.hud.message(`${this.fleet.controlled.name} sombre…`, 3);
     else this.hud.toast(`${member.name} a coulé. De retour dans ${Math.round(SHIP_TYPES[member.type].respawnTime * this.fleet.respawnFactor)} s.`, 3.5, 'danger');
   }
