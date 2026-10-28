@@ -182,7 +182,7 @@ export class ChaseCamera {
 
     // Secousse : décalage aléatoire proportionnel au carré du trauma (les petits chocs restent discrets).
     if (this.trauma > 0) {
-      const offset = this.trauma * this.trauma * CAMERA.shakeOffset;
+      const offset = this.trauma * this.trauma * CAMERA.shakeOffset * (this.firstPerson.active ? CAMERA.firstPersonShake : 1);
       cam.x += (Math.random() * 2 - 1) * offset;
       cam.y += (Math.random() * 2 - 1) * offset;
       cam.z += (Math.random() * 2 - 1) * offset;

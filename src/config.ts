@@ -2616,8 +2616,12 @@ export const CAMERA = {
   /** Secondes sans toucher la souris avant que la caméra revienne derrière le bateau. */
   recenterDelay: 2.5,
   recenterSpeed: 1.2,
-  /** Décalage max de la secousse (m) et vitesse à laquelle elle s'éteint (/s). */
-  shakeOffset: 0.9,
+  /**
+   * Décalage max de la secousse (m) et vitesse à laquelle elle s'éteint (/s) ; en première personne (à la barre ou à
+   * pied), le décalage est multiplié par `firstPersonShake` : l'œil est tout près, la même secousse y paraît énorme.
+   */
+  shakeOffset: 0.75,
+  firstPersonShake: 0.2,
   shakeDecay: 1.6,
   /** Un appui relâché sans avoir bougé de plus de `clickSlop` px (cumulés) en moins de `clickTime` ms est un clic, pas un glisser. */
   clickSlop: 6,
@@ -2642,7 +2646,7 @@ export const HELM_WHEEL = { turns: 1.3 };
  * au départ `start`, la molette le multiplie par `wheelStep` à chaque cran), vitesse à laquelle on la porte à l'œil
  * (/s) ; le regard est d'autant plus lent que le grossissement est fort.
  */
-export const SPYGLASS = { zoom: [2, 8] as const, start: 4, wheelStep: 1.15, response: 9 };
+export const SPYGLASS = { zoom: [2, 8] as const, start: 4, wheelStep: 1.15, response: 3.5 };
 
 export const HELM_VIEW = {
   /** Après une demande de capture de la souris, délai (ms) au bout duquel, si le navigateur l'a refusée, on invite à cliquer. */

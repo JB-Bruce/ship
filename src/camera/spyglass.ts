@@ -34,12 +34,17 @@ export class Spyglass {
     const target = this.held && usable ? 1 : 0;
     const step = SPYGLASS.response * dt;
     this.raised = this.raised < target ? Math.min(target, this.raised + step) : Math.max(target, this.raised - step);
-    this.overlay.style.opacity = this.raised.toFixed(3);
+    this.overlay.style.opacity = this.eased.toFixed(3);
     this.overlay.classList.toggle('on', this.raised > 0);
   }
 
   /** Grossissement du moment (1 = à l'œil nu). */
   get zoom(): number {
-    return 1 + (this.magnification - 1) * this.raised;
+    return 1 + (this.magnification - 1) * this.eased;
+  }
+
+  /** Mouvement adouci : la longue-vue part et arrive en douceur. */
+  private get eased(): number {
+    return this.raised * this.raised * (3 - 2 * this.raised);
   }
 }
