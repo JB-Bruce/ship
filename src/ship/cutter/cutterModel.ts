@@ -16,23 +16,20 @@ import { BOOM_HEIGHT, cutterTemplateFor, FLAG, FLYING_TOPSAIL, GAFF_TOPSAIL, rig
 const RUDDER_MAX_ANGLE = 0.55;
 /** Allongement de la bôme et de la grand-voile par niveau de voilure (en longueur seulement). */
 const SAIL_GROWTH = 0.06;
+/** Élargissement du hunier par niveau de voilure. */
+const TOPSAIL_GROWTH = 0.04;
 const GUN_INSET = 0.6;
 const MUZZLE = new THREE.Vector3(1, 0.38, 0);
 /** Bouche du pierrier, dans le repère de la pièce (props.buildCannonGeometry). */
 const SWIVEL_MUZZLE = new THREE.Vector3(0.75, 0.1, 0);
-/**
- * Hunier volant (cotre armé) : hissé quand le vent vient de l'arrière à moins de `hoist` rad de l'axe, amené au-delà de
- * `strike` (hystérésis), à la vitesse `rate` (part par s).
- */
-const FLYING = { hoist: 0.85, strike: 1.1, rate: 0.6 };
 const { damp } = THREE.MathUtils;
 
 /**
  * Cotre : coque fine et basse, un seul mât très haut, immense grand-voile aurique dont la bôme déborde de la poupe (elle
  * pivote selon le vent, flèche au-dessus), trois voiles d'avant (trinquette, foc, clin-foc) sur un très long beaupré,
  * canons sur affût le long du pont et un pierrier par flanc sur le plat-bord, près de la poupe. Cotre armé
- * (setExtension) : reconstruit sur le plan rallongé, avec un hunier volant, voile carrée qui ne se hisse que par vent
- * arrière ; canons, renfort, voilure, dégâts et pavillon sont remis en place.
+ * (setExtension) : reconstruit sur le plan rallongé, avec un hunier volant, voile carrée devant le mât qui se règle comme
+ * les autres ; canons, renfort, voilure, dégâts et pavillon sont remis en place.
  */
 export class CutterModel implements ShipModel {
   readonly root = new THREE.Group();
@@ -62,9 +59,6 @@ export class CutterModel implements ShipModel {
   /** Côté sous le vent : +1 bâbord, -1 tribord (où la bôme est poussée). */
   private leeSide = 1;
   private boomTarget = 0;
-  /** Hunier volant : visé (0 ou 1) selon le vent, et hissé (0 à 1). */
-  private flyingTarget = 0;
-  private flying = 0;
   // État remis en place quand le navire est reconstruit (cotre armé).
   private perSide: number;
   private readonly swivels: number;
@@ -108,7 +102,7 @@ export class CutterModel implements ShipModel {
     this.rudder.rotation.y = -rudder * RUDDER_MAX_ANGLE;
   }
 
-  /** La bôme part du côté où va le vent ; le hunier volant n'est hissé que vent arrière. */
+  /** La bôme part du côté où va le vent : presque dans l'axe au près, largement ouverte au vent arrière. */
   setWind(relativeDirection: number, strength: number) {
     this.flag.setWind(relativeDirection, strength);
     this.tornSail.setWind(relativeDirection, strength);
@@ -116,10 +110,7 @@ export class CutterModel implements ShipModel {
     // Hystérésis : au vent arrière pile, la bôme ne passe pas d'un bord à l'autre sans arrêt.
     if (s > 0.15) this.leeSide = 1;
     else if (s < -0.15) this.leeSide = -1;
-    const off = Math.abs(wrapAngle(relativeDirection));
-    this.boomTarget = -this.leeSide * (0.12 + 1.1 * (1 - off / Math.PI));
-    if (off < FLYING.hoist) this.flyingTarget = 1;
-    else if (off > FLYING.strike) this.flyingTarget = 0;
+    this.boomTarget = -this.leeSide * (0.12 + 1.1 * (1 - Math.abs(wrapAngle(relativeDirection)) / Math.PI));
   }
 
   setArmorLevel(level: number) {
@@ -169,11 +160,6 @@ export class CutterModel implements ShipModel {
     this.rig.rotation.y = damp(this.rig.rotation.y, this.boomTarget, 1.2, dt);
     this.hoist.scale.x = this.leeSide;
     for (const sail of this.headsails) sail.scale.x = Math.abs(sail.scale.x) * this.leeSide;
-    if (this.topsail && this.flying !== this.flyingTarget) {
-      const step = FLYING.rate * dt;
-      this.flying = this.flyingTarget > this.flying ? Math.min(1, this.flying + step) : Math.max(0, this.flying - step);
-      this.applySails();
-    }
   }
 
   setFlagLift(lift: number) {
@@ -232,7 +218,7 @@ export class CutterModel implements ShipModel {
       return sail;
     });
 
-    // Hunier volant du cotre armé : vergue fixe devant le mât, voile hissée par vent arrière.
+    // Hunier volant du cotre armé : voile carrée sur sa vergue, devant le mât.
     this.topsail = null;
     if (L.level > 0) {
       const mast = new THREE.Group();
@@ -280,9 +266,6 @@ export class CutterModel implements ShipModel {
     this.hoist.scale.set(this.leeSide, hoisted, 1);
     const head = 0.15 + 0.85 * this.sailAmount;
     for (const s of this.headsails) s.scale.set(head * this.leeSide, head, head);
-    if (!this.topsail) return;
-    const set = this.flying * this.sailAmount;
-    this.topsail.visible = set > 0.01;
-    this.topsail.scale.set(1, 0.05 + 0.95 * set, 1);
+    this.topsail?.scale.set(1 + TOPSAIL_GROWTH * this.sailLevel, hoisted, 1);
   }
 }
