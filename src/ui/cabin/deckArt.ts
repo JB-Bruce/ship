@@ -21,6 +21,7 @@ const PLANS: Record<ShipType, DeckPlanArt> = {
   rowboat: { ratio: 2.2, bow: 'sharp', stern: 'square', fore: 0, aft: 0, masts: [], guns: 0, oars: 3 },
   longboat: { ratio: 2.6, bow: 'sharp', stern: 'square', fore: 0, aft: 0, masts: [0.4], guns: 0, oars: 3 },
   sloop: { ratio: 3, bow: 'sharp', stern: 'square', fore: 0, aft: 0.12, masts: [0.38], guns: 3, bowsprit: true },
+  cutter: { ratio: 3.1, bow: 'sharp', stern: 'square', fore: 0, aft: 0, masts: [0.42], guns: 2, bowsprit: true },
   caravel: { ratio: 2.8, bow: 'round', stern: 'round', fore: 0.15, aft: 0.26, masts: [0.35, 0.66], guns: 3, bowsprit: true },
   schooner: { ratio: 3.6, bow: 'sharp', stern: 'square', fore: 0, aft: 0.1, masts: [0.35, 0.62], guns: 3, bowsprit: true },
   brigantine: { ratio: 3.4, bow: 'sharp', stern: 'square', fore: 0.12, aft: 0.18, masts: [0.3, 0.58], guns: 4, bowsprit: true },

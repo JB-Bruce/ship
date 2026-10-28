@@ -2,11 +2,11 @@
 // Un tableau d'amélioration = une valeur par niveau (le niveau 1 est la première case).
 
 import { UPGRADE_INFO, type ShipTypeDef } from './shipTypeDef';
-import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CARRACK_STATS, CORVETTE_STATS, FLUYT_STATS, FRIGATE_STATS, GALLEASS_STATS, GALLEON_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, XEBEC_STATS } from './shipStats';
+import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CARRACK_STATS, CORVETTE_STATS, CUTTER_STATS, FLUYT_STATS, FRIGATE_STATS, GALLEASS_STATS, GALLEON_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, XEBEC_STATS } from './shipStats';
 
-export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'fluyt' | 'brig' | 'corvette' | 'carrack' | 'galleass' | 'frigate' | 'galleon';
+export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'cutter' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'fluyt' | 'brig' | 'corvette' | 'carrack' | 'galleass' | 'frigate' | 'galleon';
 /** Du plus petit au plus gros (par rang de taille ; à rang égal, dans l'ordre d'affichage). */
-export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon'];
+export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'cutter', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon'];
 /** Nom du type d'un navire selon ses allongements (« Frégate allongée », « Grande frégate »). */
 export function typeName(type: ShipType, extension = 0): string {
   return extension > 0 ? (SHIP_TYPES[type].extensions?.[extension - 1]?.name ?? SHIP_TYPES[type].name) : SHIP_TYPES[type].name;
@@ -30,7 +30,7 @@ export { UPGRADE_INFO };
 export type { ExtensionDef, MassTable, ShipTypeDef, UpgradeTable } from './shipTypeDef';
 
 /** Types que le joueur peut acheter (la barque est réservée aux ennemis). */
-export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon'];
+export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'cutter', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon'];
 
 export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
   rowboat: {
@@ -106,6 +106,49 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       nets: { costs: [{ gold: 45, wood: 20 }, { gold: 80, wood: 35 }, { gold: 120, wood: 50 }], catchFactor: [0.75, 0.55, 0.4] },
     },
     mass: { base: 220, perExtraCannon: 8, hull: [15, 32, 50], sails: [4, 8, 12], hold: [6, 10, 16], speedLossPerUnit: 0.0006 },
+  },
+  cutter: {
+    name: 'Cotre',
+    description: 'Un seul mât très haut, une immense voile aurique et un très long beaupré : le plus rapide et le plus vif de tous, il remonte au vent mieux que personne et se fait repérer tard. Fragile ; petits canons et un pierrier par flanc.',
+    armament: 'broadside',
+    rank: 2,
+    threat: 2.5,
+    lootFactor: 1.8,
+    price: { gold: 750, wood: 150 },
+    respawnTime: 52,
+    hold: 35,
+    upwindLoss: 0.4,
+    detectability: 0.5,
+    stats: CUTTER_STATS,
+    enemyStats: CUTTER_STATS,
+    gunLabels: { main: 'Canons', deck: 'Pierriers' },
+    upgrades: {
+      accuracy: { costs: [{ gold: 40, wood: 0 }, { gold: 70, wood: 0 }, { gold: 105, wood: 0 }], spreadFactor: [0.72, 0.52, 0.36] },
+      range: { costs: [], rangeFactor: [] },
+      // Cotre armé : le quatrième canon par flanc et le dernier niveau de voilure.
+      cannons: { costs: [{ gold: 65, wood: 40 }, { gold: 110, wood: 65 }], cannonsPerSide: [3, 4] },
+      hull: { costs: [{ gold: 30, wood: 30 }, { gold: 50, wood: 50 }, { gold: 80, wood: 80 }], healthFactor: [1.1, 1.2, 1.3] },
+      sails: {
+        costs: [{ gold: 40, wood: 10 }, { gold: 65, wood: 16 }, { gold: 95, wood: 25 }, { gold: 135, wood: 36 }],
+        speedFactor: [1.05, 1.1, 1.15, 1.2],
+      },
+      hold: { costs: [{ gold: 35, wood: 20 }, { gold: 60, wood: 35 }, { gold: 90, wood: 55 }], capacity: [45, 60, 75] },
+      nets: { costs: [], catchFactor: [] },
+    },
+    mass: { base: 200, perExtraCannon: 7, hull: [12, 26, 42], sails: [3, 6, 9, 12], hold: [5, 9, 14], speedLossPerUnit: 0.0006 },
+    extensions: [
+      {
+        name: 'Cotre armé',
+        description: 'Le chantier rallonge la coque de trois mètres pour en faire un garde-côte : plus solide, un canon de plus par flanc, un niveau de voilure en plus et un hunier volant, une voile carrée hissée par vent arrière. Un peu moins vif.',
+        cost: { gold: 700, wood: 280 },
+        length: 3,
+        healthFactor: 1.25,
+        speedFactor: 0.98,
+        turnFactor: 0.92,
+        mass: 45,
+        extraLevels: { cannons: 1, sails: 1 },
+      },
+    ],
   },
   caravel: {
     name: 'Caravelle',

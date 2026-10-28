@@ -16,6 +16,9 @@ export const LONG_BRIGANTINE_ICON = `<svg viewBox="0 0 48 48"><path d="M0 30h48l
 /** Goélette à hunier : une voile carrée en tête du mât de misaine. */
 export const TOPSAIL_SCHOONER_ICON = `<svg viewBox="0 0 48 48"><path d="M1 32h40l-5 7H7z"/><path d="M40 31l7-6M16 32L14 4M28 32L26.5 9M3 29h13M5 11l9-5M18 29h10M19 13l7-3"/><path d="M15 29H3l2-18 9-5zM27 29H18l1-16 7-3zM28 9l15 18H30z"/><path d="M21 2h10v5H21z"/></svg>`;
 
+/** Cotre armé : coque plus longue, hunier volant en tête du mât. */
+export const ARMED_CUTTER_ICON = `<svg viewBox="0 0 48 48"><path d="M1 32h39l-5 6H7z"/><path d="M40 31h8M24 32V1M0 29h24"/><path d="M23 9L7 5 1 29h22zM25 7l22 24H34zM25 15l9 15h-9zM19 2h11v5H19z"/></svg>`;
+
 /** Grand chébec : coque plus longue, quatre sabords, mâts plus espacés. */
 export const GRAND_XEBEC_ICON = `<svg viewBox="0 0 48 48"><path d="M1 30h40l7-2-6 4-4 7H9l-6-4z"/><path d="M0 30v-3h9v3M12 33.5h24M15 33.5v2M21 33.5v2M27 33.5v2M33 33.5v2"/><path d="M38 30l3-22M24 30l2-27M11 27l2-17M46 24L33 4M46 24L33 5l3 22zM18 8h13M17 16h16M18 17h15l-1 10H19zM19 8h11v7H19zM21 22L5 6M21 22L6 7l2 18z"/></svg>`;
 
@@ -49,6 +52,7 @@ const EXTENDED_ICONS: Partial<Record<ShipType, readonly string[]>> = {
   corvette: [LONG_CORVETTE_ICON],
   brigantine: [LONG_BRIGANTINE_ICON],
   schooner: [TOPSAIL_SCHOONER_ICON],
+  cutter: [ARMED_CUTTER_ICON],
   xebec: [GRAND_XEBEC_ICON],
   fluyt: [LONG_FLUYT_ICON],
   carrack: [GRAND_CARRACK_ICON, ROYAL_CARRACK_ICON],
@@ -69,6 +73,7 @@ export function shipIcon(type: ShipType, levels: UpgradeLevels): string {
 
 /** Silhouettes des navires, dessinées au trait façon gravure (menus de flotte et du port). */
 export const SHIP_ICONS: Record<ShipType, string> = {
+  cutter: `<svg viewBox="0 0 48 48"><path d="M3 32h34l-5 6H9z"/><path d="M37 31h11M26 32V2M1 29h25"/><path d="M25 9L9 4 2 29h23zM27 6l20 25H35zM27 15l9 15h-9z"/></svg>`,
   rowboat: `<svg viewBox="0 0 48 48"><path d="M6 30h36l-5 7H11z"/><path d="M12 30l-6 8M36 30l6 8"/></svg>`,
   longboat: `<svg viewBox="0 0 48 48"><path d="M5 34h38l-5 7H10z"/><path d="M24 34V6M14 10h20M15 12c-2 7-2 14 0 20h18c2-6 2-13 0-20"/></svg>`,
   brigantine: `<svg viewBox="0 0 48 48"><path d="M2 30h44l-5 9H8z"/><path d="M4 30v-6h8v6M38 30v-4h6"/><path d="M16 30V4M30 30V5M10 9h12M10 19h12M24 10h12M24 20h12M44 26l-14-20"/></svg>`,

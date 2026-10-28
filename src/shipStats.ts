@@ -36,6 +36,28 @@ export const SLOOP_STATS: ShipStats = {
 };
 
 /**
+ * Cotre : un seul mât très haut, immense voile aurique, très long beaupré, coque fine et basse. Le plus rapide et le plus
+ * vif des navires pontés, mais fragile ; petits canons, et un pierrier par flanc sur le plat-bord (second calibre :
+ * portée courte, recharge rapide, petits dégâts).
+ */
+export const CUTTER_STATS: ShipStats = {
+  length: 11,
+  width: 3.5,
+  maxSpeed: 15,
+  acceleration: 3.6,
+  deceleration: 4.2,
+  turnRate: 0.7,
+  rudderSpeed: 3.5,
+  turnHeel: 0.009,
+  maxHealth: 280,
+  cannonsPerSide: 2,
+  swivels: 1,
+  cannon: { range: 120, reloadTime: 2.9, arcHalfAngle: 35 * DEG, spread: 3.75 * DEG, rangeError: 0.105, damage: 11, ballSpeed: 58 },
+  deckCannon: { range: 85, reloadTime: 1.6, arcHalfAngle: 60 * DEG, spread: 4.5 * DEG, rangeError: 0.12, damage: 5, ballSpeed: 55 },
+  buoyancy: { stiffness: 42, damping: 10, tiltResponse: 6.5 },
+};
+
+/**
  * Brigantin : deux mâts à voiles carrées, château arrière (deux canons à l'abri à l'intérieur) et gaillard
  * d'avant surélevé. Le « tireur d'élite » de la flotte : très précis et longue portée, mais lent à virer.
  */
