@@ -58,6 +58,29 @@ export const CUTTER_STATS: ShipStats = {
 };
 
 /**
+ * Galiote à bombes : coque large, trapue et très solide, grand mât carré au milieu et artimon aurique sur le gaillard
+ * d'arrière ; l'avant, sans mât, porte deux gros mortiers côte à côte (un troisième sur la grande galiote). Lente et
+ * lourde à virer, elle perd beaucoup au près. Second calibre : ses mortiers, qui pivotent dans toutes les directions et
+ * portent plus loin que celui du brick ; quelques canons légers sur les flancs pour se défendre.
+ */
+export const GALIOT_STATS: ShipStats = {
+  length: 22,
+  width: 6.8,
+  maxSpeed: 10.5,
+  acceleration: 2.2,
+  deceleration: 3,
+  turnRate: 0.38,
+  rudderSpeed: 2.3,
+  turnHeel: 0.005,
+  maxHealth: 950,
+  cannonsPerSide: 3,
+  mortars: 2,
+  cannon: { range: 130, reloadTime: 3.4, arcHalfAngle: 35 * DEG, spread: 3.75 * DEG, rangeError: 0.105, damage: 14, ballSpeed: 58 },
+  deckCannon: { range: 250, reloadTime: 12, arcHalfAngle: Math.PI, spread: 6 * DEG, rangeError: 0.18, damage: 100, ballSpeed: 45, shell: MORTAR_SHELL },
+  buoyancy: { stiffness: 26, damping: 8.5, tiltResponse: 4.5 },
+};
+
+/**
  * Brigantin : deux mâts à voiles carrées, château arrière (deux canons à l'abri à l'intérieur) et gaillard
  * d'avant surélevé. Le « tireur d'élite » de la flotte : très précis et longue portée, mais lent à virer.
  */

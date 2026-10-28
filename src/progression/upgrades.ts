@@ -73,11 +73,18 @@ export function chaseGunsFor(type: ShipType, levels: UpgradeLevels): number {
   return chaseFrom !== undefined && levels.cannons >= chaseFrom ? 1 : 0;
 }
 
+/** Mortiers montés (galiote à bombes) : ceux de la base, puis la table `cannons.mortars`. */
+export function mortarsFor(type: ShipType, levels: UpgradeLevels): number {
+  const { upgrades, stats } = SHIP_TYPES[type];
+  const table = upgrades.cannons.mortars;
+  return table && levels.cannons > 0 ? table[levels.cannons - 1] : (stats.mortars ?? 0);
+}
+
 /** Le type a-t-il des canons de chasse (montés d'emblée ou à acheter) ? */
 const hasChaseGuns = (type: ShipType) => SHIP_TYPES[type].upgrades.cannons.chaseFrom !== undefined || SHIP_TYPES[type].upgrades.cannons.chaseGuns !== undefined;
 
-/** Nombre total de canons d'un navire : ses deux flancs, ses canons de chasse, ses pierriers (cotre) et son mortier (brick). */
-export const cannonCount = (stats: ShipStats) => (stats.cannonsPerSide + (stats.swivels ?? 0)) * 2 + (stats.chaseGuns ?? 0) + (stats.deckCannon?.shell ? 1 : 0);
+/** Nombre total de canons d'un navire : ses deux flancs, ses canons de chasse, ses pierriers (cotre) et ses mortiers (brick, galiote). */
+export const cannonCount = (stats: ShipStats) => (stats.cannonsPerSide + (stats.swivels ?? 0)) * 2 + (stats.chaseGuns ?? 0) + (stats.deckCannon?.shell ? (stats.mortars ?? 1) : 0);
 
 /** Masse totale du bateau selon ses améliorations. */
 export function shipMass(type: ShipType, levels: UpgradeLevels): number {
@@ -89,7 +96,8 @@ export function shipMass(type: ShipType, levels: UpgradeLevels): number {
   const hold = levels.hold > 0 ? (mass.hold[levels.hold - 1] ?? 0) : 0;
   const extension = appliedExtensions(type, levels).reduce((sum, e) => sum + e.mass, 0);
   const chase = (chaseGunsFor(type, levels) - (stats.chaseGuns ?? 0)) * (mass.chaseGun ?? 0);
-  return mass.base + extraCannons * mass.perExtraCannon + chase + hull + sails + hold + extension;
+  const mortars = (mortarsFor(type, levels) - (stats.mortars ?? 0)) * (mass.mortar ?? 0);
+  return mass.base + extraCannons * mass.perExtraCannon + chase + mortars + hull + sails + hold + extension;
 }
 
 /** Vitesse perdue à cause de la masse (fraction, 0 = aucune perte). */
@@ -121,6 +129,7 @@ export function deriveStats(type: ShipType, base: ShipStats, levels: UpgradeLeve
   }
   if (levels.cannons > 0) stats.cannonsPerSide = table.cannons.cannonsPerSide[levels.cannons - 1];
   if (hasChaseGuns(type)) stats.chaseGuns = chaseGunsFor(type, levels);
+  if (table.cannons.mortars) stats.mortars = mortarsFor(type, levels);
   if (levels.hull > 0) stats.maxHealth = Math.round(stats.maxHealth * table.hull.healthFactor[levels.hull - 1]);
   // Allongements : coque plus longue (plus de vie, file un peu mieux, vire moins vite) ; leurs effets se cumulent.
   let hullSpeed = 1;

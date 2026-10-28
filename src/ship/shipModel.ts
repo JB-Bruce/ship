@@ -15,6 +15,7 @@ import { CutterModel } from './cutter/cutterModel';
 import type { DeckPlan } from './deckPlan';
 import type { LanternSpot } from './parts/nightGlow';
 import { FrigateModel } from './frigate/frigateModel';
+import { GaliotModel } from './galiot/galiotModel';
 import { LongboatModel } from './longboat/longboatModel';
 import { RowboatModel } from './rowboat/rowboatModel';
 import { SloopModel } from './sloop/sloopModel';
@@ -86,8 +87,11 @@ export interface ShipModel {
   setRudder(rudder: number): void;
   /** Vent relatif au bateau (rad, 0 = vers la proue) et sa force 0..1. */
   setWind(relativeDirection: number, strength: number): void;
-  /** (Re)crée `perSide` canons sur chaque flanc, et `chase` canons de chasse à la proue (caravelle, chébec, caraque, galéasse). */
-  setCannons(perSide: number, chase?: number): void;
+  /**
+   * (Re)crée `perSide` canons sur chaque flanc, `chase` canons de chasse à la proue (caravelle, chébec, caraque,
+   * galéasse) et `mortars` mortiers (galiote à bombes).
+   */
+  setCannons(perSide: number, chase?: number, mortars?: number): void;
   /** Avirons (chébec, galéasse) : 0 = rentrés, 1 = sortis ; sortis, ils nagent en cadence. */
   setOars?(out: number): void;
   /** Niveau de renfort de coque (bandes de fer). */
@@ -112,6 +116,7 @@ export function createShipModel(type: ShipType, stats: ShipStats, livery: Livery
   if (type === 'xebec') return new XebecModel(stats, livery);
   if (type === 'fluyt') return new FluytModel(stats, livery);
   if (type === 'brig') return new BrigModel(stats, livery);
+  if (type === 'galiot') return new GaliotModel(stats, livery);
   if (type === 'corvette') return new CorvetteModel(stats, livery);
   if (type === 'carrack') return new CarrackModel(stats, livery);
   if (type === 'galleass') return new GalleassModel(stats, livery);

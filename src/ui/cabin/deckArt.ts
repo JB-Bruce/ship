@@ -28,6 +28,7 @@ const PLANS: Record<ShipType, DeckPlanArt> = {
   xebec: { ratio: 4, bow: 'spur', stern: 'round', fore: 0.08, aft: 0.15, masts: [0.18, 0.45, 0.75], guns: 3, oars: 7 },
   fluyt: { ratio: 3.6, bow: 'round', stern: 'round', fore: 0.12, aft: 0.22, masts: [0.25, 0.5, 0.76], guns: 4, bowsprit: true },
   brig: { ratio: 3.6, bow: 'sharp', stern: 'square', fore: 0, aft: 0, masts: [0.3, 0.6], guns: 6, bowsprit: true },
+  galiot: { ratio: 3.2, bow: 'round', stern: 'square', fore: 0, aft: 0.24, masts: [0.47, 0.85], guns: 3, bowsprit: true },
   corvette: { ratio: 3.8, bow: 'sharp', stern: 'square', fore: 0.12, aft: 0.2, masts: [0.25, 0.5, 0.76], guns: 6, bowsprit: true },
   carrack: { ratio: 3, bow: 'round', stern: 'round', fore: 0.2, aft: 0.3, masts: [0.2, 0.45, 0.68, 0.86], guns: 4, bowsprit: true },
   galleass: { ratio: 4.6, bow: 'spur', stern: 'square', fore: 0.12, aft: 0.18, masts: [0.25, 0.5, 0.76], guns: 5, oars: 12 },

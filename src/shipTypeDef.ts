@@ -10,9 +10,10 @@ export interface UpgradeTable {
   /**
    * Nombre de canons par flanc. `chaseFrom` : niveau (1 = premier) à partir duquel le canon de chasse est monté
    * (caravelle) ; ce niveau-là garde le nombre de canons par flanc du précédent. `chaseGuns` : canons de chasse à
-   * chaque niveau, pour un navire qui en a dès la base (chébec : `ShipStats.chaseGuns`).
+   * chaque niveau, pour un navire qui en a dès la base (chébec : `ShipStats.chaseGuns`). `mortars` : mortiers à chaque
+   * niveau (galiote à bombes : `ShipStats.mortars`).
    */
-  cannons: { costs: Cost[]; cannonsPerSide: number[]; chaseFrom?: number; chaseGuns?: number[] };
+  cannons: { costs: Cost[]; cannonsPerSide: number[]; chaseFrom?: number; chaseGuns?: number[]; mortars?: number[] };
   /** Multiplicateur de la vie max (≈ +10 % de la vie de base par niveau). */
   hull: { costs: Cost[]; healthFactor: number[] };
   /** Multiplicateur de vitesse et d'accélération. */
@@ -50,6 +51,8 @@ export interface MassTable {
   perExtraCannon: number;
   /** Canon de chasse, une fois monté. */
   chaseGun?: number;
+  /** Mortier en plus de ceux de la base (galiote à bombes). */
+  mortar?: number;
   hull: number[];
   sails: number[];
   /** Cale agrandie : la marchandise et l'arrimage pèsent (par niveau). */

@@ -19,6 +19,9 @@ export const TOPSAIL_SCHOONER_ICON = `<svg viewBox="0 0 48 48"><path d="M1 32h40
 /** Cotre armé : coque plus longue, hunier volant en tête du mât. */
 export const ARMED_CUTTER_ICON = `<svg viewBox="0 0 48 48"><path d="M1 32h39l-5 6H7z"/><path d="M40 31h8M24 32V1M0 29h24"/><path d="M23 9L7 5 1 29h22zM25 7l22 24H34zM25 15l9 15h-9zM19 2h11v5H19z"/></svg>`;
 
+/** Grande galiote : coque plus longue, trois mortiers sur l'avant. */
+export const GRAND_GALIOT_ICON = `<svg viewBox="0 0 48 48"><path d="M0 26h9v3h29l9-2-4 10H7q-6-1-7-11z"/><path d="M45 27l3-4M22 29V3M9 26V9M15 7h14M14 13h16M13 20h18M23 4l20 22H31z"/><path d="M9 25H2l2-14 5-2zM29 28a2 2 0 0 1 4 0M34 28a2 2 0 0 1 4 0M39 28a2 2 0 0 1 4 0"/></svg>`;
+
 /** Grand chébec : coque plus longue, quatre sabords, mâts plus espacés. */
 export const GRAND_XEBEC_ICON = `<svg viewBox="0 0 48 48"><path d="M1 30h40l7-2-6 4-4 7H9l-6-4z"/><path d="M0 30v-3h9v3M12 33.5h24M15 33.5v2M21 33.5v2M27 33.5v2M33 33.5v2"/><path d="M38 30l3-22M24 30l2-27M11 27l2-17M46 24L33 4M46 24L33 5l3 22zM18 8h13M17 16h16M18 17h15l-1 10H19zM19 8h11v7H19zM21 22L5 6M21 22L6 7l2 18z"/></svg>`;
 
@@ -53,6 +56,7 @@ const EXTENDED_ICONS: Partial<Record<ShipType, readonly string[]>> = {
   brigantine: [LONG_BRIGANTINE_ICON],
   schooner: [TOPSAIL_SCHOONER_ICON],
   cutter: [ARMED_CUTTER_ICON],
+  galiot: [GRAND_GALIOT_ICON],
   xebec: [GRAND_XEBEC_ICON],
   fluyt: [LONG_FLUYT_ICON],
   carrack: [GRAND_CARRACK_ICON, ROYAL_CARRACK_ICON],
@@ -73,6 +77,7 @@ export function shipIcon(type: ShipType, levels: UpgradeLevels): string {
 
 /** Silhouettes des navires, dessinées au trait façon gravure (menus de flotte et du port). */
 export const SHIP_ICONS: Record<ShipType, string> = {
+  galiot: `<svg viewBox="0 0 48 48"><path d="M1 26h10v3h26l9-2-4 10H8q-6-1-7-11z"/><path d="M45 27l3-4M24 29V3M11 26V9M17 7h14M16 13h16M15 20h18M25 4l20 22H33z"/><path d="M11 25H4l2-14 5-2zM34 28a2 2 0 0 1 4 0M39 28a2 2 0 0 1 4 0"/></svg>`,
   cutter: `<svg viewBox="0 0 48 48"><path d="M3 32h34l-5 6H9z"/><path d="M37 31h11M26 32V2M1 29h25"/><path d="M25 9L9 4 2 29h23zM27 6l20 25H35zM27 15l9 15h-9z"/></svg>`,
   rowboat: `<svg viewBox="0 0 48 48"><path d="M6 30h36l-5 7H11z"/><path d="M12 30l-6 8M36 30l6 8"/></svg>`,
   longboat: `<svg viewBox="0 0 48 48"><path d="M5 34h38l-5 7H10z"/><path d="M24 34V6M14 10h20M15 12c-2 7-2 14 0 20h18c2-6 2-13 0-20"/></svg>`,

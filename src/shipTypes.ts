@@ -2,11 +2,11 @@
 // Un tableau d'amélioration = une valeur par niveau (le niveau 1 est la première case).
 
 import { UPGRADE_INFO, type ShipTypeDef } from './shipTypeDef';
-import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CARRACK_STATS, CORVETTE_STATS, CUTTER_STATS, FLUYT_STATS, FRIGATE_STATS, GALLEASS_STATS, GALLEON_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, XEBEC_STATS } from './shipStats';
+import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CARRACK_STATS, CORVETTE_STATS, CUTTER_STATS, FLUYT_STATS, GALIOT_STATS, FRIGATE_STATS, GALLEASS_STATS, GALLEON_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, XEBEC_STATS } from './shipStats';
 
-export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'cutter' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'fluyt' | 'brig' | 'corvette' | 'carrack' | 'galleass' | 'frigate' | 'galleon';
+export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'cutter' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'fluyt' | 'brig' | 'galiot' | 'corvette' | 'carrack' | 'galleass' | 'frigate' | 'galleon';
 /** Du plus petit au plus gros (par rang de taille ; à rang égal, dans l'ordre d'affichage). */
-export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'cutter', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon'];
+export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'cutter', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'galiot', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon'];
 /** Nom du type d'un navire selon ses allongements (« Frégate allongée », « Grande frégate »). */
 export function typeName(type: ShipType, extension = 0): string {
   return extension > 0 ? (SHIP_TYPES[type].extensions?.[extension - 1]?.name ?? SHIP_TYPES[type].name) : SHIP_TYPES[type].name;
@@ -30,7 +30,7 @@ export { UPGRADE_INFO };
 export type { ExtensionDef, MassTable, ShipTypeDef, UpgradeTable } from './shipTypeDef';
 
 /** Types que le joueur peut acheter (la barque est réservée aux ennemis). */
-export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'cutter', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon'];
+export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'cutter', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'galiot', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon'];
 
 export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
   rowboat: {
@@ -419,6 +419,52 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
         turnFactor: 0.92,
         mass: 70,
         extraLevels: { cannons: 2 },
+      },
+    ],
+  },
+  galiot: {
+    name: 'Galiote à bombes',
+    feminine: true,
+    description: 'Large, trapue et très solide : un grand mât carré, un artimon, et sur l’avant deux gros mortiers qui pivotent et lancent leurs obus très loin. Lente, lourde à virer et mauvaise au près ; quelques canons légers pour se défendre.',
+    armament: 'broadside',
+    rank: 5,
+    threat: 5,
+    lootFactor: 4.5,
+    price: { gold: 3000, wood: 900 },
+    respawnTime: 75,
+    hold: 70,
+    upwindLoss: 1.2,
+    stats: GALIOT_STATS,
+    enemyStats: GALIOT_STATS,
+    gunLabels: { main: 'Canons de flanc', deck: 'Mortiers' },
+    upgrades: {
+      accuracy: {
+        costs: [{ gold: 70, wood: 0 }, { gold: 110, wood: 0 }, { gold: 160, wood: 0 }, { gold: 220, wood: 0 }],
+        spreadFactor: [0.75, 0.56, 0.4, 0.27],
+      },
+      range: { costs: [{ gold: 120, wood: 40 }, { gold: 200, wood: 70 }], rangeFactor: [1.1, 1.2] },
+      // Grande galiote : le dernier niveau monte un troisième mortier, très cher.
+      cannons: { costs: [{ gold: 180, wood: 110 }, { gold: 260, wood: 160 }, { gold: 2600, wood: 1000 }], cannonsPerSide: [4, 5, 5], mortars: [2, 2, 3] },
+      hull: {
+        costs: [{ gold: 60, wood: 60 }, { gold: 100, wood: 100 }, { gold: 150, wood: 150 }, { gold: 210, wood: 210 }],
+        healthFactor: [1.1, 1.2, 1.3, 1.4],
+      },
+      sails: { costs: [{ gold: 70, wood: 18 }, { gold: 110, wood: 28 }, { gold: 160, wood: 42 }], speedFactor: [1.05, 1.1, 1.15] },
+      hold: { costs: [{ gold: 70, wood: 40 }, { gold: 110, wood: 65 }, { gold: 160, wood: 95 }], capacity: [90, 115, 140] },
+      nets: { costs: [], catchFactor: [] },
+    },
+    mass: { base: 420, perExtraCannon: 7, mortar: 40, hull: [14, 30, 48, 68], sails: [5, 10, 15], hold: [8, 14, 22], speedLossPerUnit: 0.00045 },
+    extensions: [
+      {
+        name: 'Grande galiote',
+        description: 'Le chantier rallonge la coque de quatre mètres : plus solide, un peu plus rapide, et assez de place sur l’avant pour un troisième mortier (le dernier niveau de canons).',
+        cost: { gold: 2400, wood: 900 },
+        length: 4,
+        healthFactor: 1.2,
+        speedFactor: 1.02,
+        turnFactor: 0.93,
+        mass: 70,
+        extraLevels: { cannons: 1 },
       },
     ],
   },
