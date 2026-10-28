@@ -68,7 +68,10 @@ export interface GaliotLayout {
   readonly spanker: GaffSailShape;
   readonly boomAlong: number;
   readonly bowsprit: { base: THREE.Vector3; tip: THREE.Vector3 };
-  /** Trinquette, foc et clin-foc : point d'amure, têtière et point d'écoute. */
+  /**
+   * Trinquette, foc et clin-foc : point d'amure, têtière et point d'écoute. Le point d'écoute est bas et bien en arrière
+   * de l'étai, pour des triangles assez larges (pas de longues voiles étroites).
+   */
   readonly jibs: readonly { tack: THREE.Vector3; head: THREE.Vector3; clew: THREE.Vector3 }[];
   readonly wheel: { y: number; z: number };
   /** Cloison du gaillard d'arrière (z de sa face avant). */
@@ -152,9 +155,9 @@ function createLayout(level: number): GaliotLayout {
     boomAlong: 2.1,
     bowsprit,
     jibs: [
-      { tack: new THREE.Vector3(0, stem.gunwale + 0.1, stem.z - 0.2), head: main(10.5), clew: new THREE.Vector3(0, 4.4, mainMast.z + 4.2) },
-      { tack: onSprit(0.55), head: main(14), clew: new THREE.Vector3(0, 4.8, stem.z - 0.4) },
-      { tack: bowsprit.tip, head: main(17.6), clew: new THREE.Vector3(0, 5.6, stem.z + 2.6) },
+      { tack: new THREE.Vector3(0, stem.gunwale + 0.1, stem.z - 0.2), head: main(10.5), clew: new THREE.Vector3(0, 4.2, mainMast.z + 3.6) },
+      { tack: onSprit(0.55), head: main(12.2), clew: new THREE.Vector3(0, 4.5, mainMast.z + 5.6) },
+      { tack: bowsprit.tip, head: main(15.6), clew: new THREE.Vector3(0, 5.1, mainMast.z + 8.6) },
     ],
     wheel,
     bulkhead,

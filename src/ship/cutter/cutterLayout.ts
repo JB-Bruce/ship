@@ -57,7 +57,7 @@ export interface CutterLayout {
   readonly mastTop: THREE.Vector3;
   /** Beaupré : son pied sur le pont, contre les bittes, et son bout, très loin devant l'étrave. */
   readonly bowsprit: { base: THREE.Vector3; tip: THREE.Vector3 };
-  /** Trinquette (sur l'étrave), foc (au milieu du beaupré), clin-foc (au bout). */
+  /** Trinquette (sur l'étrave), foc (au milieu du beaupré), clin-foc (au bout) ; points d'écoute bas et en arrière (voiles assez larges). */
   readonly headsails: readonly HeadSail[];
   /** Canons sur affût, répartis régulièrement le long du pont entre ces z. */
   readonly gunZone: { aft: number; fore: number };
@@ -89,8 +89,8 @@ function createLayout(level: number): CutterLayout {
     bowsprit,
     headsails: [
       { tack: new THREE.Vector3(0, bow.gunwale + 0.05, bow.z - 0.12), head: alongMast(mastZ, 8.6), clew: new THREE.Vector3(0, 2.35, mastZ + 1.1), bulge: 0.4 },
-      { tack: onSprit(0.62), head: alongMast(mastZ, 10.9), clew: new THREE.Vector3(0, 2.75, bow.z - 0.6), bulge: 0.5 },
-      { tack: bowsprit.tip, head: alongMast(mastZ, 12.9), clew: new THREE.Vector3(0, 3.6, bow.z + 1.6), bulge: 0.45 },
+      { tack: onSprit(0.62), head: alongMast(mastZ, 10.9), clew: new THREE.Vector3(0, 2.2, mastZ + 2.3), bulge: 0.5 },
+      { tack: bowsprit.tip, head: alongMast(mastZ, 12.9), clew: new THREE.Vector3(0, 2.7, mastZ + 4.4), bulge: 0.45 },
     ],
     gunZone: { aft: z(-3.3), fore: z(2.3) },
     swivelZ: z(-4.4),
