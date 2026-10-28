@@ -8,7 +8,7 @@ import { addBow } from '../galleon/galleonBow';
 import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } from '../parts/common';
 import { addHatch } from '../parts/deckFittings';
 import { addBarrel, addCrate, addRopeCoil, buildCarriageGunGeometry, type Palette } from '../parts/props';
-import { buildGaffSail, buildSquareSail, cylinderBetween } from '../parts/sails';
+import { buildGaffSail, buildSquareSail, buildTriangleSail, cylinderBetween } from '../parts/sails';
 import { addCastles, addPlanking, OCHRE } from './shipOfLineDecor';
 import { DECK_Y, PORT, type ShipOfLineLayout } from './shipOfLineLayout';
 import { addMasts, buildRigging } from './shipOfLineRig';
@@ -24,6 +24,8 @@ export interface ShipOfLineTemplate {
   squareSails: THREE.BufferGeometry[];
   yards: THREE.BufferGeometry[];
   spritsail: THREE.BufferGeometry;
+  /** Focs (repère de leur point d'amure), dans l'ordre de ShipOfLineLayout.jibs. */
+  jibs: THREE.BufferGeometry[];
   /** Brigantine d'artimon (repère de son gréement), sa bôme et sa corne. */
   spanker: THREE.BufferGeometry;
   boom: THREE.BufferGeometry;
@@ -108,6 +110,7 @@ function buildTemplate(L: ShipOfLineLayout, livery: Livery): ShipOfLineTemplate 
     squareSails: L.squareSails.map((s) => buildSquareSail(s.width, s.height, 0.6)),
     yards: L.squareSails.map((s) => yard(s.width, s.width > 6 ? 0.12 : 0.07)),
     spritsail: buildSquareSail(L.spritsail.width, L.spritsail.height, 0.35),
+    jibs: L.jibs.map((j) => buildTriangleSail(j.head.clone().sub(j.tack), j.clew.clone().sub(j.tack), 0.4)),
     spanker: buildGaffSail(L.spanker),
     boom: cylinderBetween(new THREE.Vector3(0, 0, -0.1), new THREE.Vector3(0, 0, L.spanker.clew.z - 0.3), 0.13, 0.09),
     gaff: cylinderBetween(L.spanker.throat, L.spanker.peak, 0.1, 0.06),

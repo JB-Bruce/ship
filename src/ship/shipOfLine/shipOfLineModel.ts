@@ -39,7 +39,8 @@ interface BatteryGun {
  * Vaisseau de ligne (64, 74, 80) : coque large en bas aux flancs très rentrés, bandes ocre des deux batteries serrées
  * l'une sur l'autre, hauts peints aux couleurs du camp ; gaillard d'arrière et dunette bas, gaillard d'avant, poupe à
  * deux galeries et bouteilles, poulaine et lion de proue (comme le galion) ; trois mâts carrés, hunier d'artimon au-dessus
- * de la brigantine qui pivote selon le vent, civadière et contre-civadière, voiles d'étai débloquées par la voilure.
+ * de la brigantine qui pivote selon le vent, civadière et contre-civadière, deux focs, voiles d'étai débloquées par la
+ * voilure.
  * Batteries dans le bordé derrière des mantelets fermés en route : au combat, ils se relèvent et les fûts sortent
  * (setGunports) ; pièces légères sur affût sur le pont et les gaillards. Allongé (64 → 74 → 80), il est reconstruit.
  */
@@ -62,6 +63,7 @@ export class ShipOfLineModel implements ShipModel {
   private sails: THREE.Mesh[] = [];
   private yards: THREE.Mesh[] = [];
   private spritsail!: THREE.Mesh;
+  private jibs: THREE.Mesh[] = [];
   /** Gréement de la brigantine (bôme + voile + corne), qui pivote autour de l'artimon ; `hoist` porte la voile et la corne. */
   private spankerRig!: THREE.Group;
   private hoist!: THREE.Group;
@@ -182,6 +184,7 @@ export class ShipOfLineModel implements ShipModel {
     this.flag.update(dt);
     this.spankerRig.rotation.y = damp(this.spankerRig.rotation.y, this.boomTarget, 1.1, dt);
     this.hoist.scale.x = this.leeSide;
+    for (const jib of this.jibs) jib.scale.x = Math.abs(jib.scale.x) * this.leeSide;
     if (this.lids.update(dt)) this.runOut();
   }
 
@@ -241,6 +244,12 @@ export class ShipOfLineModel implements ShipModel {
     });
     this.spritsail = new THREE.Mesh(t.spritsail, this.tornSail.material(t.spritsail, 'z'));
     this.spritsail.position.copy(L.spritsail.yard);
+    this.jibs = L.jibs.map((j, i) => {
+      const jib = new THREE.Mesh(t.jibs[i], this.tornSail.material(t.jibs[i], 'x'));
+      jib.position.copy(j.tack);
+      this.body.add(jib);
+      return jib;
+    });
     // Brigantine : elle pivote autour de l'artimon, à la hauteur de sa bôme.
     this.hoist = new THREE.Group();
     this.hoist.add(new THREE.Mesh(t.spanker, this.tornSail.material(t.spanker, 'x', false, SAIL_BILLOW.aftSailCurve)), new THREE.Mesh(t.gaff, t.palette.wood));
@@ -288,6 +297,7 @@ export class ShipOfLineModel implements ShipModel {
     this.batteryGuns = [];
     this.sails = [];
     this.yards = [];
+    this.jibs = [];
   }
 
   /** Les fûts des batteries suivent les mantelets : rentrés derrière un sabord fermé, sortis quand il s'ouvre. */
@@ -296,7 +306,7 @@ export class ShipOfLineModel implements ShipModel {
     for (const { mesh, side, outX } of this.batteryGuns) mesh.position.x = outX - side * back;
   }
 
-  /** Voiles carrées carguées vers leur vergue (et élargies avec la voilure) ; brigantine carguée. */
+  /** Voiles carrées carguées vers leur vergue (et élargies avec la voilure) ; focs et brigantine réduits. */
   private applySails() {
     this.staysails.apply(this.sailAmount, this.leeSide);
     const hoisted = 0.1 + 0.9 * this.sailAmount;
@@ -304,6 +314,8 @@ export class ShipOfLineModel implements ShipModel {
     for (const sail of this.sails) sail.scale.set(width, hoisted, 1);
     for (const yard of this.yards) yard.scale.x = width;
     this.spritsail.scale.set(width, hoisted, 1);
+    const jib = 0.15 + 0.85 * this.sailAmount;
+    for (const j of this.jibs) j.scale.set(jib * this.leeSide, jib, jib);
     this.spankerRig.scale.z = 1 + SPANKER_GROWTH * this.sailLevel;
     this.hoist.scale.set(this.leeSide, hoisted, 1);
   }

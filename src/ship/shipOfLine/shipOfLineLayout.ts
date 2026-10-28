@@ -10,8 +10,15 @@ import type { GaffSailShape } from '../parts/sails';
 /** Longueur du vaisseau de 64 (m) : les positions écrites en « u de base » s'y rapportent. */
 export const SHIP_OF_LINE_LENGTH = 38;
 const BASE_HALF = SHIP_OF_LINE_LENGTH / 2;
-/** Milieu (u de base), entre le gaillard d'arrière et le gaillard d'avant : c'est lui qui s'étire (74, puis 80). */
-const WAIST = { from: -0.38, to: 0.56 };
+/**
+ * Parties qui s'étirent (u de base) à chaque allongement (74, puis 80) : le gaillard d'arrière devant la dunette, le
+ * milieu, et le gaillard d'avant ; `share` = part de la longueur de chaque allongement donnée à chacune.
+ */
+const STRETCH = [
+  { from: -0.78, to: -0.45, share: 0.3 },
+  { from: -0.38, to: 0.56, share: 0.5 },
+  { from: 0.64, to: 0.8, share: 0.2 },
+];
 
 /**
  * Gabarit de la coque (u de base) : très large en bas, flancs qui rentrent fortement vers le pont (rentrée mesurée à
@@ -78,13 +85,22 @@ const WINDOWS: readonly (readonly [number, number])[] = [
 const BEAK = { below: 1.3, reach: 4.2, halfWidth: 1.1, cutwaterFoot: 1.6, tip: 0.85 };
 /** Beaupré : pied sous le pont du gaillard d'avant, juste devant la misaine ; pointe ; petit mât de contre-civadière (m). */
 const BOWSPRIT = { heel: 0.6, heelBelow: 0.5, tipY: 15.8, reach: 11, topmast: 5 };
+/**
+ * Focs (au-dessus de la civadière, ce qui distingue sa voilure de celle du galion) : point d'amure le long du beaupré
+ * (0 au pied, 1 à la pointe), têtière sur la misaine (hauteur), point d'écoute bas et en arrière (hauteur, recul depuis
+ * la misaine, m) : des triangles assez larges. Grand foc puis petit foc.
+ */
+const JIBS = [
+  { along: 0.88, head: 30.5, clewY: 11.5, clewAhead: 6.4 },
+  { along: 0.58, head: 24, clewY: 9.6, clewAhead: 4.2 },
+];
 /** Brigantine : hauteur de sa bôme au-dessus de la dunette (au-dessus des têtes), dépassement de la poupe (m). */
 const SPANKER = { boomAbovePoop: 2.1, overhang: 3.4 };
 
 /**
  * Plan d'un vaisseau de ligne : de 64 (base), de 74 (1 allongement), de 80 (2). Les positions le long de la coque sont
- * en u de la coque ; `base(u)` convertit une position pensée pour le vaisseau de 64 (le milieu s'étire, les châteaux
- * glissent). Les types des mâts, voiles carrées, ponts et pièces sont ceux du galion (galleonLayout.ts).
+ * en u de la coque ; `base(u)` convertit une position pensée pour le vaisseau de 64 (le milieu et les gaillards
+ * s'étirent, la dunette, la poupe et l'étrave glissent). Les types des mâts, voiles carrées, ponts et pièces sont ceux du galion (galleonLayout.ts).
  */
 export interface ShipOfLineLayout {
   readonly level: number;
@@ -113,6 +129,8 @@ export interface ShipOfLineLayout {
   readonly boomY: number;
   readonly bowsprit: { base: THREE.Vector3; tip: THREE.Vector3; topmast: THREE.Vector3 };
   readonly spritsail: { yard: THREE.Vector3; width: number; height: number };
+  /** Focs : point d'amure, têtière et point d'écoute. */
+  readonly jibs: readonly { tack: THREE.Vector3; head: THREE.Vector3; clew: THREE.Vector3 }[];
   readonly beak: { y: number; rootZ: number; tipZ: number; halfWidth: number; cutwaterFoot: number; figurehead: THREE.Vector3 };
   readonly wheel: { y: number; z: number };
   readonly flag: { length: number; height: number; y: number };
@@ -136,7 +154,7 @@ const spread = (from: number, to: number, count: number) => Array.from({ length:
 
 function createLayout(level: number): ShipOfLineLayout {
   const added = (SHIP_TYPES.shipOfLine.extensions ?? []).slice(0, level).reduce((sum, e) => sum + e.length, 0);
-  const { half, extra, zOf, base } = hullStretch(BASE_HALF, [{ ...WAIST, added }]);
+  const { half, extra, zOf, base } = hullStretch(BASE_HALF, STRETCH.map(({ from, to, share }) => ({ from, to, added: added * share })));
   const hull = new HullShape(
     HULL_ROWS.map(([u, ...rest]) => [base(u), ...rest] as [number, number, number, number]),
     half,
@@ -210,6 +228,11 @@ function createLayout(level: number): ShipOfLineLayout {
     },
     boomY,
     bowsprit,
+    jibs: JIBS.map((j) => ({
+      tack: bowsprit.base.clone().lerp(bowsprit.tip, j.along),
+      head: new THREE.Vector3(0, j.head, foreMast.z + 0.3),
+      clew: new THREE.Vector3(0, j.clewY, foreMast.z + j.clewAhead),
+    })),
     spritsail: { yard: bowsprit.base.clone().lerp(bowsprit.tip, 0.66).add(new THREE.Vector3(0, -0.15, 0)), width: 8.4, height: 3.8 },
     beak: {
       y: stem.gunwale - BEAK.below,

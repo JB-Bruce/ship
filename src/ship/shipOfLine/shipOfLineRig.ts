@@ -53,7 +53,7 @@ function addChannels(batch: GeometryBatch, p: Palette, L: ShipOfLineLayout, feet
 
 /**
  * Haubans des trois mâts (sur les porte-haubans), galhaubans des têtes de mât, étais (artimon → grand mât → misaine →
- * beaupré, et du perroquet de misaine au mât de contre-civadière), sous-barbe vers l'éperon.
+ * beaupré, et du perroquet de misaine au mât de contre-civadière), étais des focs, sous-barbe vers l'éperon.
  */
 export function buildRigging(L: ShipOfLineLayout): THREE.BufferGeometry {
   const { hull, bowsprit } = L;
@@ -66,6 +66,7 @@ export function buildRigging(L: ShipOfLineLayout): THREE.BufferGeometry {
     new THREE.Vector3(0, L.mainMast.topPlatform + 0.4, L.mainMast.z), new THREE.Vector3(0, L.foreMast.base + 1.2, L.foreMast.z - 0.4),
     head(L.mizzenMast), new THREE.Vector3(0, L.mainMast.topPlatform - 1.5, L.mainMast.z),
     bowsprit.tip, new THREE.Vector3(0, L.beak.figurehead.y - 0.2, L.beak.figurehead.z - 0.4),
+    ...L.jibs.flatMap((j) => [j.head, j.tack]),
   ];
   for (const side of [1, -1]) {
     for (const [mast] of mastsOf(L)) {

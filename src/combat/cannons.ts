@@ -60,6 +60,8 @@ const centered = () => Math.random() + Math.random() - 1;
 export function updateCannons(dt: number, ships: readonly Ship[], projectiles: Projectiles, effects: Effects, waves: Waves) {
   for (const ship of ships) {
     if (!ship.alive) continue;
+    // Sabords à mantelets : ouverts dès qu'un adversaire approche, avant d'être à portée (pas en même temps que le tir).
+    if (ship.model.setGunports && hostileWithin(ship, ships, ship.stats.cannon.range * conditions.rangeFactor * GUNPORTS.reach)) ship.battleAlert = GUNPORTS.hold;
     const mounts = ship.model.cannons;
     let lastAngle = NaN;
     let lastArc = NaN;
@@ -133,6 +135,15 @@ export function findTarget(ship: Ship, angle: number, ships: readonly Ship[], ca
     bestDistance = distance;
   }
   return best;
+}
+
+/** Un adversaire à flot à moins de `distance` de ce bateau ? */
+function hostileWithin(ship: Ship, ships: readonly Ship[], distance: number): boolean {
+  for (const other of ships) {
+    if (other === ship || !other.alive || !isHostile(ship, other)) continue;
+    if (Math.hypot(other.position.x - ship.position.x, other.position.z - ship.position.z) < distance) return true;
+  }
+  return false;
 }
 
 /** Le point assiégé par ce bateau, s'il est à portée et dans l'arc du canon pointant vers `angle`, sinon null. */

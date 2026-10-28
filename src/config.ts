@@ -251,10 +251,11 @@ export const AIM = {
 export const MORTAR_SHELL: ShellStats = { gravityFactor: 2, flightBase: 1.8, flightPerMeter: 0.0135, blastRadius: 12, blastShare: 0.5, size: 2.2 };
 /**
  * Sabords qui s'ouvrent au combat (vaisseau de ligne, ship/parts/gunportLids.ts) : fermés en route, les mantelets se
- * relèvent dès qu'un canon du navire a une cible, et se referment `hold` s après la dernière ; angle d'ouverture (rad),
+ * relèvent dès qu'un adversaire approche à moins de `reach` × la portée des batteries (ou qu'un canon a une cible), et
+ * se referment `hold` s après ; angle d'ouverture (rad),
  * temps d'ouverture ou de fermeture (s), recul des fûts derrière un sabord fermé (m).
  */
-export const GUNPORTS = { hold: 10, openAngle: 1.3, time: 1.4, runIn: 0.85 };
+export const GUNPORTS = { hold: 10, reach: 1.5, openAngle: 1.3, time: 1.4, runIn: 0.85 };
 
 export const MORTAR_FX = {
   trailInterval: 0.025,
