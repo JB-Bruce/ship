@@ -174,6 +174,8 @@ export class SettingsMenu extends ParchmentMenu {
       case 'rank': return c.nextRank();
       case 'chaser': return c.spawnChaser();
       case 'cursed': return c.spawnCursed();
+      case 'fireship': return c.spawnFireship();
+      case 'takeFireship': return c.takeFireship();
       case 'boss': return c.spawnBoss(value as BossId);
       case 'teleport': return c.teleport(value);
     }

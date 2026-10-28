@@ -27,11 +27,12 @@ export function cheatTab(ctx: SettingsContext): string {
     <div class="settings-list">
       ${row('Invincibilité', 'Ta flotte ne prend plus aucun dégât.', button('Oui', 'invincible', 'on', c.invincible) + button('Non', 'invincible', 'off', !c.invincible))}
       ${row('Réparer', 'Tous les navires de ta flotte retrouvent toute leur vie, avaries réparées.', button('Réparer la flotte', 'repair'))}
+      ${row('Brûlot', 'Un brûlot rejoint ta flotte et tu en prends la barre : il saute au premier contact avec une coque adverse, puis revient comme un navire coulé.', button('Prendre un brûlot', 'takeFireship'))}
       ${row('Améliorations', 'Navire piloté amélioré au maximum (allongements compris) ; bâtiments de tes îles au maximum ; rang suivant pour le navire piloté.', button('Navire au maximum', 'upgrades') + button('Îles au maximum', 'islands') + button('Rang suivant', 'rank'))}
     </div>
     <h3 class="section">Faire surgir</h3>
     <div class="settings-list">
-      ${row('Ennemis', 'Un ennemi déjà lancé à ta poursuite ; un navire maudit (de nuit seulement).', button('Ennemi en chasse', 'chaser') + button('Navire maudit', 'cursed'))}
+      ${row('Ennemis', 'Un ennemi déjà lancé à ta poursuite ; un navire maudit ou un brûlot maudit (de nuit seulement).', button('Ennemi en chasse', 'chaser') + button('Navire maudit', 'cursed') + button('Brûlot maudit', 'fireship'))}
       ${row('Boss', 'Le boss surgit tout de suite, même hors de son temps, et reste jusqu’à ce qu’il coule.', bosses)}
     </div>
     <h3 class="section">Se téléporter</h3>

@@ -67,8 +67,11 @@ export interface ShipTypeDef {
   feminine?: boolean;
   /** Présentation à l'achat ; un autre type s'y nomme à trous (« {le:corvette} », `revealTypes` de progression/blueprints.ts). */
   description: string;
-  /** Disposition des canons : sur les flancs (bordée) ou à l'avant (l'IA attaque alors en passes). */
-  armament: 'broadside' | 'bow';
+  /**
+   * Disposition des canons : sur les flancs (bordée) ou à l'avant (l'IA attaque alors en passes) ; `ram` : aucun canon,
+   * l'IA fonce sur sa cible pour l'éperonner (brûlot).
+   */
+  armament: 'broadside' | 'bow' | 'ram';
   /**
    * Menace en points (barque 1 … frégate 6) : la taille du navire pour les contrats (étoiles) et le niveau de la
    * flotte. Elle ne suit pas l'ordre de SHIP_SIZE_ORDER (la caravelle, entre le sloop et le brigantin, vaut 3,5).
@@ -109,6 +112,11 @@ export interface ShipTypeDef {
   tradeBonus?: number;
   /** Noms des deux calibres au chantier (par défaut « Batterie » et « Canons des gaillards »). */
   gunLabels?: { main: string; deck: string };
+  /**
+   * Brûlot : il explose au premier contact avec une coque adverse (combat/fireships.ts). Dégâts au navire touché et
+   * rayon du souffle (m), par nombre d'allongements faits.
+   */
+  fireship?: { damage: readonly number[]; radius: readonly number[] };
   /** Allongements possibles, dans l'ordre (frégate). */
   extensions?: readonly ExtensionDef[];
 }

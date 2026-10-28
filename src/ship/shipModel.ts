@@ -12,6 +12,7 @@ import { CaravelModel } from './caravel/caravelModel';
 import { SchoonerModel } from './schooner/schoonerModel';
 import { CorvetteModel } from './corvette/corvetteModel';
 import { CutterModel } from './cutter/cutterModel';
+import { FireshipModel } from './fireship/fireshipModel';
 import type { DeckPlan } from './deckPlan';
 import type { LanternSpot } from './parts/nightGlow';
 import { FrigateModel } from './frigate/frigateModel';
@@ -114,6 +115,7 @@ export function createShipModel(type: ShipType, stats: ShipStats, livery: Livery
   if (type === 'sloop') return new SloopModel(stats, livery);
   if (type === 'rowboat') return new RowboatModel(stats, livery);
   if (type === 'cutter') return new CutterModel(stats, livery);
+  if (type === 'fireship') return new FireshipModel(stats, livery);
   if (type === 'caravel') return new CaravelModel(stats, livery);
   if (type === 'schooner') return new SchoonerModel(stats, livery);
   if (type === 'brigantine') return new BrigantineModel(stats, livery);

@@ -1,5 +1,5 @@
 import type * as THREE from 'three';
-import { BROADSIDE, COMBAT, CONTRACTS, ENEMIES, GARRISON, HARASS, SAIL } from '../config';
+import { BROADSIDE, COMBAT, CONTRACTS, ENEMIES, GARRISON, HARASS, SAIL, FIRESHIP } from '../config';
 import type { Ship } from '../ship/ship';
 import { SHIP_TYPES } from '../shipTypes';
 import { wrapAngle } from '../utils/math';
@@ -143,6 +143,8 @@ export class EnemyAI {
       const leader = this.group?.leader;
       if (this.slot && leader && leader.alive) this.followLeader(leader);
       else this.patrol(dt);
+    } else if (SHIP_TYPES[this.ship.type].armament === 'ram') {
+      this.ramRun(target, distance);
     } else if (SHIP_TYPES[this.ship.type].armament === 'bow') {
       this.attackRun(dt, target, distance);
     } else if (this.state === 'chase') {
@@ -203,6 +205,14 @@ export class EnemyAI {
     }
     // Pleine cadence pour fondre sur la cible, on ralentit seulement en fin de passe pour bien viser.
     steerTo(this.ship, bearing, distance < ENEMIES.veerDistance * 2 ? SAIL.half : SAIL.full);
+  }
+
+  /** Brûlot : il fond sur sa proie, toutes voiles dehors, en visant là où elle sera quand il l'atteindra. */
+  private ramRun(target: Ship, distance: number) {
+    const time = Math.min(FIRESHIP.maxLead, (distance / Math.max(this.ship.speed, 1)) * FIRESHIP.lead);
+    const x = target.position.x + target.velocityX * time;
+    const z = target.position.z + target.velocityZ * time;
+    steerTo(this.ship, bearingTo(this.ship, x, z), SAIL.full);
   }
 
   /** Nouvelle attaque de harcèlement. */

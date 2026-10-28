@@ -6,6 +6,7 @@ import { Campaign } from './campaign';
 import { ChaseCamera } from './camera/chaseCamera';
 import { arcOf, cannonStatsOf, findTarget, updateCannons } from './combat/cannons';
 import { Criticals } from './combat/criticals';
+import { Fireships } from './combat/fireships';
 import { Projectiles, type Ball } from './combat/projectiles';
 import { setupDebug } from './debug';
 import { DeckCrew } from './deckCrew/deckCrew';
@@ -170,6 +171,7 @@ export class Game {
   private readonly radar: Radar;
   private readonly encounters: EncounterAlerts;
   private readonly criticals: Criticals;
+  private readonly fireships: Fireships;
   private readonly healthBars: HealthBars;
   private readonly bossBar: ObjectiveBar;
   private readonly siegeBar: ObjectiveBar;
@@ -239,6 +241,11 @@ export class Game {
       scene: this.scene,
       leader: () => this.fleet.leader,
       struck: (ship) => this.critLoot(ship),
+    });
+    this.fireships = new Fireships({
+      effects: this.effects,
+      criticals: this.criticals,
+      applyDamage: (ship, damage, attacker, forced) => this.applyDamage(ship, damage, attacker, forced),
     });
     this.healthBars = new HealthBars(container);
     this.vignette = new DangerVignette(container);
@@ -389,7 +396,13 @@ export class Game {
       ship.far = Math.hypot(ship.position.x - focus.x, ship.position.z - focus.z) > OCEAN.farShips;
       ship.update(dt, this.waves, this.wind);
     }
-    resolveCollisions(this.ships, this.effects, (ship, damage, other) => this.applyDamage(ship, damage, other));
+    resolveCollisions(
+      this.ships,
+      this.effects,
+      (ship, damage, other) => this.applyDamage(ship, damage, other),
+      (fireship, target) => this.fireships.detonate(fireship, target, this.ships),
+    );
+    this.fireships.update(dt, this.ships, this.camera.position);
     resolveLandCollisions(this.ships);
     this.repairStatus = this.campaign.repairAtPort(dt, this.ships, this.fleet.leader);
     // Au menu principal, la partie n'a pas commencé : ni l'heure ni les journées n'avancent (le monde vit quand même).
@@ -554,10 +567,13 @@ export class Game {
     if (ship === this.fleet.leader) this.chaseCamera.shake(COMBAT.shellShake);
   }
 
-  /** `attacker` : qui a porté le coup (bateau, fort), pour savoir qui a coulé un ennemi ; null pour la foudre et la mer. */
-  private applyDamage(ship: Ship, damage: number, attacker: Combatant | null = null) {
+  /**
+   * `attacker` : qui a porté le coup (bateau, fort), pour savoir qui a coulé un ennemi ; null pour la foudre et la mer.
+   * `forced` : passe outre l'invincibilité (un brûlot de ta flotte qui saute sombre quand même).
+   */
+  private applyDamage(ship: Ship, damage: number, attacker: Combatant | null = null, forced = false) {
     // Triche : ta flotte ne prend plus aucun dégât.
-    if (this.cheats.invincible && this.fleet.members.some((m) => m.ship === ship)) return;
+    if (!forced && this.cheats.invincible && this.fleet.members.some((m) => m.ship === ship)) return;
     const sank = ship.damage(damage);
     const leader = this.fleet.leader;
     if (ship === leader) this.chaseCamera.shake(COMBAT.hitShake);

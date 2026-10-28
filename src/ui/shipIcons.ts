@@ -19,6 +19,9 @@ export const TOPSAIL_SCHOONER_ICON = `<svg viewBox="0 0 48 48"><path d="M1 32h40
 /** Cotre armé : coque plus longue, hunier volant en tête du mât. */
 export const ARMED_CUTTER_ICON = `<svg viewBox="0 0 48 48"><path d="M1 32h39l-5 6H7z"/><path d="M40 31h8M24 32V1M0 29h24"/><path d="M23 9L7 5 1 29h22zM25 7l22 24H34zM25 15l9 15h-9zM19 2h11v5H19z"/></svg>`;
 
+/** Grand brûlot : coque plus longue, petit mât d'artimon, tonneaux et flammes sur le pont. */
+export const GRAND_FIRESHIP_ICON = `<svg viewBox="0 0 48 48"><path d="M2 30h42l-5 8H8z"/><path d="M44 30l4-6M26 30V4M10 30V14M18 8h16M17 16h18M6 18l8-3"/><path d="M19 9h14l1 6H18zM18 17h16l1 9H17zM10 18l7 8H10zM14 30v-3h4v3M30 30v-3h4v3M15 26q1-3 0-5q2 2 1 5M31 26q1-3 0-5q2 2 1 5"/></svg>`;
+
 /** Grande galiote : coque plus longue, trois mortiers sur l'avant. */
 export const GRAND_GALIOT_ICON = `<svg viewBox="0 0 48 48"><path d="M0 26h9v3h29l9-2-4 10H7q-6-1-7-11z"/><path d="M45 27l3-4M22 29V3M9 26V9M15 7h14M14 13h16M13 20h18M23 4l20 22H31z"/><path d="M9 25H2l2-14 5-2zM29 28a2 2 0 0 1 4 0M34 28a2 2 0 0 1 4 0M39 28a2 2 0 0 1 4 0"/></svg>`;
 
@@ -65,6 +68,7 @@ const EXTENDED_ICONS: Partial<Record<ShipType, readonly string[]>> = {
   brigantine: [LONG_BRIGANTINE_ICON],
   schooner: [TOPSAIL_SCHOONER_ICON],
   cutter: [ARMED_CUTTER_ICON],
+  fireship: [GRAND_FIRESHIP_ICON],
   galiot: [GRAND_GALIOT_ICON],
   senau: [GRAND_SENAU_ICON],
   shipOfLine: [SHIP_OF_LINE_74_ICON, SHIP_OF_LINE_80_ICON],
@@ -91,6 +95,7 @@ export const SHIP_ICONS: Record<ShipType, string> = {
   shipOfLine: `<svg viewBox="0 0 48 48"><path d="M4 24h5v2h27l4-1-3 13H10q-6-2-6-14z"/><path d="M7 30h30M7 33.5h28M10.0 33.5v2M13.4 33.5v2M16.9 33.5v2M20.3 33.5v2M23.7 33.5v2M27.1 33.5v2M30.6 33.5v2M34.0 33.5v2M9.0 30v2M12.7 30v2M16.4 30v2M20.1 30v2M23.9 30v2M27.6 30v2M31.3 30v2M35.0 30v2"/><path d="M33 25V5M21 26V2M11 24V8M28 7h10M27 13h12M26 20h14M16 4h10M15 11h12M14 18h14M7 10h8M11 12L3 15v6h8M40 26l7-9"/></svg>`,
   senau: `<svg viewBox="0 0 48 48"><path d="M1 27h9v3h35l-4 9H6q-5-2-5-12z"/><path d="M4 33.5h38M8 33.5v2.5M13 33.5v2.5M18 33.5v2.5M23 33.5v2.5M28 33.5v2.5M33 33.5v2.5M38 33.5v2.5"/><path d="M32 30l-1-27M16 30l-1-28M14 29l-.5-17M26 6h11M25 12h13M24 19h15M23 26h17M10 5h11M9 11h13M8 18h15M7 25h17M13.5 14L1 11l1 15h12M46 29L32 6M32 17l12 11"/></svg>`,
   galiot: `<svg viewBox="0 0 48 48"><path d="M1 26h10v3h26l9-2-4 10H8q-6-1-7-11z"/><path d="M45 27l3-4M24 29V3M11 26V9M17 7h14M16 13h16M15 20h18M25 4l20 22H33z"/><path d="M11 25H4l2-14 5-2zM34 28a2 2 0 0 1 4 0M39 28a2 2 0 0 1 4 0"/></svg>`,
+  fireship: `<svg viewBox="0 0 48 48"><path d="M4 30h36l-5 8H9z"/><path d="M40 30l5-6M24 30V4M16 8h16M15 16h18"/><path d="M17 9h14l1 6H16zM16 17h16l1 9H15zM12 30v-3h4v3M28 30v-3h4v3M13 26q1-3 0-5q2 2 1 5M29 26q1-3 0-5q2 2 1 5"/></svg>`,
   cutter: `<svg viewBox="0 0 48 48"><path d="M3 32h34l-5 6H9z"/><path d="M37 31h11M26 32V2M1 29h25"/><path d="M25 9L9 4 2 29h23zM27 6l20 25H35zM27 15l9 15h-9z"/></svg>`,
   rowboat: `<svg viewBox="0 0 48 48"><path d="M6 30h36l-5 7H11z"/><path d="M12 30l-6 8M36 30l6 8"/></svg>`,
   longboat: `<svg viewBox="0 0 48 48"><path d="M5 34h38l-5 7H10z"/><path d="M24 34V6M14 10h20M15 12c-2 7-2 14 0 20h18c2-6 2-13 0-20"/></svg>`,

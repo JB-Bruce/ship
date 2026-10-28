@@ -32,6 +32,9 @@ export interface CheatActions {
   repairFleet(): void;
   spawnChaser(): void;
   spawnCursed(): void;
+  /** Un brûlot maudit (de nuit) ; un brûlot dans ta flotte, à la barre. */
+  spawnFireship(): void;
+  takeFireship(): void;
   spawnBoss(id: BossId): void;
   teleport(id: string): void;
   maxUpgrades(): void;
@@ -111,6 +114,23 @@ export class Cheats implements CheatActions {
       return;
     }
     this.w.cursed.summon(this.w.fleet.leader, 1, CURSED.rankBonus);
+  }
+
+  /** Un brûlot maudit surgit (de nuit seulement). */
+  spawnFireship() {
+    if (!this.w.cursed.night) {
+      this.w.hud.toast('Les navires maudits ne surgissent que de nuit', 2.5);
+      return;
+    }
+    this.w.cursed.summon(this.w.fleet.leader, 1, CURSED.rankBonus, 'fireship');
+  }
+
+  /** Un brûlot rejoint ta flotte, et tu en prends la barre (il saute au premier contact avec une coque adverse). */
+  takeFireship() {
+    const member = this.w.fleet.add('fireship', { gold: 0, wood: 0 });
+    refit(member, this.w.campaign.crew);
+    this.w.fleet.takeControl(member);
+    this.say(`${member.name}, un brûlot, rejoint ta flotte`);
   }
 
   spawnBoss(id: BossId) {

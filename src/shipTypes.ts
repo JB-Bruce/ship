@@ -2,10 +2,13 @@
 // Un tableau d'amélioration = une valeur par niveau (le niveau 1 est la première case).
 
 import { UPGRADE_INFO, type ShipTypeDef } from './shipTypeDef';
-import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CARRACK_STATS, CORVETTE_STATS, CUTTER_STATS, FLUYT_STATS, GALIOT_STATS, SENAU_STATS, SHIP_OF_LINE_STATS, FRIGATE_STATS, GALLEASS_STATS, GALLEON_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, XEBEC_STATS } from './shipStats';
+import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CARRACK_STATS, CORVETTE_STATS, CUTTER_STATS, FIRESHIP_STATS, FLUYT_STATS, GALIOT_STATS, SENAU_STATS, SHIP_OF_LINE_STATS, FRIGATE_STATS, GALLEASS_STATS, GALLEON_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, XEBEC_STATS } from './shipStats';
 
-export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'cutter' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'fluyt' | 'brig' | 'senau' | 'galiot' | 'corvette' | 'carrack' | 'galleass' | 'frigate' | 'galleon' | 'shipOfLine';
-/** Du plus petit au plus gros (par rang de taille ; à rang égal, dans l'ordre d'affichage). */
+export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'cutter' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'fluyt' | 'brig' | 'senau' | 'galiot' | 'corvette' | 'carrack' | 'galleass' | 'frigate' | 'galleon' | 'shipOfLine' | 'fireship';
+/**
+ * Du plus petit au plus gros (par rang de taille ; à rang égal, dans l'ordre d'affichage). Le brûlot n'y est pas :
+ * réservé aux navires maudits (world/cursedTide.ts), il n'a ni plan, ni achat, ni place dans les autres apparitions.
+ */
 export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'cutter', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'senau', 'galiot', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon', 'shipOfLine'];
 /** Nom du type d'un navire selon ses allongements (« Frégate allongée », « Grande frégate »). */
 export function typeName(type: ShipType, extension = 0): string {
@@ -33,6 +36,43 @@ export type { ExtensionDef, MassTable, ShipTypeDef, UpgradeTable } from './shipT
 export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'cutter', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'senau', 'galiot', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon', 'shipOfLine'];
 
 export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
+  fireship: {
+    name: 'Brûlot',
+    description: 'Vieille coque délavée bourrée de tonneaux de poudre et de fagots, sans un seul canon, où couve un feu vert : un navire maudit qui fond sur sa proie et saute au premier contact.',
+    armament: 'ram',
+    rank: 2,
+    threat: 2.5,
+    lootFactor: 0,
+    price: { gold: 0, wood: 0 },
+    respawnTime: 50,
+    hold: 0,
+    stats: FIRESHIP_STATS,
+    enemyStats: FIRESHIP_STATS,
+    upgrades: {
+      accuracy: { costs: [], spreadFactor: [] },
+      range: { costs: [], rangeFactor: [] },
+      cannons: { costs: [], cannonsPerSide: [] },
+      hull: { costs: [{ gold: 40, wood: 40 }], healthFactor: [1.15] },
+      sails: { costs: [{ gold: 40, wood: 10 }, { gold: 70, wood: 18 }], speedFactor: [1.05, 1.1] },
+      hold: { costs: [], capacity: [] },
+      nets: { costs: [], catchFactor: [] },
+    },
+    mass: { base: 190, perExtraCannon: 0, hull: [14], sails: [3, 6], hold: [], speedLossPerUnit: 0.0006 },
+    fireship: { damage: [350, 500], radius: [30, 40] },
+    extensions: [
+      {
+        name: 'Grand brûlot',
+        description: 'Une coque plus longue de quatre mètres, un petit mât d’artimon et bien plus de poudre : plus solide, et une explosion plus forte et plus large.',
+        cost: { gold: 0, wood: 0 },
+        length: 4,
+        healthFactor: 1.5,
+        speedFactor: 0.97,
+        turnFactor: 0.9,
+        mass: 50,
+        extraLevels: {},
+      },
+    ],
+  },
   rowboat: {
     name: 'Barque',
     feminine: true,

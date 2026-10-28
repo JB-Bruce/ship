@@ -257,6 +257,25 @@ export const MORTAR_SHELL: ShellStats = { gravityFactor: 2, flightBase: 1.8, fli
  */
 export const GUNPORTS = { hold: 10, reach: 1.5, openAngle: 1.3, time: 1.4, runIn: 0.85 };
 
+/**
+ * Brûlot (navire maudit, combat/fireships.ts) : il saute au premier contact avec une coque adverse. Le navire touché
+ * prend les dégâts de sa charge (`ShipTypeDef.fireship`) et prend feu ; les autres adversaires du brûlot dans le rayon
+ * du souffle en prennent `blastShare` au centre, `edge` fois moins au bord, et prennent feu une fois sur
+ * `1 / igniteChance`. Feu vert qui couve sur ses tonneaux (`flame` : couleurs, hauteur min et max, vitesse du
+ * vacillement, flammes par tas) et fumée qui traîne derrière lui (`smoke` : bouffées par seconde, taille), seulement
+ * s'il est à moins de `smoke.range` m de la caméra.
+ */
+export const FIRESHIP = {
+  blastShare: 0.5,
+  edge: 0.5,
+  igniteChance: 0.5,
+  flame: { color: 0x58d27a, core: 0xbff3b4, height: [0.6, 1.25] as const, flicker: 7, perKeg: 2 },
+  smoke: { rate: 1.4, scale: 0.85, range: 420 },
+  /** L'IA vise où sera sa proie : avance de la visée (part du temps pour l'atteindre), au plus `maxLead` s. */
+  lead: 0.8,
+  maxLead: 4,
+};
+
 export const MORTAR_FX = {
   trailInterval: 0.025,
   /** Taille de l'explosion d'un obus (Effects.explosion ; la sainte-barbe : CRIT.magazineScale). */
@@ -497,8 +516,8 @@ export const DECK_CREW = {
   /** Marins au plus dans le monde (taille des lots de dessin). */
   maxSailors: 400,
   /** Matelots à bord (en plus du barreur et de la vigie), et en plus à chaque allongement du navire. */
-  hands: { shipOfLine: 14, senau: 7, galiot: 7, sloop: 3, cutter: 3, caravel: 4, schooner: 4, brigantine: 5, xebec: 5, fluyt: 6, brig: 6, corvette: 7, carrack: 9, galleass: 10, frigate: 10, galleon: 12 },
-  handsPerExtension: { shipOfLine: 3, senau: 2, galiot: 2, cutter: 1, schooner: 1, brigantine: 2, xebec: 1, fluyt: 2, brig: 2, corvette: 3, carrack: 3, galleass: 3, frigate: 3, galleon: 3 },
+  hands: { fireship: 2, shipOfLine: 14, senau: 7, galiot: 7, sloop: 3, cutter: 3, caravel: 4, schooner: 4, brigantine: 5, xebec: 5, fluyt: 6, brig: 6, corvette: 7, carrack: 9, galleass: 10, frigate: 10, galleon: 12 },
+  handsPerExtension: { fireship: 1, shipOfLine: 3, senau: 2, galiot: 2, cutter: 1, schooner: 1, brigantine: 2, xebec: 1, fluyt: 2, brig: 2, corvette: 3, carrack: 3, galleass: 3, frigate: 3, galleon: 3 },
   walkSpeed: 1.1,
   runSpeed: 3,
   /**
@@ -682,7 +701,7 @@ export type OfficerTrait = 'lynx' | 'oldSalt' | 'ironArm' | 'resourceful' | 'luc
 /** Officiers de bord : recrutés à la taverne, affectés à un navire (places selon son type), ils progressent en combattant. */
 export const OFFICERS = {
   /** Places d'officiers par type de navire. */
-  slots: { shipOfLine: 4, senau: 2, galiot: 2, rowboat: 0, longboat: 1, sloop: 1, cutter: 1, caravel: 1, schooner: 1, brigantine: 2, xebec: 2, fluyt: 2, brig: 2, corvette: 2, carrack: 3, galleass: 3, frigate: 3, galleon: 4 } as Record<ShipType, number>,
+  slots: { fireship: 0, shipOfLine: 4, senau: 2, galiot: 2, rowboat: 0, longboat: 1, sloop: 1, cutter: 1, caravel: 1, schooner: 1, brigantine: 2, xebec: 2, fluyt: 2, brig: 2, corvette: 2, carrack: 3, galleass: 3, frigate: 3, galleon: 4 } as Record<ShipType, number>,
   /** Fonctions : nom, symbole, et effet par étoile de talent. */
   roles: {
     gunner: { name: 'Canonnier', icon: '💥', perStar: { reload: -0.04, spread: -0.05 } },
@@ -962,9 +981,11 @@ export const LIVERIES: Record<Faction, Livery> = {
  * (uTear des voiles, environ 60 % de toile arrachée) ; ils se battent à mort, mais replongent au lever du jour, à plus de `leaveDistance` m de ta flotte ou
  * après `lifetime` s. Apparence : matériaux de la coque délavés vers le gris (`ghost` : saturation gardée, clarté
  * visée, part du mélange), équipage gris pâle (`crewTint`), brume pâle autour de la coque (`mist` bouffées / s).
+ * Chaque navire surgi est un brûlot (`fireshipShare` : la part d'un type ordinaire) plutôt qu'un navire de son rang.
  */
 export const CURSED = {
   nightChance: 0.33,
+  fireshipShare: 0.15,
   count: [1, 2] as const,
   delay: [20, 180] as const,
   distance: [150, 250] as const,

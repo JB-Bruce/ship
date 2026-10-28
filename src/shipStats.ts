@@ -58,6 +58,25 @@ export const CUTTER_STATS: ShipStats = {
 };
 
 /**
+ * Brûlot (navire maudit) : vieille coque bourrée de poudre, sans aucun canon ; rapide et vif pour fondre sur sa proie,
+ * assez fragile pour qu'on puisse le couler avant qu'il arrive. Son calibre ne sert pas (aucune monture).
+ */
+export const FIRESHIP_STATS: ShipStats = {
+  length: 13,
+  width: 4.2,
+  maxSpeed: 14.5,
+  acceleration: 3,
+  deceleration: 3.6,
+  turnRate: 0.62,
+  rudderSpeed: 3.2,
+  turnHeel: 0.01,
+  maxHealth: 300,
+  cannonsPerSide: 0,
+  cannon: { range: 0, reloadTime: 1, arcHalfAngle: 0, spread: 0, rangeError: 0, damage: 0, ballSpeed: 1 },
+  buoyancy: { stiffness: 40, damping: 10, tiltResponse: 6.2 },
+};
+
+/**
  * Vaisseau de ligne : coque large en bas, aux flancs très rentrés, deux batteries couvertes serrées l'une sur l'autre et
  * des pièces légères sur le pont, châteaux bas ; trois mâts carrés et une brigantine. Le plus solide et le plus armé
  * (de 64 à 80 canons selon ses allongements), le plus lent à virer. Deux calibres : les batteries (gros canons, angle de

@@ -87,6 +87,20 @@ export class Criticals {
     }
     return null;
   }
+
+  /** Explosion de toute la poudre d'un navire (brûlot) : la même que la sainte-barbe, la caméra tremble si c'est près de toi. */
+  explode(ship: Ship) {
+    this.fx.magazine(ship, deckPoint(ship));
+    if (ship.distanceTo(this.world.leader()) < BOSS_SINK.shakeRange) this.world.camera.shake(CRIT.magazineShake);
+  }
+
+  /** Met le feu à `ship` (souffle d'un brûlot), comme un incendie tiré par un boulet. Renvoie vrai s'il a pris. */
+  ignite(ship: Ship): boolean {
+    if (!ship.alive || !ship.crits.inflict('fire', ship.model.root, ship.model.fireSpots.length)) return false;
+    this.world.struck(ship);
+    if (ship === this.world.leader()) this.world.hud.toast(CRIT_TEXT.fire, 3, 'danger');
+    return true;
+  }
 }
 
 /** Un foyer du pont du navire, en coordonnées monde. */

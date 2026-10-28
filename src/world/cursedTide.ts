@@ -83,14 +83,15 @@ export class CursedTide {
 
   /**
    * Fait surgir `count` navires maudits autour de `near` (navire piloté), jusqu'à ton plus gros navire + `rankBonus`
-   * crans. Renvoie le nombre de navires surgis.
+   * crans, parfois un brûlot (CURSED.fireshipShare) ; `only` : tous de ce type (triche, histoire). Renvoie le nombre de
+   * navires surgis.
    */
-  summon(near: Ship, count: number, rankBonus: number): number {
+  summon(near: Ship, count: number, rankBonus: number, only?: ShipType): number {
     const top = Math.min(maxRank(), sizeRank(this.best()) + rankBonus);
     const low = Math.max(sizeRank(SHIP_SIZE_ORDER[0]), top - CURSED.rankSpan);
     for (let k = 0; k < count; k++) {
       const p = findOpenSea(near.position.x, near.position.z, CURSED.distance, ROOM);
-      const type = typeOfRank(low + Math.floor(Math.random() * (top - low + 1)));
+      const type: ShipType = only ?? (Math.random() < CURSED.fireshipShare ? 'fireship' : typeOfRank(low + Math.floor(Math.random() * (top - low + 1))));
       const enemy = this.spawner.spawnCursed(type, p.x, p.z, Math.atan2(near.position.x - p.x, near.position.z - p.z));
       box.setFromObject(enemy.ship.model.root);
       const depth = box.max.y + CURSED.depth;
