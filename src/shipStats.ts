@@ -58,6 +58,26 @@ export const CUTTER_STATS: ShipStats = {
 };
 
 /**
+ * Senau : deux-mâts carré comme le brick, mais plus grand et plus haut, avec un petit gaillard d'arrière ; sa grande
+ * voile aurique est portée par un mât fin planté juste derrière le grand mât (le mât de senau). Solide, assez rapide,
+ * bien armé, une bonne cale : un navire à tout faire.
+ */
+export const SENAU_STATS: ShipStats = {
+  length: 24,
+  width: 6.6,
+  maxSpeed: 12,
+  acceleration: 2.4,
+  deceleration: 3.2,
+  turnRate: 0.42,
+  rudderSpeed: 2.4,
+  turnHeel: 0.005,
+  maxHealth: 900,
+  cannonsPerSide: 6,
+  cannon: { range: 140, reloadTime: 3.4, arcHalfAngle: 30 * DEG, spread: 3.5 * DEG, rangeError: 0.1, damage: 16, ballSpeed: 60 },
+  buoyancy: { stiffness: 26, damping: 8.5, tiltResponse: 4.5 },
+};
+
+/**
  * Galiote à bombes : coque large, trapue et très solide, grand mât carré au milieu et artimon aurique sur le gaillard
  * d'arrière ; l'avant, sans mât, porte deux gros mortiers côte à côte (un troisième sur la grande galiote). Lente et
  * lourde à virer, elle perd beaucoup au près. Second calibre : ses mortiers, qui pivotent dans toutes les directions et

@@ -2,11 +2,11 @@
 // Un tableau d'amélioration = une valeur par niveau (le niveau 1 est la première case).
 
 import { UPGRADE_INFO, type ShipTypeDef } from './shipTypeDef';
-import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CARRACK_STATS, CORVETTE_STATS, CUTTER_STATS, FLUYT_STATS, GALIOT_STATS, FRIGATE_STATS, GALLEASS_STATS, GALLEON_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, XEBEC_STATS } from './shipStats';
+import { BRIG_STATS, BRIGANTINE_STATS, CARAVEL_STATS, CARRACK_STATS, CORVETTE_STATS, CUTTER_STATS, FLUYT_STATS, GALIOT_STATS, SENAU_STATS, FRIGATE_STATS, GALLEASS_STATS, GALLEON_STATS, LONGBOAT_STATS, ROWBOAT_STATS, SCHOONER_STATS, SLOOP_STATS, XEBEC_STATS } from './shipStats';
 
-export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'cutter' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'fluyt' | 'brig' | 'galiot' | 'corvette' | 'carrack' | 'galleass' | 'frigate' | 'galleon';
+export type ShipType = 'rowboat' | 'longboat' | 'sloop' | 'cutter' | 'caravel' | 'schooner' | 'brigantine' | 'xebec' | 'fluyt' | 'brig' | 'senau' | 'galiot' | 'corvette' | 'carrack' | 'galleass' | 'frigate' | 'galleon';
 /** Du plus petit au plus gros (par rang de taille ; à rang égal, dans l'ordre d'affichage). */
-export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'cutter', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'galiot', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon'];
+export const SHIP_SIZE_ORDER: readonly ShipType[] = ['rowboat', 'longboat', 'sloop', 'cutter', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'senau', 'galiot', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon'];
 /** Nom du type d'un navire selon ses allongements (« Frégate allongée », « Grande frégate »). */
 export function typeName(type: ShipType, extension = 0): string {
   return extension > 0 ? (SHIP_TYPES[type].extensions?.[extension - 1]?.name ?? SHIP_TYPES[type].name) : SHIP_TYPES[type].name;
@@ -30,7 +30,7 @@ export { UPGRADE_INFO };
 export type { ExtensionDef, MassTable, ShipTypeDef, UpgradeTable } from './shipTypeDef';
 
 /** Types que le joueur peut acheter (la barque est réservée aux ennemis). */
-export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'cutter', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'galiot', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon'];
+export const PLAYER_SHIP_TYPES: ShipType[] = ['longboat', 'sloop', 'cutter', 'caravel', 'schooner', 'brigantine', 'xebec', 'fluyt', 'brig', 'senau', 'galiot', 'corvette', 'carrack', 'galleass', 'frigate', 'galleon'];
 
 export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
   rowboat: {
@@ -422,6 +422,52 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
       },
     ],
   },
+  senau: {
+    name: 'Senau',
+    description: 'Un deux-mâts carré plus grand et plus haut que {le:brig}, avec un petit gaillard d’arrière et une poupe à galerie ; sa grande voile aurique est portée par un mât fin juste derrière le grand mât. Solide, assez rapide, bien armé, une bonne cale : un navire à tout faire.',
+    armament: 'broadside',
+    rank: 5,
+    threat: 5,
+    lootFactor: 4.2,
+    price: { gold: 3400, wood: 1000 },
+    respawnTime: 75,
+    hold: 80,
+    stats: SENAU_STATS,
+    enemyStats: SENAU_STATS,
+    upgrades: {
+      accuracy: {
+        costs: [{ gold: 70, wood: 0 }, { gold: 110, wood: 0 }, { gold: 160, wood: 0 }, { gold: 220, wood: 0 }],
+        spreadFactor: [0.75, 0.56, 0.4, 0.27],
+      },
+      range: { costs: [{ gold: 120, wood: 40 }], rangeFactor: [1.1] },
+      // Grand senau : un canon de plus par flanc.
+      cannons: { costs: [{ gold: 170, wood: 100 }, { gold: 230, wood: 140 }, { gold: 300, wood: 180 }, { gold: 380, wood: 230 }], cannonsPerSide: [7, 8, 9, 10] },
+      hull: {
+        costs: [{ gold: 60, wood: 60 }, { gold: 100, wood: 100 }, { gold: 150, wood: 150 }, { gold: 210, wood: 210 }],
+        healthFactor: [1.1, 1.2, 1.3, 1.4],
+      },
+      sails: {
+        costs: [{ gold: 70, wood: 18 }, { gold: 110, wood: 28 }, { gold: 160, wood: 42 }, { gold: 220, wood: 58 }],
+        speedFactor: [1.05, 1.1, 1.15, 1.2],
+      },
+      hold: { costs: [{ gold: 70, wood: 40 }, { gold: 110, wood: 65 }, { gold: 160, wood: 95 }, { gold: 220, wood: 130 }], capacity: [100, 120, 140, 165] },
+      nets: { costs: [], catchFactor: [] },
+    },
+    mass: { base: 400, perExtraCannon: 6, hull: [14, 30, 48, 68], sails: [5, 10, 15, 20], hold: [8, 14, 22, 30], speedLossPerUnit: 0.00045 },
+    extensions: [
+      {
+        name: 'Grand senau',
+        description: 'Le chantier rallonge la coque de quatre mètres : plus solide, un peu plus rapide, un canon de plus par flanc et une cale plus grande.',
+        cost: { gold: 2600, wood: 950 },
+        length: 4,
+        healthFactor: 1.15,
+        speedFactor: 1.03,
+        turnFactor: 0.93,
+        mass: 70,
+        extraLevels: { cannons: 1, hold: 1 },
+      },
+    ],
+  },
   galiot: {
     name: 'Galiote à bombes',
     feminine: true,
@@ -443,8 +489,12 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
         spreadFactor: [0.75, 0.56, 0.4, 0.27],
       },
       range: { costs: [{ gold: 120, wood: 40 }, { gold: 200, wood: 70 }], rangeFactor: [1.1, 1.2] },
-      // Grande galiote : le dernier niveau monte un troisième mortier, très cher.
-      cannons: { costs: [{ gold: 180, wood: 110 }, { gold: 260, wood: 160 }, { gold: 2600, wood: 1000 }], cannonsPerSide: [4, 5, 5], mortars: [2, 2, 3] },
+      // Grande galiote : un canon de plus par flanc, puis le dernier niveau monte un troisième mortier, très cher.
+      cannons: {
+        costs: [{ gold: 180, wood: 110 }, { gold: 260, wood: 160 }, { gold: 360, wood: 220 }, { gold: 2600, wood: 1000 }],
+        cannonsPerSide: [4, 5, 6, 6],
+        mortars: [2, 2, 2, 3],
+      },
       hull: {
         costs: [{ gold: 60, wood: 60 }, { gold: 100, wood: 100 }, { gold: 150, wood: 150 }, { gold: 210, wood: 210 }],
         healthFactor: [1.1, 1.2, 1.3, 1.4],
@@ -457,14 +507,14 @@ export const SHIP_TYPES: Record<ShipType, ShipTypeDef> = {
     extensions: [
       {
         name: 'Grande galiote',
-        description: 'Le chantier rallonge la coque de quatre mètres : plus solide, un peu plus rapide, et assez de place sur l’avant pour un troisième mortier (le dernier niveau de canons).',
+        description: 'Le chantier rallonge la coque de quatre mètres : plus solide, un peu plus rapide, un canon de plus par flanc, et assez de place sur l’avant pour un troisième mortier (le dernier niveau de canons).',
         cost: { gold: 2400, wood: 900 },
         length: 4,
         healthFactor: 1.2,
         speedFactor: 1.02,
         turnFactor: 0.93,
         mass: 70,
-        extraLevels: { cannons: 1 },
+        extraLevels: { cannons: 2 },
       },
     ],
   },

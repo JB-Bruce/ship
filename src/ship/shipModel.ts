@@ -16,6 +16,7 @@ import type { DeckPlan } from './deckPlan';
 import type { LanternSpot } from './parts/nightGlow';
 import { FrigateModel } from './frigate/frigateModel';
 import { GaliotModel } from './galiot/galiotModel';
+import { SenauModel } from './senau/senauModel';
 import { LongboatModel } from './longboat/longboatModel';
 import { RowboatModel } from './rowboat/rowboatModel';
 import { SloopModel } from './sloop/sloopModel';
@@ -117,6 +118,7 @@ export function createShipModel(type: ShipType, stats: ShipStats, livery: Livery
   if (type === 'fluyt') return new FluytModel(stats, livery);
   if (type === 'brig') return new BrigModel(stats, livery);
   if (type === 'galiot') return new GaliotModel(stats, livery);
+  if (type === 'senau') return new SenauModel(stats, livery);
   if (type === 'corvette') return new CorvetteModel(stats, livery);
   if (type === 'carrack') return new CarrackModel(stats, livery);
   if (type === 'galleass') return new GalleassModel(stats, livery);

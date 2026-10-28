@@ -35,9 +35,9 @@ export const DECK_Y = 1.8;
 export const QUARTERDECK = { y: 3, from: -0.99, to: -0.54 };
 /** Inclinaison des mâts vers l'arrière (rad). */
 export const RAKE = 0.03;
-/** Sabords des canons de flanc : hauteur de leur centre, répartis sur le pont du milieu (u de base). */
+/** Sabords des canons de flanc : hauteur de leur centre, répartis sur le pont du milieu (u de base), un de plus allongée. */
 export const PORT_Y = DECK_Y + 0.45;
-const GUN_SPAN = { from: -0.44, to: 0.24, slots: 5, first: 2 };
+const GUN_SPAN = { from: -0.44, to: 0.24, slots: 5, perExtension: 1, first: 2 };
 /** Mortiers : la paire côte à côte sur l'avant, puis le troisième dans l'axe (grande galiote) ; rayon des plateformes. */
 const MORTARS = { pair: { u: 0.52, x: 1.45 }, third: 0.25, platform: 0.85 };
 
@@ -121,7 +121,8 @@ function createLayout(level: number): GaliotLayout {
   const onSprit = (t: number) => bowsprit.base.clone().lerp(bowsprit.tip, t);
   const stem = at(1);
   const [first, last] = [at(GUN_SPAN.from).z, at(GUN_SPAN.to).z];
-  const ports = Array.from({ length: GUN_SPAN.slots }, (_, k) => first + ((last - first) * k) / (GUN_SPAN.slots - 1));
+  const count = GUN_SPAN.slots + GUN_SPAN.perExtension * level;
+  const ports = Array.from({ length: count }, (_, k) => first + ((last - first) * k) / (count - 1));
   const pair = at(MORTARS.pair.u).z;
   const mortars = [new THREE.Vector3(MORTARS.pair.x, DECK_Y, pair), new THREE.Vector3(-MORTARS.pair.x, DECK_Y, pair)];
   if (level > 0) mortars.push(new THREE.Vector3(0, DECK_Y, at(MORTARS.third).z));
@@ -165,7 +166,7 @@ function createLayout(level: number): GaliotLayout {
     platform: MORTARS.platform,
     flag: { length: 1.9, height: 1.15 },
     ports,
-    gunSlots: purchaseOrder(GUN_SPAN.slots, GUN_SPAN.first).map((k) => ports[k]),
+    gunSlots: purchaseOrder(count, GUN_SPAN.first + level).map((k) => ports[k]),
     deck,
   };
 }
