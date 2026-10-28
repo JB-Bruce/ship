@@ -7,6 +7,7 @@ import { GASPARD_SILENCE } from './dialogues/gaspardSilence';
 import { ISAURE_MEDALLION } from './dialogues/isaureMedallion';
 import { ISAURE_MEETING } from './dialogues/isaureMeeting';
 import { KERDAL_INTRO } from './dialogues/kerdalIntro';
+import { KERDAL_FISH, KERDAL_RATS, KERDAL_SEND, KERDAL_UPGRADE } from './dialogues/kerdalTortuga';
 import type { MainQuest } from './mainQuest';
 import { QuestRun, type QuestWorld } from './questRun';
 
@@ -45,10 +46,33 @@ export class StoryDirector {
     return this.run.target();
   }
 
-  /** Nouvelle partie : Kerdal confie sa chaloupe et envoie le joueur chercher Isaure. */
+  /** Nouvelle partie : Kerdal confie sa chaloupe et ouvre le prologue à la Tortue (lui pêcher du poisson). */
   async opening() {
     await this.talk(KERDAL_INTRO);
-    this.advance('findIsaure');
+    this.advance('kerdalFish');
+  }
+
+  /** Le port s'ouvre : au quai de la Tortue, Kerdal attend qu'on lui rapporte chaque petite quête du prologue. */
+  async portOpened(island: IslandId) {
+    if (island !== 'tortuga' || this.box.open || !this.run.tortuga.ready()) return;
+    switch (this.quest.step) {
+      case 'kerdalFish':
+        unload(this.w.fleet.hand, 'fish', STORY_QUEST.tortuga.fish);
+        await this.talk(KERDAL_FISH);
+        return this.run.complete('kerdalFish', 'firstUpgrade');
+      case 'firstUpgrade':
+        await this.talk(KERDAL_UPGRADE);
+        return this.run.complete('firstUpgrade', 'coveRats');
+      case 'coveRats':
+        await this.talk(KERDAL_RATS);
+        this.run.complete('coveRats', 'portRepair');
+        // Le bâtiment à construire se compte à partir d'ici.
+        this.quest.count = this.run.tortuga.buildings();
+        return;
+      case 'portRepair':
+        await this.talk(KERDAL_SEND);
+        return this.run.complete('portRepair', 'findIsaure');
+    }
   }
 
   /** Une taverne s'ouvre : à celle de Port-Sabre, Isaure (et Gaspard) attendent selon l'étape. */

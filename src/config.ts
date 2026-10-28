@@ -772,7 +772,7 @@ export const ALLY = {
 /** Pêche : bancs de poissons en mer, pêchés par les chaloupes et les sloops presque à l'arrêt. */
 export const FISHING = {
   /** Nombre de bancs en mer en même temps. */
-  schools: [2, 3] as const,
+  schools: [6, 8] as const,
   /** Poissons dans un banc. */
   fish: [30, 60] as const,
   /** Distance à la côte de l'île où un banc peut apparaître (m). */
@@ -782,7 +782,7 @@ export const FISHING = {
   /** Un banc plonge (disparaît) au bout de ce temps s'il n'est pas épuisé (s). */
   lifetime: [360, 600] as const,
   /** Délai avant qu'un nouveau banc apparaisse quand il en manque (s). */
-  respawnDelay: [20, 45] as const,
+  respawnDelay: [10, 25] as const,
   /** Durée du fondu d'apparition et de disparition d'un banc (s). */
   fadeTime: 3,
   /** Rayon du banc (m) : remous, poissons qui sautent, zone de pêche. */
@@ -1707,7 +1707,8 @@ export const MAIN_MENU = { morphTime: 0.5 };
 
 /**
  * Étapes de la quête principale (story/questRun.ts). `ship` : rang de taille minimal d'un navire de la flotte (sloop) ;
- * `reward` : or versé à la fin de chaque étape ; `duroc` : le lieutenant Duroc (zone de ronde au large de l'Île du
+ * `reward` : or et bois versés à la fin de chaque étape ; `tortuga` : prologue à la Tortue (poissons pour Kerdal, barques
+ * de la Marine : zone, distance où elles sortent, escadre) ; `duroc` : le lieutenant Duroc (zone de ronde au large de l'Île du
  * Dauphin, distance à laquelle il sort de la brume (m), escadre, part de vie où il crie à ses hommes) ;
  * `greenLights` : le Banc du Naufragé (zone, rayon où les maudits surgissent de nuit), maudits à couler, nombre surgis
  * et délai entre deux apparitions au Banc (s) ; `relic` : médaillon à repêcher (distance de prise, m ; flottaison) ;
@@ -1715,7 +1716,16 @@ export const MAIN_MENU = { morphTime: 0.5 };
  */
 export const STORY_QUEST = {
   ship: 2,
-  reward: { aRealShip: 150, hangman: 400, greenLights: 300, silence: 250 },
+  reward: {
+    kerdalFish: { gold: 120, wood: 30 },
+    coveRats: { gold: 200, wood: 120 },
+    portRepair: { gold: 150, wood: 0 },
+    aRealShip: { gold: 150, wood: 0 },
+    hangman: { gold: 400, wood: 0 },
+    greenLights: { gold: 300, wood: 0 },
+    silence: { gold: 250, wood: 0 },
+  },
+  tortuga: { fish: 15, rats: { at: [0, -560] as [number, number], radius: 240, wake: 380, squadron: ['rowboat', 'rowboat'] as ShipType[] } },
   duroc: { at: [950, -700] as [number, number], radius: 320, wake: 420, squadron: ['sloop', 'longboat'] as ShipType[], shout: 0.5 },
   greenLights: { at: [900, 1100] as [number, number], radius: 380, target: 2, count: 2, cooldown: 90 },
   relic: { reach: 14, bob: 0.25, spin: 0.8, size: 0.9 },

@@ -2,8 +2,8 @@ import type { Dialogue } from '../dialogueTypes';
 
 /**
  * Ouverture de la partie : à l'aube, sur le quai de la Tortue, Bastien Kerdal, ancien quartier-maître de Lagrange,
- * confie sa chaloupe au joueur et lui raconte la perte de la Sirène Noire. Il l'envoie à Port-Sabre retrouver Isaure
- * Mercier, la navigatrice de Lagrange. Le joueur n'est ni nommé ni genré : on le tutoie, sans accord.
+ * confie sa chaloupe au joueur et lui raconte la perte de la Sirène Noire. Avant de l'envoyer à Port-Sabre retrouver
+ * Isaure Mercier, la navigatrice de Lagrange, il veut le voir tenir une barre : le prologue à la Tortue (kerdalTortuga.ts). Le joueur n'est ni nommé ni genré : on le tutoie, sans accord.
  */
 export const KERDAL_INTRO: Dialogue = {
   id: 'kerdalIntro',
@@ -64,8 +64,10 @@ export const KERDAL_INTRO: Dialogue = {
       ],
     },
     { id: 'refuse', say: 'kerdal', text: 'Alors prends quand même la chaloupe : elle ne sert à rien à un vieux comme moi. Mais tu en sais trop, maintenant. La mer ne te laissera pas tranquille bien longtemps.' },
-    { id: 'go', say: 'kerdal', text: 'Port-Sabre est à l’est d’ici, de l’autre côté de la passe. Va à la taverne et demande Isaure. Ne donne mon nom qu’à elle.' },
+    { id: 'go', say: 'kerdal', text: 'Mais pas tout de suite. Isaure ne parlera jamais à quelqu’un qui ne sait pas tenir une barre, et Port-Sabre mange les débutants.' },
+    { say: 'kerdal', text: 'Commence par le commencement : apprends à mener cette chaloupe. Pêche-moi du poisson, une quinzaine. Les bancs frémissent à la surface, près des côtes : tu verras les mouettes tourner au-dessus.' },
+    { say: 'kerdal', text: 'Mets en panne au-dessus du banc et laisse tes hommes jeter les filets. Puis reviens me voir au port.' },
     { say: 'kerdal', text: 'Et n’en parle à personne. Ni du Cœur, ni de Lagrange. La Tortue a des oreilles, et certaines sont payées par la Couronne.' },
-    { say: 'kerdal', text: 'Allez, largue les amarres. Que la mer te soit clémente.', end: true },
+    { say: 'kerdal', text: 'Allez, largue les amarres. Je t’attends au quai.', end: true },
   ],
 };

@@ -260,6 +260,7 @@ export class Game {
       crew: campaign.crew,
       state,
       cursed: this.cursed,
+      islands: campaign.islands,
       hud: {
         toast: (text, tone) => hud.toast(text, 4, tone),
         alert: (text, danger) => hud.message(text, 5, danger),
@@ -272,6 +273,7 @@ export class Game {
     });
     this.story = story;
     storyHooks.tavernOpened = (island) => void story.tavernOpened(island);
+    storyHooks.portOpened = (island) => void story.portOpened(island);
     storyHooks.enemySunk = (enemy, byFleet) => story.enemySunk(enemy, byFleet);
     this.start = new GameStart({ container, saves, camera: this.chaseCamera, dayCycle, story, embedOptions: (host) => menus.settings.embed(host) }, loaded !== null);
     this.weatherButtons = new WeatherButtons(container, this.weather);

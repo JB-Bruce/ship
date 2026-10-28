@@ -26,6 +26,18 @@ const PAGES: readonly { after: QuestStep; title: string; text: (flags: ReadonlyS
         .join(' '),
   },
   {
+    after: 'portRepair',
+    title: 'Prologue : La Tortue',
+    text: (f) =>
+      [
+        'Avant de m’envoyer à Port-Sabre, Kerdal a voulu me voir tenir une barre. Je lui ai pêché du poisson, fait renforcer la chaloupe au chantier, envoyé par le fond les barques de la Marine qui rançonnaient les pêcheurs, et redonné un peu de vie au port.',
+        f.has('kerdalTeased') ? 'Il a bien ri quand j’ai défendu sa vieille chaloupe.' : '',
+        'Alors seulement, il m’a envoyé chercher Isaure.',
+      ]
+        .filter(Boolean)
+        .join(' '),
+  },
+  {
     after: 'findIsaure',
     title: 'Chapitre I : La navigatrice',
     met: 'isaure',

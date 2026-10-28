@@ -7,6 +7,7 @@ import { ParchmentMenu } from '../parchmentMenu';
 import { PLACE_TABS, type PlaceTab, type PortContext } from './portContext';
 import './portHub.css';
 import { audioPlaces } from '../../audio/audioView';
+import { storyHooks } from '../../story/storyHooks';
 
 /** Les enseignes du quai, une par lieu : nom, ce qu'on y fait, dessin au trait (repère 110 × 90). */
 const SIGNS: Record<PlaceTab, { name: string; sub: string; art: string }> = {
@@ -49,6 +50,7 @@ export class PortMenu extends ParchmentMenu {
     if (!this.access.inRange()) return;
     this.access.onOpen();
     this.setOpen(true);
+    storyHooks.portOpened(this.ctx.island.id);
   }
 
   /** Pendant l'escale, l'interface de navigation s'efface : le quai et ses enseignes restent seuls. */

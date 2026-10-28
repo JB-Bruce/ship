@@ -1,4 +1,6 @@
-import { CURSED, STORY_QUEST } from '../config';
+import { CURSED, STORY_QUEST, type Cost, type IslandId } from '../config';
+import type { IslandState } from '../progression/islandState';
+import { TortugaQuests } from './tortugaQuests';
 import type { Crew } from '../fleet/crew';
 import type { Fleet } from '../fleet/fleet';
 import { fleetStock } from '../fleet/holds';
@@ -29,6 +31,7 @@ export interface QuestWorld {
   readonly crew: Crew;
   readonly state: PlayerState;
   readonly cursed: CursedTide;
+  readonly islands: Record<IslandId, IslandState>;
   readonly hud: QuestHud;
 }
 
@@ -52,6 +55,8 @@ export class QuestRun {
   private relic: FloatingRelic | null = null;
   /** Temps avant que les maudits puissent à nouveau surgir au Banc (s). */
   private bancCooldown = 0;
+  /** Le prologue à la Tortue. */
+  readonly tortuga: TortugaQuests;
 
   constructor(
     private readonly quest: MainQuest,
@@ -59,11 +64,17 @@ export class QuestRun {
   ) {
     // Tant que l'étape des fanaux verts dure, les maudits viennent toutes les nuits.
     w.cursed.forceNights = () => quest.step === 'greenLights';
+    this.tortuga = new TortugaQuests(quest, w, w.islands);
   }
 
   update(dt: number) {
     const leader = this.w.world.leader();
     switch (this.quest.step) {
+      case 'kerdalFish':
+      case 'firstUpgrade':
+      case 'coveRats':
+      case 'portRepair':
+        return this.tortuga.update(leader);
       case 'aRealShip':
         return this.checkShip();
       case 'hangman':
@@ -176,10 +187,10 @@ export class QuestRun {
 
   /** Étape franchie : sa récompense, puis la suivante et son bandeau. */
   complete(done: QuestStep, next: QuestStep) {
-    const reward = (STORY_QUEST.reward as Partial<Record<QuestStep, number>>)[done] ?? 0;
-    if (reward > 0) {
-      this.w.state.earn({ gold: reward, wood: 0 });
-      this.w.hud.log(`⚓ Histoire : +${reward} or`);
+    const reward = (STORY_QUEST.reward as Partial<Record<QuestStep, Cost>>)[done];
+    if (reward) {
+      this.w.state.earn(reward);
+      this.w.hud.log(`⚓ Histoire : +${reward.gold} or${reward.wood ? `, +${reward.wood} bois` : ''}`);
     }
     this.quest.advance(next);
     const s = this.quest.current;

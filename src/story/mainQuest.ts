@@ -6,6 +6,9 @@ import type { Objective } from '../progression/navyIsland';
 /**
  * Où en est la quête principale :
  * - `intro` : la partie commence, Kerdal attend sur le quai de la Tortue ;
+ * - à la Tortue, chaque petite quête se rapporte à Kerdal au port (P) : `kerdalFish` (lui pêcher du poisson),
+ *   `firstUpgrade` (améliorer un navire au Chantier), `coveRats` (couler les barques de la Marine au large),
+ *   `portRepair` (construire un bâtiment de la Tortue à la Capitainerie) ;
  * - `findIsaure` : retrouver Isaure Mercier à la taverne de Port-Sabre ;
  * - `aRealShip` : avoir un sloop (ou mieux) et engager un officier ;
  * - `hangman` : couler Le Faucon du lieutenant Duroc, au large de l'Île du Dauphin ;
@@ -15,10 +18,10 @@ import type { Objective } from '../progression/navyIsland';
  * - `silence` : acheter le silence du tavernier de Port-Sabre avec du rhum ;
  * - `nextChapter` : la suite de l'histoire viendra.
  */
-export type QuestStep = 'intro' | 'findIsaure' | 'aRealShip' | 'hangman' | 'greenLights' | 'medallion' | 'returnIsaure' | 'silence' | 'nextChapter';
+export type QuestStep = 'intro' | 'kerdalFish' | 'firstUpgrade' | 'coveRats' | 'portRepair' | 'findIsaure' | 'aRealShip' | 'hangman' | 'greenLights' | 'medallion' | 'returnIsaure' | 'silence' | 'nextChapter';
 
 /** Ordre des étapes. */
-export const QUEST_ORDER: readonly QuestStep[] = ['intro', 'findIsaure', 'aRealShip', 'hangman', 'greenLights', 'medallion', 'returnIsaure', 'silence', 'nextChapter'];
+export const QUEST_ORDER: readonly QuestStep[] = ['intro', 'kerdalFish', 'firstUpgrade', 'coveRats', 'portRepair', 'findIsaure', 'aRealShip', 'hangman', 'greenLights', 'medallion', 'returnIsaure', 'silence', 'nextChapter'];
 
 /** Ce qu'une sauvegarde garde de l'histoire : l'étape, les choix notés, l'avancement de l'étape et le médaillon. */
 export interface StorySnapshot {
@@ -31,6 +34,10 @@ export interface StorySnapshot {
 /** Ce que chaque étape montre dans le suivi des objectifs (en haut à droite), le port qu'elle vise et sa zone sur la carte. */
 const STEPS: Record<QuestStep, { title: string; note: string; port?: IslandId; zone?: { at: [number, number]; radius: number } } | null> = {
   intro: null,
+  kerdalFish: { title: '⚓ Prologue : Le poisson du Vieux', note: `Pêcher ${STORY_QUEST.tortuga.fish} poissons (F près d’un banc) et les rapporter à Kerdal, au port de la Tortue`, port: 'tortuga' },
+  firstUpgrade: { title: '⚓ Prologue : Une coque qui tient la mer', note: 'Améliorer un navire au Chantier, puis revoir Kerdal au port de la Tortue', port: 'tortuga' },
+  coveRats: { title: '⚓ Prologue : Les rats de la crique', note: 'Couler les barques de la Marine au sud de la Tortue, puis revoir Kerdal', port: 'tortuga', zone: STORY_QUEST.tortuga.rats },
+  portRepair: { title: '⚓ Prologue : Remettre le port d’aplomb', note: 'Construire un bâtiment de la Tortue à la Capitainerie, puis revoir Kerdal', port: 'tortuga' },
   findIsaure: { title: '⚓ Chapitre I : La navigatrice', note: 'Trouver Isaure Mercier à la taverne de Port-Sabre', port: 'sabre' },
   aRealShip: { title: '⚓ Chapitre I : Un navire digne de ce nom', note: 'Posséder un vrai navire (plus grand qu’une chaloupe) et engager un officier à une taverne' },
   hangman: { title: '⚓ Chapitre I : Le Pendeur', note: 'Couler Le Faucon du lieutenant Duroc, au sud de l’Île du Dauphin', zone: STORY_QUEST.duroc },
