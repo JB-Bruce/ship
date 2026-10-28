@@ -392,6 +392,14 @@ Chaque navire suit le même schéma : un modèle `ShipModel` + une entrée dans 
 | Galion du trésor (ennemi) | Boss | Énorme château arrière, coque rouge et or | 35 m, 1 200 de vie, lent, nombreux canons, escorte | — | Butin énorme ; il fuit vers le bord de la carte |
 | Navire fantôme (fantasy) | Spécial | Coque délabrée, voiles en lambeaux, lueurs vertes | 18 m, 250 de vie, 13 m/s | Précision 3, canons 2, coque 3 | **Brume** : invulnérable et invisible quelques secondes (temps de recharge) |
 
+**Gardés pour la suite (choix du 2026-10-28)** : cotre, brûlot, galiote à bombes, senau, vaisseau de ligne (74 canons, Marine), trois-ponts amiral (boss de fin d'histoire), jonque. Le navire de la Compagnie des Indes reste en question.
+
+## Effets et rendu gardés pour la suite (choix du 2026-10-28)
+- Vagues qui déferlent sur les plages (ressac blanc le long des côtes).
+- Ports vivants : fumée des cheminées, fenêtres allumées la nuit, barques dans la crique.
+- Lumière du soleil : rayons à travers les nuages, scintillement au coucher, arc-en-ciel après la pluie.
+- Retouche de l'image : léger halo sur le soleil et les fanaux, couleurs selon l'heure (option des graphismes).
+
 ## Sauvegarde (fait, 2026-10-11)
 - Menu Échap, onglet **Partie** : sauvegarder (nom facultatif, Entrée valide), liste des parties sauvegardées (nom, date, « 4 navires · 5 432 or · 17 victoires ») avec Charger, Écraser, Exporter, Supprimer (chaque action à confirmer), Importer un fichier, Nouvelle partie.
 - Nombre illimité, gardées dans le navigateur. Exporter télécharge un fichier `.bateau.json` qu'on peut donner à quelqu'un : il l'importe (il s'ajoute à sa liste), puis le charge. Un fichier qui n'est pas une sauvegarde du jeu est refusé.
