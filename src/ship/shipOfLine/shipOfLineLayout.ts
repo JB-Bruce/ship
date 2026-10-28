@@ -23,39 +23,42 @@ const STRETCH = [
 /**
  * Gabarit de la coque (u de base) : très large en bas, flancs qui rentrent fortement vers le pont (rentrée mesurée à
  * hauteur fixe), tonture douce ; châteaux bas : dunette sur un gaillard d'arrière à peine plus haut que le pont, gaillard
- * d'avant jusqu'à l'étrave ; poupe plate dont la voûte sort de l'eau. Deux sections très proches font chaque marche.
+ * d'avant jusqu'à l'étrave ; pavois bas au milieu. Poupe plate au-dessus d'une voûte arrondie : la quille remonte en
+ * courbe sous les galeries, le tableau ne descend pas jusqu'à l'eau. Deux sections très proches font chaque marche.
  */
 const HULL_ROWS: [number, number, number, number][] = [
-  [-1, 0.66, 9.7, 1.4],
-  [-0.98, 0.74, 9.65, -0.2],
-  [-0.94, 0.82, 9.6, -2.2],
-  [-0.88, 0.89, 9.55, -3.4],
-  [-0.8, 0.94, 9.5, -4],
-  [-0.79, 0.945, 8, -4.05],
-  [-0.6, 0.98, 7.95, -4.3],
-  [-0.42, 0.995, 7.9, -4.4],
-  [-0.41, 0.995, 6.6, -4.4],
-  [0, 1, 6.5, -4.5],
-  [0.3, 0.99, 6.55, -4.4],
-  [0.6, 0.94, 6.75, -4],
-  [0.61, 0.935, 7.9, -3.95],
-  [0.74, 0.86, 7.95, -3.3],
-  [0.85, 0.72, 8.05, -2.3],
-  [0.93, 0.52, 8.15, -1],
-  [0.97, 0.36, 8.2, -0.2],
-  [1, 0.16, 8.25, 0.9],
+  [-1, 0.6, 9.9, 4.2],
+  [-0.98, 0.7, 9.88, 3],
+  [-0.95, 0.78, 9.85, 1.5],
+  [-0.91, 0.85, 9.82, -0.2],
+  [-0.86, 0.9, 9.8, -1.9],
+  [-0.8, 0.935, 9.78, -3.1],
+  [-0.7, 0.96, 9.75, -3.8],
+  [-0.69, 0.962, 7.98, -3.85],
+  [-0.55, 0.98, 7.95, -4.2],
+  [-0.42, 0.995, 7.92, -4.35],
+  [-0.41, 0.995, 6.05, -4.4],
+  [0, 1, 5.95, -4.5],
+  [0.3, 0.99, 6, -4.4],
+  [0.6, 0.94, 6.15, -4],
+  [0.61, 0.935, 7.85, -3.95],
+  [0.74, 0.86, 7.9, -3.3],
+  [0.85, 0.72, 8, -2.3],
+  [0.93, 0.52, 8.1, -1],
+  [0.97, 0.36, 8.15, -0.2],
+  [1, 0.16, 8.2, 0.9],
 ];
 /** Maître-bau (demi-largeur, m), haut du bouchain (m) et rentrée des flancs, mesurée à une hauteur fixe. */
-const HALF_WIDTH = 5.9;
+const HALF_WIDTH = 5.1;
 const UPPER_BILGE = 2;
-const TUMBLE = { fraction: 0.26, height: 6.5 };
+const TUMBLE = { fraction: 0.26, height: 6.2 };
 
 // Hauteurs (identiques pour toutes les longueurs ; repère : proue +Z, bâbord +X, flottaison y = 0).
 /** Pont du milieu (à l'air libre) ; les deux batteries couvertes sont dessous, serrées l'une sur l'autre. */
-export const DECK_Y = 5.5;
+export const DECK_Y = 5.2;
 /** Sabords des deux batteries (centre, au milieu du navire ; ils suivent la tonture). */
-export const LOW_Y = 2.5;
-export const HIGH_Y = 4.4;
+export const LOW_Y = 2.3;
+export const HIGH_Y = 4.15;
 /** Taille des sabords des batteries (hauteur, largeur, m). */
 export const PORT = { low: [0.56, 0.6], high: [0.52, 0.56] } as const;
 /** Tonture des préceintes et des sabords (m) : `aft` × |u|^power vers la poupe, `fore` × u^power vers l'avant. */
@@ -76,10 +79,10 @@ const PIECE_SLOTS = [
   { u: 0.2, deck: 'waist' },
 ] as const;
 const PIECES = [6, 8, 9];
-/** Fenêtres des flancs (u de base, hauteur) : chambre sous la dunette. */
+/** Fenêtres des flancs (u de base, hauteur) : chambre sous la dunette, devant les bouteilles. */
 const WINDOWS: readonly (readonly [number, number])[] = [
-  [-0.84, 9],
-  [-0.73, 9],
+  [-0.82, 8],
+  [-0.75, 8],
 ];
 /** Poulaine (comme celle du galion, galleonBow.ts) : sous le plat-bord de l'avant, avancée, demi-largeur, éperon, lion (m). */
 const BEAK = { below: 1.3, reach: 4.2, halfWidth: 1.1, cutwaterFoot: 1.6, tip: 0.85 };
@@ -94,6 +97,8 @@ const JIBS = [
   { along: 0.88, head: 30.5, clewY: 11.5, clewAhead: 6.4 },
   { along: 0.58, head: 24, clewY: 9.6, clewAhead: 4.2 },
 ];
+/** Roue : devant la cloison de la dunette (m). */
+const WHEEL_AHEAD = 0.95;
 /** Brigantine : hauteur de sa bôme au-dessus de la dunette (au-dessus des têtes), dépassement de la poupe (m). */
 const SPANKER = { boomAbovePoop: 2.1, overhang: 3.4 };
 
@@ -166,12 +171,12 @@ function createLayout(level: number): ShipOfLineLayout {
   const at = (u: number) => hull.stationAt(base(u));
   const bowShift = zOf(BASE_HALF) - BASE_HALF;
   // Chaque pont d'un château s'arrête à la section haute de sa marche.
-  const quarterdeck = { y: 7, from: base(-0.99), to: base(-0.42) };
-  const poop = { y: 8.6, from: base(-0.99), to: base(-0.8) };
-  const forecastle = { y: 6.9, from: base(0.61), to: base(0.97) };
+  const quarterdeck = { y: 7.05, from: base(-0.99), to: base(-0.42) };
+  const poop = { y: 8.95, from: base(-0.99), to: base(-0.7) };
+  const forecastle = { y: 6.95, from: base(0.61), to: base(0.97) };
   const deckY = { quarterdeck: quarterdeck.y, forecastle: forecastle.y, waist: DECK_Y };
   const foreMast = { z: at(0.7).z, base: forecastle.y, top: 36, topPlatform: 22.5 };
-  const mizzenMast = { z: at(-0.62).z, base: quarterdeck.y, top: 31, topPlatform: 20 };
+  const mizzenMast = { z: at(-0.58).z, base: quarterdeck.y, top: 31, topPlatform: 20 };
   const mainMast = { z: balancedMainMast(at(0.1).z, foreMast.z, mizzenMast.z, level), base: DECK_Y, top: 41, topPlatform: 26 };
   const stem = hull.stationAt(1);
   const bowTip = new THREE.Vector3(0, BOWSPRIT.tipY, BASE_HALF + BOWSPRIT.reach + bowShift);
@@ -179,7 +184,7 @@ function createLayout(level: number): ShipOfLineLayout {
   const lowPorts = spread(base(LOW_SPAN.from), base(LOW_SPAN.to), LOW_SPAN.slots[level]);
   const highPorts = spread(base(HIGH_SPAN.from), base(HIGH_SPAN.to), HIGH_SPAN.slots[level]);
   const poopFront = hull.stationAt(poop.to).z;
-  const wheel = { y: quarterdeck.y + 0.85, z: poopFront + 1.35 };
+  const wheel = { y: quarterdeck.y + 0.85, z: poopFront + WHEEL_AHEAD };
   const boomY = poop.y + SPANKER.boomAbovePoop;
   const sternZ = hull.stationAt(-1).z;
   const qdFront = hull.stationAt(quarterdeck.to).z;

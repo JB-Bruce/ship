@@ -65,7 +65,7 @@ export const CUTTER_STATS: ShipStats = {
  */
 export const SHIP_OF_LINE_STATS: ShipStats = {
   length: 38,
-  width: 11.4,
+  width: 10,
   maxSpeed: 10.5,
   acceleration: 1.6,
   deceleration: 2.4,

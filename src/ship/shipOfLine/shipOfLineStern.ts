@@ -13,7 +13,7 @@ const GALLERIES = { depth: 0.9, rail: 0.8, spacing: 0.32, windowY: 0.75, windows
  * Bouteilles : galeries fermées sur les hanches (étendue en u de base, saillie hors du bordé, bas et haut en m), avec
  * leur cul-de-lampe dessous et leur petit dôme dessus.
  */
-const QUARTER = { from: -0.96, to: -0.86, depth: 0.7, low: DECK_Y - 0.1, high: 8.5 };
+const QUARTER = { from: -0.96, to: -0.86, depth: 0.7, low: DECK_Y - 0.1, high: 8.8 };
 /** Grands fanaux sur le couronnement (places en part de la demi-largeur, taille). */
 const LANTERNS = { xs: [-0.62, 0, 0.62], scale: 1.35 };
 

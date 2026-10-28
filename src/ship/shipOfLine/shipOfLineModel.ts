@@ -268,7 +268,7 @@ export class ShipOfLineModel implements ShipModel {
     this.lids.snap(this.portsOpen);
 
     this.rudder = new THREE.Mesh(t.rudder, t.palette.trim);
-    this.rudder.position.set(0, 1.2, L.at(-0.97).z);
+    this.rudder.position.set(0, 1.2, L.at(-0.93).z);
     this.wheel = new THREE.Mesh(t.wheel, t.palette.wood);
     this.wheel.position.set(0, L.wheel.y, L.wheel.z);
     this.flag = new WavingFlag(t.flagMaterial, L.flag.length, L.flag.height);
