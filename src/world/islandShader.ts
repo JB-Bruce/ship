@@ -125,7 +125,10 @@ float islandSdfOf(int i, vec2 p) {
   float scale = length(vec2(f.z * s.x, s.y / f.z - bendSlope * f.z * s.x));
   float k = sqrt(exp(-abs(radial / scale) / ${SDF.slopeFade.toFixed(1)})) * slope / rc;
   float gx = f.z * (s.x - k * s.y);
-  return radial / length(vec2(gx, (s.y + k * s.x) / f.z - bendSlope * gx));
+  float sdf = radial / length(vec2(gx, (s.y + k * s.x) / f.z - bendSlope * gx));
+  // En mer, jamais moins que la distance au cercle qui contient toute la terre (même règle que Landmass.sdf).
+  float outside = len - uIslandA[i].z;
+  return outside > 0.0 ? max(sdf, outside) : sdf;
 }
 
 /** Atténuation des vagues : 0 au rivage, 1 au large (la plus forte des îles ; aucune pour une île sans atténuation). */

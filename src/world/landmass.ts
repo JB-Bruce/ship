@@ -149,7 +149,10 @@ export class Landmass {
     const sz = Math.cos(angle);
     const stretch = this.frame.stretch;
     const u = stretch * (sx - k * sz);
-    return radial / Math.hypot(u, (sz + k * sx) / stretch - shape.bendSlope * u);
+    const d = radial / Math.hypot(u, (sz + k * sx) / stretch - shape.bendSlope * u);
+    // En mer, jamais moins que la distance au cercle qui contient toute la terre : loin le long d'une terre courbée, la
+    // mesure dans le repère de la forme se trompe, et la coupure à SDF.far ferait un saut (cercle net dans l'eau).
+    return r > this.outerRadius ? Math.max(d, r - this.outerRadius) : d;
   }
 
   /** Atténuation des vagues : 0 au rivage, 1 au large (même formule que le shader) ; aucune sans `calmDistance`. */
