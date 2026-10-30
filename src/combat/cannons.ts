@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { COMBAT, GUNPORTS, LINE_OF_FIRE, type CannonStats } from '../config';
 import type { Effects } from '../fx/effects';
 import type { Waves } from '../ocean/waves';
-import { isHostile, type Ship } from '../ship/ship';
+import { isHostile, type Combatant, type Ship } from '../ship/ship';
 import type { CannonMount } from '../ship/shipModel';
 import { moveTowards, wrapAngle } from '../utils/math';
 import { conditions } from '../world/weather';
@@ -26,6 +26,13 @@ export interface CannonTarget {
   readonly velocityZ: number;
   /** Rayon d'un ouvrage assiégé : il est à portée dès que son enceinte l'est (m). */
   readonly radius?: number;
+  /** Hauteur visée au-dessus de `position` (m), pour ce qui n'est pas un navire (sinon AIM.structureHeight). */
+  readonly aimHeight?: number;
+}
+
+/** Une partie d'un monstre (tentacule, tête du Kraken) : tous les canons la visent, de tous les camps. */
+export interface CreatureTarget extends CannonTarget, Combatant {
+  readonly alive: boolean;
 }
 
 /** Point visé par chaque canon sur sa cible (sa cible aussi, pour repérer quand il en prend une nouvelle). */
@@ -58,12 +65,12 @@ const centered = () => Math.random() + Math.random() - 1;
  * et tire dès qu'il est rechargé et bien pointé. Mêmes règles pour tous les camps. Un assiégeant
  * (`Ship.siegeTarget`) bombarde la citadelle quand aucun bateau n'est à portée de ce canon.
  */
-export function updateCannons(dt: number, ships: readonly Ship[], projectiles: Projectiles, effects: Effects, waves: Waves) {
+export function updateCannons(dt: number, ships: readonly Ship[], projectiles: Projectiles, effects: Effects, waves: Waves, creatures: readonly CreatureTarget[] = []) {
   for (const ship of ships) {
     if (!ship.alive) continue;
     ship.fireBlocked = Math.max(0, ship.fireBlocked - dt);
     // Sabords à mantelets : ouverts dès qu'un adversaire approche, avant d'être à portée (pas en même temps que le tir).
-    if (ship.model.setGunports && hostileWithin(ship, ships, ship.stats.cannon.range * conditions.rangeFactor * GUNPORTS.reach)) ship.battleAlert = GUNPORTS.hold;
+    if (ship.model.setGunports && hostileWithin(ship, ships, creatures, ship.stats.cannon.range * conditions.rangeFactor * GUNPORTS.reach)) ship.battleAlert = GUNPORTS.hold;
     const mounts = ship.model.cannons;
     let lastAngle = NaN;
     let lastArc = NaN;
@@ -78,7 +85,9 @@ export function updateCannons(dt: number, ships: readonly Ship[], projectiles: P
         lastAngle = mount.angle;
         lastCalibre = c;
         lastArc = arc;
-        target = findTarget(ship, mount.angle, ships, c, arc) ?? siegeTargetFor(ship, mount.angle, c, arc);
+        const foe = findTarget(ship, mount.angle, ships, c, arc);
+        // Une partie d'un monstre plus proche que le navire ennemi le plus proche passe avant lui.
+        target = creatureFor(ship, mount.angle, creatures, c, arc, foe ? ship.distanceTo(foe) : Infinity) ?? foe ?? siegeTargetFor(ship, mount.angle, c, arc);
         // Une cible : branle-bas de combat (les sabords qui ont des mantelets s'ouvrent, ShipModel.setGunports).
         if (target) ship.battleAlert = GUNPORTS.hold;
       }
@@ -147,13 +156,39 @@ export function findTarget(ship: Ship, angle: number, ships: readonly Ship[], ca
   return best;
 }
 
-/** Un adversaire à flot à moins de `distance` de ce bateau ? */
-function hostileWithin(ship: Ship, ships: readonly Ship[], distance: number): boolean {
+/** Un adversaire à flot (ou une partie d'un monstre) à moins de `distance` de ce bateau ? */
+function hostileWithin(ship: Ship, ships: readonly Ship[], creatures: readonly CreatureTarget[], distance: number): boolean {
   for (const other of ships) {
     if (other === ship || !other.alive || !isHostile(ship, other)) continue;
     if (Math.hypot(other.position.x - ship.position.x, other.position.z - ship.position.z) < distance) return true;
   }
+  for (const part of creatures) {
+    if (part.alive && isHostile(ship, part) && Math.hypot(part.position.x - ship.position.x, part.position.z - ship.position.z) < distance) return true;
+  }
   return false;
+}
+
+/**
+ * La partie de monstre la plus proche (à moins de `closer` m) à portée et dans l'arc du canon pointant vers `angle`, ou
+ * null. Tout près (une tentacule qui enserre la coque), l'arc s'élargit : le canon la vise dès qu'elle est de son bord.
+ */
+function creatureFor(ship: Ship, angle: number, creatures: readonly CreatureTarget[], cannon: CannonStats, arc: number, closer: number): CreatureTarget | null {
+  if (!creatures.length) return null;
+  const sx = Math.sin(ship.heading + angle);
+  const sz = Math.cos(ship.heading + angle);
+  let best: CreatureTarget | null = null;
+  let bestDistance = Math.min(closer, cannon.range * conditions.rangeFactor);
+  for (const part of creatures) {
+    if (!part.alive || !isHostile(ship, part)) continue;
+    const dx = part.position.x - ship.position.x;
+    const dz = part.position.z - ship.position.z;
+    const distance = Math.hypot(dx, dz);
+    if (distance > bestDistance || distance < 0.5) continue;
+    if ((dx * sx + dz * sz) / distance < Math.cos(Math.min(Math.PI / 2, arc + ship.stats.width / distance))) continue;
+    best = part;
+    bestDistance = distance;
+  }
+  return best;
 }
 
 /** Le point assiégé par ce bateau, s'il est à portée et dans l'arc du canon pointant vers `angle`, sinon null. */

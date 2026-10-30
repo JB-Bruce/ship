@@ -28,17 +28,24 @@ const HULL_TOP = 2.2;
 /** Ordres d'un bateau qui coule : plus personne à la barre. */
 const ADRIFT: ShipControls = { sail: 0, rudder: 0 };
 
-/** Tout ce qui appartient à un camp et peut tirer : bateaux, fort… */
+/** Le camp d'un combattant : celui d'un navire ou d'un fort, ou les monstres marins (le Kraken), ennemis de tous. */
+export type CombatFaction = Faction | 'monster';
+
+/** Tout ce qui appartient à un camp et peut tirer ou être touché : bateaux, fort, monstres… */
 export interface Combatant {
-  readonly faction: Faction;
+  readonly faction: CombatFaction;
   /** Sous l'eau (navire maudit qui surgit ou replonge) : ni cible, ni tireur. */
   readonly intangible?: boolean;
 }
 
-/** Joueur et alliés contre ennemis ; les maudits contre tous les autres. Rien ne vise ni ne touche un navire sous l'eau. */
+/**
+ * Joueur et alliés contre ennemis ; les maudits et les monstres contre tous les autres. Rien ne vise ni ne touche un
+ * navire sous l'eau.
+ */
 export function isHostile(a: Combatant, b: Combatant): boolean {
   if (a.intangible || b.intangible) return false;
-  if (a.faction === 'cursed' || b.faction === 'cursed') return a.faction !== b.faction;
+  const loner = (f: CombatFaction) => f === 'cursed' || f === 'monster';
+  if (loner(a.faction) || loner(b.faction)) return a.faction !== b.faction;
   return (a.faction === 'enemy') !== (b.faction === 'enemy');
 }
 
@@ -124,6 +131,11 @@ export class Ship {
   /** Très abîmé (sous FEEDBACK.list.at de vie) : part de la gîte et de l'enfoncement (0 à 1), et le bord qui plonge. */
   listing = 0;
   private readonly listSide = Math.random() < 0.5 ? 1 : -1;
+  /**
+   * Prise d'un monstre (le Kraken, world/monsters/) qui enserre la coque : part de la vitesse perdue (0 à 1), gîte imposée
+   * (rad, bâbord haut si positive) et enfoncement (m). Posée chaque image par celui qui le tient, remise à zéro quand il lâche.
+   */
+  readonly grip = { hold: 0, roll: 0, sink: 0 };
   /** Point que ce bateau bombarde quand aucun ennemi n'est à portée (assiégeant d'une mission de défense), ou null. */
   siegeTarget: CannonTarget | null = null;
 
@@ -367,8 +379,10 @@ export class Ship {
     const upwind = SHIP_TYPES[this.type].upwindLoss ?? 1;
     const windEffect = 1 + w * (w > 0 ? factor(this.modifiers, 'wind') : upwind / factor(this.modifiers, 'wind'));
     const rowing = this.updateOars(dt, controls, wind);
-    const targetSpeed = s.maxSpeed * torn * (cursed ? 1 : this.crits.speedFactor) * controls.sail * (windEffect + rowing);
-    const accel = targetSpeed > this.cruise ? s.acceleration : s.deceleration;
+    const held = 1 - this.grip.hold;
+    const targetSpeed = s.maxSpeed * torn * (cursed ? 1 : this.crits.speedFactor) * controls.sail * (windEffect + rowing) * held;
+    // Tenu par un monstre : il est freiné net, pas seulement privé de vent.
+    const accel = targetSpeed > this.cruise ? s.acceleration : s.deceleration / Math.max(0.1, held);
     this.cruise = moveTowards(this.cruise, targetSpeed, accel * dt);
     this.surge = damp(this.surge, this.surfTarget(), SURF.response, dt);
 
@@ -418,14 +432,14 @@ export class Ship {
     const L = FEEDBACK.list;
     const target = this.alive && !this.intangible ? THREE.MathUtils.smoothstep(L.at - this.health / this.stats.maxHealth, 0, L.at) : this.listing;
     this.listing = moveTowards(this.listing, target, dt / L.rate);
-    this.position.y = this.buoyancy.y - this.drowned - this.listing * L.settle;
+    this.position.y = this.buoyancy.y - this.drowned - this.listing * L.settle - this.grip.sink;
   }
 
   private syncModel(dt: number, controls: ShipControls, wind: Wind) {
     this.sailAmount = damp(this.sailAmount, controls.sail, 1.5, dt);
     this.model.root.position.copy(this.position);
     // Ordre YXZ : cap d'abord, puis tangage (proue haute = x négatif), puis roulis (bâbord haut = z positif).
-    this.model.root.rotation.set(this.plunge - this.buoyancy.pitch, this.heading, this.buoyancy.roll + this.listSide * this.listing * FEEDBACK.list.angle, 'YXZ');
+    this.model.root.rotation.set(this.plunge - this.buoyancy.pitch, this.heading, this.buoyancy.roll + this.listSide * this.listing * FEEDBACK.list.angle + this.grip.roll, 'YXZ');
     // Loin, ou noyé dans la brume (caché par FogCulling à l'image précédente) : rien à animer ; tout est remis à jour
     // dès qu'il réapparaît.
     if (this.far || !this.model.root.visible) return;

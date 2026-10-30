@@ -18,6 +18,9 @@ export const COLORS = {
   canvas: new THREE.Color(0xe6dcc4),
   /** Brume des navires maudits : gris-vert pâle, faiblement lumineux. */
   mist: new THREE.Color(0x7d9a8a),
+  /** Sang noir-violet du Kraken, et chair arrachée d'une tentacule. */
+  ichor: new THREE.Color(0x2a0b26),
+  flesh: new THREE.Color(0x7a3442),
 };
 
 export const rand = (min: number, max: number) => min + Math.random() * (max - min);

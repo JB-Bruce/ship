@@ -29,7 +29,7 @@ export function pickAimPoint(point: AimPoint, target: CannonTarget) {
   point.target = target;
   if (!isShip(target)) {
     point.along = 0;
-    point.height = AIM.structureHeight;
+    point.height = target.aimHeight ?? AIM.structureHeight;
     return;
   }
   const mast = target.model.flagMount.position.y;

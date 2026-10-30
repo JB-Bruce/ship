@@ -35,9 +35,10 @@ const sample = new THREE.Vector3();
 const scale = new THREE.Vector3();
 const noRotation = new THREE.Quaternion();
 
-/** Ouvrage qu'un boulet peut toucher (citadelle assiégée). */
+/** Ouvrage qu'un boulet peut toucher (citadelle assiégée), ou partie d'un monstre (`flesh` : pas de terre qui vole). */
 export interface Structure extends Combatant {
   readonly alive: boolean;
+  readonly flesh?: boolean;
   containsPoint(x: number, y: number, z: number): boolean;
 }
 
@@ -123,7 +124,7 @@ export class Projectiles {
       }
       const structure = structures.find((s) => s.alive && isHostile(ball.owner, s) && s.containsPoint(ball.position.x, ball.position.y, ball.position.z));
       if (structure) {
-        effects.groundHit(ball.position);
+        if (!structure.flesh) effects.groundHit(ball.position);
         onStructureHit(structure, ball);
         this.detonate(ball, ships, null, onBlast, effects);
         this.removeAt(i);

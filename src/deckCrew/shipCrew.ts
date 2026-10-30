@@ -318,6 +318,16 @@ export class ShipCrew {
     return s.mode !== 'gone' && s.mode !== 'fall' && !s.leaving;
   }
 
+  /** Un grand coup sur le pont (tentacule du Kraken) : jusqu'à `count` matelots sur le pont passent par-dessus bord. */
+  knock(count: number) {
+    for (const s of this.sailors) {
+      if (count <= 0) return;
+      if (s.role !== 'hand' || !this.onDeck(s) || s.mode === 'climb' || this.inTop(s) || Math.random() < 0.4) continue;
+      this.fall(s);
+      count--;
+    }
+  }
+
   /** Projeté par-dessus bord, du côté où il se trouve. */
   private fall(s: Sailor) {
     const side = Math.sign(s.x) || (Math.random() < 0.5 ? 1 : -1);

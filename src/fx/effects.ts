@@ -5,6 +5,7 @@ import type { Waves } from '../ocean/waves';
 import type { Ship } from '../ship/ship';
 import { emitDamageTrail } from './damageTrail';
 import { HullFootprints } from './hullFootprints';
+import { KrakenFx } from './krakenFx';
 import { COLORS, rand, reset } from './particleKit';
 import { ParticleSystem } from './particles';
 import { SeaSpray } from './seaSpray';
@@ -57,6 +58,8 @@ export class Effects {
   private readonly hulls = new HullFootprints();
   private readonly sea = new SeaSpray(this.lit);
   private readonly shells: ShellFx;
+  /** Sang noir, gerbes géantes et ruissellement du Kraken. */
+  readonly kraken: KrakenFx;
   /** Obscurité (0 jour, 1 nuit ou orage), posée par `Game` : les boulets y laissent une traînée rougeoyante. */
   darkness = 0;
 
@@ -66,6 +69,7 @@ export class Effects {
   ) {
     scene.add(this.lit.mesh, this.glow.mesh);
     this.shells = new ShellFx(this.lit, this.glow, wakes);
+    this.kraken = new KrakenFx(this.lit, wakes);
   }
 
   /**

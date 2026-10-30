@@ -176,6 +176,7 @@ export class SettingsMenu extends ParchmentMenu {
       case 'cursed': return c.spawnCursed();
       case 'fireship': return c.spawnFireship();
       case 'takeFireship': return c.takeFireship();
+      case 'kraken': return c.spawnKraken();
       case 'boss': return c.spawnBoss(value as BossId);
       case 'teleport': return c.teleport(value);
     }

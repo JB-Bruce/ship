@@ -296,6 +296,54 @@ export const FIRESHIP = {
   maxLead: 4,
 };
 
+/**
+ * Le Kraken (world/monsters/) : on ne peut jamais le tuer, et il n'a pas de barre de vie : son état se lit sur ses
+ * tentacules (plus sombres et agitées quand elles souffrent, tranchées par les boulets) et sur sa tête.
+ * - `tentacles` tentacules, dont `grabbers` enserrent la coque (moitié de chaque bord) ; les autres battent l'air
+ *   autour et s'abattent sur le pont. Chaque tentacule : `segments` tronçons, rayon `radius` (pied, pointe), vie
+ *   `tentacleHealth[rang]` selon le plus gros navire de ta flotte (rang 1 à 8), `woundTint` (teinte quand elle souffre).
+ * - Approche : il nage sous l'eau à `swimSpeed` m/s depuis `approach` m (ombre et bouillons, `shadow` : demi-longueur,
+ *   demi-largeur), puis surgit (`emergeTime` s) autour de sa proie.
+ * - Prise (`grip`) : le navire tenu perd `hold` de sa vitesse, gîte de `roll` rad et s'enfonce de `sink` m (au plus,
+ *   toutes les tentacules de prise en place) ; il perd `damage` × sa vie max par seconde (toutes les tentacules de prise),
+ *   et une voile sur `1 / sailChance` par seconde.
+ * - Coup de tentacule (`slam`) : toutes les `interval` s, une tentacule libre se dresse (`raise` s, l'alerte), frappe
+ *   (`strike` s) : `damage` × la vie max, `crew` matelots jetés à l'eau, secousse `shake` (bateau piloté).
+ * - Riposte : une tentacule tranchée lâche et coule ; après `exposeAfter` tranchées, la tête surgit à côté du navire
+ *   (`head` : vie = `health` × celle d'une tentacule, temps hors de l'eau `exposed` s, distance au bordé `gap` m). Tête
+ *   vaincue, ou moins de `minTentacles` tentacules : il fuit. Sinon, la tête replonge et il ressurgit sous un autre
+ *   navire proche (à moins de `retarget` m), ou le même, après `regroup` s.
+ * - Rencontre rare (`encounter`) : en eau profonde (à plus de `deep` m des terres), de nuit ou sous un ciel d'orage
+ *   (obscurité `darkness` au moins), si ton plus gros navire est au moins du rang `minRank` ; `chance` par minute, au plus une fois toutes les
+ *   `cooldown` s. Abandon s'il n'a plus de proie à moins de `giveUp` m.
+ */
+export const KRAKEN = {
+  tentacles: 8,
+  grabbers: 4,
+  segments: 16,
+  radius: [1.05, 0.12] as const,
+  tentacleHealth: [90, 140, 200, 270, 350, 450, 560, 680] as const,
+  woundTint: 0x3a0c18,
+  skin: { top: 0x6e2f3c, belly: 0xd9a08c, sucker: 0xf0d2c0 },
+  swimSpeed: 9,
+  approach: [140, 200] as const,
+  shadow: { half: 16, width: 9 },
+  emergeTime: 2.2,
+  grip: { hold: 0.92, roll: 0.12, sink: 0.45, damage: 0.012, sailChance: 0.06, settle: 1.6 },
+  slam: { interval: [7, 11] as const, raise: 1.6, strike: 0.35, hold: 0.9, damage: 0.07, crew: 3, shake: 0.9 },
+  exposeAfter: 4,
+  minTentacles: 3,
+  head: { health: 3.5, exposed: 22, gap: 7, riseTime: 2.5, size: 1 },
+  retarget: 450,
+  regroup: [6, 10] as const,
+  diveTime: 2.5,
+  fleeSpeed: 14,
+  giveUp: 600,
+  encounter: { deep: 500, darkness: 0.5, minRank: 3, chance: 0.05, cooldown: 1800, firstDelay: 900 },
+  /** Ses tentacules ne s'animent plus au-delà de cette distance à la caméra (m). */
+  animRange: 900,
+};
+
 export const MORTAR_FX = {
   trailInterval: 0.025,
   /** Taille de l'explosion d'un obus (Effects.explosion ; la sainte-barbe : CRIT.magazineScale). */
@@ -1972,6 +2020,8 @@ export const OCEAN = {
   shelfColor: 0x1d8a96,
   shelfWidth: 260,
   shelfStrength: 0.45,
+  /** Ombre d'une grande masse sous l'eau (Kraken, canal alpha des traces) : part de la couleur de l'eau éteinte au cœur. */
+  monsterShadow: 0.75,
   /** Force des petites rides de surface, et échelle (répétitions par mètre) de leurs deux couches. */
   rippleStrength: 0.08,
   rippleScales: [0.07, 0.18] as const,

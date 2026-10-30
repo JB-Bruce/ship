@@ -386,6 +386,17 @@ De vrais enregistrements (87 sons CC0 de Freesound, Kenney et OpenGameArt, chois
 - Un canon ne tire jamais à travers un navire de son camp : tant qu'un camarade masque la cible, il attend (pour tout le monde, ton navire compris ; les mortiers tirent par-dessus). Les boulets continuent de traverser les navires amis : pas de tir ami.
 - L'IA gênée se dégage d'elle-même : elle réduit la voile si le camarade est devant elle, met toute la voile s'il est derrière, et s'écarte de quelques degrés pour sortir de l'axe.
 
+## Le Kraken (commencé, 2026-10-30)
+- **Ce que c'est** : le premier monstre marin. Il est à la fois une rencontre rare et récurrente et un futur boss de l'histoire. On ne peut **jamais le tuer**, et il n'a **pas de barre de vie** : son état se lit sur ses tentacules (de plus en plus sombres et agitées quand elles souffrent, puis tranchées) et sur sa tête (elle s'assombrit, ses paupières tombent, ses yeux s'éteignent).
+- **Approche** : une grande ombre sombre glisse sous l'eau vers sa proie, avec des bouillons. Alerte « Une ombre immense glisse sous les flots… », puis la musique de boss.
+- **Prise** : il surgit sous le navire. 8 tentacules jaillissent dans de grandes gerbes ; 4 enserrent la coque (2 de chaque bord), les autres battent l'air autour. Le navire tenu est presque arrêté (92 % de sa vitesse perdue), gîte, s'enfonce un peu, craque. Il perd 1,2 % de sa vie par seconde (toutes les tentacules en place) et, de temps en temps, une voile arrachée.
+- **Coups de tentacule** : toutes les 7 à 11 s, une tentacule libre se dresse (c'est l'alerte), puis s'abat en travers du pont : 7 % de la vie, 3 matelots jetés à l'eau, forte secousse.
+- **Riposte** : tous les canons, de tous les camps, visent ses tentacules et sa tête (le Kraken est ennemi de tous). Une tentacule sans vie est tranchée : le bout part en tournoyant et coule, le reste lâche et s'enfonce. Vie d'une tentacule selon ton plus gros navire (90 pour un rang 1, 680 pour un rang 8). Après 4 tentacules tranchées, la tête sort à côté du navire pendant 22 s (3,5 fois la vie d'une tentacule).
+- **Fin** : tête vaincue, ou moins de 3 tentacules : il lâche tout et fuit dans les abysses. Sinon la tête replonge, et il ressurgit quelques secondes plus tard sous le navire le plus proche (le même ou un autre, de n'importe quel camp), où sa tête ressortira dès qu'une tentacule de plus sera tranchée.
+- **Rencontre rare** : en eau profonde (à plus de 500 m de toute terre), de nuit ou sous un ciel d'orage, si ton plus gros navire est au moins de rang 3 ; une chance sur vingt par minute, pas avant 15 minutes de jeu, au plus une fois toutes les 30 minutes. Triche : bouton « Kraken » de l'onglet Triche.
+- **Pour l'histoire** : il peut être appelé sous n'importe quel navire, et l'histoire est prévenue quand il fuit. L'étape de l'histoire qui l'utilisera reste à écrire.
+- **À décider plus tard** : récompense quand on le repousse (trophée dans le registre, butin), sons propres (rugissement), autres monstres.
+
 ## Idées de navires (non commencées, à choisir)
 Chaque navire suit le même schéma : un modèle `ShipModel` + une entrée dans `shipTypes.ts` (stats, prix, tables d'amélioration et de masse) + éventuellement une capacité spéciale.
 

@@ -88,6 +88,16 @@ export class Criticals {
     return null;
   }
 
+  /** Abat une voile de `ship` (une tentacule du Kraken l'arrache). Renvoie vrai s'il en restait une à abattre. */
+  tearSail(ship: Ship): boolean {
+    if (!ship.alive || ship.faction === 'cursed' || !ship.crits.inflict('rigging', ship.model.root, ship.model.fireSpots.length) || !ship.crits.lastDropped) return false;
+    this.world.effects.impact(deckPoint(ship));
+    sound.at('combat/mast_crack', ship.position, { ref: AUDIO.refs.hit });
+    this.sails.drop(ship.crits.lastDropped);
+    if (ship === this.world.leader()) this.world.hud.toast(CRIT_TEXT.rigging, 3, 'danger');
+    return true;
+  }
+
   /** Met le feu à `ship` (souffle d'un brûlot), comme un incendie tiré par un boulet. Renvoie vrai s'il a pris. */
   ignite(ship: Ship): boolean {
     if (!ship.alive || !ship.crits.inflict('fire', ship.model.root, ship.model.fireSpots.length)) return false;

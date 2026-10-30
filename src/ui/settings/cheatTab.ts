@@ -34,6 +34,7 @@ export function cheatTab(ctx: SettingsContext): string {
     <div class="settings-list">
       ${row('Ennemis', 'Un ennemi déjà lancé à ta poursuite ; un navire maudit ou un brûlot maudit (de nuit seulement).', button('Ennemi en chasse', 'chaser') + button('Navire maudit', 'cursed') + button('Brûlot maudit', 'fireship'))}
       ${row('Boss', 'Le boss surgit tout de suite, même hors de son temps, et reste jusqu’à ce qu’il coule.', bosses)}
+      ${row('Kraken', 'Le Kraken nage vers le bateau piloté et surgit sous lui, de jour comme de nuit.', button('Kraken', 'kraken'))}
     </div>
     <h3 class="section">Se téléporter</h3>
     <div class="settings-list">

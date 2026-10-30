@@ -22,6 +22,8 @@ export interface GameAudioWorld {
   campaign: Campaign;
   spawner: EnemySpawner;
   bosses: Bosses;
+  /** Un monstre (le Kraken) menace ta flotte : musique de boss. */
+  monster: () => boolean;
   ships: readonly Ship[];
 }
 
@@ -66,7 +68,7 @@ export class GameAudio {
       if (e.cursed && !ship.intangible) v.cursed = Math.min(v.cursed, d);
       if (d < AUDIO.music.combatRange && e.ai.target?.faction === 'player') v.combat = true;
     }
-    v.boss = bosses.inSight(leader) !== null;
+    v.boss = bosses.inSight(leader) !== null || this.w.monster();
     if (v.combat && !this.fighting) sound.at('crew/shout', leader.position);
     this.fighting = v.combat;
     this.ambience.update(elapsed, v);

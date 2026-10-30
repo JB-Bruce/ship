@@ -10,6 +10,7 @@ import { SHIP_SIZE_ORDER, SHIP_TYPES } from './shipTypes';
 import type { Hud } from './ui/hud';
 import type { Bosses } from './world/bossEncounter';
 import type { CursedTide } from './world/cursedTide';
+import type { Krakens } from './world/monsters/krakens';
 import type { EnemySpawner } from './world/enemySpawner';
 import { ISLAND_LIST, ISLET_LIST, land } from './world/island';
 
@@ -35,6 +36,8 @@ export interface CheatActions {
   /** Un brûlot maudit (de nuit) ; un brûlot dans ta flotte, à la barre. */
   spawnFireship(): void;
   takeFireship(): void;
+  /** Le Kraken surgit sous le bateau piloté. */
+  spawnKraken(): void;
   spawnBoss(id: BossId): void;
   teleport(id: string): void;
   maxUpgrades(): void;
@@ -49,6 +52,7 @@ export interface CheatWorld {
   campaign: Campaign;
   spawner: EnemySpawner;
   cursed: CursedTide;
+  krakens: Krakens;
   bosses: Bosses;
   hud: Hud;
 }
@@ -131,6 +135,10 @@ export class Cheats implements CheatActions {
     refit(member, this.w.campaign.crew);
     this.w.fleet.takeControl(member);
     this.say(`${member.name}, un brûlot, rejoint ta flotte`);
+  }
+
+  spawnKraken() {
+    if (!this.w.krakens.summon(this.w.fleet.leader)) this.w.hud.toast('Le Kraken est déjà là', 2.5);
   }
 
   spawnBoss(id: BossId) {

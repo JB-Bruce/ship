@@ -65,6 +65,11 @@ export class DeckCrew {
   }
 
   /** Les marins de ce navire (aucun s'il n'a pas d'équipage animé en ce moment). */
+  /** Un grand coup sur le pont de `ship` : quelques matelots passent par-dessus bord (s'il a un équipage animé). */
+  knock(ship: Ship, count: number) {
+    this.crews.get(ship)?.knock(count);
+  }
+
   sailorsOf(ship: Ship): readonly Sailor[] {
     return this.crews.get(ship)?.sailors ?? NONE;
   }

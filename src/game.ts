@@ -60,6 +60,7 @@ import { Loot } from './world/loot';
 import { PirateTraffic } from './world/pirateTraffic';
 import { PlanScrolls } from './world/planScrolls';
 import { CursedTide } from './world/cursedTide';
+import { Krakens, type KrakenPart } from './world/monsters/krakens';
 import { Cheats } from './cheats';
 import { GameAudio } from './audio/gameAudio';
 import { sound } from './audio/sound';
@@ -172,6 +173,10 @@ export class Game {
   private readonly encounters: EncounterAlerts;
   private readonly criticals: Criticals;
   private readonly fireships: Fireships;
+  /** Le Kraken : rencontre rare des eaux profondes, ou appelé par l'histoire. */
+  private readonly krakens: Krakens;
+  /** Ce que les boulets peuvent toucher en plus des navires : forts assiégés et parties du Kraken (tableau réutilisé). */
+  private readonly hittable: (Fort | KrakenPart)[] = [];
   private readonly healthBars: HealthBars;
   private readonly bossBar: ObjectiveBar;
   private readonly siegeBar: ObjectiveBar;
@@ -251,6 +256,23 @@ export class Game {
       shake: (amount) => this.chaseCamera.shake(amount),
       sceneFlash: (strength) => this.weather.flashBurst(strength),
     });
+    this.krakens = new Krakens({
+      scene: this.scene,
+      effects: this.effects,
+      wakes: this.wakes,
+      waves: this.waves,
+      ships: this.ships,
+      leader: () => this.fleet.leader,
+      hand: () => this.fleet.hand.map((m) => m.ship),
+      best: () => this.fleet.strongest,
+      darkness: () => this.weather.darkness,
+      damage: (ship, amount) => this.applyDamage(ship, amount),
+      tearSail: (ship) => this.criticals.tearSail(ship),
+      knockCrew: (ship, count) => this.deckCrew.knock(ship, count),
+      shake: (amount) => this.chaseCamera.shake(amount),
+      alert: (text) => this.hud.message(text, 4, true),
+      toast: (text, tone) => this.hud.toast(text, 4, tone),
+    });
     this.healthBars = new HealthBars(container);
     this.vignette = new DangerVignette(container);
     this.spray = new ScreenSpray(container);
@@ -283,11 +305,11 @@ export class Game {
     if (loaded) this.hud.toast(`Partie chargée : « ${loaded} »`, 3, 'good');
 
     const { state, fleet, campaign, hud, wind, spawner, loot, planScrolls, schools, radar, pirates, settings, display, saves, dayCycle } = this;
-    this.audio = new GameAudio({ fleet, weather: this.weather, wind, campaign, spawner, bosses: this.bosses, ships: this.ships });
+    this.audio = new GameAudio({ fleet, weather: this.weather, wind, campaign, spawner, bosses: this.bosses, ships: this.ships, monster: () => this.krakens.threatening });
     const applyVolumes = () => sound.setVolumes(settings.volumes, settings.muted);
     applyVolumes();
     settings.onChange(applyVolumes);
-    this.cheats = new Cheats({ state, fleet, campaign, spawner, cursed: this.cursed, bosses: this.bosses, hud });
+    this.cheats = new Cheats({ state, fleet, campaign, spawner, cursed: this.cursed, krakens: this.krakens, bosses: this.bosses, hud });
     const menus = createMenus({ container, cheats: this.cheats, state, fleet, campaign, hud, wind, spawner, loot, planScrolls, schools, radar, pirates, settings, display, saves, dayCycle, chaseCamera: this.chaseCamera, takeHelm: (m) => this.takeHelm(m) });
     this.portMenu = menus.portMenu;
     const story = new StoryDirector(campaign.story, new DialogueBox(container), {
@@ -407,22 +429,25 @@ export class Game {
       (fireship, target) => this.fireships.detonate(fireship, target, this.ships),
     );
     this.fireships.update(dt, this.ships, this.camera.position);
+    this.krakens.update(dt, this.camera);
     resolveLandCollisions(this.ships);
     this.repairStatus = this.campaign.repairAtPort(dt, this.ships, this.fleet.leader);
     // Au menu principal, la partie n'a pas commencé : ni l'heure ni les journées n'avancent (le monde vit quand même).
     this.campaign.update(this.start.inMenu ? 0 : dt, this.fleet.leader);
     this.story.update(dt);
     for (const fort of Object.values(this.forts)) fort.update(dt, this.ships, this.projectiles, this.effects, this.wind);
-    updateCannons(dt, this.ships, this.projectiles, this.effects, this.waves);
-    const besieged = this.campaign.besieged();
+    updateCannons(dt, this.ships, this.projectiles, this.effects, this.waves, this.krakens.parts);
+    const hittable = this.hittable;
+    hittable.length = 0;
+    hittable.push(...this.campaign.besieged(), ...this.krakens.parts);
     this.projectiles.update(
       dt,
       this.ships,
       this.waves,
       this.effects,
       (ship, ball, rigging) => this.onBallHit(ship, ball, rigging),
-      besieged,
-      (fort, ball) => fort.takeDamage(ball.damage),
+      hittable,
+      (target, ball) => ('kind' in target ? this.krakens.hit(target, ball) : target.takeDamage(ball.damage)),
       (ship, ball, damage) => this.onShellBlast(ship, ball, damage),
     );
     for (const ship of this.ships) this.effects.shipAmbient(dt, ship, this.waves);

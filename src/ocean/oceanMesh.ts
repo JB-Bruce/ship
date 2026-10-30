@@ -110,7 +110,7 @@ void main() {
   bool detailed = dist < uDetailDistance;
   vec2 slope = vec2(0.0);
   float rippleFade = 0.0;
-  vec3 wake = vec3(0.0);
+  vec4 wake = vec4(0.0);
   if (detailed) {
     slope = (r1.rg * 2.0 - 1.0) + (r2.rg * 2.0 - 1.0) * 0.6;
     // Au loin, les rides s'effacent (sinon elles forment des stries en vue rasante).
@@ -153,6 +153,8 @@ void main() {
 
   // Eau brassée par un bateau : un peu plus claire et laiteuse.
   body = mix(body, body * 1.06 + uScatter * 0.03, wakeCalm * 0.6);
+  // Une grande ombre sous l'eau (le Kraken qui approche) : l'eau y devient presque noire.
+  body *= 1.0 - ${OCEAN.monsterShadow.toFixed(2)} * clamp(wake.a, 0.0, 1.0);
   // Ciel couvert : l'eau s'assombrit ; la nuit encore plus (l'eau ne reçoit pas les lumières de la scène).
   body *= mix(0.6, 1.0, uSunlight) * uWaterLight;
 

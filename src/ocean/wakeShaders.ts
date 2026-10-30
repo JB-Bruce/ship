@@ -2,7 +2,8 @@ import { WAKE } from '../config';
 import { WATERLINE_SAMPLES } from '../ship/parts/hullShape';
 
 // Texture de traces : canal rouge = écume, canal vert = eau lissée (rides effacées derrière un bateau),
-// canal bleu = eau qui frémit (rides fines et agitées au-dessus d'un banc de poissons).
+// canal bleu = eau qui frémit (rides fines et agitées au-dessus d'un banc de poissons), canal alpha = ombre d'une
+// grande masse sous l'eau (le Kraken qui approche), qui s'efface vite.
 // Elle couvre un carré de WAKE.areaSize mètres centré sur le joueur ; un texel = toujours le même point du monde.
 
 /** Quad plein écran, sans caméra : les sommets sont déjà en coordonnées écran. */
@@ -24,20 +25,21 @@ uniform vec2 uShift;
 uniform float uTexel;
 uniform float uSpread;
 uniform float uDecay;
+uniform float uShadowDecay;
 varying vec2 vUv;
 
-vec3 previousAt(vec2 uv) {
+vec4 previousAt(vec2 uv) {
   // Ce qui entre par le bord de la zone n'a pas d'historique.
   vec2 inside = step(vec2(0.0), uv) * step(uv, vec2(1.0));
-  return texture2D(uPrevious, uv).rgb * inside.x * inside.y;
+  return texture2D(uPrevious, uv) * inside.x * inside.y;
 }
 
 void main() {
   vec2 uv = vUv + uShift;
-  vec3 around = previousAt(uv + vec2(uTexel, 0.0)) + previousAt(uv - vec2(uTexel, 0.0))
+  vec4 around = previousAt(uv + vec2(uTexel, 0.0)) + previousAt(uv - vec2(uTexel, 0.0))
     + previousAt(uv + vec2(0.0, uTexel)) + previousAt(uv - vec2(0.0, uTexel));
-  vec3 c = previousAt(uv) * (1.0 - 4.0 * uSpread) + around * uSpread;
-  gl_FragColor = vec4(max(c - uDecay, 0.0), 1.0);
+  vec4 c = previousAt(uv) * (1.0 - 4.0 * uSpread) + around * uSpread;
+  gl_FragColor = vec4(max(c.rgb - uDecay, 0.0), max(c.a - uShadowDecay, 0.0));
 }
 `;
 
@@ -86,6 +88,7 @@ void main() {
   float k = vShape.w;
   vec2 trace;
   float shimmer = 0.0;
+  float shadow = 0.0;
   if (type < 0.5) {
     // Bateau : deux fines traînées d'écume qui partent des coins de la poupe (là où la coque se resserre),
     // un remous au centre juste derrière, et de l'eau lissée sur la largeur du sillage (jamais devant la proue).
@@ -124,6 +127,20 @@ void main() {
     float churn = 0.75 + 0.25 * sin(p.x * 1.3 + s) * sin(p.y * 1.1 - s * 0.7);
     float blob = (1.0 - smoothstep(edge * 0.35, edge, d)) * churn;
     trace = vec2(blob * 0.95, 1.0 - smoothstep(edge * 0.6, edge * 1.1, d));
+  } else if (type > 3.5) {
+    // Grande masse sous l'eau (le Kraken) : une ombre allongée au bord flou qui ondule (demi-longueur vHull.x,
+    // demi-largeur = celle du quad / 1,2, graine vHull.y, horloge vHull.z), et quelques bouillons qui crèvent au-dessus
+    // d'elle ; l'eau y est lissée.
+    vec2 q = p / vec2(vShape.x / 1.2, vHull.x);
+    float a = atan(q.y, q.x);
+    float wob = 1.0 + 0.1 * sin(a * 3.0 + vHull.z * 1.3 + vHull.y) + 0.06 * sin(a * 5.0 - vHull.z * 2.1);
+    float d = length(q) / wob;
+    shadow = 1.0 - smoothstep(0.35, 1.0, d);
+    vec2 cell = floor(p * 0.35);
+    float h = fract(sin(dot(cell + vHull.y, vec2(127.1, 311.7))) * 43758.5453);
+    float phase = fract(vHull.z * (0.5 + 0.6 * h) + h * 7.0);
+    float boil = (1.0 - smoothstep(0.08, 0.3, length(fract(p * 0.35) - 0.5))) * step(0.7, h) * (1.0 - smoothstep(0.15, 0.4, phase));
+    trace = vec2(boil * shadow, shadow * 0.7);
   } else {
     // Banc de poissons : des bouillons qui naissent et s'éteignent un peu partout, à un endroit nouveau à chaque
     // fois (graine vHull.y, horloge vHull.z), plus serrés au centre. L'eau n'y est pas lissée : elle frémit (bleu).
@@ -140,7 +157,7 @@ void main() {
     trace = vec2(bubble * inside, 0.0);
     shimmer = (1.0 - smoothstep(0.6, 1.0, length(p) / vHull.x)) * 0.9;
   }
-  gl_FragColor = vec4(trace * k, shimmer * k, 1.0);
+  gl_FragColor = vec4(trace * k, shimmer * k, shadow * k);
 }
 `;
 
@@ -168,12 +185,12 @@ float waterlineAt(int ship, float u) {
   return mix(samples[k], samples[k + 1], f - float(k));
 }
 
-/** (écume, eau lissée) laissées par les bateaux, boulets, naufrages et butin. */
-vec3 wakeTrace(vec2 p) {
+/** (écume, eau lissée, frémissement, ombre sous l'eau) laissés par les bateaux, boulets, naufrages, butin, bancs, Kraken. */
+vec4 wakeTrace(vec2 p) {
   vec2 uv = (p - uWakeArea.xy) / uWakeArea.z + 0.5;
   // Les traces s'estompent au bord de la zone au lieu d'être coupées net.
   float edge = 1.0 - smoothstep(0.4, 0.5, max(abs(uv.x - 0.5), abs(uv.y - 0.5)));
-  return texture2D(uWakeMap, uv).rgb * edge;
+  return texture2D(uWakeMap, uv) * edge;
 }
 
 /**
