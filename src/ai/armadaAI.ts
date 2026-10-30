@@ -2,7 +2,7 @@ import { CONTRACTS, ENEMIES, SAIL } from '../config';
 import type { Ship } from '../ship/ship';
 import type { FlotillaSlot } from './enemyAI';
 import type { Waypoint } from './seaRoute';
-import { bearingTo, broadside, nearest, steerTo } from './steering';
+import { bearingTo, broadside, clearLineOfFire, nearest, steerTo } from './steering';
 
 /** Ce que l'armada partage : en route ou non, son chef du moment, l'ennemi qu'elle va chercher. */
 export interface ArmadaOrders {
@@ -35,6 +35,7 @@ export class ArmadaAI {
     const enemy = nearest(ship, ships, b.engageRange);
     if (enemy) {
       this.side = broadside(ship, enemy, this.side, SAIL.half);
+      clearLineOfFire(ship);
       return;
     }
     if (!orders.sailing) {

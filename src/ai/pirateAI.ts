@@ -5,7 +5,7 @@ import { harbors } from '../world/harbors';
 import { ISLAND_LIST, land, type Island } from '../world/island';
 import type { Crate } from '../world/loot';
 import { bayMouth, seaRoute, Wander, type Waypoint } from './seaRoute';
-import { bearingTo, broadside, nearest, steerTo } from './steering';
+import { bearingTo, broadside, clearLineOfFire, nearest, steerTo } from './steering';
 
 /** À moins de cette distance d'une étape de sa route, le pirate passe à la suivante (m). */
 const WAYPOINT_REACHED = 45;
@@ -104,6 +104,7 @@ export class PirateAI {
     const enemy = this.fleeing ? null : nearest(ship, ships, PIRATES.engageRange);
     if (enemy) {
       this.side = broadside(ship, enemy, this.side, SAIL.half);
+      clearLineOfFire(ship);
       return;
     }
     const loot = this.fleeing ? null : this.nearestCrate(crates);

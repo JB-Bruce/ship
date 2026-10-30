@@ -250,6 +250,14 @@ export const AIM = {
 /** Mortier du brick : obus en cloche (voir ShellStats) ; effets : traînée de fumée posée tous les `trailInterval` s, taille de l'explosion. */
 export const MORTAR_SHELL: ShellStats = { gravityFactor: 2, flightBase: 1.8, flightPerMeter: 0.0135, blastRadius: 12, blastShare: 0.5, size: 2.2 };
 /**
+ * Ligne de tir (combat/lineOfFire.ts) : un canon ne tire pas à travers un navire de son camp (les boulets les traversent,
+ * ce n'est qu'une question de bon sens). Marge autour de la coque du camarade (m) ; un canon gêné réessaie au bout de
+ * `retry` s ; l'IA gênée (Ship.fireBlocked, `hold` s après la dernière gêne) se dégage : voile `slowSail` si le camarade
+ * est devant elle (sinon pleine voile) et écart de cap de `veer` rad de l'autre côté.
+ */
+export const LINE_OF_FIRE = { margin: 1, retry: 0.35, hold: 1.5, slowSail: 0.25, veer: 0.2 };
+
+/**
  * Sabords qui s'ouvrent au combat (vaisseau de ligne, ship/parts/gunportLids.ts) : fermés en route, les mantelets se
  * relèvent dès qu'un adversaire approche à moins de `reach` × la portée des batteries (ou qu'un canon a une cible), et
  * se referment `hold` s après ; angle d'ouverture (rad),

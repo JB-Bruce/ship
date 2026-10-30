@@ -382,6 +382,10 @@ De vrais enregistrements (87 sons CC0 de Freesound, Kenney et OpenGameArt, chois
 - **2e allongement : « Grande frégate »** (fiche suivante, 5 400 or + 2 700 bois) : +5 m répartis, arrière +1,5 m (gaillard d'arrière plus long), milieu +2 m, avant +1,5 m (gaillard d'avant plus long) → 38 m. Mêmes effets, cumulés : vie +20 %, vitesse +4 %, virage −10 %, masse +90. 12 sabords de batterie par bord, 3 canons sur le gaillard d'arrière. Niveaux débloqués : canons 7 (17 par bord : +2 en batterie, 600 or + 330 bois) et 8 (18 par bord : +1 sur le gaillard d'arrière, 700 + 380), défense de la coque 5 (vie +500, 300 + 300), voilure 5 (vitesse +30 %, 350 + 100), cale 5 (350 places, 360 + 230). Grande frégate tout améliorée : 38 m, 1 411 PV, 36 canons.
 - Partout, le navire s'appelle « Frégate allongée » puis « Grande frégate » (étiquette vert-de-gris dans Navires, le menu T, les Routes ; bandeau du navire piloté), avec une silhouette plus longue. Ligne dans le fil à l'allongement, et « Navires allongés » dans le registre.
 
+## Ligne de tir (fait, 2026-10-30)
+- Un canon ne tire jamais à travers un navire de son camp : tant qu'un camarade masque la cible, il attend (pour tout le monde, ton navire compris ; les mortiers tirent par-dessus). Les boulets continuent de traverser les navires amis : pas de tir ami.
+- L'IA gênée se dégage d'elle-même : elle réduit la voile si le camarade est devant elle, met toute la voile s'il est derrière, et s'écarte de quelques degrés pour sortir de l'axe.
+
 ## Idées de navires (non commencées, à choisir)
 Chaque navire suit le même schéma : un modèle `ShipModel` + une entrée dans `shipTypes.ts` (stats, prix, tables d'amélioration et de masse) + éventuellement une capacité spéciale.
 

@@ -3,7 +3,7 @@ import type { GuardPost } from '../fleet/fleet';
 import type { Ship } from '../ship/ship';
 import { MerchantAI } from './merchantAI';
 import { seaRoute } from './seaRoute';
-import { bearingTo, broadside, nearest, steerTo } from './steering';
+import { bearingTo, broadside, clearLineOfFire, nearest, steerTo } from './steering';
 
 /** Angle d'avance sur le cercle de ronde : il vise un point un peu devant lui sur le cercle (rad). */
 const ORBIT_LEAD = 0.5;
@@ -36,6 +36,7 @@ export class GuardAI {
       this.state = 'fight';
       this.route = null;
       this.side = broadside(ship, this.target, this.side, SAIL.half);
+      clearLineOfFire(ship);
       return;
     }
     const patrol = radius * g.patrol;

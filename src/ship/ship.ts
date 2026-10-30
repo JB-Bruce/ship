@@ -93,6 +93,9 @@ export class Ship {
   battleAlert = 0;
   /** Temps avant de pouvoir subir un nouvel éperonnage (s). */
   ramCooldown = 0;
+  /** Temps (s) pendant lequel un camarade masque encore la cible d'un canon (LINE_OF_FIRE.hold), et lequel. */
+  fireBlocked = 0;
+  fireBlocker: Ship | null = null;
   /** Masse (type, blindage, canons, voilure) : elle pèse dans les chocs. */
   mass: number;
   /** Nombre d'allongements faits (nom du type : typeName). */

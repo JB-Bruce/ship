@@ -4,7 +4,7 @@ import type { Ship } from '../ship/ship';
 import { SHIP_TYPES } from '../shipTypes';
 import { wrapAngle } from '../utils/math';
 import { conditions } from '../world/weather';
-import { bearingTo, broadside, firingRange, nearest, steerTo } from './steering';
+import { bearingTo, broadside, clearLineOfFire, firingRange, nearest, steerTo } from './steering';
 
 /** `leave` : s'éloigne pour de bon (boss quand la tempête se calme), sans plus attaquer. */
 export type EnemyState = 'patrol' | 'chase' | 'engage' | 'flee' | 'leave';
@@ -151,6 +151,7 @@ export class EnemyAI {
       steerTo(this.ship, bearingTo(this.ship, target.position.x, target.position.z), SAIL.full);
     } else {
       this.side = broadside(this.ship, target, this.side, SAIL.half);
+      clearLineOfFire(this.ship);
     }
   }
 
@@ -242,6 +243,7 @@ export class EnemyAI {
         return;
       }
       this.side = broadside(ship, target, this.side, SAIL.half);
+      clearLineOfFire(ship);
       return;
     }
     // Retraite : il s'éloigne en biais, puis tourne autour de sa proie à distance, jusqu'à l'angle de retour.
@@ -281,7 +283,10 @@ export class EnemyAI {
     const d = Math.hypot(fort.x - this.ship.position.x, fort.z - this.ship.position.z);
     const standoff = CONTRACTS.defend.standoff;
     if (d > standoff * 1.6) steerTo(this.ship, bearingTo(this.ship, fort.x, fort.z), SAIL.full);
-    else this.side = broadside(this.ship, { position: fort }, this.side, SAIL.half, standoff);
+    else {
+      this.side = broadside(this.ship, { position: fort }, this.side, SAIL.half, standoff);
+      clearLineOfFire(this.ship);
+    }
   }
 
   private patrol(dt: number) {

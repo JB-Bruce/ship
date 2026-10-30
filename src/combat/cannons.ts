@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COMBAT, GUNPORTS, type CannonStats } from '../config';
+import { COMBAT, GUNPORTS, LINE_OF_FIRE, type CannonStats } from '../config';
 import type { Effects } from '../fx/effects';
 import type { Waves } from '../ocean/waves';
 import { isHostile, type Ship } from '../ship/ship';
@@ -7,6 +7,7 @@ import type { CannonMount } from '../ship/shipModel';
 import { moveTowards, wrapAngle } from '../utils/math';
 import { conditions } from '../world/weather';
 import { aimHeight, aimSpot, distanceSpread, newAimPoint, pickAimPoint, type AimPoint } from './aimSpread';
+import { friendInLine } from './lineOfFire';
 import type { Projectiles } from './projectiles';
 import { sound } from '../audio/sound';
 
@@ -60,6 +61,7 @@ const centered = () => Math.random() + Math.random() - 1;
 export function updateCannons(dt: number, ships: readonly Ship[], projectiles: Projectiles, effects: Effects, waves: Waves) {
   for (const ship of ships) {
     if (!ship.alive) continue;
+    ship.fireBlocked = Math.max(0, ship.fireBlocked - dt);
     // Sabords à mantelets : ouverts dès qu'un adversaire approche, avant d'être à portée (pas en même temps que le tir).
     if (ship.model.setGunports && hostileWithin(ship, ships, ship.stats.cannon.range * conditions.rangeFactor * GUNPORTS.reach)) ship.battleAlert = GUNPORTS.hold;
     const mounts = ship.model.cannons;
@@ -103,6 +105,14 @@ export function updateCannons(dt: number, ships: readonly Ship[], projectiles: P
       const ready = target !== null && ship.cannonCooldowns[i] === 0 && Math.abs(mount.yaw - desired) < AIM_TOLERANCE;
       if (ready) mount.fireDelay = Math.max(0, mount.fireDelay - dt);
       if (ready && target && mount.fireDelay === 0) {
+        // Un camarade dans la ligne de tir : on attend (un obus de mortier passe par-dessus).
+        const blocker = c.shell ? null : blockerOf(ship, mount, ships);
+        if (blocker) {
+          mount.fireDelay = LINE_OF_FIRE.retry;
+          ship.fireBlocked = LINE_OF_FIRE.hold;
+          ship.fireBlocker = blocker;
+          continue;
+        }
         fire(ship, mount, c, aimHeight(point, target, aim.x, aim.z, waves), projectiles, effects);
         ship.cannonCooldowns[i] = c.reloadTime * (mount.reloadFactor ?? 1) * (0.9 + Math.random() * 0.2);
         mount.fireDelay = Math.random() * COMBAT.acquireDelay;
@@ -156,6 +166,14 @@ function siegeTargetFor(ship: Ship, angle: number, cannon: CannonStats, arc: num
   if (distance - (target.radius ?? 0) > cannon.range * conditions.rangeFactor) return null;
   const facing = (dx * Math.sin(ship.heading + angle) + dz * Math.cos(ship.heading + angle)) / distance;
   return facing >= Math.cos(arc) ? target : null;
+}
+
+/** Le camarade qui masque la ligne de tir de ce canon vers le point visé (`aim`), ou null (pied du canon, sans matrices). */
+function blockerOf(ship: Ship, mount: CannonMount, ships: readonly Ship[]): Ship | null {
+  const { x, z } = mount.object.position;
+  const s = Math.sin(ship.heading);
+  const k = Math.cos(ship.heading);
+  return friendInLine(ship, ship.position.x + z * s + x * k, ship.position.z + z * k - x * s, aim.x, aim.z, ships);
 }
 
 /** Anticipation : où sera le point visé sur la cible quand le boulet arrivera (résultat dans `aim`). */

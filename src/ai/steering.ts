@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BROADSIDE, LAND, SAIL } from '../config';
+import { BROADSIDE, LAND, LINE_OF_FIRE, SAIL } from '../config';
 import { cannonStatsOf } from '../combat/cannons';
 import { isHostile, type Ship } from '../ship/ship';
 import { SHIP_TYPES } from '../shipTypes';
@@ -123,4 +123,20 @@ export function broadside(ship: Ship, target: { position: THREE.Vector3 }, side:
   if (turnFor(-side) + SIDE_SWITCH_MARGIN < turnFor(side)) side = -side;
   steerTo(ship, headingFor(side), sail);
   return side;
+}
+
+/**
+ * IA au combat dont un camarade masque la cible (Ship.fireBlocker, posé par updateCannons) : elle ralentit s'il est
+ * devant elle, force la voile s'il est derrière, et s'écarte de quelques degrés de son côté pour sortir de l'axe.
+ * À appeler après le pilotage de combat (broadside…), qu'elle corrige tant que la gêne dure.
+ */
+export function clearLineOfFire(ship: Ship) {
+  const blocker = ship.fireBlocker;
+  if (ship.fireBlocked <= 0 || !blocker || !blocker.alive) return;
+  const bx = blocker.position.x - ship.position.x;
+  const bz = blocker.position.z - ship.position.z;
+  const ahead = bx * Math.sin(ship.heading) + bz * Math.cos(ship.heading) > 0;
+  // Bâbord = +X local : le camarade est-il à bâbord (> 0) ? On s'écarte de l'autre côté.
+  const port = bx * Math.cos(ship.heading) - bz * Math.sin(ship.heading) > 0;
+  steerTo(ship, ship.heading + (port ? -1 : 1) * LINE_OF_FIRE.veer, ahead ? LINE_OF_FIRE.slowSail : SAIL.full);
 }

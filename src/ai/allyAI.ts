@@ -2,7 +2,7 @@ import { ALLY, BROADSIDE, SAIL } from '../config';
 import type { CannonTarget } from '../combat/cannons';
 import type { FleetOrders } from '../fleet/fleetOrders';
 import { isHostile, type Ship } from '../ship/ship';
-import { bearingTo, broadside, firingRange, nearest, steerTo } from './steering';
+import { bearingTo, broadside, clearLineOfFire, firingRange, nearest, steerTo } from './steering';
 
 /** Au-delà de cette distance (en plus des demi-longueurs), un ami n'est même pas examiné (m). */
 const AVOID_RANGE = 45;
@@ -31,6 +31,7 @@ export class AllyAI {
     this.state = target ? 'engage' : 'follow';
     if (target) {
       this.side = broadside(ship, target, this.side, SAIL.half);
+      clearLineOfFire(ship);
       this.avoidFriends(ships);
       return;
     }
@@ -39,6 +40,7 @@ export class AllyAI {
       // Par le travers, à la distance tenue au combat, comptée depuis les murs.
       this.state = 'engage';
       this.side = broadside(ship, fort, this.side, SAIL.half, firingRange(ship) * BROADSIDE.holdFraction + (fort.radius ?? 0));
+      clearLineOfFire(ship);
       this.avoidFriends(ships);
       return;
     }
