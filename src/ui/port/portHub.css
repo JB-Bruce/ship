@@ -161,3 +161,12 @@ body.hub-open #app > :not(.upgrade-menu):not(.viewport) {
     gap: 18px;
   }
 }
+/* Allongement payable : un second sceau, doré, sur l'enseigne du Chantier. */
+.hub-badge.hub-ext {
+  top: auto;
+  bottom: -12px;
+  right: -10px;
+  color: #3a2408;
+  background: radial-gradient(circle at 40% 35%, #f4d27a, #b8862e);
+  border-color: #6a4a14;
+}

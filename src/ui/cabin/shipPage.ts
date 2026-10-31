@@ -8,6 +8,7 @@ import { SHIP_SIZE_ORDER, SHIP_TYPES, typeName, UPGRADE_INFO } from '../../shipT
 import { gaugeHtml, pipsHtml, priceHtml, statBarHtml, tip } from '../kit/kit';
 import { UPGRADE_ICONS } from '../upgradeIcons';
 import { shipIcon } from '../shipIcons';
+import { extensionCount, extensionEffects, nextExtension } from '../extensionInfo';
 import { viewedMember, type CabinContext, type CabinView } from './cabinContext';
 
 const MS_TO_KNOTS = 1.944;
@@ -106,12 +107,15 @@ export function shipPage(ctx: CabinContext, view: CabinView, fx: ShipPageFx): st
         </div>`;
     })
     .join('');
+  const size = sizeRow(m, have);
+  const total = extensionCount(m);
+  const allonged = total ? ` · allongé ${m.levels.extension}/${total}` : '';
   return `
     <div class="cabin-ship">
       <div class="cabin-ship-left">
         <div class="cabin-card cabin-ship-card">
           <div class="cabin-ship-icon">${shipIcon(m.type, m.levels)}</div>
-          <div class="cabin-ship-title"><span class="cabin-name">${m.name}</span><span>${typeName(m.type, m.levels.extension)}</span></div>
+          <div class="cabin-ship-title"><span class="cabin-name">${m.name}</span><span>${typeName(m.type, m.levels.extension)}${allonged}</span></div>
           <div class="cabin-ship-meta"><span${tip(`${m.kills} navires coulés`)}>☠ ${m.kills}</span>${stars ? `<span class="kit-stars"${tip(rankTip)}>${'★'.repeat(stars)}</span>` : `<span${tip(rankTip)}>${rankName(stars)}</span>`}<span>${status}</span>${trophies}</div>
           <div class="cabin-life"><span>Vie</span>${gaugeHtml(afloat ? ship.health / ship.stats.maxHealth : 0)}<b>${afloat ? Math.ceil(ship.health) : 0} / ${ship.stats.maxHealth}</b></div>
           ${helm}
@@ -120,8 +124,28 @@ export function shipPage(ctx: CabinContext, view: CabinView, fx: ShipPageFx): st
       </div>
       <div class="cabin-ship-right">
         <div class="cabin-section-head"><h2>Améliorations</h2><span>${canBuy ? 'À quai : clique un prix pour améliorer' : atHelm ? 'À acheter au Chantier d’un port' : 'Prends sa barre au port pour l’améliorer'}</span></div>
-        <div class="cabin-upgrades">${upgrades}</div>
+        <div class="cabin-upgrades">${size}${upgrades}</div>
       </div>
+    </div>`;
+}
+
+/**
+ * Taille du navire : ses allongements (pastilles) et le prochain, avec ce qu'il devient et son prix ; il se fait au
+ * Chantier d'un port (avec sa mise en scène), jamais d'ici.
+ */
+function sizeRow(m: FleetMember, have: { gold: number; wood: number }): string {
+  const total = extensionCount(m);
+  if (!total) return '';
+  const next = nextExtension(m);
+  const icon = shipIcon(m.type, next ? { ...m.levels, extension: m.levels.extension + 1 } : m.levels);
+  const label = next ? `Allongement : ${next.after}` : 'Taille maximale';
+  const hint = next ? `${next.ext.description} ${extensionEffects(next.ext)}.` : 'Le chantier ne peut plus l’agrandir.';
+  const price = next ? `<span class="cabin-chip${have.gold >= next.ext.cost.gold && have.wood >= next.ext.cost.wood ? ' ok' : ''}"${tip('Au Chantier d’un port')}>${priceHtml(next.ext.cost, have)}</span>` : '<span class="cabin-done">Max</span>';
+  return `
+    <div class="cabin-upgrade cabin-ext"${tip(hint)}>
+      <span class="cabin-upgrade-icon">${icon}</span>
+      <span class="cabin-upgrade-body"><b>${label}</b>${pipsHtml(m.levels.extension, total)}</span>
+      ${price}
     </div>`;
 }
 

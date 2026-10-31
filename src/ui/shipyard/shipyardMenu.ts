@@ -1,9 +1,12 @@
 import * as THREE from 'three';
-import { SHOWCASE, type EmblemId, type GunType } from '../../config';
+import { EXTENSION_FX, SHOWCASE, type EmblemId, type GunType } from '../../config';
 import type { ShowcaseFocus, ShowcaseView } from '../../camera/showcaseView';
 import { maxLevel, type UpgradeId } from '../../progression/upgrades';
 import type { ShipType } from '../../shipTypes';
-import { UPGRADE_INFO } from '../../shipTypes';
+import { SHIP_TYPES, typeName, UPGRADE_INFO } from '../../shipTypes';
+import { extensionCount } from '../extensionInfo';
+import { ExtensionCeremony } from './extensionCeremony';
+import { extensionCallout } from './extensionPanel';
 import { playFx, type MenuFx } from '../kit/feedback';
 import { cofferHtml, pipsHtml, tip } from '../kit/kit';
 import { PlaceMenu } from '../port/placeMenu';
@@ -24,8 +27,10 @@ export interface ShipyardWorld {
   back(): void;
 }
 
-const PARTS: readonly ShipPart[] = ['sails', 'emblem', 'cannons', 'hull', 'hold'];
-const VIEW_OF: Record<ShipPart, keyof typeof SHOWCASE.views> = { sails: 'sails', emblem: 'sails', cannons: 'cannons', hull: 'hull', hold: 'hold' };
+const PARTS: readonly ShipPart[] = ['sails', 'emblem', 'cannons', 'hull', 'extension', 'hold'];
+const VIEW_OF: Record<ShipPart, keyof typeof SHOWCASE.views> = { sails: 'sails', emblem: 'sails', cannons: 'cannons', hull: 'hull', extension: 'extension', hold: 'hold' };
+/** Points de la coque d'où jaillissent les copeaux d'un allongement (part de la demi-longueur, le long du flanc). */
+const CHIP_POINTS = [-0.6, -0.2, 0.2, 0.6];
 /** Hauteur du point visé par la vue d'ensemble, en part de la hauteur de la grande voile. */
 const OVERVIEW_HEIGHT = 0.45;
 /** Décalage de l'image au plus (part de la largeur de l'écran), et écart entre deux points (px). */
@@ -54,6 +59,9 @@ export class ShipyardMenu extends PlaceMenu {
   private frame = 0;
   /** Vue choisie (gardée telle quelle tant qu'on ne change pas : la caméra n'est pas relancée). */
   private focus: ShowcaseFocus | null = null;
+  /** Le navire vient d'être allongé : la caméra le montre de loin jusqu'à ce moment (ms, horloge du navigateur). */
+  private wideUntil = 0;
+  private readonly ceremony: ExtensionCeremony;
 
   constructor(
     parent: HTMLElement,
@@ -63,6 +71,7 @@ export class ShipyardMenu extends PlaceMenu {
     const frame = this.body.parentElement!;
     frame.classList.add('yard-frame');
     frame.parentElement!.classList.add('yard-root');
+    this.ceremony = new ExtensionCeremony(frame.parentElement!);
     // Glisser sur la scène fait tourner la caméra autour du navire.
     let last: { x: number; y: number } | null = null;
     frame.addEventListener('pointerdown', (e) => {
@@ -87,6 +96,8 @@ export class ShipyardMenu extends PlaceMenu {
 
   protected closed() {
     cancelAnimationFrame(this.frame);
+    this.ceremony.close();
+    this.wideUntil = 0;
     this.world.camera.clearViewOffset();
     document.body.classList.remove('yard-open');
     this.world.showcase.close();
@@ -127,11 +138,12 @@ export class ShipyardMenu extends PlaceMenu {
     const rows = PARTS.filter((p) => this.anchors?.[p] && this.partOffered(p))
       .map((p) => {
         const ids = PART_UPGRADES[p].filter((id) => maxLevel(m.type, id, m.levels) > 0);
+        if (p === 'extension') return `<button class="yard-part" data-action="part" data-arg="${p}"><b>${PART_NAMES[p]}</b>${pipsHtml(m.levels.extension, extensionCount(m))}</button>`;
         const pips = ids.map((id) => `<span${tip(UPGRADE_INFO[id].name)}>${pipsHtml(m.levels[id], maxLevel(m.type, id, m.levels))}</span>`).join('');
         return `<button class="yard-part" data-action="part" data-arg="${p}"><b>${PART_NAMES[p]}</b>${pips || '<span class="yard-next">Choix</span>'}</button>`;
       })
       .join('');
-    return `<h2>${m.name}</h2><p class="yard-next">Clique une partie du navire, ou choisis-la ici.</p><div class="yard-parts">${rows}</div>`;
+    return `<h2>${m.name}</h2>${extensionCallout(this.world.port, m)}<p class="yard-next">Clique une partie du navire, ou choisis-la ici.</p><div class="yard-parts">${rows}</div>`;
   }
 
   /** La partie a quelque chose à proposer sur ce navire (une amélioration, l'emblème, les canons…). */
@@ -141,12 +153,14 @@ export class ShipyardMenu extends PlaceMenu {
     if (p === 'emblem') return !!this.anchors && this.anchors.emblem !== this.anchors.sails;
     if (p === 'cannons') return m.ship.model.cannons.length > 0;
     if (p === 'hull') return true;
+    if (p === 'extension') return extensionCount(m) > 0;
     return PART_UPGRADES[p].some((id) => maxLevel(m.type, id, m.levels) > 0);
   }
 
   /** « 3/5 » : niveau de la première amélioration de la partie. */
   private partLevel(p: ShipPart): string {
     const m = this.world.port.fleet.controlled;
+    if (p === 'extension') return ` <small>${m.levels.extension}/${extensionCount(m)}</small>`;
     const id = PART_UPGRADES[p].find((u) => maxLevel(m.type, u, m.levels) > 0);
     return id ? ` <small>${m.levels[id]}/${maxLevel(m.type, id, m.levels)}</small>` : '';
   }
@@ -154,16 +168,18 @@ export class ShipyardMenu extends PlaceMenu {
   /** Dit à la caméra quoi regarder (la vue d'ensemble tourne lentement). */
   private aim() {
     const a = this.anchors!;
-    const part = this.tab === 'upgrades' ? this.part : null;
-    const key = part ? VIEW_OF[part] : 'overview';
+    const wide = performance.now() < this.wideUntil;
+    const part = this.tab === 'upgrades' && !wide ? this.part : null;
+    const key = wide ? 'ceremony' : part ? VIEW_OF[part] : 'overview';
     const v = SHOWCASE.views[key];
-    const point = part && a[part] ? a[part]!.clone() : new THREE.Vector3(0, (a.sails?.y ?? 2) * OVERVIEW_HEIGHT, 0);
+    // L'allongement se regarde au milieu du navire, pas au flanc.
+    const point = part && part !== 'extension' && a[part] ? a[part]!.clone() : new THREE.Vector3(0, (a.sails?.y ?? 2) * OVERVIEW_HEIGHT, 0);
     // Un canon à tribord se regarde depuis tribord.
     const side = part === 'cannons' && a.cannons && a.cannons.x < 0 ? -1 : 1;
     const same = this.focus && this.focus.point.equals(point) && this.focus.yaw === v.yaw * side;
     if (!same) this.focus = { point, yaw: v.yaw * side, pitch: v.pitch, distance: v.distance };
     this.world.showcase.look(this.focus!);
-    this.world.setTurning(!part);
+    this.world.setTurning(!part && !wide);
   }
 
   /** Chaque image, tant que le Chantier est ouvert : les points suivent les parties du navire à l'écran. */
@@ -209,6 +225,18 @@ export class ShipyardMenu extends PlaceMenu {
     for (const s of spots) s.el.style.transform = `translate(${s.x}px, ${s.y}px) translate(-50%, -50%)`;
   }
 
+  /** Quelques points du flanc du navire, à l'écran (px) : d'où jaillissent les copeaux d'un allongement. */
+  private hullPoints(): { x: number; y: number }[] {
+    const model = this.world.port.fleet.controlled.ship.model;
+    const w = model.waterline;
+    model.root.updateMatrixWorld();
+    const camera = this.world.camera;
+    return CHIP_POINTS.map((u) => {
+      screen.set(w.maxWidth, 1, w.center + u * w.half).applyMatrix4(model.root.matrixWorld).project(camera);
+      return { x: ((screen.x + 1) / 2) * innerWidth, y: ((1 - screen.y) / 2) * innerHeight };
+    });
+  }
+
   private play() {
     const fx = this.fx;
     this.fx = {};
@@ -241,8 +269,19 @@ export class ShipyardMenu extends PlaceMenu {
       }
       case 'extend': {
         const ext = m.levels.extension;
+        const def = SHIP_TYPES[m.type].extensions?.[ext];
+        const before = typeName(m.type, ext);
         a.extendShip();
-        this.fx = m.levels.extension > ext ? { spend: '.yard-extension', rise: { at: '.yard-panel h2', text: 'Navire allongé !', tone: 'good' } } : { shake: '[data-extend]' };
+        if (m.levels.extension > ext && def) {
+          this.fx = { spend: '.yard-ext-progress' };
+          this.part = 'extension';
+          // La caméra recule pour montrer tout le navire, puis revient sur l'allongement.
+          this.wideUntil = performance.now() + EXTENSION_FX.wide;
+          setTimeout(() => {
+            if (this.isOpen) this.aim();
+          }, EXTENSION_FX.wide);
+          this.ceremony.play(m, def, before, this.hullPoints());
+        } else this.fx = { shake: '[data-extend]' };
         break;
       }
       case 'guns': {

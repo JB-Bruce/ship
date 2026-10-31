@@ -82,6 +82,7 @@ export class PortMenu extends ParchmentMenu {
           <svg viewBox="0 0 110 90" aria-hidden="true"><path d="${s.art}"/></svg>
           <b>${s.name}</b><span>${s.sub}</span>
           ${n > 0 ? `<i class="hub-badge"${tip(id === 'shipyard' ? 'Améliorations de ton navire que tu peux payer' : 'Contrats affichés à la taverne')}>${n}</i>` : ''}
+          ${id === 'shipyard' && this.extensionReady() ? `<i class="hub-badge hub-ext"${tip(`Allongement payable : ton navire peut devenir ${this.extensionReady()}`)}>⟷</i>` : ''}
         </button>`;
     }).join('');
     this.body.innerHTML = `
@@ -104,8 +105,15 @@ export class PortMenu extends ParchmentMenu {
       const cost = nextCost(m.type, u, m.levels);
       return cost && state.canAfford(cost);
     }).length;
+    return affordable;
+  }
+
+  /** Le nom que prendrait le navire piloté si l'on payait son allongement (null : pas d'allongement payable). */
+  private extensionReady(): string | null {
+    const { fleet, state } = this.ctx;
+    const m = fleet.controlled;
     const extension = SHIP_TYPES[m.type].extensions?.[m.levels.extension];
-    return affordable + (extension && state.canAfford(extension.cost) ? 1 : 0);
+    return extension && state.canAfford(extension.cost) ? extension.name : null;
   }
 
   protected onAction(action: string, arg: string) {

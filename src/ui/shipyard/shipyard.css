@@ -414,3 +414,238 @@ body.yard-open #app > :not(.upgrade-menu):not(.viewport) {
 .yard-shop.unknown .kit-pip.on {
   background: #9b2f7f;
 }
+
+/* Allongement : son panneau, son rappel dans la vue d'ensemble, son renvoi depuis la coque. */
+.yard-ext-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6a5032;
+  font-size: 15px;
+}
+.yard-ext-ships {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px 0 6px;
+}
+.yard-ext-ship {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 15px;
+  color: #6a5032;
+  text-align: center;
+}
+.yard-ext-ship.after {
+  color: #2a1d12;
+  font-weight: 700;
+}
+.yard-ext-ship svg,
+.yard-ext-callout-icon svg,
+.yard-ceremony-icon svg {
+  fill: none;
+  stroke: #4a2e14;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.yard-ext-ship svg {
+  width: 96px;
+  height: 96px;
+  opacity: 0.55;
+}
+.yard-ext-ship.after svg {
+  width: 120px;
+  height: 120px;
+  opacity: 1;
+  filter: drop-shadow(0 0 5px rgba(201, 162, 74, 0.7));
+}
+.yard-ext-arrow {
+  font-size: 28px;
+  color: #8a6a3a;
+}
+.yard-ext-desc {
+  margin: 4px 0;
+  font-style: italic;
+  color: #4a3420;
+}
+.yard-ext-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0;
+}
+.yard-ext-unlocks {
+  margin: 8px 0 12px;
+  padding: 8px 12px;
+  border: 1px dashed #2f6f73;
+  border-radius: 6px;
+  color: #2f6f73;
+}
+.yard-ext-unlocks ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+.yard-ext-buy {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  font-size: 19px;
+}
+.yard-ext-callout {
+  display: grid;
+  grid-template-columns: 70px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 8px 0 4px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 2px solid #c9a24a;
+  background: linear-gradient(#f7eed8, #ecd9ae);
+  font: 17px 'IM Fell English', Georgia, serif;
+  color: #2a1d12;
+  text-align: left;
+  cursor: pointer;
+}
+.yard-ext-callout.ready {
+  animation: yard-ext-pulse 1.8s ease-in-out infinite;
+}
+@keyframes yard-ext-pulse {
+  50% {
+    box-shadow: 0 0 14px rgba(201, 162, 74, 0.9);
+  }
+}
+.yard-ext-callout-icon svg {
+  width: 70px;
+  height: 70px;
+}
+.yard-ext-callout-body {
+  display: flex;
+  flex-direction: column;
+}
+.yard-ext-callout-body small {
+  color: #6a5032;
+  font-size: 14px;
+}
+.yard-ext-callout-body b {
+  font-size: 19px;
+}
+.yard-ext-link {
+  width: 100%;
+  margin-top: 12px;
+}
+
+/* Le moment de l'allongement : grand parchemin au-dessus du navire, copeaux de bois. */
+.yard-ceremony {
+  position: fixed;
+  left: 0;
+  right: 420px;
+  top: 12%;
+  z-index: 6;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.yard-ceremony-sheet {
+  width: min(440px, calc(100vw - 32px));
+  padding: 18px 28px 14px;
+  border-radius: 6px;
+  color: #3b2410;
+  text-align: center;
+  font-family: 'IM Fell English', Georgia, serif;
+  background:
+    radial-gradient(ellipse at 20% 15%, rgba(255, 250, 230, 0.7), transparent 55%),
+    radial-gradient(ellipse at 85% 90%, rgba(150, 100, 40, 0.25), transparent 60%),
+    linear-gradient(#f1deb4, #e2c58f);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), inset 0 0 0 2px rgba(110, 70, 30, 0.35);
+  transform: scaleY(0);
+  transform-origin: top;
+  opacity: 0;
+  transition: transform 0.45s ease-out, opacity 0.45s;
+}
+.yard-ceremony.on {
+  pointer-events: auto;
+  cursor: pointer;
+}
+.yard-ceremony.on .yard-ceremony-sheet {
+  transform: scaleY(1);
+  opacity: 1;
+}
+.yard-ceremony-title {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 30px;
+  color: #7a1a12;
+}
+.yard-ceremony-icon svg {
+  width: 130px;
+  height: 130px;
+  stroke: rgba(74, 46, 20, 0.3);
+}
+.yard-ceremony.on .yard-ceremony-icon svg {
+  animation: unlock-reveal 1.6s ease-out 0.3s forwards;
+}
+.yard-ceremony-name {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 40px;
+  color: #2a1d12;
+}
+.yard-ceremony-was {
+  margin: 4px 0;
+  font-style: italic;
+}
+.yard-ceremony-unlocks {
+  display: inline-block;
+  margin: 6px 0;
+  padding: 0;
+  list-style: none;
+  color: #2f6f73;
+}
+.yard-ceremony-unlocks li::before {
+  content: '⚒ ';
+}
+.yard-ceremony-hint {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #8a6a3a;
+}
+.yard-chip {
+  position: fixed;
+  z-index: 5;
+  width: 14px;
+  height: 6px;
+  margin: -3px 0 0 -7px;
+  background: #b98a52;
+  box-shadow: 0 0 0 1px rgba(74, 46, 20, 0.45);
+  border-radius: 1px 3px 1px 3px;
+  pointer-events: none;
+  opacity: 0;
+  animation: yard-chip ease-out forwards;
+}
+.yard-chip.dust {
+  width: 6px;
+  height: 6px;
+  background: #e8cf9a;
+  border-radius: 50%;
+}
+@keyframes yard-chip {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0);
+  }
+  55% {
+    opacity: 1;
+    transform: translate(var(--dx), var(--dy)) rotate(calc(var(--spin) * 0.6));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--dx) * 1.2), calc(var(--dy) * 0.2 + 90px)) rotate(var(--spin));
+  }
+}

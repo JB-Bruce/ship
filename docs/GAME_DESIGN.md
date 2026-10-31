@@ -386,6 +386,11 @@ De vrais enregistrements (87 sons CC0 de Freesound, Kenney et OpenGameArt, chois
 - Un canon ne tire jamais à travers un navire de son camp : tant qu'un camarade masque la cible, il attend (pour tout le monde, ton navire compris ; les mortiers tirent par-dessus). Les boulets continuent de traverser les navires amis : pas de tir ami.
 - L'IA gênée se dégage d'elle-même : elle réduit la voile si le camarade est devant elle, met toute la voile s'il est derrière, et s'écarte de quelques degrés pour sortir de l'axe.
 
+## Allongement mis en valeur (fait, 2026-10-31)
+- Au Chantier, l'allongement n'est plus une ligne du panneau « Coque » : c'est une partie à part, avec son point au milieu du flanc et son panneau. On y voit la silhouette du navire aujourd'hui et une fois allongé, son nouveau nom, ce qui change (longueur, vie, vitesse, virage, canons qu'on pourra monter) en barres avant → après, et les niveaux d'amélioration qu'il ouvre. Dans la vue d'ensemble, un encadré doré rappelle le prochain allongement et son prix (il pulse quand on peut le payer) ; le panneau de la coque y renvoie.
+- À l'achat : coups de marteau, la coque qui craque, des copeaux qui jaillissent le long du bordé, la caméra qui recule pour montrer tout le navire, puis un parchemin « Ton navire devient… » avec la nouvelle silhouette, le nouveau nom et ce qui s'ouvre.
+- Au port, un sceau doré ⟷ sur l'enseigne du Chantier quand un allongement est payable. Dans la Cabine (page Navire), la taille du navire (« allongé 1/2 ») et le prochain allongement avec son prix, en tête des améliorations (il se fait au Chantier).
+
 ## Le Kraken (commencé, 2026-10-30)
 - **Ce que c'est** : le premier monstre marin. Il est à la fois une rencontre rare et récurrente et un futur boss de l'histoire. On ne peut **jamais le tuer**, et il n'a **pas de barre de vie** : son état se lit sur ses tentacules (de plus en plus sombres et agitées quand elles souffrent, puis tranchées) et sur sa tête (elle s'assombrit, ses paupières tombent, ses yeux s'éteignent).
 - **Approche** : une grande ombre sombre glisse sous l'eau vers sa proie, avec des bouillons. Alerte « Une ombre immense glisse sous les flots… », puis la musique de boss.

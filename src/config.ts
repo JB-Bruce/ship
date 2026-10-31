@@ -525,6 +525,24 @@ export const UI_FX = {
   tipGap: 8,
 };
 
+/**
+ * Allongement acheté au Chantier (`ui/shipyard/extensionCeremony.ts`) : grand panneau « Ton navire devient… » (`panel`
+ * ms après `panelDelay` ms, ou un clic), copeaux de bois qui jaillissent le long de la coque (`chips` par point, `chipSpread` px, `chipTime`
+ * ms), coups de marteau (`hammers` ms après celui de l'achat) puis la coque qui craque (`creak` ms), caméra qui recule pour
+ * montrer tout le navire (`SHOWCASE.views.ceremony`) pendant `wide` ms.
+ */
+export const EXTENSION_FX = {
+  panel: 5500,
+  /** Le parchemin attend que les copeaux aient jailli et que la caméra ait reculé (ms). */
+  panelDelay: 1300,
+  chips: 9,
+  chipSpread: 170,
+  chipTime: 1400,
+  hammers: [320, 620, 980] as const,
+  creak: 1300,
+  wide: 4500,
+};
+
 export const BLUEPRINTS = {
   /**
    * Bouts de plan à réunir pour chaque type. Un type absent de cette table est connu d'office : la chaloupe (le navire
@@ -2686,6 +2704,10 @@ export const SHOWCASE = {
     cannons: { yaw: 1.57, pitch: 0.12, distance: 0.62 },
     hull: { yaw: 1.2, pitch: 0.1, distance: 0.95 },
     hold: { yaw: 2.6, pitch: 0.85, distance: 0.75 },
+    /** Allongement : le navire entier, de flanc. */
+    extension: { yaw: 1.5, pitch: 0.22, distance: 1.35 },
+    /** Juste après un allongement : de plus loin, le temps de voir le nouveau navire (EXTENSION_FX.wide). */
+    ceremony: { yaw: 1.75, pitch: 0.3, distance: 1.75 },
   },
 };
 

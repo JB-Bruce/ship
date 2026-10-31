@@ -10,7 +10,8 @@ import { emblemPreview } from '../emblemPreview';
 import { treasures } from '../../progression/treasures';
 import type { PortContext } from '../port/portContext';
 import { UPGRADE_ICONS } from '../upgradeIcons';
-import { extensionIcon } from '../shipIcons';
+import { extensionCount, nextExtension } from '../extensionInfo';
+import { extensionPanel } from './extensionPanel';
 import type { ShipPart } from './shipAnchors';
 
 const MS_TO_KNOTS = 1.944;
@@ -23,10 +24,11 @@ export const PART_UPGRADES: Record<ShipPart, readonly UpgradeId[]> = {
   emblem: [],
   cannons: ['cannons', 'accuracy', 'range'],
   hull: ['hull'],
+  extension: [],
   hold: ['hold', 'nets'],
 };
 
-export const PART_NAMES: Record<ShipPart, string> = { sails: 'Voiles', emblem: 'Emblème', cannons: 'Canons', hull: 'Coque', hold: 'Cale' };
+export const PART_NAMES: Record<ShipPart, string> = { sails: 'Voiles', emblem: 'Emblème', cannons: 'Canons', hull: 'Coque', extension: 'Allongement', hold: 'Cale' };
 
 /** La caractéristique qu'une amélioration fait monter, avec sa valeur d'après les stats (null : seulement le texte). */
 const GAUGES: Partial<Record<UpgradeId, { label: string; value: (s: ShipStats, hold: number, type: ShipType, levels: UpgradeLevels) => number; text: (v: number) => string }>> = {
@@ -73,34 +75,11 @@ function upgradeRow(ctx: PortContext, m: FleetMember, id: UpgradeId, fresh: bool
     </div>`;
 }
 
-/** Allongement du navire (coque) : le suivant, ses effets et ce qu'il ouvre, ou « Taille maximale ». */
-function extensionRow(ctx: PortContext, m: FleetMember): string {
-  const { type, levels } = m;
-  const def = SHIP_TYPES[type];
-  const all = def.extensions;
-  if (!all?.length) return '';
-  const done = levels.extension >= all.length;
-  const index = Math.min(levels.extension, all.length - 1);
-  const ext = all[index];
-  const pct = (f: number) => `${f >= 1 ? '+' : '−'}${Math.round(Math.abs(f - 1) * 100)} %`;
-  const unlocks = (Object.keys(ext.extraLevels) as UpgradeId[])
-    .filter((id) => ext.extraLevels[id])
-    .map((id) => UPGRADE_INFO[id].name.toLowerCase())
-    .join(', ');
-  const effects = `${ext.length > 0 ? `+${ext.length} m · ` : ''}vie ${pct(ext.healthFactor)} · vitesse ${pct(ext.speedFactor)}${ext.turnFactor !== 1 ? ` · virage ${pct(ext.turnFactor)}` : ''}`;
-  const buy = done
-    ? '<span class="yard-done">Taille maximale</span>'
-    : `<button class="kit-btn yard-buy" data-action="extend" data-extend>${priceHtml(ext.cost, { gold: ctx.state.gold, wood: ctx.state.wood })}</button>`;
-  return `
-    <div class="yard-row yard-extension">
-      <span class="yard-row-icon">${extensionIcon(type, index)}</span>
-      <div class="yard-row-body">
-        <div class="yard-row-head"><b${tip(ext.description)}>${done ? 'Allongé' : ext.name}</b>${pipsHtml(levels.extension, all.length)}</div>
-        <span class="yard-next">${done ? 'Le navire est à sa taille maximale' : effects}</span>
-        ${!done && unlocks ? `<span class="yard-next ext">Ouvre de nouveaux niveaux : ${unlocks}</span>` : ''}
-      </div>
-      ${buy}
-    </div>`;
+/** Dans le panneau de la coque : renvoi vers l'allongement, qui a son propre panneau. */
+function extensionLink(m: FleetMember): string {
+  const next = nextExtension(m);
+  if (!extensionCount(m)) return '';
+  return `<button class="yard-part yard-ext-link" data-action="part" data-arg="extension"><b>Allongement</b><span class="yard-next">${next ? `Devenir ${next.after} →` : 'Taille maximale →'}</span></button>`;
 }
 
 /** Une batterie : ses trois types de canons, celui en place, le prix des autres (un type déjà payé se remonte gratuitement). */
@@ -135,15 +114,16 @@ export interface PanelFx {
   before: number | null;
 }
 
-/** Panneau d'une partie du navire : ses améliorations, plus l'allongement (coque), les types de canons, l'emblème. */
+/** Panneau d'une partie du navire : ses améliorations, plus les types de canons, l'emblème ; l'allongement a le sien. */
 export function partPanel(ctx: PortContext, part: ShipPart, fx: PanelFx): string {
   const m = ctx.fleet.controlled;
+  if (part === 'extension') return extensionPanel(ctx, m);
   const rows = PART_UPGRADES[part]
     .filter((id) => maxLevel(m.type, id, m.levels) > 0 || extensionLevels(m.type, id) > 0)
     .map((id) => upgradeRow(ctx, m, id, fx.fresh === id, fx.fresh === id ? (fx.before ?? undefined) : undefined))
     .join('');
   let extra = '';
-  if (part === 'hull') extra = extensionRow(ctx, m);
+  if (part === 'hull') extra = extensionLink(m);
   if (part === 'cannons') {
     const stats = m.ship.stats;
     const labels = SHIP_TYPES[m.type].gunLabels;

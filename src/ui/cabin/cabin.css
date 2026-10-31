@@ -863,3 +863,8 @@
   color: #6a5032;
   font-size: 14px;
 }
+/* Taille du navire (allongements) : en tête des améliorations, liseré doré. */
+.cabin-upgrade.cabin-ext {
+  border-color: #c9a24a;
+  background: linear-gradient(90deg, rgba(201, 162, 74, 0.18), transparent 70%);
+}
