@@ -1,7 +1,10 @@
+import { WATER_MASK } from '../../config';
+import { addLampFixtures } from '../parts/shipLamps';
+import { brigantineLamps } from './brigantineLamps';
 import * as THREE from 'three';
 import type { Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
-import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } from '../parts/common';
+import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, passThrough, std } from '../parts/common';
 import { addBarrel, addCrate, addLantern, addRopeCoil, buildCarriageGunGeometry, type Palette } from '../parts/props';
 import { buildSquareSail, buildTriangleSail, cylinderBetween } from '../parts/sails';
 import { DECK_Y, type BrigantineLayout } from './brigantineLayout';
@@ -64,7 +67,7 @@ function buildTemplate(L: BrigantineLayout, livery: Livery): BrigantineTemplate 
   const castleHeight = quarterdeck.y - DECK_Y;
   batch.add(p.wood, box(2 * castle.halfWidth * 0.98, castleHeight, 0.12), tf(0, DECK_Y + castleHeight / 2, castle.z));
   batch.add(p.dark, box(0.7, 1.25, 0.04), tf(0, DECK_Y + 0.62, castle.z + 0.07));
-  for (const x of [-0.75, 0.75]) batch.add(p.dark, box(0.35, 0.3, 0.04), tf(x, DECK_Y + 1.15, castle.z + 0.07));
+  for (const x of [-0.75, 0.75]) batch.add(p.window, box(0.35, 0.3, 0.04), tf(x, DECK_Y + 1.15, castle.z + 0.07));
   const fore = L.station(forecastle.from);
   batch.add(p.wood, box(2 * fore.halfWidth * 0.96, forecastle.y - DECK_Y, 0.12), tf(0, (forecastle.y + DECK_Y) / 2, fore.z));
   // Escaliers pleins, posés sur le pont : chaque marche est un bloc qui descend jusqu'au plancher.
@@ -83,12 +86,12 @@ function buildTemplate(L: BrigantineLayout, livery: Livery): BrigantineTemplate 
 
   // Fenêtres du château (tableau arrière et flancs) et sabords des emplacements de canons.
   const stern = at(-1);
-  for (const x of [-1.2, -0.4, 0.4, 1.2]) batch.add(p.dark, box(0.42, 0.48, 0.05), tf(x, 2.25, stern.z - 0.02));
+  for (const x of [-1.2, -0.4, 0.4, 1.2]) batch.add(p.window, box(0.42, 0.48, 0.05), tf(x, 2.25, stern.z - 0.02));
   for (const y of [1.92, 2.58]) batch.add(p.trim, box(2 * stern.halfWidth - 0.2, 0.08, 0.06), tf(0, y, stern.z - 0.03));
   for (const side of [1, -1]) {
     for (const u of [-0.9, -0.72, -0.55]) {
       const s = at(u);
-      batch.add(p.dark, box(0.05, 0.36, 0.42), tf(side * (s.halfWidth + 0.02), 2.3, s.z));
+      batch.add(p.window, box(0.05, 0.36, 0.42), tf(side * (s.halfWidth + 0.02), 2.3, s.z));
     }
     for (const u of L.gunSlots) {
       const s = L.station(u);
@@ -117,6 +120,7 @@ function buildTemplate(L: BrigantineLayout, livery: Livery): BrigantineTemplate 
   addRopeCoil(batch, p, tf(0.4, forecastle.y, at(0.82).z));
   addLantern(batch, p, tf(0, stern.gunwale, stern.z + 0.2, 0, 0, 0, 1.4));
 
+  addLampFixtures(batch, p, brigantineLamps(L));
   return {
     palette: p,
     statics: batch.build(),
@@ -133,11 +137,11 @@ function buildTemplate(L: BrigantineLayout, livery: Livery): BrigantineTemplate 
     cannon: buildCarriageGunGeometry(),
     flagMaterial: flagMaterialFor(livery),
     rigging: buildRigging(L),
-    waterMask: hull.buildWaterMask(),
+    waterMask: hull.buildWaterMask(DECK_Y + WATER_MASK.aboveDeck),
   };
 }
 
-/** Roue de gouvernail (dans le plan XY, elle tourne autour de Z). */
+/** Roue de gouvernail (dans le plan XY, elle tourne autour de Z) ; le joueur à pied la traverse. */
 function buildWheel(): THREE.BufferGeometry {
   const batch = new GeometryBatch();
   const key = new THREE.MeshBasicMaterial();
@@ -146,7 +150,7 @@ function buildWheel(): THREE.BufferGeometry {
   for (let i = 0; i < 8; i++) {
     batch.add(key, new THREE.BoxGeometry(0.035, 1.3, 0.035), tf(0, 0, 0, 0, 0, (i * Math.PI) / 8));
   }
-  return batch.build()[0].geometry;
+  return passThrough(batch.build()[0].geometry);
 }
 
 /** Haubans des deux mâts, étais (mât de misaine → beaupré, grand mât → misaine), sous-barbe. */

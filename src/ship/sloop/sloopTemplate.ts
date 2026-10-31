@@ -1,9 +1,11 @@
 import * as THREE from 'three';
-import type { Livery } from '../../config';
+import { SAIL_BILLOW, WATER_MASK, type Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } from '../parts/common';
 import { HullShape } from '../parts/hullShape';
+import { sailSegments } from '../parts/sails';
 import { addBarrel, addCrate, addLantern, addRopeCoil, buildCarriageGunGeometry, type Palette } from '../parts/props';
+import { addLampFixtures, lampsFor, type LampSpec } from '../parts/shipLamps';
 
 /** Longueur de référence du modèle (m). */
 export const SLOOP_LENGTH = 12;
@@ -43,6 +45,13 @@ export const BOWSPRIT_TIP = new THREE.Vector3(0, 2.35, 9);
 /** Foc, relatif à son point d'amure (le bout du beaupré). */
 const JIB = { head: new THREE.Vector3(0, 11.3, MAST_Z + 0.2), clew: new THREE.Vector3(0, 2.1, 3.4), bulge: 0.5 };
 export const FLAG = { length: 1.4, height: 0.9, y: MAST_TOP + 0.1 };
+/**
+ * Lampes en plus du fanal de poupe (parts/shipLamps.ts) : une lanterne pendue à une potence sur l'avant du mât, au-dessus
+ * des têtes, loin de la bôme (qui part vers l'arrière) et du foc.
+ */
+export const SLOOP_LAMPS: readonly LampSpec[] = lampsFor('sloop', 0, [
+  { kind: 'hanging', at: new THREE.Vector3(0, DECK_Y + 2.3, MAST_Z + 0.16), facing: 0, arm: 0.3, drop: 0.1 },
+]);
 
 export interface SloopTemplate {
   palette: Palette;
@@ -105,13 +114,13 @@ function buildTemplate(livery: Livery): SloopTemplate {
   const stern = at(-1);
   const bow = at(1);
   batch.add(p.trim, box(2 * stern.halfWidth + 0.1, 0.1, 0.12), tf(0, stern.gunwale, stern.z));
-  for (const x of [-0.45, 0.45]) batch.add(p.dark, box(0.35, 0.28, 0.04), tf(x, stern.gunwale - 0.45, stern.z - 0.03));
+  for (const x of [-0.45, 0.45]) batch.add(p.window, box(0.35, 0.28, 0.04), tf(x, stern.gunwale - 0.45, stern.z - 0.03));
   batch.add(p.trim, box(0.12, bow.gunwale - bow.keel + 0.3, 0.16), tf(0, (bow.gunwale + bow.keel) / 2, bow.z - 0.05, -0.2));
 
   // Cabine arrière et écoutille.
   batch.add(p.wood, box(1.7, 0.55, 1.8), tf(0, DECK_Y + 0.275, -3.5));
   batch.add(p.trim, box(1.85, 0.08, 1.95), tf(0, DECK_Y + 0.59, -3.5));
-  for (const side of [1, -1]) batch.add(p.dark, box(0.04, 0.2, 0.4), tf(side * 0.86, DECK_Y + 0.33, -3.5));
+  for (const side of [1, -1]) batch.add(p.window, box(0.04, 0.2, 0.4), tf(side * 0.86, DECK_Y + 0.33, -3.5));
   batch.add(p.dark, box(1.1, 0.12, 1.0), tf(0, DECK_Y + 0.06, -1.2));
   batch.add(p.trim, box(1.2, 0.08, 1.1), tf(0, DECK_Y + 0.02, -1.2));
 
@@ -132,6 +141,7 @@ function buildTemplate(livery: Livery): SloopTemplate {
   addRopeCoil(batch, p, tf(0.4, DECK_Y, 4.9));
   addRopeCoil(batch, p, tf(-0.45, DECK_Y, MAST_Z - 0.6));
   addLantern(batch, p, tf(-0.9, stern.gunwale, stern.z + 0.15));
+  addLampFixtures(batch, p, SLOOP_LAMPS);
 
   return {
     palette: p,
@@ -149,7 +159,7 @@ function buildTemplate(livery: Livery): SloopTemplate {
     flagMaterial: flagMaterialFor(livery),
     rigging: buildRigging(),
     rigLines: new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, MAST_TOP - 0.6 - BOOM_Y, 0), new THREE.Vector3(0, 0, MAIN.clew.z)]),
-    waterMask: hullShape.buildWaterMask(),
+    waterMask: hullShape.buildWaterMask(DECK_Y + WATER_MASK.aboveDeck),
   };
 }
 
@@ -192,7 +202,7 @@ function quadSail(
 }
 
 function buildMainSail(): THREE.BufferGeometry {
-  return quadSail(0, 1, 0, 1, 5, 0);
+  return quadSail(0, 1, 0, 1, sailSegments(Math.max(MAIN.tack.distanceTo(MAIN.clew), MAIN.tack.distanceTo(MAIN.throat))), 0);
 }
 
 /** Pièces rapiécées, posées juste à côté de la toile. */
@@ -207,9 +217,9 @@ function buildMainPatches(): THREE.BufferGeometry {
 
 /** Foc triangulaire, origine au point d'amure (bout du beaupré). */
 function buildJib(): THREE.BufferGeometry {
-  const n = 4;
   const head = JIB.head.clone().sub(BOWSPRIT_TIP);
   const clew = JIB.clew.clone().sub(BOWSPRIT_TIP);
+  const n = sailSegments(Math.max(head.length(), clew.length()), SAIL_BILLOW.triangleFacet);
   const positions: number[] = [];
   const index: number[] = [];
   const ids: number[][] = [];

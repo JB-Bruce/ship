@@ -1,0 +1,181 @@
+/*
+ * Style « d'époque » des menus refaits (validé sur maquette) : parchemin jauni au grain fin, bords brûlés et taches,
+ * encre brune, cire rouge, bois goudronné et laiton terni. Tout est dessiné en code (dégradés, textures de kit/textures.ts). Ce fichier
+ * est chargé après les feuilles de chaque menu (fin des imports de `ui/menus.ts`) : il en reprend les surfaces ; les
+ * lieux gardent leur organisation et leur matière propre (époqueMenus.css).
+ */
+
+:root {
+  --ink: #3a2412;
+  --ink-soft: #6a4626;
+  --ink-pale: #8a6a48;
+  --ink-red: #7a1e12;
+  --ink-green: #2f4a24;
+  --wax: #8a1c14;
+  --brass: #a8843a;
+  --paper-light: #ecdcb0;
+  --tar: #2e1d10;
+  /* Grain du papier et fil du bois : images calculées au démarrage (kit/textures.ts) ; rien tant qu'elles manquent. */
+  --grain: linear-gradient(transparent, transparent);
+  --woodgrain: linear-gradient(transparent, transparent);
+  /* Parchemin : grain, deux taches, assombri vers les bords. */
+  --paper: var(--grain), radial-gradient(circle at 78% 82%, rgba(106, 64, 24, 0.16) 0, rgba(106, 64, 24, 0.07) 9%, transparent 13%),
+    radial-gradient(circle at 18% 16%, transparent 0, rgba(106, 64, 24, 0.12) 6%, transparent 8%),
+    radial-gradient(ellipse at 50% 42%, #eddeb3 0%, #e0c891 62%, #b08445 100%);
+  --paper-edge: inset 0 0 34px rgba(110, 66, 24, 0.55), inset 0 0 5px rgba(70, 38, 12, 0.7);
+  --wood: var(--woodgrain), linear-gradient(#3e2715, #2e1d10);
+  /* Hachures d'encre : remplissage des barres. */
+  --hatch: repeating-linear-gradient(-55deg, currentColor 0 1.6px, transparent 1.6px 5px);
+}
+
+/* Bulle d'aide : un billet de papier. */
+.kit-tip {
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid rgba(58, 36, 18, 0.5);
+  border-radius: 2px 5px 3px 4px;
+  box-shadow: var(--paper-edge), 0 4px 10px rgba(0, 0, 0, 0.45);
+  font-style: italic;
+}
+
+/* Titres : petites capitales gravées. */
+.upgrade-menu h2 {
+  font-family: 'IM Fell English SC', Georgia, serif !important;
+  letter-spacing: 0.02em;
+}
+
+/* Pastilles : losanges d'encre. */
+.kit-pip {
+  width: 11px;
+  height: 11px;
+  border-radius: 1px;
+  border: 1.5px solid var(--ink);
+  transform: rotate(45deg);
+}
+.kit-pip.on {
+  background: var(--ink);
+}
+
+/* Barres et jauges : cadre tracé à la plume, rempli de hachures. */
+.kit-bar,
+.kit-gauge {
+  background: transparent;
+  border: 1.4px solid var(--ink);
+  border-radius: 2px 6px 3px 5px;
+  box-sizing: border-box;
+}
+.kit-bar {
+  height: 12px;
+}
+.kit-gauge {
+  height: 11px;
+}
+.kit-bar > span,
+.kit-gauge > span {
+  border-radius: 0;
+  background: var(--hatch) !important;
+}
+.kit-bar-fill {
+  color: var(--ink);
+}
+.kit-bar-next {
+  color: rgba(47, 74, 36, 0.55);
+}
+.kit-gauge.life > span {
+  color: var(--ink-green);
+}
+.kit-gauge.life.low > span {
+  color: var(--ink-red);
+}
+.kit-gauge.hold > span {
+  color: #7a5418;
+}
+.kit-gauge.plan > span {
+  color: #5a2450;
+}
+.kit-gauge.mission > span {
+  color: #1f3a5a;
+}
+.kit-price-part.short {
+  color: var(--ink-red);
+}
+.kit-stars {
+  color: var(--wax);
+}
+.kit-stars .off {
+  color: rgba(58, 36, 18, 0.25);
+}
+
+/* Boutons : cuir sombre cerclé d'encre ; rouge = sceau de cire ; fantôme = trait d'encre ; choisi = laiton. */
+.upgrade-menu .kit-btn {
+  font-family: 'IM Fell English', Georgia, serif;
+  font-weight: 400;
+  color: #ecd9b0;
+  background: var(--grain), linear-gradient(#5a3a20, #3e2614);
+  border: 1.5px solid #1e120a;
+  border-radius: 3px 6px 4px 5px;
+  box-shadow: inset 0 1px 0 rgba(255, 230, 180, 0.15), 0 2px 0 rgba(20, 10, 4, 0.5);
+}
+.upgrade-menu .kit-btn.red {
+  color: #f3d9c8;
+  background: var(--grain), radial-gradient(circle at 40% 35%, #a8281c, #6a1008);
+  border: 2px solid #4a0a04;
+  border-radius: 47% 53% 49% 51% / 52% 46% 54% 48%;
+  box-shadow: 0 2px 0 #3a0804;
+}
+.upgrade-menu .kit-btn.ghost {
+  color: var(--ink-red);
+  background: transparent;
+  border: 1.5px dashed currentColor;
+  box-shadow: none;
+}
+.upgrade-menu .kit-btn.on {
+  color: #2a1a0a;
+  background: var(--grain), linear-gradient(#c9a456, #93722c);
+  border-color: #4a3410;
+}
+
+/* Le texte qui s'envole, à l'encre. */
+.kit-rise {
+  font-family: 'IM Fell English SC', Georgia, serif !important;
+  text-shadow: 0 0 4px #f0e0b8, 0 0 2px #f0e0b8;
+}
+
+/* Difficulté des missions : têtes de mort à l'encre, pâles au-delà de la difficulté. */
+.kit-skulls {
+  display: inline-flex;
+  gap: 2px;
+  vertical-align: middle;
+}
+.kit-skull {
+  width: 17px;
+  height: 17px;
+}
+.kit-skull path:first-child {
+  fill: var(--ink);
+}
+.kit-skull .kit-skull-eye {
+  fill: #e8d5a6;
+}
+.kit-skull-slot:not(.on) {
+  opacity: 0.22;
+}
+
+/* Aperçu d'une amélioration : le gain se détache en vert plein derrière les hachures. */
+.kit-bar > span.kit-bar-next {
+  background: rgba(63, 122, 58, 0.55) !important;
+}
+
+/*
+ * Prix qui manque, sur un bouton sombre ou un sceau de cire : rouge clair barré (le rouge d'encre ne s'y lit pas) ; le
+ * bouton reste lisible (pas de transparence).
+ */
+.kit-btn .kit-price-part.short {
+  color: #ffc2a8;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+.upgrade-menu .kit-btn.dim {
+  opacity: 1 !important;
+  filter: saturate(0.45) brightness(0.92);
+}

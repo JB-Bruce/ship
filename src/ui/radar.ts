@@ -1,47 +1,68 @@
-import { RADAR } from '../config';
+import { BLUEPRINTS, RADAR, WIND, WRECKS } from '../config';
 import type { Ship } from '../ship/ship';
 import type { Enemy } from '../world/enemySpawner';
 import type { FishSchool } from '../world/fishSchools';
-import type { Crate, LootKind } from '../world/loot';
-import { ISLAND_LIST, type Island } from '../world/island';
+import { isIsland, LAND_LIST, type Landmass } from '../world/island';
 import type { Wind } from '../world/wind';
+import { paintDiamond } from './mapGlyphs';
 
 const COLORS = {
   background: 'rgba(6, 28, 38, 0.72)',
   grid: 'rgba(120, 230, 200, 0.22)',
-  sweep: 'rgba(120, 230, 200, 0.14)',
-  sweepLine: 'rgba(120, 230, 200, 0.6)',
   player: '#f2e8d0',
   hunting: '#ff4a3a',
   patrolling: '#ffae3a',
   fleeing: '#c9a0ff',
   boss: '#ff2a1a',
   ally: '#6fe08a',
+  /** Tes navires en commerce : vert plus foncé. */
+  trader: '#3c9d56',
   fish: '#8fe3ff',
-  merchant: '#f2c94c',
+  escort: '#a6ecff',
   pirate: '#4a9bff',
-  wind: 'rgba(205, 238, 255, 0.9)',
+  wind: 'rgba(205, 238, 255, 0.95)',
+  windEdge: 'rgba(6, 28, 38, 0.9)',
   land: 'rgba(214, 190, 128, 0.85)',
   coast: 'rgba(250, 240, 210, 0.9)',
   port: '#ffffff',
   north: 'rgba(242, 232, 208, 0.85)',
 };
-const CRATE_COLORS: Record<LootKind, string> = { gold: '#ffd447', wood: '#c8874a', rum: '#c0602e', spices: '#ff9a4a' };
+
+/** Filets de vent, du plus faible (en bas) au plus fort (en haut) : départ (x, y), longueur, et boucle au bout (ou non). */
+const GUSTS: readonly [number, number, number, boolean][] = [
+  [8, 20, 10, false],
+  [2, 15.5, 20, true],
+  [10, 11, 8, false],
+  [0, 6.5, 24, true],
+  [6, 2, 14, false],
+];
+
+/** Pictogramme de la force du vent : 1 à 5 filets allumés selon la force (jaunes à 4, rouges à 5). */
+function gustsIcon(level: number): string {
+  const paths = GUSTS.map(([x, y, length, curl], i) => {
+    const d = `M${x} ${y} h${length}${curl ? ' a1.8 1.8 0 1 0 -1.8 -1.8' : ''}`;
+    return `<path class="${i < level ? 'on' : ''}" d="${d}"/>`;
+  }).join('');
+  return `<svg class="wind-gusts level-${level}" viewBox="0 0 28 22" width="28" height="22" role="img" aria-label="Force du vent : ${level} / 5"><title>Force du vent : ${level} / 5</title>${paths}</svg>`;
+}
 
 /**
  * Radar circulaire qui tourne avec le bateau : le haut = devant toi.
- * Vert = navire de ta flotte. Rouge = ennemi qui te chasse, orange = en patrouille, violet = en fuite, gros point
- * rouge cerclé = boss. Carrés = butin (or, planches, rhum, épices), poisson bleu = banc de poissons.
+ * Vert = navire de ta flotte, vert plus foncé = ton navire en commerce, bleu = autre allié (pirate, marchand), bleu ciel cerclé de blanc = navire à protéger. Rouge = ennemi qui te chasse, orange = en patrouille, violet = en fuite, gros point
+ * rouge cerclé = boss, poisson bleu = banc de poissons, losange rose = rouleau de plan de navire. Le reste du butin n'y
+ * figure pas (il encombrait le radar).
  * Hors de portée : point pâle au bord, dans sa direction. La portée grandit près de l'île avec le phare.
- * La flèche claire montre où souffle le vent ; la légende au-dessus donne sa force et son effet sur ta vitesse.
+ * Le triangle clair sur le bord montre d'où vient le vent ; au-dessus, ses crans de force (1 à 5), ses nœuds et son effet sur ta vitesse.
  */
 export class Radar {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly windLabel: HTMLElement;
   private lastWindText = '';
-  private sweep = 0;
   /** Temps écoulé depuis le dernier dessin (s). */
   private sinceDraw = Infinity;
+  /** Ennemis signalés (« Voile à l'horizon ! ») : temps restant de l'anneau qui pulse autour d'eux (s). */
+  private readonly pings = new Map<Ship, number>();
+  private time = 0;
   /** Portée actuelle (m) : plus grande près de l'île quand le phare est amélioré. */
   range = RADAR.range;
 
@@ -58,14 +79,27 @@ export class Radar {
     parent.append(canvas, this.windLabel);
   }
 
+  /** Fait pulser un anneau autour d'un ennemi pendant `seconds` s (rencontre signalée). */
+  ping(ship: Ship, seconds: number) {
+    this.pings.set(ship, seconds);
+  }
+
   /** `ships` : tous les bateaux (les alliés y sont repérés par leur camp). */
-  /** `escorts` : navires alliés escortés (en jaune) ; les autres alliés hors de ta flotte sont des pirates (en bleu). */
-  update(dt: number, player: Ship, enemies: readonly Enemy[], crates: readonly Crate[], wind: Wind, ships: readonly Ship[], schools: readonly FishSchool[], escorts: readonly Ship[]) {
+  /**
+   * `escorts` : navires à protéger (en bleu ciel) ; les autres alliés hors de ta flotte sont en bleu. `traders` : tes
+   * navires en commerce (vert plus foncé). `scrolls` : rouleaux de plan de navire qui flottent ; `wrecks` : épaves à fouiller.
+   */
+  update(dt: number, player: Ship, enemies: readonly Enemy[], wind: Wind, ships: readonly Ship[], schools: readonly FishSchool[], escorts: readonly Ship[], traders: readonly Ship[], scrolls: readonly { x: number; z: number }[] = [], wrecks: readonly { x: number; z: number }[] = []) {
     // Redessiner un dessin 2D à chaque image coûte cher : RADAR.refreshRate fois par seconde suffit.
     this.sinceDraw += dt;
     if (this.sinceDraw < 1 / RADAR.refreshRate) return;
-    dt = Math.min(this.sinceDraw, 0.25);
+    const elapsed = Math.min(this.sinceDraw, 0.25);
     this.sinceDraw = 0;
+    this.time += elapsed;
+    for (const [ship, left] of this.pings) {
+      if (left - elapsed <= 0 || !ship.alive) this.pings.delete(ship);
+      else this.pings.set(ship, left - elapsed);
+    }
     const ctx = this.ctx;
     const c = RADAR.size / 2;
     const r = c - 3;
@@ -87,31 +121,24 @@ export class Radar {
     ctx.lineTo(c, c + r);
     ctx.stroke();
 
-    for (const island of ISLAND_LIST) this.drawIsland(c, r, player, island);
-
-    // Balayage : un secteur qui s'estompe derrière la ligne.
-    this.sweep = (this.sweep + dt * RADAR.sweepSpeed) % (Math.PI * 2);
-    ctx.fillStyle = COLORS.sweep;
-    ctx.beginPath();
-    ctx.moveTo(c, c);
-    ctx.arc(c, c, r, this.sweep - 0.7, this.sweep);
-    ctx.fill();
-    ctx.strokeStyle = COLORS.sweepLine;
-    ctx.beginPath();
-    ctx.moveTo(c, c);
-    ctx.lineTo(c + Math.cos(this.sweep) * r, c + Math.sin(this.sweep) * r);
-    ctx.stroke();
+    for (const land of LAND_LIST) this.drawIsland(c, r, player, land);
 
     // Monde → radar : avant du bateau vers le haut, bâbord vers la gauche.
     const sin = Math.sin(player.heading);
     const cos = Math.cos(player.heading);
     const scale = r / this.range;
 
+    // La girouette d'abord : le N, cerné de sombre, reste lisible quand le vent vient du nord.
+    this.drawWind(c, r, player, wind);
     ctx.fillStyle = COLORS.north;
+    ctx.strokeStyle = COLORS.windEdge;
+    ctx.lineWidth = 3;
     ctx.font = 'bold 11px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.strokeText('N', c + sin * (r - 10), c - cos * (r - 10));
     ctx.fillText('N', c + sin * (r - 10), c - cos * (r - 10));
+    ctx.lineWidth = 1;
 
     // Monde → radar, ramené sur le bord si hors de portée.
     const place = (wx: number, wz: number) => {
@@ -129,32 +156,58 @@ export class Radar {
       return { x: c + x, y: c + y, outside };
     };
 
-    for (const { mesh, kind } of crates) {
-      const p = place(mesh.position.x, mesh.position.z);
-      ctx.fillStyle = CRATE_COLORS[kind];
-      ctx.fillRect(p.x - 2.5, p.y - 2.5, 5, 5);
-    }
     ctx.fillStyle = COLORS.fish;
     for (const school of schools) {
       if (school.diving) continue;
       const p = place(school.x, school.z);
       this.fish(p.x, p.y);
     }
-    for (const ship of ships) {
-      if (ship === player || ship.faction === 'enemy' || !ship.alive) continue;
-      // Vert : ta flotte ; jaune : marchands alliés (escorté ou de tes îles) ; bleu : pirate allié.
-      ctx.fillStyle = ship.faction === 'player' ? COLORS.ally : escorts.includes(ship) ? COLORS.merchant : COLORS.pirate;
-      const p = place(ship.position.x, ship.position.z);
-      this.circle(p.x, p.y, p.outside ? 3 : 4);
-      ctx.fill();
+    ctx.fillStyle = BLUEPRINTS.radarColor;
+    for (const scroll of scrolls) {
+      const p = place(scroll.x, scroll.z);
+      paintDiamond(ctx, p.x, p.y, p.outside ? 3.5 : 5);
     }
-    for (const { ship, ai, boss } of enemies) {
-      // Un boss caché dans la brume (harcèlement) n'apparaît pas.
-      if (!ship.alive || ai.hidden) continue;
+    // Épaves à fouiller : un petit carré brun.
+    ctx.fillStyle = WRECKS.radarColor;
+    for (const wreck of wrecks) {
+      const p = place(wreck.x, wreck.z);
+      const r = p.outside ? 2.5 : 3.5;
+      ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2);
+    }
+    for (const ship of ships) {
+      if (ship === player || ship.faction === 'enemy' || ship.faction === 'cursed' || !ship.alive) continue;
+      // Vert : ta flotte (plus foncé : en commerce) ; bleu ciel cerclé : navire à protéger ; bleu : autre allié (pirate, marchand des îles).
+      const escort = escorts.includes(ship);
+      const own = traders.includes(ship) ? COLORS.trader : COLORS.ally;
+      ctx.fillStyle = ship.faction === 'player' ? own : escort ? COLORS.escort : COLORS.pirate;
+      const p = place(ship.position.x, ship.position.z);
+      this.circle(p.x, p.y, escort ? 5.5 : p.outside ? 3 : 4);
+      ctx.fill();
+      if (!escort) continue;
+      ctx.strokeStyle = COLORS.player;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+    for (const { ship, ai, boss, cursed } of enemies) {
+      // Un boss caché dans la brume (harcèlement) n'apparaît pas, ni un navire maudit (il ne se voit qu'à l'œil).
+      if (!ship.alive || ai.hidden || cursed) continue;
       const p = place(ship.position.x, ship.position.z);
       ctx.fillStyle = boss ? COLORS.boss : ai.state === 'patrol' ? COLORS.patrolling : ai.state === 'flee' ? COLORS.fleeing : COLORS.hunting;
       this.circle(p.x, p.y, boss ? 6.5 : p.outside ? 3 : 4.5);
       ctx.fill();
+      const ping = this.pings.get(ship);
+      if (ping !== undefined) {
+        // Anneau qui s'élargit et s'efface, deux fois par seconde.
+        const k = (this.time * 2) % 1;
+        ctx.strokeStyle = COLORS.hunting;
+        ctx.globalAlpha = (1 - k) * (p.outside ? 0.6 : 1);
+        ctx.lineWidth = 2;
+        this.circle(p.x, p.y, 5 + k * 9);
+        ctx.stroke();
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = p.outside ? 0.45 : 1;
+      }
       if (!boss) continue;
       ctx.strokeStyle = '#1a0505';
       ctx.lineWidth = 2;
@@ -162,8 +215,6 @@ export class Radar {
       ctx.lineWidth = 1;
     }
     ctx.globalAlpha = 1;
-
-    this.drawWind(c, r, player, wind);
 
     // Le joueur, au centre, pointe toujours vers le haut.
     ctx.fillStyle = COLORS.player;
@@ -176,8 +227,8 @@ export class Radar {
     ctx.fill();
   }
 
-  /** Une île (côte dessinée point par point) et son port, découpés au bord du radar. */
-  private drawIsland(c: number, r: number, player: Ship, island: Island) {
+  /** Une terre (côte dessinée point par point) et son port s'il en a un, découpés au bord du radar. */
+  private drawIsland(c: number, r: number, player: Ship, island: Landmass) {
     const ctx = this.ctx;
     const sin = Math.sin(player.heading);
     const cos = Math.cos(player.heading);
@@ -191,7 +242,8 @@ export class Radar {
     this.circle(c, c, r - 1);
     ctx.clip();
     ctx.beginPath();
-    const steps = 72;
+    // Plus de points sur une terre étirée, dont la côte tourne vite aux deux bouts.
+    const steps = Math.round(RADAR.coastSteps * island.frame.stretch);
     for (let i = 0; i <= steps; i++) {
       const t = (i / steps) * Math.PI * 2;
       const rc = island.coastRadius(t);
@@ -205,6 +257,10 @@ export class Radar {
     ctx.fill();
     ctx.strokeStyle = COLORS.coast;
     ctx.stroke();
+    if (!isIsland(island)) {
+      ctx.restore();
+      return;
+    }
     const px = island.port.x - player.position.x;
     const pz = island.port.z - player.position.z;
     ctx.fillStyle = COLORS.port;
@@ -215,38 +271,38 @@ export class Radar {
     ctx.restore();
   }
 
-  /** Flèche du vent, côté d'où il vient, pointant vers où il va ; plus longue quand il forcit. */
+  /**
+   * Girouette : un triangle sur le bord du radar, du côté d'où vient le vent, pointé vers le centre (vers où il va).
+   * La force s'affiche au-dessus du radar en crans (1 à 5), avec les nœuds et l'effet sur ta vitesse.
+   */
   private drawWind(c: number, r: number, player: Ship, wind: Wind) {
     const ctx = this.ctx;
     const relative = wind.direction - player.heading;
-    // Direction du vent à l'écran (le radar tourne avec le bateau : vent de dos = flèche vers le haut).
+    // Direction du vent à l'écran (le radar tourne avec le bateau : vent de dos = triangle en bas, pointé vers le haut).
     const wx = -Math.sin(relative);
     const wy = -Math.cos(relative);
-    const length = 14 + 18 * wind.strength;
-    const tailX = c - wx * (r - 8);
-    const tailY = c - wy * (r - 8);
-    const headX = tailX + wx * length;
-    const headY = tailY + wy * length;
-    ctx.strokeStyle = ctx.fillStyle = COLORS.wind;
-    ctx.lineWidth = 3;
+    const baseX = c - wx * (r - 1);
+    const baseY = c - wy * (r - 1);
+    const tipX = c - wx * (r - 15);
+    const tipY = c - wy * (r - 15);
     ctx.beginPath();
-    ctx.moveTo(tailX, tailY);
-    ctx.lineTo(headX, headY);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(headX + wx * 7, headY + wy * 7);
-    ctx.lineTo(headX - wy * 5, headY + wx * 5);
-    ctx.lineTo(headX + wy * 5, headY - wx * 5);
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(baseX - wy * 7, baseY + wx * 7);
+    ctx.lineTo(baseX + wy * 7, baseY - wx * 7);
     ctx.closePath();
+    ctx.fillStyle = COLORS.wind;
     ctx.fill();
+    ctx.strokeStyle = COLORS.windEdge;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
     ctx.lineWidth = 1;
 
+    const level = 1 + WIND.levels.filter((k) => wind.knots >= k).length;
     const effect = Math.round((wind.speedFactor(player.heading) - 1) * 100);
-    const text = `Vent ${wind.knots} nœuds · ${effect >= 0 ? '+' : '−'}${Math.abs(effect)} % de vitesse`;
-    if (text !== this.lastWindText) {
-      this.lastWindText = text;
-      this.windLabel.textContent = text;
-    }
+    const text = `${level}|${wind.knots} nœuds · vitesse ${effect >= 0 ? '+' : '−'}${Math.abs(effect)} %`;
+    if (text === this.lastWindText) return;
+    this.lastWindText = text;
+    this.windLabel.innerHTML = `${gustsIcon(level)}${text.slice(text.indexOf('|') + 1)}`;
   }
 
   /** Petit poisson (banc), queue à gauche. */

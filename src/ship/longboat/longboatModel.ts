@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Livery, ShipStats } from '../../config';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import { armorFor, cannonMount, fireSpots, sternStaff, riggingMaterial, waterMaskMaterial, WavingFlag } from '../parts/common';
+import { addStatics, type LanternSpot } from '../parts/nightGlow';
 import { TornSail } from '../parts/tornSail';
 import type { CannonMount, EnsignStaff, FlagMount, ShipModel } from '../shipModel';
 import { FLAG, FLOOR_Y, LONGBOAT_HULL, LONGBOAT_LENGTH, longboatTemplateFor, MAST_U, SAIL } from './longboatTemplate';
@@ -25,6 +26,7 @@ export class LongboatModel implements ShipModel {
   readonly flagMount: FlagMount = { position: new THREE.Vector3(0, FLAG.y, LONGBOAT_HULL.stationAt(MAST_U).z), length: FLAG.length, height: FLAG.height };
   readonly ensignStaff: EnsignStaff = sternStaff(LONGBOAT_HULL.stationAt(-1), 0.9);
   // Fond de la chaloupe entre les bancs, et deux brèches dans le bordé.
+  readonly lanterns: LanternSpot[];
   readonly fireSpots = fireSpots(LONGBOAT_HULL, [
     [-0.6, 0.3, FLOOR_Y + 0.15],
     [0.3, -0.35, FLOOR_Y + 0.15],
@@ -48,12 +50,12 @@ export class LongboatModel implements ShipModel {
     this.tornSail = new TornSail(t.sailMaterial, livery.sailEmblem);
     this.cannonGeometry = t.cannon;
     this.cannonMaterial = t.palette.metal;
-    for (const { geometry, material } of t.statics) this.root.add(new THREE.Mesh(geometry, material));
+    this.lanterns = addStatics(this.root, t.statics);
 
     const mastZ = LONGBOAT_HULL.stationAt(MAST_U).z;
-    this.sail = new THREE.Mesh(t.sail, this.tornSail.material(t.sail));
+    this.sail = new THREE.Mesh(t.sail, this.tornSail.material(t.sail, 'z', true));
     this.sail.position.set(0, SAIL.yardY, mastZ + 0.14);
-    if (t.patches) this.sail.add(new THREE.Mesh(t.patches.geometry, t.patches.material));
+    if (t.patches) this.sail.add(new THREE.Mesh(t.patches.geometry, this.tornSail.patchMaterial(t.patches.material, t.sail, 'z')));
     this.yard = new THREE.Mesh(t.yard, t.palette.wood);
     this.yard.position.set(0, SAIL.yardY, mastZ + 0.08);
 
@@ -75,6 +77,7 @@ export class LongboatModel implements ShipModel {
 
   setSailAmount(amount: number) {
     this.sailAmount = amount;
+    this.tornSail.setDeployment(amount);
     this.sail.scale.set(this.sailScale.x, this.sailScale.y * (0.1 + 0.9 * amount), 1);
   }
 
@@ -91,6 +94,7 @@ export class LongboatModel implements ShipModel {
 
   setWind(relativeDirection: number, strength: number) {
     this.flag.setWind(relativeDirection, strength);
+    this.tornSail.setWind(relativeDirection, strength);
   }
 
   setArmorLevel(level: number) {

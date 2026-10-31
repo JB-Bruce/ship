@@ -1,0 +1,91 @@
+Sons du jeu Bateau : provenance et licences.
+Tous les sons sont en CC0 (domaine public) : aucune mention obligatoire, liste donnée pour mémoire.
+Freesound : prévisualisations HQ (ogg) découpées, normalisées et converties ; OpenGameArt : fichiers d'origine.
+
+ambience/bow_splash_1.ogg : « SPLASH (by blaukreuz) » par qubodup, CC0, https://freesound.org/people/qubodup/sounds/212143/
+ambience/bow_splash_2.ogg : « Waves Crashing Against Wall/Break Water 2 » par Ali_6868, CC0, https://freesound.org/people/Ali_6868/sounds/384360/
+ambience/bow_splash_3.ogg : « Wind-sea 04-091007.wav » par ra_gun, CC0, https://freesound.org/people/ra_gun/sounds/82271/
+ambience/gulls_1.ogg : « seagulls 2 good sounds close nearby or distant.flac » par kyles, CC0, https://freesound.org/people/kyles/sounds/637813/
+ambience/gulls_2.ogg : « Seagulls_Circling.wav » par ahill86, CC0, https://freesound.org/people/ahill86/sounds/207131/
+ambience/gulls_3.ogg : « Black tail seagull sound » par shengjung425, CC0, https://freesound.org/people/shengjung425/sounds/736426/
+ambience/harbor.ogg : « Harbor Ambience 1 » par clif_creates, CC0, https://freesound.org/people/clif_creates/sounds/254125/
+ambience/hull_creak_1.ogg : « wood creaks deep door or ship hull quicker1.flac » par kyles, CC0, https://freesound.org/people/kyles/sounds/452105/
+ambience/hull_creak_2.ogg : « wood creaks deep door or ship hull quicker1.flac » par kyles, CC0, https://freesound.org/people/kyles/sounds/452105/
+ambience/hull_creak_3.ogg : « wood creaks deep door or ship hull quicker2.flac » par kyles, CC0, https://freesound.org/people/kyles/sounds/452106/
+ambience/hull_creak_4.ogg : « wood creaks deep door or ship hull quicker2.flac » par kyles, CC0, https://freesound.org/people/kyles/sounds/452106/
+ambience/night_sea.ogg : « The Black Sea - waves' rustle » par tomattka, CC0, https://freesound.org/people/tomattka/sounds/400660/
+ambience/rain.ogg : « Rain On Wood Deck (Extreme Quality) » par cocaine, CC0, https://freesound.org/people/cocaine/sounds/611421/
+ambience/rope_creak_1.ogg : « liner mooring hawsers creak, gangplank groans.WAV » par phonoflora, CC0, https://freesound.org/people/phonoflora/sounds/500143/
+ambience/rope_creak_2.ogg : « liner mooring hawsers creak, gangplank groans.WAV » par phonoflora, CC0, https://freesound.org/people/phonoflora/sounds/500143/
+ambience/rope_creak_3.ogg : « liner mooring hawsers creak, gangplank groans.WAV » par phonoflora, CC0, https://freesound.org/people/phonoflora/sounds/500143/
+ambience/sail_flap_1.ogg : « flag.wav » par GeorgeHopkins, CC0, https://freesound.org/people/GeorgeHopkins/sounds/448975/
+ambience/sail_flap_2.ogg : « flag.wav » par GeorgeHopkins, CC0, https://freesound.org/people/GeorgeHopkins/sounds/448975/
+ambience/sail_flap_3.ogg : « flag.wav » par GeorgeHopkins, CC0, https://freesound.org/people/GeorgeHopkins/sounds/448975/
+ambience/sea_calm.ogg : « Sailboat-wake_hissing-light_breeze.wav » par 4billboards, CC0, https://freesound.org/people/4billboards/sounds/512126/
+ambience/sea_rough.ogg : « Wind-sea 04-091007.wav » par ra_gun, CC0, https://freesound.org/people/ra_gun/sounds/82271/
+ambience/sea_storm.ogg : « StormAtSea.mp3 » par KevinT1001, CC0, https://freesound.org/people/KevinT1001/sounds/170829/
+ambience/ship_bell.ogg : « Ship Bell Two Chimes » par Sojan, CC0, https://freesound.org/people/Sojan/sounds/353232/
+ambience/thunder_1.ogg : « thunder1.wav » par nednednerb, CC0, https://freesound.org/people/nednednerb/sounds/38244/
+ambience/thunder_2.ogg : « Thunder 4 » par LukaCafuka, CC0, https://freesound.org/people/LukaCafuka/sounds/750665/
+ambience/thunder_3.ogg : « distant thunder1.mp3 » par soundman9826, CC0, https://freesound.org/people/soundman9826/sounds/193333/
+ambience/wind_light.ogg : « Shroud-wind-wistles.wav » par SiriusParsec, CC0, https://freesound.org/people/SiriusParsec/sounds/538204/
+ambience/wind_strong.ogg : « Storm wind whistling through harbour boat masts.wav » par dangale, CC0, https://freesound.org/people/dangale/sounds/463373/
+combat/ball_whistle_1.ogg : « R18-04-Artillery Shells Fly Overhead.wav » par craigsmith, CC0, https://freesound.org/people/craigsmith/sounds/486035/
+combat/ball_whistle_2.ogg : « R18-04-Artillery Shells Fly Overhead.wav » par craigsmith, CC0, https://freesound.org/people/craigsmith/sounds/486035/
+combat/ball_whistle_3.ogg : « R18-04-Artillery Shells Fly Overhead.wav » par craigsmith, CC0, https://freesound.org/people/craigsmith/sounds/486035/
+combat/cannon_far_1.ogg : « R12-07-Artillery Single Shots.wav » par craigsmith, CC0, https://freesound.org/people/craigsmith/sounds/486019/
+combat/cannon_far_2.ogg : « R12-07-Artillery Single Shots.wav » par craigsmith, CC0, https://freesound.org/people/craigsmith/sounds/486019/
+combat/cannon_far_3.ogg : « R12-07-Artillery Single Shots.wav » par craigsmith, CC0, https://freesound.org/people/craigsmith/sounds/486019/
+combat/cannon_near_1.ogg : « Cannon Shot » par qubodup, CC0, https://freesound.org/people/qubodup/sounds/187767/
+combat/cannon_near_2.ogg : « Gun Cannon » par SamsterBirdies, CC0, https://freesound.org/people/SamsterBirdies/sounds/581597/
+combat/cannon_near_3.ogg : « Cannonball.mp3 » par Kastenfrosch, CC0, https://freesound.org/people/Kastenfrosch/sounds/162455/
+combat/cannon_near_4.ogg : « GUNArtl_69thFieldArtilleryGun01_InMotionAudio_FREESampleSunday.wav » par InMotionAudio, CC0, https://freesound.org/people/InMotionAudio/sounds/702245/
+combat/explosion_1.ogg : « explosion01.wav » par V-ktor, CC0, https://freesound.org/people/V-ktor/sounds/434426/
+combat/explosion_2.ogg : « explosion03.wav » par V-ktor, CC0, https://freesound.org/people/V-ktor/sounds/434424/
+combat/fire.ogg : « Fireplace wood crackling » par Sadiquecat, CC0, https://freesound.org/people/Sadiquecat/sounds/707262/
+combat/fort_cannon_1.ogg : « S20-06 Big cannon with reverb.wav » par craigsmith, CC0, https://freesound.org/people/craigsmith/sounds/675608/
+combat/fort_cannon_2.ogg : « S19-07 8” gun; cannon.wav » par craigsmith, CC0, https://freesound.org/people/craigsmith/sounds/675607/
+combat/hit_wood_1.ogg : « Smash Sound Effect | Smash/knock wood » par sukondi, CC0, https://freesound.org/people/sukondi/sounds/553886/
+combat/hit_wood_2.ogg : « Smashing a Wooden Container » par Kreastricon62, CC0, https://freesound.org/people/Kreastricon62/sounds/241601/
+combat/hit_wood_3.ogg : « Smash.ogg » par egomassive, CC0, https://freesound.org/people/egomassive/sounds/536777/
+combat/hit_wood_4.ogg : « Table Smash 1 » par FiveBrosStopMosYT, CC0, https://freesound.org/people/FiveBrosStopMosYT/sounds/676613/
+combat/mast_crack.ogg : « A Tree Falling Down.wav » par ecfike, CC0, https://freesound.org/people/ecfike/sounds/139952/
+combat/mortar_fire.ogg : « R12-38-Large Artillery Gun.wav » par craigsmith, CC0, https://freesound.org/people/craigsmith/sounds/486032/
+combat/ram_crash.ogg : « Destroying Wood Frame » par decadylan, CC0, https://freesound.org/people/decadylan/sounds/825800/
+combat/rigging_hit_1.ogg : « Cloth Rip Uneven Long » par Rudmer_Rotteveel, CC0, https://freesound.org/people/Rudmer_Rotteveel/sounds/591525/
+combat/rigging_hit_2.ogg : « Cloth Rip Even Long » par Rudmer_Rotteveel, CC0, https://freesound.org/people/Rudmer_Rotteveel/sounds/591527/
+combat/shell_blast.ogg : « explosion04.wav » par V-ktor, CC0, https://freesound.org/people/V-ktor/sounds/434423/
+combat/sinking.ogg : « Rushing-Through-Canal-Lock_03_StereoXY_192000.wav » par Sonicquinn, CC0, https://freesound.org/people/Sonicquinn/sounds/439232/ + « wood creaks deep door or ship hull quicker1.flac » par kyles, CC0, https://freesound.org/people/kyles/sounds/452105/
+combat/splash_1.ogg : « Rock Splash » par Fission9, CC0, https://freesound.org/people/Fission9/sounds/583348/
+combat/splash_2.ogg : « SPLASH.wav » par petenice, CC0, https://freesound.org/people/petenice/sounds/9508/
+combat/splash_3.ogg : « Rock Splash 1 » par deadrobotmusic, CC0, https://freesound.org/people/deadrobotmusic/sounds/609942/
+combat/splash_4.ogg : « Rock Splash 9 » par deadrobotmusic, CC0, https://freesound.org/people/deadrobotmusic/sounds/609951/
+crew/cheer_1.ogg : « R07-42-Waves of Cheers.wav » par craigsmith, CC0, https://freesound.org/people/craigsmith/sounds/480755/
+crew/cheer_2.ogg : « R07-42-Waves of Cheers.wav » par craigsmith, CC0, https://freesound.org/people/craigsmith/sounds/480755/
+crew/shout_1.ogg : « R07-46-Men with Gruff Voices Grunting.wav » par craigsmith, CC0, https://freesound.org/people/craigsmith/sounds/480787/
+crew/shout_2.ogg : « R07-46-Men with Gruff Voices Grunting.wav » par craigsmith, CC0, https://freesound.org/people/craigsmith/sounds/480787/
+crew/shout_3.ogg : « R07-46-Men with Gruff Voices Grunting.wav » par craigsmith, CC0, https://freesound.org/people/craigsmith/sounds/480787/
+crew/tavern.ogg : « Tavern_Ambience_Inside_Laughter.WAV » par ivolipa, CC0, https://freesound.org/people/ivolipa/sounds/326313/
+cursed/dive.ogg : « underwater roar.wav » par taure, CC0, https://freesound.org/people/taure/sounds/575314/
+cursed/presence.ogg : « Strong wind blowing and howling in the middle of the desert of Atacama, in the "moon valley" (Chile) » par felix.blume, CC0, https://freesound.org/people/felix.blume/sounds/146914/ + « Ghostly Whispering » par qubodup, CC0, https://freesound.org/people/qubodup/sounds/194628/ + « wood creaks deep door or ship hull quicker2.flac » par kyles, CC0, https://freesound.org/people/kyles/sounds/452106/
+cursed/rise.ogg : « 063015 Hydrophone water bubbles 2.wav » par thaighaudio, CC0, https://freesound.org/people/thaighaudio/sounds/349883/ + « wood creaks deep door or ship hull quicker2.flac » par kyles, CC0, https://freesound.org/people/kyles/sounds/452106/
+music/boss.ogg : « Epic Boss Battle [Seamlessly Looping] » par Juhani Junkala (SubspaceAudio), CC0, https://opengameart.org/content/boss-battle-music
+music/combat.ogg : « Eye of the Storm » par Indieteur, CC0, https://opengameart.org/content/eye-of-the-storm-0
+music/cursed.ogg : « A Cold Wind » par Umplix, CC0, https://opengameart.org/content/a-cold-wind
+music/night.ogg : « Fantasy: Rising Moon » par RandomMind, CC0, https://opengameart.org/content/fantasy-rising-moon
+music/port.ogg : « Merchants and Sea Salt » par NBJDLukasAbsolute, CC0, https://opengameart.org/content/merchants-and-sea-salt
+music/sailing.ogg : « Pirate's Orchestra [2:08] » par Dizzy Crow, CC0, https://opengameart.org/content/pirates-orchestra-208
+music/treasure.ogg : « Simple Battle Fanfare » par Umplix, CC0, https://opengameart.org/content/simple-battle-fanfare
+ui/chest_open.ogg : « Wooden Chest Open.wav » par The_Frisbee_of_Peace, CC0, https://freesound.org/people/The_Frisbee_of_Peace/sounds/573654/
+ui/coins_1.ogg : « Pouch of Gold Coins Place Down on Wood_02.wav » par The_Frisbee_of_Peace, CC0, https://freesound.org/people/The_Frisbee_of_Peace/sounds/575582/
+ui/coins_2.ogg : « Pouch ofGold Coins Place Down on Wood.wav » par The_Frisbee_of_Peace, CC0, https://freesound.org/people/The_Frisbee_of_Peace/sounds/575583/
+ui/coins_3.ogg : « Pouch of Gold Coins, Drop on Soft Surface.wav » par The_Frisbee_of_Peace, CC0, https://freesound.org/people/The_Frisbee_of_Peace/sounds/575580/
+ui/coins_big.ogg : « Pouch of Gold Coins Emptying out Onto Wood.wav » par The_Frisbee_of_Peace, CC0, https://freesound.org/people/The_Frisbee_of_Peace/sounds/575571/
+ui/hammer.ogg : « Hammer hitting nail.wav » par LiezelDippenaar, CC0, https://freesound.org/people/LiezelDippenaar/sounds/707525/
+ui/map_unfold.ogg : « Unfold a map » par Breviceps, CC0, https://freesound.org/people/Breviceps/sounds/447931/
+ui/paper_1.ogg : « Page Turn - 33 » par SpaceJoe, CC0, https://freesound.org/people/SpaceJoe/sounds/484953/
+ui/paper_2.ogg : « Page Turn - 29 » par SpaceJoe, CC0, https://freesound.org/people/SpaceJoe/sounds/484949/
+ui/paper_3.ogg : « Page Turn - 25 » par SpaceJoe, CC0, https://freesound.org/people/SpaceJoe/sounds/484945/
+ui/quill.ogg : « writing - pencil - wide 03.wav » par Anthousai, CC0, https://freesound.org/people/Anthousai/sounds/337091/
+ui/tear_poster.ogg : « TearingPaper07 » par falcospizaetus, CC0, https://freesound.org/people/falcospizaetus/sounds/489964/
+ui/wood_click.ogg : « SingleKnock_Wood » par NoisyRedFox, CC0, https://freesound.org/people/NoisyRedFox/sounds/742356/

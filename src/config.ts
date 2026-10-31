@@ -2,7 +2,8 @@
 import type { ShipType } from './shipTypes';
 import type { WeatherKind } from './world/weather';
 
-export type Faction = 'player' | 'ally' | 'enemy';
+/** Camps : ta flotte, les pirates alliés, la Marine, et les navires maudits (ennemis de tous). */
+export type Faction = 'player' | 'ally' | 'enemy' | 'cursed';
 
 /**
  * Voilure : une jauge de 0 (affalée) à 1 (pleine voile), qui fixe la fraction de vitesse max visée.
@@ -31,6 +32,25 @@ export interface CannonStats {
   damage: number;
   /** Vitesse horizontale du boulet (m/s). */
   ballSpeed: number;
+  /** Mortier : ce calibre tire des obus en cloche qui explosent (voir ShellStats), au lieu de boulets. */
+  shell?: ShellStats;
+}
+
+/**
+ * Obus de mortier : tiré en cloche (temps de vol selon la distance, gravité plus forte qu'un boulet pour une courbe
+ * haute et raide), il explose où il tombe ; son souffle touche les navires ennemis proches, même s'il les rate.
+ */
+export interface ShellStats {
+  /** Gravité de l'obus, en multiple de COMBAT.gravity. */
+  gravityFactor: number;
+  /** Temps de vol (s) = flightBase + flightPerMeter × distance. */
+  flightBase: number;
+  flightPerMeter: number;
+  /** Souffle : les navires ennemis dont le bordé est à moins de `blastRadius` m de l'explosion prennent `blastShare` des dégâts. */
+  blastRadius: number;
+  blastShare: number;
+  /** Taille de l'obus (× celle d'un boulet). */
+  size: number;
 }
 
 /** Caractéristiques d'un bateau. Les améliorations futures modifieront ces valeurs. */
@@ -55,8 +75,20 @@ export interface ShipStats {
   cannonsPerSide: number;
   /** Canons principaux (ou de la batterie couverte, sur un navire à deux calibres). */
   cannon: CannonStats;
-  /** Second calibre, pour les canons du pont supérieur d'un navire à deux calibres (corvette). */
+  /**
+   * Second calibre : canons du pont supérieur d'un navire à deux calibres (corvette, frégate), ou canon de chasse de
+   * la caravelle (voir `chaseGuns`).
+   */
   deckCannon?: CannonStats;
+  /**
+   * Canons de chasse : tirent droit devant, au second calibre (caravelle, débloqué par l'amélioration des canons ;
+   * chébec), au calibre de la batterie (caraque), ou les deux (galéasse : triples canons puis pièces, GALLEASS_BOW).
+   */
+  chaseGuns?: number;
+  /** Mortiers (galiote à bombes) : nombre de montures du second calibre à obus (1 par défaut, brick). */
+  mortars?: number;
+  /** Pierriers par flanc (cotre) : petits canons pivotants sur le plat-bord, au second calibre (`deckCannon`). */
+  swivels?: number;
   /** Réactivité de la flottaison : un petit bateau léger suit l'eau plus vite qu'un gros. */
   buoyancy: {
     /** Raideur du ressort vertical (plus haut = colle plus à l'eau). */
@@ -69,6 +101,45 @@ export interface ShipStats {
 }
 
 // Les caractéristiques de chaque type de bateau (chaloupe, sloop…) sont dans src/shipTypes.ts.
+
+/**
+ * Ancienneté visible d'un navire de ta flotte, par rang (recrue, vétéran ★, élite ★★, légende ★★★) : usure des voiles
+ * (0 à 1 : toile jaunie, taches, pièces rapiécées) et de la coque (bois assombri et terni, part en moins).
+ */
+export const RANK_LOOKS = {
+  sailWear: [0, 0.4, 0.7, 1],
+  hullDarken: [0, 0.12, 0.2, 0.28],
+  hullFade: [0, 0.15, 0.25, 0.35],
+  /** Planches remplacées (part des planches d'une autre teinte), craquelures (part des planches fendues), sel et mousse à la flottaison (0 à 1). */
+  planks: [0, 0.06, 0.12, 0.2],
+  cracks: [0, 0.08, 0.16, 0.28],
+  grime: [0, 0.35, 0.65, 1],
+  /** Taille d'une planche (m) : hauteur d'un rang, longueur. */
+  plank: { height: 0.32, length: 2.6 },
+  /** Usure du pavillon pirate du grand mât (0 à 1 : bout effiloché, trous). */
+  flagWear: [0, 0.35, 0.65, 1],
+};
+
+/**
+ * Glisse sur la houle (tous les navires, par tous les temps) : la vitesse suit la pente de l'eau sous la coque, lue sur
+ * le tangage. En descente (proue basse), le navire glisse et peut dépasser sa vitesse max ; en montée, il perd un peu.
+ * L'effet est proportionnel à la pente, entier à `fullAngle` et plafonné au-delà.
+ */
+export const SURF = {
+  /** Pente (rad) où l'effet est entier : ~12°, les plus raides de la grande tempête. */
+  fullAngle: 0.21,
+  /** Vitesse gagnée en descente et perdue en montée à cette pente (part de la vitesse). */
+  downhill: 0.4,
+  uphill: 0.1,
+  /** Vitesse à laquelle l'élan suit la pente (1/s) : la glisse se gagne et se perd en une seconde environ. */
+  response: 1.2,
+  /** Embruns d'étrave en pleine glisse : densité × (1 + spray), gouttes lancées plus haut (m/s en plus). */
+  spray: 2.5,
+  sprayLift: 2,
+  /** Champ de vision de la caméra en pleine glisse (part en plus), et vitesse à laquelle il la suit (1/s). */
+  fovGain: 0.08,
+  fovResponse: 1.5,
+};
 
 /** Flottaison commune à tous les bateaux (les ressorts propres à chaque type sont dans shipTypes.ts). */
 export const BUOYANCY = {
@@ -125,14 +196,172 @@ export const COMBAT = {
   gravity: 9.8,
   /** Durée du naufrage avant disparition (s). */
   sinkDuration: 7,
-  /** Sous cette fraction de vie, un ennemi prend la fuite. */
+  /** Sous cette fraction de vie, un ennemi prend la fuite… s'il est de ceux qui fuient (une chance sur `fleeChance`, tirée à son apparition ; les autres se battent jusqu'à couler). */
   fleeHealth: 0.2,
+  fleeChance: 0.5,
   /** Un fuyard qui s'est réparé jusqu'à cette fraction de sa vie revient au combat. */
   rallyHealth: 0.8,
-  /** Secousse de caméra quand le joueur est touché (0..1). */
+  /** Secousse de caméra quand le joueur est touché (0..1), et en plus quand c'est par un obus de mortier (coup ou souffle). */
   hitShake: 0.55,
+  shellShake: 0.6,
   /** Délai aléatoire max (s) avant chaque tir d'un canon chargé et pointé : la bordée part en cascade, pas d'un bloc. */
   acquireDelay: 0.3,
+  /**
+   * Boulets et obus en vol en même temps, au plus (au-delà, un tir ne part pas) : de quoi laisser les grandes bordées
+   * (frégate, caraque, triples canons de la galéasse) de plusieurs flottes se croiser.
+   */
+  maxBalls: 128,
+};
+
+/**
+ * Point visé par chaque canon (navires et forts), tiré au hasard à chaque coup (`combat/aimSpread.ts`) : les tirs se
+ * répartissent sur tout le navire adverse au lieu de tomber au même endroit.
+ */
+export const AIM = {
+  /** Sur la coque : part de la demi-longueur (de la poupe à la proue), hauteur au-dessus de la flottaison (m). */
+  hullSpan: 0.8,
+  hullLow: 0.2,
+  hullHigh: 1.7,
+  /**
+   * Part des tirs dans le gréement, sur les navires dont le grand mât dépasse `riggingMinHeight` (m) : part de la
+   * demi-longueur, hauteur (part de celle du pavillon du grand mât). Un tel boulet ne touche que s'il passe dans la coque.
+   */
+  riggingShare: 0.2,
+  riggingMinHeight: 4,
+  riggingSpan: 0.6,
+  riggingLow: 0.3,
+  riggingHigh: 0.75,
+  /** Hauteur visée sur ce qui n'est pas un navire (ouvrage assiégé), au-dessus de son point de visée (m). */
+  structureHeight: 0.6,
+  /** Un boulet qui passe dans le gréement (voiles, mâts) fait cette part de ses dégâts (voir Ship.containsRigging). */
+  riggingDamage: 0.5,
+  /**
+   * Gréement : de part et d'autre de l'axe, part de la largeur de la coque (les vergues débordent bien au-delà du
+   * bordé), et part de la longueur (beaupré et bôme compris).
+   */
+  riggingWidth: 1.15,
+  riggingLength: 0.6,
+  /** Un point visé sur un navire reste au moins à cette hauteur au-dessus de l'eau à cet endroit (m) : jamais sous la vague. */
+  waterClearance: 0.5,
+  /** Imprécision (angle et distance) à la portée maximale, en multiple de celle à bout portant ; entre les deux, linéaire. */
+  farSpread: 1.5,
+};
+
+/** Mortier du brick : obus en cloche (voir ShellStats) ; effets : traînée de fumée posée tous les `trailInterval` s, taille de l'explosion. */
+export const MORTAR_SHELL: ShellStats = { gravityFactor: 2, flightBase: 1.8, flightPerMeter: 0.0135, blastRadius: 12, blastShare: 0.5, size: 2.2 };
+/**
+ * Ligne de tir (combat/lineOfFire.ts) : un canon ne tire pas à travers un navire de son camp (les boulets les traversent,
+ * ce n'est qu'une question de bon sens). Marge autour de la coque du camarade (m) ; un canon gêné réessaie au bout de
+ * `retry` s ; l'IA gênée (Ship.fireBlocked, `hold` s après la dernière gêne) se dégage : voile `slowSail` si le camarade
+ * est devant elle (sinon pleine voile) et écart de cap de `veer` rad de l'autre côté.
+ */
+export const LINE_OF_FIRE = { margin: 1, retry: 0.35, hold: 1.5, slowSail: 0.25, veer: 0.2 };
+
+/**
+ * Sabords qui s'ouvrent au combat (vaisseau de ligne, ship/parts/gunportLids.ts) : fermés en route, les mantelets se
+ * relèvent dès qu'un adversaire approche à moins de `reach` × la portée des batteries (ou qu'un canon a une cible), et
+ * se referment `hold` s après ; angle d'ouverture (rad),
+ * temps d'ouverture ou de fermeture (s), recul des fûts derrière un sabord fermé (m).
+ */
+export const GUNPORTS = { hold: 10, reach: 1.5, openAngle: 1.3, time: 1.4, runIn: 0.85 };
+
+/**
+ * Brûlot (navire maudit, combat/fireships.ts) : il saute au premier contact avec une coque adverse. Le navire touché
+ * prend les dégâts de sa charge (`ShipTypeDef.fireship`) et prend feu ; les autres adversaires du brûlot dans le rayon
+ * du souffle en prennent `blastShare` au centre, `edge` fois moins au bord, et prennent feu une fois sur
+ * `1 / igniteChance`. Feu vert qui couve sur ses tonneaux (`flame` : couleurs, hauteur min et max, vitesse du
+ * vacillement, flammes par tas) et fumée qui traîne derrière lui (`smoke` : bouffées par seconde, taille), seulement
+ * s'il est à moins de `smoke.range` m de la caméra.
+ */
+export const FIRESHIP = {
+  blastShare: 0.5,
+  edge: 0.5,
+  igniteChance: 0.5,
+  flame: { color: 0x58d27a, core: 0xbff3b4, height: [1.3, 2.7] as const, width: 1.6, flicker: 7, perKeg: 3 },
+  /**
+   * Explosion géante : boule de feu (`scale` × celle d'un obus, puis une seconde plus haute à `second` × sa taille),
+   * éclats et gerbes autour (`debris`, entre `debrisRange` m) ; nuage de fumée de l'explosion (`cloud` : soufflé pendant
+   * `time` s, `rate` volutes par seconde, taille, départ à `lift` m au-dessus de l'eau), qui monte peu à peu dans le ciel en
+   * s'étalant et disparaît (rien ne reste au ras de l'eau) ; secousse de
+   * la caméra (`amount` tout près, `far` fois moins à `range` m, rien au-delà) ; flash de l'écran et de la scène (`flash` : force au
+   * plus près, portée m, durée de l'éclat à l'écran s, amortissement de la lueur de la scène /s).
+   */
+  blast: { scale: 4, second: 0.65, debris: 26, debrisRange: [6, 28] as const },
+  cloud: { time: 3, rate: 18, scale: 2.8, lift: 4 },
+  shake: { amount: 1, range: 700, far: 0.3 },
+  flash: { strength: 0.95, range: 1100, time: 0.9, decay: 3.2 },
+  smoke: { rate: 1.4, scale: 0.85, range: 420 },
+  /** L'IA vise où sera sa proie : avance de la visée (part du temps pour l'atteindre), au plus `maxLead` s. */
+  lead: 0.8,
+  maxLead: 4,
+};
+
+/**
+ * Le Kraken (world/monsters/) : on ne peut jamais le tuer, et il n'a pas de barre de vie : son état se lit sur ses
+ * tentacules (plus sombres et agitées quand elles souffrent, tranchées par les boulets) et sur sa tête.
+ * - `tentacles` tentacules, dont `grabbers` enserrent la coque (moitié de chaque bord) ; les autres battent l'air
+ *   autour et s'abattent sur le pont. Chaque tentacule : `segments` tronçons, rayon `radius` (pied, pointe), vie
+ *   `tentacleHealth[rang]` selon le plus gros navire de ta flotte (rang 1 à 8), `woundTint` (teinte quand elle souffre).
+ * - Approche : il nage sous l'eau à `swimSpeed` m/s depuis `approach` m (ombre et bouillons, `shadow` : demi-longueur,
+ *   demi-largeur), puis surgit (`emergeTime` s) autour de sa proie.
+ * - Prise (`grip`) : le navire tenu perd `hold` de sa vitesse, gîte de `roll` rad et s'enfonce de `sink` m (au plus,
+ *   toutes les tentacules de prise en place) ; il perd `damage` × sa vie max par seconde (toutes les tentacules de prise),
+ *   et une voile sur `1 / sailChance` par seconde.
+ * - Coup de tentacule (`slam`) : toutes les `interval` s, une tentacule libre se dresse (`raise` s, l'alerte), frappe
+ *   (`strike` s) : `damage` × la vie max, `crew` matelots jetés à l'eau, secousse `shake` (bateau piloté).
+ * - Riposte : une tentacule tranchée lâche et coule ; après `exposeAfter` tranchées, la tête surgit à côté du navire
+ *   (`head` : vie = `health` × celle d'une tentacule, temps hors de l'eau `exposed` s, distance au bordé `gap` m). Tête
+ *   vaincue, ou moins de `minTentacles` tentacules : il fuit. Sinon, la tête replonge et il ressurgit sous un autre
+ *   navire proche (à moins de `retarget` m), ou le même, après `regroup` s.
+ * - Rencontre rare (`encounter`) : en eau profonde (à plus de `deep` m des terres), de nuit ou sous un ciel d'orage
+ *   (obscurité `darkness` au moins), si ton plus gros navire est au moins du rang `minRank` ; `chance` par minute, au plus une fois toutes les
+ *   `cooldown` s. Abandon s'il n'a plus de proie à moins de `giveUp` m.
+ */
+export const KRAKEN = {
+  tentacles: 8,
+  grabbers: 4,
+  segments: 16,
+  radius: [1.05, 0.12] as const,
+  tentacleHealth: [90, 140, 200, 270, 350, 450, 560, 680] as const,
+  woundTint: 0x3a0c18,
+  skin: { top: 0x6e2f3c, belly: 0xd9a08c, sucker: 0xf0d2c0 },
+  swimSpeed: 9,
+  approach: [140, 200] as const,
+  shadow: { half: 16, width: 9 },
+  emergeTime: 2.2,
+  grip: { hold: 0.92, roll: 0.12, sink: 0.45, damage: 0.012, sailChance: 0.06, settle: 1.6 },
+  slam: { interval: [7, 11] as const, raise: 1.6, strike: 0.35, hold: 0.9, damage: 0.07, crew: 3, shake: 0.9 },
+  exposeAfter: 4,
+  minTentacles: 3,
+  head: { health: 3.5, exposed: 22, gap: 7, riseTime: 2.5, size: 1 },
+  retarget: 450,
+  regroup: [6, 10] as const,
+  diveTime: 2.5,
+  fleeSpeed: 14,
+  giveUp: 600,
+  encounter: { deep: 500, darkness: 0.5, minRank: 3, chance: 0.05, cooldown: 1800, firstDelay: 900 },
+  /** Ses tentacules ne s'animent plus au-delà de cette distance à la caméra (m). */
+  animRange: 900,
+};
+
+export const MORTAR_FX = {
+  trailInterval: 0.025,
+  /** Taille de l'explosion d'un obus (Effects.explosion ; la sainte-barbe : CRIT.magazineScale). */
+  blastScale: 1.2,
+};
+
+/**
+ * Proue de la galéasse : ses canons de chasse (`ShipStats.chaseGuns`) sont d'abord `triples` triples canons au calibre
+ * de la batterie, dans la face du château avant (une salve d'un boulet par fût, rechargement plus lent, angle de tir
+ * propre), puis des pièces légères au second calibre sur le dessus du château avant, qui tirent large vers l'avant.
+ */
+export const GALLEASS_BOW = {
+  triples: 2,
+  /** Triple canon : rechargement (× celui de la batterie) et demi-angle de tir (rad). */
+  tripleReload: 1.2,
+  tripleArc: (25 * Math.PI) / 180,
+  /** Pièces légères du château avant : demi-angle de tir (rad). */
+  pieceArc: (60 * Math.PI) / 180,
 };
 
 /** Recul d'un coup de canon : le bateau roule (~2° pour une chaloupe, ~0,75° pour un brigantin), d'autant moins qu'il est lourd. */
@@ -154,6 +383,57 @@ export const RECOIL = {
 };
 
 /** Dégâts visibles et leurs effets : voiles trouées, vitesse réduite, foyers de fumée puis de feu. */
+/**
+ * Retours visuels et sonores (fx/hullHoles.ts, ship/ship.ts, ui/dangerVignette.ts, ui/screenSpray.ts…).
+ * `hit` : ton boulet touche (son discret à plat, volume ; délai minimal entre deux sons, s).
+ * `bars` : dégâts sur une barre de vie (ui/damageLag.ts) : la part perdue reste en clair `hold` s puis fond de `drain`
+ * (part de la barre par s) ; le remplissage s'éclaire `flash` s (luminosité `brightness`).
+ * `holes` : trous dans la coque (au plus `max` par navire, taille en m pour un navire de `refLength` m, distance de la caméra au-delà de laquelle on
+ * n'en pose pas, m ; ils se referment à mesure que la vie remonte : `max` × vie perdue / `fullAt`).
+ * `list` : navire très abîmé (sous `at` de vie : il gîte jusqu'à `angle` rad et s'enfonce jusqu'à `settle` m, en
+ * `rate` s ; débris et écume sale par seconde à pleine gîte).
+ * `vignette` : liseré rouge sous `at` de vie du navire piloté (opacité max, battement par s) ; cris d'équipage tous les
+ * `shout` s (bornes).
+ * `ballGlow` : traînée lumineuse des boulets (chance par traînée de jour et de nuit, selon l'obscurité).
+ */
+export const FEEDBACK = {
+  hit: { volume: 0.35, gap: 0.12 },
+  bars: { hold: 0.35, drain: 0.8, flash: 0.25, brightness: 1.9 },
+  holes: { max: 12, size: [0.35, 0.65] as const, refLength: 20, range: 220, fullAt: 0.85 },
+  list: { at: 0.25, angle: 0.13, settle: 0.45, rate: 2.5, debris: 3 },
+  vignette: { at: 0.3, opacity: 0.55, pulse: 1.4, shout: [5, 11] as const },
+  ballGlow: { day: 0.12, night: 1 },
+  /**
+   * Embruns sur l'écran (ui/screenSpray.ts) : gouttes au plus ; quand l'étrave plonge dans une vague (tangage qui
+   * baisse plus vite que `plunge` rad/s, au-dessus de `minSpeed` m/s), une gerbe de `burst` gouttes (au plus une par
+   * `cooldown` s) ; sous la pluie, `rain` gouttes/s à pleine pluie ; vue de loin : × `thirdPerson` ; durée de vie (s),
+   * rayon (px, à demi-résolution).
+   */
+  /** Houle (`waveFactor` du temps) qui compte comme « grosse mer » pour les embruns sur l'écran. */
+  screenSeas: 3,
+  screen: { max: 90, plunge: 0.16, minSpeed: 2.5, burst: [14, 26] as const, cooldown: 0.9, rain: 20, thirdPerson: 0.35, life: [1.2, 2.6] as const, size: [2, 6.5] as const },
+};
+
+/**
+ * Épaves à fouiller (world/floatingWrecks.ts) : nombre en mer, distance à la terre (m), écart aux ports et entre elles
+ * (m), distance minimale au navire piloté quand l'une apparaît (m), délai avant qu'une épave fouillée soit remplacée
+ * (s) ; fouille (rayon, durée, vitesse maximale) ; ce qu'on y trouve (or, bois, marchandises : chance et quantité,
+ * bout de plan : chance) ; embuscade quand la fouille commence (chance) ; message quand on approche (m).
+ */
+export const WRECKS = {
+  count: [4, 6] as const,
+  landDistance: [120, 900] as const,
+  portClearance: 450,
+  spacing: 500,
+  spawnAway: 350,
+  respawn: [90, 180] as const,
+  search: { radius: 24, time: 10, maxSpeed: 1.5 },
+  loot: { gold: [40, 140] as const, wood: [20, 70] as const, goodsChance: 0.5, goods: [3, 8] as const, planChance: 0.12 },
+  ambushChance: 0.25,
+  noticeRange: 90,
+  radarColor: '#a8763c',
+};
+
 export const DAMAGE = {
   /** Vitesse max perdue au plus fort des dégâts (fraction), atteinte à `fullDamageAt` de vie perdue. */
   maxSpeedLoss: 0.3,
@@ -204,11 +484,99 @@ export const LOOT = {
   spicesChance: 0.06,
   spicesPerCrate: [1, 3] as const,
   rareFactorExponent: 0.75,
-  pickupRadius: 4.5,
+  /** Un bateau ramasse le butin à moins de cette distance de sa coque (contour de sa longueur et de sa largeur, m). */
+  pickupMargin: 3,
   /** Les caisses coulent au bout de ce temps (s). */
   lifetime: 90,
+  /**
+   * Regroupement : une caisse qui tombe à moins de `radius` m d'une caisse du même genre s'y ajoute (sa durée de vie
+   * repart de zéro). Sa taille grandit avec son contenu : (contenu / `base` du genre)^(1/3), jusqu'à `maxScale`.
+   */
+  merge: { radius: 10, maxScale: 2, base: { gold: 8, wood: 4, rum: 3, spices: 2 } },
   /** Part de l'or perdue quand le joueur coule. */
   deathGoldLoss: 0.25,
+};
+
+/**
+ * Plans de navires (progression/blueprints.ts, world/planScrolls.ts) : pour construire un type, il faut réunir les bouts
+ * de son plan (le chantier naval de l'île reste exigé en plus). Un navire coulé par ta flotte dont le type t'est encore
+ * inconnu lâche parfois un bout de plan : un rouleau de parchemin qui flotte parmi le butin, à ramasser en passant dessus.
+ * Tant que son plan n'est pas complet, le nom du type reste caché partout (« Navire inconnu »).
+ */
+/**
+ * Effets de retour des menus (`ui/kit/feedback.ts`), en ms et en px : pièces qui volent jusqu'au coffre (`coins` pièces,
+ * `coinGap` ms d'écart, arc de `arc` px), coffre qui « encaisse » (`bump`), chiffre qui s'envole (`rise`,
+ * `riseHeight`), refus qui tremble (`shake`, `shakeDistance`), halo de réussite (`glow`, `glowSize`), bulles d'aide.
+ */
+export const UI_FX = {
+  coins: 5,
+  coinGap: 60,
+  fly: 650,
+  arc: 90,
+  bump: 1.18,
+  bumpTime: 320,
+  rise: 1100,
+  riseHeight: 56,
+  shake: 380,
+  shakeDistance: 8,
+  glow: 800,
+  glowSize: 14,
+  /** Écart entre une bulle d'aide et ce qu'elle explique, et au bord de l'écran (px). */
+  tipGap: 8,
+};
+
+/**
+ * Allongement acheté au Chantier (`ui/shipyard/extensionCeremony.ts`) : grand panneau « Ton navire devient… » (`panel`
+ * ms après `panelDelay` ms, ou un clic), copeaux de bois qui jaillissent le long de la coque (`chips` par point, `chipSpread` px, `chipTime`
+ * ms), coups de marteau (`hammers` ms après celui de l'achat) puis la coque qui craque (`creak` ms), caméra qui recule pour
+ * montrer tout le navire (`SHOWCASE.views.ceremony`) pendant `wide` ms.
+ */
+export const EXTENSION_FX = {
+  panel: 5500,
+  /** Le parchemin attend que les copeaux aient jailli et que la caméra ait reculé (ms). */
+  panelDelay: 1300,
+  chips: 9,
+  chipSpread: 170,
+  chipTime: 1400,
+  hammers: [320, 620, 980] as const,
+  creak: 1300,
+  wide: 4500,
+};
+
+export const BLUEPRINTS = {
+  /**
+   * Bouts de plan à réunir pour chaque type. Un type absent de cette table est connu d'office : la chaloupe (le navire
+   * de départ) et la barque (jamais à vendre). Les types de ta flotte au départ ou au chargement sont connus aussi.
+   */
+  fragments: { shipOfLine: 6, senau: 4, galiot: 4, sloop: 2, cutter: 2, caravel: 2, schooner: 2, brigantine: 3, xebec: 3, fluyt: 4, brig: 4, corvette: 4, carrack: 5, galleass: 5, frigate: 5, galleon: 6 } as Partial<Record<ShipType, number>>,
+  /**
+   * Chance qu'un navire coulé par ta flotte lâche un bout de son plan (un boss n'en lâche jamais), sauf si les bouts
+   * gagnés et ceux qui flottent déjà suffisent à compléter le plan.
+   */
+  dropChance: 0.5,
+  eliteDropChance: 1,
+  /**
+   * Le rouleau flotte ce temps (s) avant de couler (les caisses : LOOT.lifetime), en s'enfonçant pendant les `sinkTime`
+   * dernières secondes ; pas plus de `maxScrolls` à la fois.
+   */
+  lifetime: 150,
+  sinkTime: 3,
+  maxScrolls: 12,
+  /** Distance au hasard autour de l'épave où il remonte (m). */
+  scatter: 4,
+  /**
+   * Rouleau de parchemin : longueur et rayon (m) avant `scale`, couleurs du papier, des bords roulés, du ruban et du
+   * sceau, et une légère lueur propre pour qu'on le repère sur l'eau (de nuit aussi).
+   */
+  model: { length: 1.1, radius: 0.16, scale: 1.6, paper: 0xf3e6c4, rim: 0xd9c08a, ribbon: 0xb3261c, seal: 0xd9a514, glow: 0x2e2410 },
+  /** Flottaison : enfoncement sous la surface (m), roulis (rad) et sa vitesse, rotation sur l'eau (rad/s, au hasard ±). */
+  float: { depth: 0.08, roll: 0.14, rollSpeed: 1.3, spin: 0.5 },
+  /** Couleurs sur la carte (parchemin) et sur le radar (fond sombre). */
+  mapColor: '#9b2f7f',
+  radarColor: '#ff86d6',
+  /** Durée de la popup d'un bout de plan ramassé, et du grand panneau « Nouveau navire ! » d'un plan complet (s). */
+  noticeTime: 6,
+  unlockPanelTime: 7,
 };
 
 export interface Cost {
@@ -234,12 +602,82 @@ export const DECK_CREW = {
   /** Marins au plus dans le monde (taille des lots de dessin). */
   maxSailors: 400,
   /** Matelots à bord (en plus du barreur et de la vigie), et en plus à chaque allongement du navire. */
-  hands: { sloop: 3, brigantine: 5, corvette: 7, frigate: 10 },
-  handsPerExtension: { brigantine: 2, corvette: 3, frigate: 3 },
+  hands: { fireship: 2, shipOfLine: 14, senau: 7, galiot: 7, sloop: 3, cutter: 3, caravel: 4, schooner: 4, brigantine: 5, xebec: 5, fluyt: 6, brig: 6, corvette: 7, carrack: 9, galleass: 10, frigate: 10, galleon: 12 },
+  handsPerExtension: { fireship: 1, shipOfLine: 3, senau: 2, galiot: 2, cutter: 1, schooner: 1, brigantine: 2, xebec: 1, fluyt: 2, brig: 2, corvette: 3, carrack: 3, galleass: 3, frigate: 3, galleon: 3 },
   walkSpeed: 1.1,
   runSpeed: 3,
-  /** Pause d'un matelot entre deux promenades (s). */
-  idle: [3, 9] as const,
+  /**
+   * Marche (deckCrew/sailorWalk.ts) : allure propre de chacun (× la vitesse), rotation (rad/s), distances d'arrivée et
+   * de passage d'un nœud, rayon où il ralentit avant d'arriver (m) ; autres marins : écart de hauteur au-delà duquel ils
+   * sont sur un autre pont, espace personnel (m), force de l'écart, × pour un marin arrêté, pas de côté face à quelqu'un
+   * qui vient en sens inverse ; accélération (/s) ; distance à sa cible où il peut quitter le pont praticable (poste
+   * contre le pavois, derrière un canon) ; vitesse sous laquelle il piétine, après combien de temps il cherche un autre
+   * chemin (s), et combien de fois avant d'abandonner ; lissage de la hauteur des marches, et de combien il vise au-dessus (ou au-dessous) de ses pieds
+   * quand le prochain nœud est plus haut (m) ; vitesse sous laquelle il ne tourne plus ; foulée ; escalade (m/s,
+   * rythme des bras) ; place laissée autour d'un canon (m) ; distance où il cherche un abri en combat (m).
+   */
+  walk: {
+    pace: [0.85, 1.15] as const,
+    turnRate: 5,
+    arrive: 0.06,
+    waypoint: 0.3,
+    slowRadius: 0.8,
+    otherDeck: 0.6,
+    personal: 0.6,
+    separation: 1.6,
+    standingFactor: 1.5,
+    keepRight: 0.6,
+    accel: 6,
+    finalReach: 1.3,
+    stuckSpeed: 0.25,
+    stuckTime: 0.8,
+    maxRetries: 3,
+    stepSmooth: 14,
+    climbHint: 0.36,
+    turnMinSpeed: 0.15,
+    stride: 5.5,
+    climbSpeed: 0.8,
+    climbStride: 7,
+    gunClearance: 0.55,
+    coverRange: 9,
+    /** Espace laissé au joueur à pied (× l'espace personnel). */
+    playerRoom: 1.3,
+  },
+  /**
+   * Temps calme (deckCrew/crewActivities.ts) : poids de chaque occupation (flâner, s'accouder, discuter, laver le pont,
+   * lover un cordage, s'asseoir, grimper aux haubans), durées (s) : pause après quelques pas, accoudé, assis,
+   * discussion, pause après une discussion ou une descente, lavage (et pas entre deux places), cordage, là-haut ;
+   * hauteur atteinte dans le hauban (part de sa longueur) ; portées (m) : flânerie, pavois, partenaires de discussion,
+   * rayon du cercle, déplacement du laveur ; essais de tirage ; laveurs et marins dans les haubans au plus ; place
+   * qu'un marin occupe (m) ; chance de rester sur le pont de sa promenade d'attache.
+   */
+  activities: {
+    weights: { stroll: 30, rail: 18, chat: 16, swab: 9, coil: 8, sit: 11, shroud: 8 },
+    idle: [3, 8] as const,
+    look: [8, 18] as const,
+    sit: [15, 35] as const,
+    chat: [8, 20] as const,
+    afterChat: [1, 3] as const,
+    swab: [15, 30] as const,
+    swabShift: [3, 5] as const,
+    coil: [8, 16] as const,
+    aloft: [8, 18] as const,
+    aloftHeight: [0.25, 0.5] as const,
+    /** Montée jusque dans la hune : chance (quand le hauban y mène), temps passé là-haut (s), matelots par hune en plus de la vigie. */
+    topChance: 0.6,
+    topTime: [15, 40] as const,
+    topVisitors: 1,
+    strollRange: 6,
+    railRange: 8,
+    chatRange: 6,
+    chatRadius: 0.7,
+    swabStep: 1,
+    tries: 10,
+    maxSwabbers: 2,
+    maxAloft: 2,
+    spotClearance: 0.6,
+    homeBias: 0.6,
+  },
   /** Un navire est en combat s'il a tiré ou été touché depuis moins de ce temps (s), ou si un ennemi est à moins de combatRange (m). */
   combatCalm: 10,
   combatRange: 220,
@@ -255,9 +693,82 @@ export const DECK_CREW = {
   /** Recul d'un canonnier quand sa pièce tire (m), et distance derrière la culasse où il se tient (m). */
   recoil: 0.35,
   gunnerOffset: 0.85,
-  /** Chemises : pirates (blanc, rouge, brun), marine royale (blanc, bleu) ; chance de porter le tricorne plutôt que le bandana. */
-  shirts: { player: [0xe8e2d0, 0x9b2d20, 0x6b5a3a], ally: [0xe8e2d0, 0x9b2d20, 0x6b5a3a], enemy: [0xe8e2d0, 0x2c4466] },
-  tricorn: { player: 0.3, ally: 0.3, enemy: 0.85 },
+  /** Chemises : pirates (blanc, rouge, brun), marine royale (blanc, bleu), maudits (gris pâle) ; chance de porter le tricorne plutôt que le bandana. */
+  shirts: { player: [0xe8e2d0, 0x9b2d20, 0x6b5a3a], ally: [0xe8e2d0, 0x9b2d20, 0x6b5a3a], enemy: [0xe8e2d0, 0x2c4466], cursed: [0xb4bbb7, 0x8e9692] },
+  tricorn: { player: 0.3, ally: 0.3, enemy: 0.85, cursed: 0.5 },
+};
+
+/**
+ * Navigation de l'équipage sur le pont (deckCrew/deckNav.ts), tirée de la géométrie du modèle : taille d'une case (m),
+ * pente au plus d'une surface où marcher (rad), écart sous lequel deux surfaces d'une case se confondent, marge des
+ * surfaces et des obstacles autour d'un triangle (m), normale sous laquelle un triangle est une paroi ; place libre
+ * au-dessus d'une surface (de `clearLow` à `headroom`) ; marche franchissable au plus (m) ; partie de pont minimale
+ * (nœuds) ; recherche d'un nœud proche (cases, écart de hauteur) ; surcoût d'un nœud au bord ; nœuds explorés au plus
+ * par recherche de chemin ; part de la demi-largeur au-delà de laquelle un bord est un pavois où s'accouder.
+ * Haubans (lus dans le gréement) : montée minimale, part de la demi-largeur du pied, rentrée minimale vers l'axe,
+ * écart du nœud où l'on s'en approche, hauteur du pied au-dessus du pont, regroupement par mât (m).
+ */
+export const DECK_NAV = {
+  cell: 0.25,
+  /** Pièces traversées par le joueur (roue, barre franche) : leur boîte, élargie de `margin` et prolongée de `below` vers le pont, emporte ce qui tient dedans (colonne de la roue). */
+  passThrough: { margin: 0.15, below: 1.3 },
+  /** Pas de pont sous cette hauteur (m) : dessous de coque, quille. */
+  minHeight: 0.5,
+  /** Marge autour des hauteurs des postes du plan de pont (m) : en deçà et au-delà, pas de pont (carène, hunes). */
+  deckMargin: 2.5,
+  maxSlope: 0.45,
+  merge: 0.12,
+  surfacePad: 0.02,
+  obstaclePad: 0.15,
+  steepNormal: 0.2,
+  clearLow: 0.14,
+  headroom: 1.55,
+  stepMax: 0.42,
+  minPart: 24,
+  snapCells: 6,
+  snapHeight: 1.2,
+  edgeCost: 2,
+  maxExpand: 6000,
+  railShare: 0.55,
+  /** Échelle : écart des nœuds où l'on y monte (m) et coût de la montée (en cases). */
+  ladderStand: 0.3,
+  ladderCost: 12,
+  shroudRise: 4,
+  shroudReach: 0.7,
+  shroudInward: 0.4,
+  /** Tolérance (m) sur la tête d'un hauban qui passerait de l'autre côté de l'axe. */
+  shroudAxis: 0.05,
+  shroudStand: 0.45,
+  shroudFootAbove: 0.9,
+  shroudGroup: 1.5,
+  /**
+   * Hunes (deckCrew/mastTops.ts), cherchées autour de la tête des haubans de chaque mât : grille fine (`cell`, m),
+   * têtes d'un même mât à moins de `sameMast` m, recherche à `reach` m de l'axe (plus `rake` en long, mâts inclinés),
+   * plancher entre `minAbove` m au-dessus du plus haut poste du pont et `above` m au-dessus de la tête des haubans,
+   * d'au moins `minArea` m². Montée : jusqu'à `futtockDrop` m sous le plancher par le hauban, puis vers son bord
+   * (`rimInset` m en deçà) ; départ `footLift` m au-dessus du pied du hauban. Places où se tenir : à `spotInset` m du
+   * bord, dans la direction `angle` (rad, depuis la proue vers bâbord), le regard vers `facing`.
+   */
+  top: {
+    cell: 0.1,
+    sameMast: 1.5,
+    reach: 1.5,
+    rake: 2,
+    minAbove: 3,
+    above: 1,
+    minArea: 0.25,
+    /** Hauteur libre au-dessus du plancher d'une hune (m) : on s'y baisse sous une vergue. */
+    headroom: 1.1,
+    futtockDrop: 0.9,
+    rimInset: 0.12,
+    footLift: 0.1,
+    spotInset: 0.25,
+    spots: [
+      { angle: 2.2, facing: 1 },
+      { angle: -2.2, facing: -1 },
+      { angle: Math.PI, facing: Math.PI },
+    ],
+  },
 };
 
 /**
@@ -276,7 +787,7 @@ export type OfficerTrait = 'lynx' | 'oldSalt' | 'ironArm' | 'resourceful' | 'luc
 /** Officiers de bord : recrutés à la taverne, affectés à un navire (places selon son type), ils progressent en combattant. */
 export const OFFICERS = {
   /** Places d'officiers par type de navire. */
-  slots: { rowboat: 0, longboat: 1, sloop: 1, brigantine: 2, corvette: 2, frigate: 3 } as Record<ShipType, number>,
+  slots: { fireship: 0, shipOfLine: 4, senau: 2, galiot: 2, rowboat: 0, longboat: 1, sloop: 1, cutter: 1, caravel: 1, schooner: 1, brigantine: 2, xebec: 2, fluyt: 2, brig: 2, corvette: 2, carrack: 3, galleass: 3, frigate: 3, galleon: 4 } as Record<ShipType, number>,
   /** Fonctions : nom, symbole, et effet par étoile de talent. */
   roles: {
     gunner: { name: 'Canonnier', icon: '💥', perStar: { reload: -0.04, spread: -0.05 } },
@@ -309,7 +820,7 @@ export const OFFICERS = {
   /** Candidats par taverne, renouvelés à chaque journée (CONTRACTS.dayLength). */
   candidates: 3,
   firstNames: ['Jacques', 'Anne', 'Thomas', 'Marie', 'Pierre', 'Samuel', 'Jeanne', 'Henri', 'Louis', 'Grace', 'William', 'Diego', 'Nicolas', 'Benjamin', 'Isabeau', 'Mathurin', 'Olivier', 'Rose'],
-  lastNames: ['Le Borgne', 'Morgan', 'Duval', 'Barbe-Grise', 'Lafitte', 'Main-de-Fer', 'Le Breton', 'La Rousse', 'Cœur-de-Chêne', 'Bonnet', 'Lagrange', 'Fer-Blanc', 'Le Normand', 'Sans-Peur', 'Dutertre', 'Mainvielle'],
+  lastNames: ['Le Borgne', 'Morgan', 'Duval', 'Barbe-Grise', 'Lafitte', 'Main-de-Fer', 'Le Breton', 'La Rousse', 'Cœur-de-Chêne', 'Bonnet', 'Lacroix', 'Fer-Blanc', 'Le Normand', 'Sans-Peur', 'Dutertre', 'Mainvielle'],
   /** Officiers uniques, gagnés en réussissant une mission spéciale (son identifiant). */
   unique: [
     { special: 'crownFleet', name: 'Mary Read', role: 'masterAtArms', talent: 3, trait: 'hothead' },
@@ -336,9 +847,21 @@ export const GUNS = {
     rowboat: { gold: 40, wood: 20 },
     longboat: { gold: 60, wood: 30 },
     sloop: { gold: 120, wood: 60 },
+    cutter: { gold: 110, wood: 55 },
+    galiot: { gold: 280, wood: 140 },
+    senau: { gold: 270, wood: 135 },
+    shipOfLine: { gold: 560, wood: 280 },
+    caravel: { gold: 160, wood: 80 },
+    schooner: { gold: 150, wood: 75 },
     brigantine: { gold: 200, wood: 100 },
+    xebec: { gold: 190, wood: 95 },
+    fluyt: { gold: 240, wood: 120 },
+    brig: { gold: 260, wood: 130 },
     corvette: { gold: 300, wood: 150 },
+    carrack: { gold: 380, wood: 190 },
+    galleass: { gold: 400, wood: 200 },
     frigate: { gold: 400, wood: 200 },
+    galleon: { gold: 480, wood: 240 },
   } as Record<ShipType, Cost>,
   /** Les canons de gaillard (second calibre) coûtent cette part du prix. */
   deckCostFactor: 0.5,
@@ -364,13 +887,15 @@ export const FLEET = {
   startSlots: 3,
   maxSlots: 6,
   /** Prix de chaque place supplémentaire (4e, 5e, 6e). */
-  slotPrices: [60, 90, 120],
+  slotPrices: [500, 1200, 2500],
   /** Part du prix (bateau + améliorations) rendue à la revente. */
   sellRatio: 0.5,
   /** Délai avant que le bateau piloté qui coule passe la barre à un autre (s). */
   switchDelay: 2.5,
   /** Écart entre deux bateaux en formation (m). */
   spacing: 18,
+  /** Escorte : écart entre la coque du navire protégé et celle de chacun de ses gardes (m). */
+  guardGap: 12,
 };
 
 /** Formations proposées dans le menu de flotte. */
@@ -382,11 +907,25 @@ export const FORMATION_NAMES = {
 };
 
 /** Comportement des bateaux de la flotte que le joueur ne pilote pas. */
+/**
+ * Roue d'ordres (maintenir T, `ui/orderWheel.ts`) et ordres de flotte (`fleet/fleetOrders.ts`) : le jeu tourne à `slow`
+ * pendant que la roue est ouverte ; la souris vise un ordre au-delà de `deadzone` px de mouvement (vecteur borné à
+ * `reach` px). « Attaquer » : l'ennemi le plus proche du bateau piloté à moins de `attackRange` m, poursuivi tant qu'il
+ * reste à moins de `attackLeash` m du bateau piloté. « Rallier » : les suiveurs rompent le combat et reprennent leur
+ * place pendant `rallyTime` s.
+ */
+export const ORDERS = { slow: 0.25, deadzone: 28, reach: 120, attackRange: 450, attackLeash: 650, rallyTime: 20 };
+
 export const ALLY = {
   /** Ils attaquent les ennemis à moins de cette distance d'eux (m)… */
   engageRadius: 160,
   /** …tant qu'ils restent à moins de cette distance du bateau piloté (m). */
   leash: 260,
+  /**
+   * Plus de navire ennemi à attaquer, et le bateau piloté à moins de cette distance d'un fort de la Marine qu'il
+   * bombarde : ils viennent le canonner eux aussi, par le travers (m).
+   */
+  siegeRadius: 450,
   /** Marge latérale à garder en croisant un navire ami, en plus de la demi-longueur moyenne (m). */
   clearance: 3,
   /** Ils évitent un ami s'ils vont le percuter dans moins de ce délai (s). */
@@ -405,7 +944,7 @@ export const ALLY = {
 /** Pêche : bancs de poissons en mer, pêchés par les chaloupes et les sloops presque à l'arrêt. */
 export const FISHING = {
   /** Nombre de bancs en mer en même temps. */
-  schools: [2, 3] as const,
+  schools: [6, 8] as const,
   /** Poissons dans un banc. */
   fish: [30, 60] as const,
   /** Distance à la côte de l'île où un banc peut apparaître (m). */
@@ -415,7 +954,7 @@ export const FISHING = {
   /** Un banc plonge (disparaît) au bout de ce temps s'il n'est pas épuisé (s). */
   lifetime: [360, 600] as const,
   /** Délai avant qu'un nouveau banc apparaisse quand il en manque (s). */
-  respawnDelay: [20, 45] as const,
+  respawnDelay: [10, 25] as const,
   /** Durée du fondu d'apparition et de disparition d'un banc (s). */
   fadeTime: 3,
   /** Rayon du banc (m) : remous, poissons qui sautent, zone de pêche. */
@@ -448,6 +987,27 @@ export const WIND = {
   effectPerStrength: 0.25,
   /** … plafonné, pour que le grand vent et la tempête restent jouables. */
   maxEffect: 0.4,
+  /** Crans de force affichés près du radar (1 à 5) : un cran de plus à partir de chacune de ces forces (nœuds). */
+  levels: [6, 16, 28, 44] as const,
+};
+
+/**
+ * Avirons du chébec et de la galéasse (ShipTypeDef.oars : la vitesse gagnée en nageant). Les rameurs les sortent d'eux-mêmes par vent de
+ * face et les rentrent quand le vent tourne ou que le navire s'arrête.
+ */
+export const OARS = {
+  /** Vent de face : les rames sortent au-delà de cette part du vent debout (cosinus de l'écart : 1 = pile de face)… */
+  outAt: 0.35,
+  /** … et rentrent en deçà de celle-ci. */
+  inAt: 0.2,
+  /** Pas de nage sous cette jauge de voile (navire arrêté). */
+  minSail: 0.05,
+  /** Temps pour sortir ou rentrer les rames (s). */
+  deployTime: 1.6,
+  /** Coups d'aviron par seconde, balayage de la pale (rad, de part et d'autre) et levée au retour (rad). */
+  strokeRate: 0.45,
+  sweep: 0.32,
+  lift: 0.2,
 };
 
 /** Couleurs d'un bateau selon son camp. */
@@ -492,28 +1052,179 @@ export const LIVERIES: Record<Faction, Livery> = {
   player: { hull: 0x4a3020, hullInside: 0x6b4a30, trim: 0x2a1c12, sail: 0xe3d3ae, sailPatch: 0xbfa77a, flag: 'skull' },
   ally: { hull: 0x2f4f36, hullInside: 0x6b4a30, trim: 0x1f2a1c, sail: 0xe8e0c8, sailPatch: 0xc9bc96, flag: 'skull' },
   enemy: { hull: 0x2c4466, hullInside: 0x6b4a30, trim: 0xd9b44a, sail: 0xf4f1e8, sailPatch: null, flag: 'crown' },
+  /** Navires maudits : coque et voiles grisâtres délavées, fanaux d'un vert sourd (faible lueur) ; lambeaux : CURSED.sailTear. */
+  cursed: { hull: 0x585e5c, hullInside: 0x4b4f4c, trim: 0x77847c, sail: 0xa2a7a1, sailPatch: null, flag: 'ghostSkull', lantern: 0x1d4529 },
+};
+
+/**
+ * Navires maudits (`world/cursedTide.ts`) : les envoyés du dieu des océans, qui a maudit ceux qui cherchent le grand
+ * trésor. Ennemis de tous (ta flotte, la Marine, les pirates). Ils surgissent rarement de nuit : une nuit sur
+ * `1 / nightChance`, entre `count` navires, `delay` s après la tombée de la nuit, à `distance` m du navire piloté
+ * (bien plus près que les autres). Type tiré jusqu'à ton plus gros navire + `rankBonus` crans (`eventRankBonus` lors
+ * d'un événement de l'histoire), parmi les `rankSpan` crans du dessus. Vie × `health`. Ils sortent de l'eau en
+ * `riseTime` s et y replongent en `diveTime` s (intouchables et sans tirer pendant ce temps), depuis `depth` m sous leur
+ * plus haut point, la proue la première (assiette de `plunge` rad) ; voiles toujours trouées comme sous `sailTear`
+ * (uTear des voiles, environ 60 % de toile arrachée) ; ils se battent à mort, mais replongent au lever du jour, à plus de `leaveDistance` m de ta flotte ou
+ * après `lifetime` s. Apparence : matériaux de la coque délavés vers le gris (`ghost` : saturation gardée, clarté
+ * visée, part du mélange), équipage gris pâle (`crewTint`), brume pâle autour de la coque (`mist` bouffées / s).
+ * Chaque navire surgi est un brûlot (`fireshipShare` : la part d'un type ordinaire) plutôt qu'un navire de son rang.
+ */
+export const CURSED = {
+  nightChance: 0.33,
+  fireshipShare: 0.15,
+  count: [1, 2] as const,
+  delay: [20, 180] as const,
+  distance: [150, 250] as const,
+  rankBonus: 1,
+  eventRankBonus: 2,
+  rankSpan: 2,
+  health: 1.5,
+  riseTime: 4,
+  diveTime: 4,
+  depth: 3,
+  plunge: 0.35,
+  sailTear: 0.56,
+  /** Lueur des fenêtres (vert très sourd). */
+  windowGlow: 0x0c2414,
+  leaveDistance: 900,
+  lifetime: 240,
+  ghost: { saturation: 0.15, lightness: 0.4, mix: 0.65 },
+  crewTint: 0xc4ccc8,
+  mist: 7,
+};
+
+/** Un palier de rencontres ordinaires (voir ENEMIES.encounters). */
+export interface EncounterStage {
+  readonly fromKills: number;
+  readonly groups: number;
+  readonly size: readonly [number, number];
+  readonly interval: readonly [number, number];
+}
+
+/** Sauvegarde de la partie (menu Échap, onglet Partie). */
+export const SAVE = {
+  /** Pas de sauvegarde si un ennemi est à moins de cette distance d'un navire de ta flotte (m). */
+  enemyRange: 300,
+};
+
+/**
+ * Voiles gonflées par le vent : face au vent, leur creux d'origine ; vent arrière, jusqu'à leur maximum, atteint à partir
+ * de la force `fullStrength` (1 = WIND.referenceKnots, 20 nœuds : 1,75 = 35 nœuds). Vent de travers : à moitié. Le maximum
+ * dépend de la hauteur de la voile : `small.max` fois son creux jusqu'à `small.height` m de haut, `large.max` à partir de
+ * `large.height` m (grand-voile basse de la frégate), et entre les deux en proportion.
+ */
+export const SAIL_BILLOW = {
+  small: { height: 2.4, max: 2.5 },
+  large: { height: 8.4, max: 5.5 },
+  fullStrength: 1.75,
+  /** Voile aurique de poupe (brigantine de la frégate, artimon de la corvette) : toute sa courbure est multipliée par ceci. */
+  aftSailCurve: 0.5,
+  /** Finesse des toiles : environ une facette par `facet` mètres (`triangleFacet` pour un foc), entre `minSegments` et `maxSegments` par côté. */
+  facet: 1,
+  triangleFacet: 2,
+  minSegments: 4,
+  maxSegments: 14,
+  /** Voile carrée : hauteur sous la vergue sur laquelle le surplus de creux s'installe (m), pour rester attachée à la vergue. */
+  yardBlend: 1.5,
+};
+
+/** Naufrage d'un boss (seulement les boss) : explosion, secousse et léger zoom de la caméra, explosions sur l'épave. */
+export const BOSS_SINK = {
+  /** Secousse de la caméra (0 à 1) si le boss est à moins de `shakeRange` m du bateau piloté. */
+  shake: 0.7,
+  shakeRange: 400,
+  /** Zoom : champ de vision réduit de cette fraction, pendant `zoomTime` s (montée rapide, retour lent). */
+  zoom: 0.15,
+  zoomTime: 2.5,
+  /** Explosions sur l'épave qui coule : combien, et l'écart entre deux (s). */
+  aftershocks: 4,
+  aftershockInterval: [0.5, 0.9] as const,
+};
+
+/** « Voile à l'horizon ! » : annonce quand un ennemi repère un navire de ta flotte. */
+export const ENCOUNTER_ALERT = {
+  /** Durée du bandeau (s), et de l'anneau qui pulse autour de l'ennemi sur le radar (s). */
+  bannerTime: 4,
+  radarPing: 5,
+};
+
+/**
+ * Coups critiques (tous les camps) : chance par boulet qui touche, tirée dans l'ordre (un seul par coup). Gréement,
+ * gouvernail et incendie durent jusqu'à la réparation en mer : une fois qu'elle commence (REPAIR.delay sans combat),
+ * chacun demande `repairTime` s (l'incendie d'abord, puis les deux autres ensemble).
+ */
+export const CRIT = {
+  chance: { magazine: 0.003, fire: 0.025, rudder: 0.015, rigging: 0.025 },
+  /** Un boulet dans le gréement (voiles, mâts) ne peut abattre qu'une voile, avec cette chance × celle de `chance.rigging`. */
+  riggingHitFactor: 2.5,
+  repairTime: { fire: 3, rudder: 5, rigging: 8 },
+  /**
+   * Gréement touché : une voile tombe, vitesse max réduite de cette fraction par voile abattue (au plus
+   * `riggingMaxLoss`) ; plusieurs coups peuvent en abattre plusieurs, tant qu'il en reste cette part (`minSailsLeft`).
+   */
+  riggingSpeedLoss: 0.2,
+  riggingMaxLoss: 0.45,
+  minSailsLeft: 0.5,
+  /** Gouvernail touché : vitesse de virage réduite de cette fraction. */
+  rudderTurnLoss: 0.5,
+  /** Incendie : dégâts par seconde (fraction de la vie max), sans jamais descendre sous `fireFloor` de la vie max. */
+  fireDamage: 0.006,
+  fireFloor: 0.1,
+  /** Sainte-barbe : la réserve de poudre explose, dégâts (fraction de la vie max), secousse si c'est près de toi. */
+  magazineDamage: 0.25,
+  magazineShake: 0.6,
+  /** Flammes, fumée noire en panache et braises de l'incendie (par seconde) ; lueur orange la nuit (taille du halo, ×). */
+  flameRate: 12,
+  smokeRate: 4,
+  emberRate: 5,
+  fireGlow: 3.5,
+  /**
+   * Sainte-barbe : taille de l'explosion, colonne de fumée noire qui reste (durée s, bouffées par seconde), débris
+   * projetés autour (nombre, distance m).
+   */
+  magazineScale: 1.8,
+  magazineSmoke: { time: 8, rate: 7 },
+  magazineDebris: 9,
+  magazineDebrisRange: [5, 14] as const,
+  /**
+   * Voile abattue : elle tombe (gravité m/s², dérive m/s, rotation rad/s), flotte (s, à cette hauteur au-dessus de
+   * l'eau), puis coule (s, m/s) ; au plus `max` à la fois.
+   */
+  sailFall: { gravity: 7, drift: 1.6, spin: 1.6, float: 8, floatHeight: 0.15, sink: 4, sinkSpeed: 0.5, max: 8 },
+  /** Un navire hors de ta flotte touché par un coup critique lâche un peu de butin (part du butin d'une épave). */
+  lootFactor: 0.3,
+};
+
+/** Registre du capitaine. */
+export const LEDGER = {
+  /** Au-delà de ce déplacement en une image (m), le bateau piloté a été déplacé (réapparition) : ce n'est pas de la navigation. */
+  maxStep: 30,
 };
 
 export const ENEMIES = {
-  /** Nombre max d'ennemis en même temps : [victoires à partir desquelles, maximum]. */
-  maxAlive: [
-    [0, 3],
-    [5, 4],
-    [12, 5],
-    [20, 6],
-    [30, 8],
-  ] as const,
-  /** Délai avant le premier ennemi (s). */
-  firstSpawnDelay: 4,
-  /** Délai entre deux apparitions, tant qu'on est sous le maximum (s) : il raccourcit jusqu'à fastSpawnInterval à fastSpawnKills victoires. */
-  spawnInterval: [6, 12] as const,
-  fastSpawnInterval: [4, 8] as const,
-  fastSpawnKills: 30,
   /**
-   * Flottilles : à partir de fromKills victoires, une apparition sur quatre est un groupe de size navires ;
-   * à partir de bigFromKills, jusqu'à bigSize, mené par un navire plus gros. Écart entre deux places (m).
+   * Rencontres ordinaires selon les victoires (le dernier palier atteint s'applique) : au début, plusieurs navires seuls
+   * assez souvent ; plus tard, une seule grosse flottille, plus rarement. `groups` : rencontres en même temps (un navire
+   * seul ou une flottille = un groupe ; escadres de mission et boss à part) ; `size` : navires par rencontre (au plus ta
+   * flotte + `fleetMargin`) ; `interval` : délai avant la rencontre suivante (s), décompté seulement sous `groups`.
    */
-  flotilla: { fromKills: 5, chance: 0.25, size: [2, 3] as const, bigFromKills: 15, bigSize: [2, 4] as const, spacing: 18, slotTolerance: 8 },
+  encounters: [
+    { fromKills: 0, groups: 3, size: [1, 1], interval: [40, 80] },
+    { fromKills: 10, groups: 2, size: [1, 2], interval: [60, 120] },
+    { fromKills: 25, groups: 2, size: [2, 3], interval: [90, 150] },
+    { fromKills: 40, groups: 1, size: [3, 5], interval: [120, 180] },
+  ] as readonly EncounterStage[],
+  fleetMargin: 1,
+  /** Délai avant le premier ennemi (s). */
+  firstSpawnDelay: 30,
+  /**
+   * Abords des îles, plus calmes : à moins de `radius` m d'une côte, les apparitions ordinaires ralentissent de plus en
+   * plus en approchant (jusqu'à `slowdown` fois plus lentes au rivage), et au plus `maxAlive` ennemis ordinaires à la
+   * fois (les escadres de mission et les boss ne comptent pas).
+   */
+  nearIsland: { radius: 500, slowdown: 4, maxAlive: 2 },
+  /** Flottilles : à partir de bigFromKills victoires, menées par un navire un cran plus gros. Écart entre deux places (m). */
+  flotilla: { bigFromKills: 15, spacing: 18, slotTolerance: 8 },
   /**
    * Navires d'élite (voiles noires) : de plus en plus fréquents à partir de fromKills victoires
    * (+chancePerKill par victoire, jusqu'à maxChance ; doublé pour un chef de flottille). Multiplicateurs de stats et de butin.
@@ -527,21 +1238,22 @@ export const ENEMIES = {
   detectionRange: 300,
   /** Distance à laquelle il perd le joueur de vue (m). */
   loseRange: 480,
-  /** Distance de combat visée, flanc à flanc (m). */
-  engageRange: 60,
+  /** Triche de test (touche N) : un ennemi apparaît à cette distance (m), déjà lancé à ta poursuite. */
+  cheatChaseDistance: 300,
   /**
    * Types d'ennemis selon le nombre d'ennemis déjà coulés : on commence contre des barques,
-   * les chaloupes arrivent à partir de 5 victoires, les sloops à partir de 12, les brigantins à partir de 20,
-   * les corvettes à partir de 35.
+   * les chaloupes arrivent à partir de 5 victoires, les sloops et les cotres à partir de 12, les brigantins à partir de 20,
+   * les corvettes à partir de 35, la caraque, la galéasse et la frégate à partir de 50, le galion à partir de 80.
    * Poids relatifs (un type absent d'une étape n'apparaît pas).
    */
   composition: [
     { minKills: 0, weights: { rowboat: 1, longboat: 0, sloop: 0 } },
     { minKills: 5, weights: { rowboat: 0.5, longboat: 0.5, sloop: 0 } },
-    { minKills: 12, weights: { rowboat: 0.25, longboat: 0.5, sloop: 0.25 } },
-    { minKills: 20, weights: { rowboat: 0.15, longboat: 0.4, sloop: 0.3, brigantine: 0.15 } },
-    { minKills: 35, weights: { rowboat: 0.1, longboat: 0.3, sloop: 0.3, brigantine: 0.2, corvette: 0.1 } },
-    { minKills: 50, weights: { rowboat: 0.05, longboat: 0.2, sloop: 0.3, brigantine: 0.2, corvette: 0.15, frigate: 0.1 } },
+    { minKills: 12, weights: { rowboat: 0.25, longboat: 0.45, sloop: 0.22, cutter: 0.08 } },
+    { minKills: 20, weights: { rowboat: 0.15, longboat: 0.3, sloop: 0.25, cutter: 0.1, caravel: 0.1, schooner: 0.05, brigantine: 0.12, xebec: 0.06 } },
+    { minKills: 35, weights: { rowboat: 0.1, longboat: 0.2, sloop: 0.25, cutter: 0.1, caravel: 0.1, schooner: 0.05, brigantine: 0.15, xebec: 0.08, fluyt: 0.04, brig: 0.06, galiot: 0.05, senau: 0.06, corvette: 0.1 } },
+    { minKills: 50, weights: { rowboat: 0.05, longboat: 0.1, sloop: 0.25, cutter: 0.1, caravel: 0.1, schooner: 0.05, brigantine: 0.15, xebec: 0.08, fluyt: 0.05, brig: 0.08, galiot: 0.05, senau: 0.06, corvette: 0.15, carrack: 0.06, galleass: 0.06, frigate: 0.1 } },
+    { minKills: 80, weights: { rowboat: 0.05, longboat: 0.1, sloop: 0.25, cutter: 0.1, caravel: 0.1, schooner: 0.05, brigantine: 0.15, xebec: 0.08, fluyt: 0.05, brig: 0.08, galiot: 0.05, senau: 0.06, corvette: 0.15, carrack: 0.06, galleass: 0.06, frigate: 0.1, galleon: 0.05, shipOfLine: 0.03 } },
   ],
   /** Passes d'attaque (barques) : distance où l'on dégage (m), angle (rad) et durée (s) du dégagement. */
   veerDistance: 28,
@@ -552,6 +1264,11 @@ export const ENEMIES = {
    * Avant, la probabilité de chaque niveau d'amélioration monte progressivement.
    */
   killsForFullThreat: 20,
+  /**
+   * Chance de chaque allongement (brigantin, corvette, frégate) d'un ennemi à pleine menace (× la menace, comme les
+   * améliorations) ; un allongement ouvre aussi ses niveaux d'amélioration en plus. Les boss sont toujours allongés.
+   */
+  extensionChance: 0.5,
   /** Butin supplémentaire par niveau d'amélioration de l'ennemi (fraction). */
   lootPerUpgradeLevel: 0.12,
 };
@@ -603,8 +1320,9 @@ export const BOSSES: Record<BossId, BossDef> = {
   widow: {
     name: 'La Veuve Noire',
     feminine: true,
-    rumor: 'la corvette noire qui rôde par grosse tempête',
-    trophy: 'Arraché à la corvette noire au cœur de la tempête',
+    // Noms de types à trous (progression/blueprints.ts : `revealTypes`) : cachés tant que leur plan est incomplet.
+    rumor: '{le:corvette} aux voiles noires qui rôde par grosse tempête',
+    trophy: 'Arraché {au:corvette} aux voiles noires, au cœur de la tempête',
     type: 'corvette',
     livery: WIDOW_LIVERY,
     weather: 'tempest',
@@ -626,8 +1344,8 @@ export const BOSSES: Record<BossId, BossDef> = {
   spectre: {
     name: 'Le Spectre',
     feminine: false,
-    rumor: 'le brigantin fantôme qui hante le brouillard',
-    trophy: 'Arraché au brigantin fantôme, au fond du brouillard',
+    rumor: '{le:brigantine} aux voiles en lambeaux qui hante le brouillard',
+    trophy: 'Arraché {au:brigantine} aux voiles en lambeaux, au fond du brouillard',
     type: 'brigantine',
     livery: SPECTRE_LIVERY,
     weather: 'fog',
@@ -652,10 +1370,23 @@ export const BOSS_IDS = Object.keys(BOSSES) as BossId[];
  * Harcèlement (Le Spectre) : il surgit de la brume, lâche ses bordées un moment, puis replonge dans le brouillard hors
  * de vue (et du radar), tourne autour de sa proie et revient sous un autre angle.
  */
+/**
+ * Combat flanc à flanc (tous les camps), réglé sur la portée de tir de chaque navire : ses canons de flanc, améliorations
+ * et météo comprises.
+ */
+export const BROADSIDE = {
+  /** Distance tenue une fois de flanc, en part de la portée (m / m). */
+  holdFraction: 0.75,
+  /** Il fonce droit sur sa cible au-delà de cette part de sa portée, et commence à virer en deçà. */
+  turnAt: 1.15,
+  /** Un ennemi qui a engagé le combat reprend la chasse (droit dessus, toute voile) au-delà de cette part de sa portée. */
+  chaseAgain: 1.8,
+};
+
 export const HARASS = {
-  /** Durée d'une attaque, comptée à moins de strikeRange × ENEMIES.engageRange de sa proie, avant de replonger dans la brume (s). */
+  /** Durée d'une attaque, comptée à moins de strikeRange × sa portée de tir de sa proie, avant de replonger dans la brume (s). */
   strikeTime: [12, 18] as const,
-  strikeRange: 1.6,
+  strikeRange: 1,
   /** Dégâts reçus pendant une attaque qui le font replonger aussitôt (fraction de sa vie max). */
   hitLimit: 0.12,
   /** Distance à sa proie où il se cache, bien au-delà de la brume (m). */
@@ -681,11 +1412,17 @@ export const CONTRACTS = {
   specialReward: 2,
   /**
    * Difficulté en étoiles (1 à 5) : les offres du jour sont tirées autour du niveau de ta flotte (`fleetLevel`) : ce
-   * niveau ou une étoile de moins, et une fois sur cinq une de plus. Les primes « fixes » sont multipliées selon les
-   * étoiles (`starReward`).
+   * niveau ou une étoile de moins, et une fois sur cinq une de plus ; ce tirage choisit le palier des tables (escadre,
+   * embuscades…). Pour un combat, les étoiles affichées viennent ensuite de la menace réelle : chaque navire compte sa
+   * taille (barque 1, chaloupe 2, sloop 3, brigantin 4, corvette 5, frégate 6), un navire d'élite × `eliteThreat` (le
+   * chef d'une escadre l'est toujours) ; `threatStars` = points qu'il faut pour 2, 3, 4 et 5 étoiles (3 chaloupes =
+   * 6 points = 1 étoile ; 4 sloops = 12 = 3 étoiles ; 4 frégates = 24 = 5 étoiles). Les primes « fixes » sont
+   * multipliées selon les étoiles (`starReward`).
    */
   stars: 5,
   starReward: [1, 1.6, 2.3, 3.1, 4],
+  threatStars: [7, 12, 17, 23],
+  eliteThreat: 1.5,
   /** Niveau de ta flotte : somme des tailles de tes navires (chaloupe 1 … frégate 6) divisée par ce nombre. */
   fleetLevelDivisor: 3.5,
   /** Écart d'étoiles autour du niveau : [écart, probabilité cumulée]. */
@@ -748,6 +1485,47 @@ export const CONTRACTS = {
     /** Distance devant le marchand où surgit une embuscade (m). */
     ambushDistance: 320,
   },
+  /**
+   * Chasse aux plans : un seul navire de la Marine, jamais d'élite, d'un type dont ton plan n'est pas complet et au plus
+   * un rang au-dessus de ton plus gros navire, croise dans une zone de la carte (celle de la chasse : `hunt.distance`,
+   * `hunt.radius`). Coulé, il lâche à coup sûr un bout de son plan ; la prime (× les étoiles de sa menace) se touche à
+   * la taverne.
+   */
+  planHunt: { gold: 120, wood: 30 },
+  /**
+   * Aide au combat : une armada pirate attend au rendez-vous, au large de l'île qui offre le contrat ; quand ton navire
+   * piloté arrive à moins de `joinRadius` m (ou qu'elle est attaquée), elle met le cap sur une escadre de la Marine
+   * qui croise plus loin, et la bataille commence. Prime versée sur-le-champ, seulement si les pirates l'emportent :
+   * toute l'escadre coulée avec au moins un des leurs à flot. Par étoile : nombre et types de chaque armada (le chef
+   * d'abord) ; autant de navires des deux côtés, mais le chef de la Marine est d'élite : seuls, les pirates perdent de
+   * peu (un navire de plus les écraserait).
+   */
+  battle: {
+    gold: 260,
+    wood: 70,
+    allies: [2, 2, 3, 3, 4],
+    allyLeader: ['sloop', 'sloop', 'brigantine', 'brigantine', 'corvette'] as const,
+    allyMin: ['longboat', 'longboat', 'sloop', 'sloop', 'sloop'] as const,
+    enemies: [2, 2, 3, 3, 4],
+    enemyLeader: ['sloop', 'sloop', 'brigantine', 'brigantine', 'corvette'] as const,
+    enemyMin: ['longboat', 'longboat', 'sloop', 'sloop', 'sloop'] as const,
+    /** Part de la menace ennemie que les pirates retiennent (étoiles du contrat : menace ennemie − cette part de la leur). */
+    allyShare: 0.35,
+    /** Rendez-vous : distance à l'île qui offre le contrat (m) ; rayon du cercle sur la carte, et où ton arrivée lance l'armada (m). */
+    rendezvous: [380, 520] as const,
+    joinRadius: 110,
+    /** Escadre de la Marine : distance au rendez-vous (m), et rayon de sa zone de patrouille (m). */
+    enemyDistance: [600, 750] as const,
+    enemyRadius: 150,
+    /**
+     * Les pirates engagent un ennemi à moins de cette distance (m) ; sinon ils vont vers l'escadre, en V derrière leur
+     * chef, qui porte cette part de sa toile (ses suiveurs, plus, pour le rattraper).
+     */
+    engageRange: 260,
+    cruiseSail: 0.8,
+    /** Ils jettent l'ancre à moins de cette distance de leur place au rendez-vous (m). */
+    holdRadius: 15,
+  },
 };
 
 /**
@@ -773,7 +1551,11 @@ export interface SpecialContractDef {
   readonly boss?: BossId;
 }
 
-/** Missions spéciales de chaque île, dans l'ordre : CONTRACTS.specialsShown à la fois, la suivante après une réussite. */
+/**
+ * Missions spéciales de chaque île, dans l'ordre : CONTRACTS.specialsShown à la fois, la suivante après une réussite.
+ * Les noms de types y sont à trous (« {t:sloop} », voir `typeToken` de progression/blueprints.ts) : ils restent
+ * « navire inconnu » tant que leur plan n'est pas complet.
+ */
 export const SPECIAL_CONTRACTS: Record<IslandId, readonly SpecialContractDef[]> = {
   tortuga: [
     {
@@ -783,7 +1565,7 @@ export const SPECIAL_CONTRACTS: Record<IslandId, readonly SpecialContractDef[]> 
       title: 'Le lieutenant Morrow',
       captain: 'Lieutenant Morrow',
       squadron: ['sloop', 'longboat'],
-      description: 'Le lieutenant Morrow (sloop d’élite) et son escorte traquent les pêcheurs de la Tortue. Leur zone sera marquée sur ta carte (M). Coule son navire.',
+      description: 'Le lieutenant Morrow ({t:sloop} d’élite) et son escorte traquent les pêcheurs de la Tortue. Leur zone sera marquée sur ta carte (M). Coule son navire.',
     },
     {
       id: 'banquet',
@@ -801,7 +1583,7 @@ export const SPECIAL_CONTRACTS: Record<IslandId, readonly SpecialContractDef[]> 
       title: 'Commodore Vane',
       captain: 'Commodore Vane',
       squadron: ['brigantine', 'sloop', 'sloop'],
-      description: 'Le commodore Vane (brigantin d’élite) et deux sloops patrouillent au large. Leur zone sera marquée sur ta carte (M). Coule son navire.',
+      description: 'Le commodore Vane ({t:brigantine} d’élite) et deux {ts:sloop} patrouillent au large. Leur zone sera marquée sur ta carte (M). Coule son navire.',
     },
     {
       id: 'crownFleet',
@@ -811,7 +1593,7 @@ export const SPECIAL_CONTRACTS: Record<IslandId, readonly SpecialContractDef[]> 
       squadron: ['brigantine', 'brigantine', 'sloop', 'sloop', 'sloop', 'longboat'],
       description: 'Six navires de la Marine marchent sur la Tortue. Ils attaqueront le fort 40 s après ton accord : coule-les tous avant qu’il ne tombe. Prime versée sur-le-champ.',
     },
-    { id: 'widowBounty', kind: 'sinkBoss', stars: 5, boss: 'widow', title: 'Prime sur La Veuve Noire', description: 'Coule La Veuve Noire, la corvette noire qui rôde par grosse tempête.' },
+    { id: 'widowBounty', kind: 'sinkBoss', stars: 5, boss: 'widow', title: 'Prime sur La Veuve Noire', description: 'Coule La Veuve Noire, {le:corvette} aux voiles noires qui rôde par grosse tempête.' },
   ],
   sabre: [
     {
@@ -830,7 +1612,7 @@ export const SPECIAL_CONTRACTS: Record<IslandId, readonly SpecialContractDef[]> 
       title: 'Capitaine Rackham',
       captain: 'Capitaine Rackham',
       squadron: ['brigantine', 'sloop'],
-      description: 'Le capitaine Rackham (brigantin d’élite), chasseur de pirates, rôde avec un sloop. Leur zone sera marquée sur ta carte (M). Coule son navire.',
+      description: 'Le capitaine Rackham ({t:brigantine} d’élite), chasseur de pirates, rôde avec {un:sloop}. Leur zone sera marquée sur ta carte (M). Coule son navire.',
     },
     {
       id: 'fortuneAtRisk',
@@ -847,10 +1629,25 @@ export const SPECIAL_CONTRACTS: Record<IslandId, readonly SpecialContractDef[]> 
       stars: 4,
       title: 'Le siège de Port-Sabre',
       squadron: ['corvette', 'brigantine', 'sloop', 'sloop', 'sloop', 'longboat'],
-      description: 'Une escadre de six navires, une corvette en tête, assiégera la citadelle 40 s après ton accord. Coule-la avant que les remparts ne tombent. Prime versée sur-le-champ.',
+      description: 'Une escadre de six navires, {un:corvette} en tête, assiégera la citadelle 40 s après ton accord. Coule-la avant que les remparts ne tombent. Prime versée sur-le-champ.',
     },
-    { id: 'spectreBounty', kind: 'sinkBoss', stars: 5, boss: 'spectre', title: 'Prime sur Le Spectre', description: 'Coule Le Spectre, le brigantin fantôme qui hante le brouillard.' },
+    { id: 'spectreBounty', kind: 'sinkBoss', stars: 5, boss: 'spectre', title: 'Prime sur Le Spectre', description: 'Coule Le Spectre, {le:brigantine} aux voiles en lambeaux qui hante le brouillard.' },
   ],
+  royale: [],
+  dauphin: [],
+};
+
+/**
+ * Trahison (bouton « Trahir », touche R) : un clic sur un pirate allié ou un marchand des îles le fait passer à
+ * l'ennemi, tel quel (copie exacte, seul le camp change). Il faut qu'il soit à portée de vue.
+ */
+export const BETRAYAL = {
+  /** Distance maximale du navire piloté (m), et jamais au-delà de la brume. */
+  range: 300,
+  /** Marge autour de la silhouette d'un navire à l'écran pour le cliquer (px). */
+  pickMargin: 14,
+  /** Durée du message de trahison (s). */
+  toastSeconds: 3.5,
 };
 
 /**
@@ -925,10 +1722,10 @@ export const RADAR = {
   range: 400,
   /** Diamètre à l'écran (px). */
   size: 180,
-  /** Vitesse du balayage (rad/s). */
-  sweepSpeed: 1.8,
   /** Le radar est redessiné au plus ce nombre de fois par seconde (dessin 2D coûteux s'il est fait à chaque image). */
   refreshRate: 30,
+  /** Points de la côte d'une terre ronde (× l'étirement pour une terre allongée). */
+  coastSteps: 72,
 };
 
 /** Une vague de Gerstner. La somme des `steepness` doit rester < 1 (sinon les crêtes se replient). */
@@ -939,11 +1736,264 @@ export interface WaveParams {
   steepness: number;
   /** Longueur d'onde (m). */
   wavelength: number;
+  /**
+   * Houle de fond (OCEAN.groundSwell) : bien plus longue que tout navire, la coque la suit entièrement (le pilonnement
+   * réduit des gros navires, BUOYANCY.heaveExponent, ne s'applique qu'aux autres vagues).
+   */
+  long?: boolean;
 }
+
+/**
+ * Grand mât d'une frégate ou d'un galion allongé (`balancedMainMast`, parts/hullStretch.ts) : part du chemin entre sa
+ * place étirée avec la coque et le milieu entre misaine et artimon (0 = étiré, 1 = au milieu). Sinon, l'artimon recule
+ * avec le château arrière et le grand mât paraît trop en avant.
+ */
+export const EXTENDED_MASTS = { mainBalance: 1 };
+
+/**
+ * Voiles d'étai (ship/parts/staysails.ts) : l'étai part de la hune du mât arrière (part de la hauteur pied → hune,
+ * `stayHigh` ; au-delà de 1 : part de la hune à la tête) et descend vers le mât avant (`stayLow`) ; la toile pend dessous, à `foreGap` / `aftGap` m des mâts,
+ * jusqu'à `footClearance` m au-dessus du plus haut des deux ponts ; creux, grille, taille carguée (part de la chute),
+ * écart de voilure sous lequel la toile n'est pas redessinée.
+ */
+export const STAYSAILS = {
+  stayHigh: 0.98,
+  stayLow: 0.45,
+  foreGap: 1,
+  aftGap: 2.6,
+  footClearance: 2.4,
+  /** Deux voiles superposées (avant de la frégate et du galion) : hauteurs des deux étais, écart entre la voile du haut et l'étai du bas (m). */
+  double: { lowAft: 1, lowFore: 0.72, highAft: 1.55, highFore: 1.1, gap: 0.7 },
+  bulge: 0.55,
+  /**
+   * Niveau de voilure qui fait apparaître chaque voile d'étai, dans l'ordre : la (basse) de l'avant, la haute de
+   * l'avant (frégate, galion), celle entre artimon et grand mât (galion).
+   */
+  unlock: [1, 2, 3],
+  segments: 6,
+  furled: 0.12,
+  step: 0.01,
+};
+
+/**
+ * Lampes des navires (ship/parts/lampParts.ts, ship/parts/shipLamps.ts), en plus des fanaux de poupe : lampadaires sur
+ * le pont (poteau), appliques murales des cloisons, lanternes suspendues qui se balancent (sous un barrot, le rebord
+ * d'un château, une vergue fixe, ou au bout d'une potence), dont la lanterne de hune. Chaque modèle déclare une liste
+ * ordonnée de places, coupée à `extra[type] + perExtension[type] × allongements` (`lampsFor`) : plus le navire est
+ * gros, plus il en porte. `headClear` : hauteur libre (m) à laisser sous une lanterne suspendue, au-dessus d'un pont où
+ * l'on marche (les matelots et le joueur passent à travers elle, comme à travers toute lanterne suspendue).
+ */
+export const SHIP_LAMPS = {
+  extra: { shipOfLine: 8, senau: 5, galiot: 4, sloop: 1, cutter: 1, schooner: 1, caravel: 3, brigantine: 3, xebec: 3, fluyt: 4, brig: 4, corvette: 4, carrack: 6, galleass: 6, frigate: 6, galleon: 8 } as Partial<Record<ShipType, number>>,
+  perExtension: { shipOfLine: 2, senau: 1, galiot: 1, cutter: 1, schooner: 1, brigantine: 1, xebec: 1, fluyt: 1, brig: 1, corvette: 1, carrack: 2, galleass: 2, frigate: 2, galleon: 2 } as Partial<Record<ShipType, number>>,
+  headClear: 1.75,
+  /**
+   * Applique : hauteur du centre du verre au-dessus du pont (m), et écart au moins sous le pont du dessus (château bas) ;
+   * allongement le plus long d'un navire (pour retrouver le niveau d'un plan).
+   */
+  wallHeight: 1.75,
+  wallTopGap: 0.35,
+  maxLevel: 2,
+  /**
+   * Lanterne (taille 1, m), la même pour toutes les sortes : verre (côté, hauteur), épaisseur des montants et des
+   * plaques, chapeau à deux gradins (côté du premier, part du second, hauteur de chacun), anneau du dessus.
+   */
+  lantern: { glass: 0.14, glassHeight: 0.2, frame: 0.025, cap: 0.21, capTop: 0.55, capHeight: 0.045, ring: 0.06 },
+  /** Lampadaire : hauteur du poteau par défaut (m), rayon du poteau en haut (× `taper` au pied), côté et hauteur du socle (m). */
+  post: { height: 1.25, radius: 0.035, taper: 1.2, foot: 0.16, footHeight: 0.06 },
+  /**
+   * Applique murale (taille 1, m) : écart du centre du verre au mur, platine (largeur, hauteur, épaisseur), épaisseur
+   * de la tablette ; jambe de force : hauteur de son pied sous la tablette, part de la tablette où elle la rejoint.
+   */
+  wall: { offset: 0.2, plate: [0.12, 0.32, 0.025] as const, bracket: 0.03, brace: [0.13, 0.7] as const },
+  /**
+   * Lanterne suspendue : longueur de tige par défaut (m), épaisseur de la tige, côté du piton (taille 1) ; potence
+   * (bras fixé à un mur ou à un mât : épaisseur, platine, jambe de force comme celle d'une applique).
+   * Balancement : pendule amorti dans le monde, que seule l'accélération de son point d'attache met en branle (le navire
+   * roule et tangue autour de lui) : g (m/s²), part de la fréquence d'un vrai pendule de cette longueur, amortissement
+   * (part de l'amortissement critique), écart au plus avec la verticale du navire (rad, butée) ; part de l'accélération
+   * du point d'attache ressentie, lissage de cette accélération (/s), au plus (m/s²), pesanteur apparente au moins (part
+   * de g) ; pas de temps au plus (s) ; après un arrêt plus long (navire lointain ou dans la brume, s) ou un saut du
+   * navire (m/s), la lanterne repart d'aplomb.
+   */
+  hanging: {
+    drop: 0.3,
+    rod: 0.018,
+    eye: 0.05,
+    arm: 0.035,
+    armPlate: [0.1, 0.22, 0.025] as const,
+    armBrace: [0.22, 0.7] as const,
+    gravity: 9.81,
+    pace: 0.8,
+    damping: 0.08,
+    maxAngle: 0.6,
+    inertia: 1,
+    accelSmoothing: 6,
+    maxAccel: 5,
+    minWeight: 0.5,
+    maxStep: 0.05,
+    resetAfter: 0.3,
+    jump: 25,
+  },
+  /**
+   * Lanterne de hune (`mastTopLamp`), pendue sous le bord arrière de la hune du grand mât : en deçà du bord (m), tige
+   * (m), taille, halo (× celui d'un fanal : elle se voit de loin).
+   */
+  top: { inset: 0.2, drop: 0.08, scale: 1.4, halo: 1.6 },
+};
+
+export type EmblemId = 'skull' | 'sabres' | 'kraken' | 'serpent' | 'compass' | 'anchor' | 'raven' | 'mermaid' | 'goldSkull';
+
+/**
+ * Emblèmes peints sur la grande voile d'un navire de ta flotte (Chantier du port) : prix pour en peindre un nouveau
+ * (revenir à un emblème déjà payé pour ce navire est gratuit), nom, couleurs principale et seconde du dessin.
+ */
+export const EMBLEMS = {
+  price: 150,
+  designs: {
+    skull: { name: 'Tête de mort', main: 0x1d1714, second: 0xe9dfc7 },
+    sabres: { name: 'Sabres croisés', main: 0x5a1a12, second: 0x2a2622 },
+    kraken: { name: 'Kraken', main: 0x5b1e3a, second: 0xf2d27a },
+    serpent: { name: 'Serpent de mer', main: 0x1f4a3a, second: 0xd8c27a },
+    compass: { name: 'Rose des vents', main: 0x7a1c14, second: 0x1d1714 },
+    anchor: { name: 'Ancre', main: 0x1d2a44, second: 0xb08a3a },
+    raven: { name: 'Corbeau', main: 0x141210, second: 0xc23a22 },
+    mermaid: { name: 'Sirène', main: 0x1e4a5a, second: 0xb8542a },
+    /** Emblème du trésor de Vasseur : jamais en vente, offert à toute la flotte par le coffre. */
+    goldSkull: { name: 'Crâne d’or de Vasseur', main: 0x1d1714, second: 0xd8a830 },
+  } satisfies Record<EmblemId, { name: string; main: number; second: number }>,
+};
+
+/** Carte (M) : zoom au plus (× le cadrage d'ensemble), vitesse de la molette (par unité de défilement). */
+/**
+ * Dialogues (`ui/dialogue/`) : vitesse du texte qui s'écrit (lettres par seconde) ; portrait 3D du personnage (taille de
+ * sa toile en px, champ de vision, place de la caméra et point visé) ; mouvements au repos (respiration, tête qui tourne
+ * et hoche, bouche qui remue en parlant : vitesse et amplitude) et clignements (intervalle, s ; durée, s).
+ */
+/**
+ * Menu principal et scène d'ouverture (story/gameStart.ts) : vues de la caméra « vitrine » autour du bateau piloté
+ * (`point` : hauteur visée au-dessus de la flottaison, m ; `yaw`, `pitch`, `distance` comme SHOWCASE.views ; la vue du
+ * menu tourne lentement), heure de la scène sur le quai, pause avant la première réplique (s), durée du bandeau de
+ * chapitre (s).
+ */
+/** Menu principal (ui/mainMenu/) : durée (s) pendant laquelle le parchemin grandit ou rapetisse d'une vue à l'autre. */
+export const MAIN_MENU = { morphTime: 0.5 };
+
+/**
+ * Étapes de la quête principale (story/questRun.ts). `ship` : rang de taille minimal d'un navire de la flotte (sloop) ;
+ * `reward` : or et bois versés à la fin de chaque étape ; `tortuga` : prologue à la Tortue (poissons pour Kerdal, barques
+ * de la Marine : zone, distance où elles sortent, escadre) ; `duroc` : le lieutenant Duroc (zone de ronde au large de l'Île du
+ * Dauphin, distance à laquelle il sort de la brume (m), escadre, part de vie où il crie à ses hommes) ;
+ * `greenLights` : le Banc du Naufragé (zone, rayon où les maudits surgissent de nuit), maudits à couler, nombre surgis
+ * et délai entre deux apparitions au Banc (s) ; `relic` : médaillon à repêcher (distance de prise, m ; flottaison) ;
+ * `rum` : caisses de rhum pour le tavernier de Port-Sabre.
+ */
+export const STORY_QUEST = {
+  ship: 2,
+  reward: {
+    kerdalFish: { gold: 120, wood: 30 },
+    coveRats: { gold: 200, wood: 120 },
+    portRepair: { gold: 150, wood: 0 },
+    aRealShip: { gold: 150, wood: 0 },
+    hangman: { gold: 400, wood: 0 },
+    greenLights: { gold: 300, wood: 0 },
+    silence: { gold: 250, wood: 0 },
+  },
+  tortuga: { fish: 15, rats: { at: [0, -560] as [number, number], radius: 240, wake: 380, squadron: ['rowboat', 'rowboat'] as ShipType[] } },
+  duroc: { at: [950, -700] as [number, number], radius: 320, wake: 420, squadron: ['sloop', 'longboat'] as ShipType[], shout: 0.5 },
+  greenLights: { at: [900, 1100] as [number, number], radius: 380, target: 2, count: 2, cooldown: 90 },
+  relic: { reach: 14, bob: 0.25, spin: 0.8, size: 0.9 },
+  rum: 10,
+};
+
+export const STORY_SCENES = {
+  menuView: { height: 2, yaw: 2.4, pitch: 0.16, distance: 4.2 },
+  openingView: { height: 1.6, yaw: 1.2, pitch: 0.1, distance: 2.4 },
+  openingHour: 5.7,
+  openingDelay: 1.4,
+  chapterBanner: 5,
+};
+
+export const DIALOGUE = {
+  charsPerSecond: 45,
+  portrait: { width: 200, height: 240, fov: 26, camera: [0, 1.02, 2.75] as [number, number, number], lookAt: 0.98 },
+  idle: { breath: 1.6, breathAmount: 0.012, turn: 0.5, turnAmount: 0.12, nod: 0.8, nodAmount: 0.04, talk: 18, talkAmount: 2.2, blinkTime: 0.12 },
+  blink: [2, 5] as const,
+};
+
+export const MAP_VIEW = { maxZoom: 8, wheelSpeed: 0.0015 };
+
+/**
+ * Bout de la carte (`ui/mapEdge.ts`), quand les territoires sont montrés : au-delà du bord du monde, le gris de la
+ * tempête, limite repoussée vers le large de 0 à `wobble` m par un bruit ([longueur d'onde (m), poids] par octave),
+ * floutée de `blur` px, et bord plus foncé (`rim`, `rimWidth` px).
+ */
+export const MAP_EDGE = {
+  color: 'rgb(124, 121, 112)',
+  rim: 'rgba(70, 66, 58, 0.55)',
+  rimWidth: 7,
+  wobble: 220,
+  octaves: [[800, 1], [260, 0.5]] as const,
+  blur: 6,
+};
+
+/**
+ * Brume de découverte de la carte (M) : la carte ne montre que ce que le radar du bateau piloté a balayé
+ * (`progression/mapDiscovery.ts`), le reste est un lavis de parchemin vierge (`ui/mapFog.ts`), sauf tes objectifs.
+ * La grille couvre le cercle du bord du monde et sa tempête (WORLD_EDGE.radius + band) plus `margin` m, en cases de
+ * `cell` m. Une nouvelle découverte se fait quand le bateau a bougé de `step` m, ou que la portée du radar a changé
+ * d'autant. Au départ d'une partie, on connaît la Tortue et `startMargin` m autour de sa côte (de même pour chaque île
+ * déjà visitée d'une ancienne sauvegarde).
+ */
+export const MAP_FOG = {
+  cell: 25,
+  margin: 200,
+  step: 25,
+  startMargin: 300,
+  /**
+   * Lavis (`ui/fogMask.ts`) : texel du masque (m) ; la limite est floutée (écart type, en cases), puis rendue
+   * irrégulière par un bruit (`wobble` : amplitude, en part du champ flouté ; `noise` : [longueur d'onde (m), poids] de
+   * chaque octave). `soft` : largeur du fondu de part et d'autre de la limite ; `rim` : largeur du bord assombri, côté
+   * inconnu (le pigment s'y accumule), `rimStrength` sa force (0 à 1). Ces trois largeurs sont en part du champ
+   * flouté (près de la limite, 0,1 ≈ 10 m). Garder `wobble` + `rim` et `wobble` + `soft` sous 0,5.
+   */
+  texel: 10,
+  blur: 1.6,
+  wobble: 0.27,
+  noise: [[240, 0.55], [100, 0.3], [44, 0.15]] as const,
+  soft: 0.09,
+  rim: 0.22,
+  rimStrength: 0.65,
+  /**
+   * Couleurs du parchemin vierge (RVB) : fond, taches (longueur d'onde `stainScale` m, force `stainStrength`, effacées
+   * sur les `stainFade` derniers m de la grille, au-delà de laquelle le parchemin est uni) et bord.
+   */
+  paper: [239, 223, 184] as const,
+  stain: [221, 195, 146] as const,
+  stainScale: 1000,
+  stainStrength: 0.45,
+  stainFade: 400,
+  rimColor: [128, 86, 42] as const,
+};
 
 export const OCEAN = {
   /** Demi-taille de la grille d'eau (m), recentrée sur le joueur. */
   halfSize: 900,
+  /**
+   * Les vagues s'apaisent près d'une île dès `calmDistance` × ce facteur du rivage (LandShapeDef.calmDistance),
+   * progressivement (courbe en S jusqu'au rivage). Garder SDF.far (world/landmass.ts) au-delà du plus grand résultat.
+   */
+  calmReach: 2,
+  /**
+   * Fond marin autour des terres : pente douce sur `shelf` m après le rivage, puis plus raide jusqu'à `maxDepth` (m),
+   * assez profond pour que les creux de la grande houle ne le découvrent jamais.
+   */
+  seabed: { shelf: 20, shelfSlope: 0.15, slope: 0.35, maxDepth: 70 },
+  /**
+   * Au-delà de cette distance du joueur (m), plus d'eau dessinée (coin de la grille : halfSize × √2) : un navire n'y
+   * calcule ni sa flottaison ni l'animation de son gréement (`Ship.far`).
+   */
+  farShips: 1300,
   segments: 256,
   /** Taille d'une cellule sous le joueur (m). Les cellules s'agrandissent vers le bord. */
   innerCell: 2.5,
@@ -963,15 +2013,36 @@ export const OCEAN = {
     { dirX: -0.3, dirZ: 1, steepness: 0.08, wavelength: 22 },
     { dirX: 1, dirZ: -0.2, steepness: 0.06, wavelength: 16 },
   ] as WaveParams[],
-  deepColor: 0x0a3d5c,
-  shallowColor: 0x1b7a9a,
+  /**
+   * Houle de fond de la grande tempête : deux vagues gigantesques (≈ 22 m et ≈ 6 m du creux à la crête, 300 et 215 m
+   * entre deux crêtes, ≈ 14 s entre deux passages), nulles par tout autre temps (raideur = celle-ci
+   * × WeatherProfile.groundSwell). Après la houle et le clapot dans la liste des vagues.
+   */
+  groundSwell: [
+    { dirX: 1, dirZ: 0.3, steepness: 0.23, wavelength: 300, long: true },
+    { dirX: 0.85, dirZ: -0.4, steepness: 0.09, wavelength: 215, long: true },
+  ] as WaveParams[],
+  /** Bleu du large (creux des vagues), et teinte du haut des vagues (part de cette teinte au sommet : `crestTint`). */
+  deepColor: 0x072c42,
+  shallowColor: 0x135a72,
+  crestTint: 0.6,
   /** Lumière turquoise qui traverse les crêtes à contre-jour. */
   scatterColor: 0x3fe0c8,
   foamColor: 0xf4fbff,
   /** Eau peu profonde autour de l'île. */
   lagoonColor: 0x35c9c0,
-  /** Force des petites rides de surface. */
-  rippleStrength: 0.11,
+  /**
+   * Plateau autour des terres, au-delà du lagon : l'eau y passe peu à peu du bleu profond à un bleu-vert plus clair,
+   * sur `shelfWidth` m, avec la force `shelfStrength`.
+   */
+  shelfColor: 0x1d8a96,
+  shelfWidth: 260,
+  shelfStrength: 0.45,
+  /** Ombre d'une grande masse sous l'eau (Kraken, canal alpha des traces) : part de la couleur de l'eau éteinte au cœur. */
+  monsterShadow: 0.75,
+  /** Force des petites rides de surface, et échelle (répétitions par mètre) de leurs deux couches. */
+  rippleStrength: 0.08,
+  rippleScales: [0.07, 0.18] as const,
 };
 
 /**
@@ -980,6 +2051,9 @@ export const OCEAN = {
  *   et s'efface peu à peu), ainsi que les boulets tombés à l'eau, les naufrages et le butin qui flotte ;
  * - un liseré d'écume collé à la coque des bateaux proches, calculé directement à partir de leur position.
  */
+/** Masque d'eau des navires pontés : hauteur au-dessus du pont principal (m), au lieu du plat-bord. */
+export const WATER_MASK = { aboveDeck: 0.35 };
+
 export const WAKE = {
   /** Côté de la zone couverte par la texture (m) et sa résolution (pixels). */
   areaSize: 320,
@@ -998,7 +2072,10 @@ export const WAKE = {
   maxShips: 12,
   /** Liseré d'écume de la coque : retrait par rapport au plat-bord (fraction de la largeur), et force à l'arrêt. */
   hullHug: 0.93,
-  idleFoam: 0.8,
+  idleFoam: 0.55,
+  /** Largeur du liseré des coques : × (demi-largeur / foamWidthRef), entre 1 et foamWidthMax (grandes coques). */
+  foamWidthRef: 1.75,
+  foamWidthMax: 2.5,
   /**
    * Tirant d'eau d'une coque, en fraction de sa demi-largeur : là où la coque est soulevée (proue levée par une vague,
    * flanc qui roule) de cette hauteur au-dessus de l'eau, elle n'y touche plus et le liseré d'écume s'efface.
@@ -1021,6 +2098,101 @@ export const SKY = {
   /** Intensité de la lumière ambiante et du soleil par beau temps. */
   ambientIntensity: 1.5,
   sunIntensity: 2.6,
+};
+
+/**
+ * Jour et nuit : l'heure suit la journée des contrats (CONTRACTS.dayLength, 10 min) ; une journée commence à l'aube
+ * (`dawnHour`, lever du soleil). Le soleil suit une course inclinée (`tilt`, jamais au zénith), relevée de `lift` :
+ * plus de jour que de nuit (lever ~5 h, coucher ~19 h). La lune, à l'opposé, monte la nuit. La météo garde ses
+ * couleurs de jour ; la nuit et le crépuscule s'y composent (world/skyLighting.ts). Couleurs : nuit claire et lisible.
+ */
+export const DAY_NIGHT = {
+  /** Heure de l'aube (début d'une journée des contrats). */
+  dawnHour: 5,
+  /** Course du soleil, puis de la lune (plus basse) : inclinaison (rad) et relèvement (part du rayon). */
+  tilt: 0.6,
+  lift: 0.22,
+  moonTilt: 1.1,
+  moonLift: 0.1,
+  /** Ciel et horizon (brume) de nuit, par ciel dégagé ; plus sombres sous les nuages (× nightCloudy). */
+  nightZenith: 0x0a1633,
+  nightHorizon: 0x22345a,
+  nightCloudy: 0.55,
+  /** Crépuscule et aube : horizon, zénith et soleil dorés. */
+  duskHorizon: 0xf0a878,
+  duskZenith: 0x50609a,
+  duskSun: 0xffa865,
+  /** Part de la teinte dorée au plus fort du crépuscule : zénith, horizon (brume). */
+  duskZenithMix: 0.6,
+  duskHorizonMix: 0.55,
+  /** Lune : couleur (disque, halo, reflet, lumière) et intensité de sa lumière par ciel dégagé. */
+  moonColor: 0xc4d2ff,
+  moonIntensity: 1.1,
+  /** Part de la lune qui perce un ciel couvert (lumière, disque). */
+  moonThroughClouds: 0.3,
+  /** Lumière ambiante la nuit : couleurs, et part de l'intensité de jour (jamais nulle : on voit les navires). */
+  nightAmbientSky: 0x6078b8,
+  nightAmbientGround: 0x141c28,
+  nightAmbient: 0.5,
+  /** Eau la nuit : luminosité du corps de l'eau et de l'écume (part de celle de jour). */
+  nightWater: 0.3,
+  nightFoam: 0.4,
+  /** Pluie et filets de vent la nuit (part de leur couleur de jour). */
+  nightEffects: 0.12,
+  /** Les éclairs la nuit : lueur un peu atténuée (sinon le ciel noir vire au gris clair). */
+  nightFlash: 0.6,
+  /**
+   * Les lumières (fanaux, fenêtres, halos) s'allument quand la lumière du soleil (heure et nuages) passe sous
+   * `lightsOn[0]`, pleinement à `lightsOn[1]` : au crépuscule, et aussi dans le brouillard ou sous l'orage.
+   */
+  lightsOn: [0.75, 0.25] as const,
+  /** Fanaux (intensité émissive de jour → allumés) et fenêtres éclairées (couleur, intensité). */
+  lanternGlow: [0.9, 2.6] as const,
+  windowColor: 0xffb04a,
+  windowGlow: [0, 1.3] as const,
+  /**
+   * Halos des fanaux : taille (m, grandit avec la distance pour rester lisible de loin), décroissance de la lueur en
+   * cloche (plus grand = plus resserrée), éclat la nuit et part de cet éclat de jour (brouillard, pluie), portée (m),
+   * nombre max. Ils ne s'additionnent pas : là où plusieurs se recouvrent, seul le plus vif compte.
+   */
+  haloSize: 1.3,
+  haloGrowth: 0.022,
+  haloFalloff: 3.5,
+  haloIntensity: 0.8,
+  haloDaylight: 0.35,
+  haloRange: 320,
+  maxHalos: 160,
+  /**
+   * Lumière des fanaux (fx/lampLights.ts) : les plus proches de la caméra éclairent vraiment, par des lumières
+   * ponctuelles de la scène (leur nombre est un réglage graphique) : portée (m), décroissance, éclat (candela) ; et
+   * l'eau, jusqu'à `water` lampes : éclat, flaque de lumière (force, rayon m), chemin de reflets (éclat net, halo, rayon
+   * m). Sélection autour de la caméra (m) ; part du bord de la sélection et de la portée où une lampe s'efface ;
+   * scintillement (part de l'éclat). Incendie : couleur, éclat (× un fanal), scintillement, priorité (compte comme
+   * autant de fois plus proche).
+   */
+  lamps: {
+    distance: 16,
+    decay: 1.5,
+    intensity: 9,
+    /** Teinte de la lumière : celle du fanal, mêlée de blanc dans cette part (moins orange sur les voiles proches). */
+    whiten: 0.35,
+    water: 8,
+    waterIntensity: 1,
+    waterPool: 0.12,
+    poolRadius: 4,
+    glint: 0.7,
+    glintHalo: 0.01,
+    glintRadius: 22,
+    range: 140,
+    fade: 0.25,
+    flicker: 0.06,
+    fireColor: 0xff7a28,
+    fire: 4,
+    fireFlicker: 0.3,
+    firePriority: 3,
+  },
+  /** La nuit, la Marine patrouille moins : rencontres ordinaires plus rares (délai × ce facteur en pleine nuit). */
+  encounterSlowdown: 2.5,
 };
 
 /** Ce que change un temps, à son plus fort. Le beau temps, lui, est décrit par SKY et WORLD (multiplicateurs à 1). */
@@ -1059,12 +2231,25 @@ export interface WeatherProfile {
   strikeFactor: number;
   /** Écume de tempête sur toute la mer : crêtes blanches et traînées étirées par le vent (0..1). */
   seaFoam: number;
+  /** Houle de fond gigantesque (OCEAN.groundSwell, 0..1) : celle de la grande tempête. */
+  groundSwell: number;
+  /** Multiplie les dégâts d'un paquet de mer (vagues plus hautes, plus puissantes). */
+  seaPower: number;
 }
 
 /** Météo : choisie avec les boutons au-dessus du radar, elle change petit à petit. */
 export const WEATHER = {
   /** Durée d'un changement de temps, quel qu'il soit (s). */
   transitionTime: 20,
+  /**
+   * Changements automatiques (`world/weatherCycle.ts`) : beau temps pendant `clear` s, puis un autre temps tiré au sort
+   * (poids `weights`) pendant `other` s, puis de nouveau le beau temps. Avec ces durées, 75 % du temps environ est clair.
+   */
+  cycle: {
+    clear: [600, 1200] as const,
+    other: [180, 420] as const,
+    weights: { fog: 0.25, windy: 0.25, rain: 0.2, storm: 0.15, tempest: 0.1, greatStorm: 0.05 },
+  },
   /**
    * Houle du beau temps : de temps en temps (interval, s), une nouvelle houle est tirée au hasard entre quasi plate
    * (min, en fraction de la houle normale) et la houle normale, et la mer y passe en changeTime secondes au plus.
@@ -1091,6 +2276,8 @@ export const WEATHER = {
     seaDamage: 0,
     strikeFactor: 1,
     seaFoam: 0,
+    groundSwell: 0,
+    seaPower: 1,
   } satisfies WeatherProfile,
   windy: {
     fogNear: 220,
@@ -1113,6 +2300,8 @@ export const WEATHER = {
     seaDamage: 0,
     strikeFactor: 1,
     seaFoam: 0,
+    groundSwell: 0,
+    seaPower: 1,
   } satisfies WeatherProfile,
   rain: {
     fogNear: 50,
@@ -1135,6 +2324,8 @@ export const WEATHER = {
     seaDamage: 0,
     strikeFactor: 1,
     seaFoam: 0,
+    groundSwell: 0,
+    seaPower: 1,
   } satisfies WeatherProfile,
   storm: {
     fogNear: 30,
@@ -1157,6 +2348,8 @@ export const WEATHER = {
     seaDamage: 0,
     strikeFactor: 1,
     seaFoam: 0,
+    groundSwell: 0,
+    seaPower: 1,
   } satisfies WeatherProfile,
   /** Grosse tempête : houle énorme et pointue, mer blanche d'écume, vent féroce, éclairs fréquents. */
   tempest: {
@@ -1180,6 +2373,37 @@ export const WEATHER = {
     seaDamage: 1,
     strikeFactor: 2,
     seaFoam: 1,
+    groundSwell: 0,
+    seaPower: 1,
+  } satisfies WeatherProfile,
+  /**
+   * Grande tempête : pluie et vent modérés, ciel gris et bas mais on voit loin, et surtout une houle de fond
+   * gigantesque (OCEAN.groundSwell) : de longues collines d'eau qui soulèvent et engloutissent les navires. Paquets de
+   * mer plus rares qu'en grosse tempête mais bien plus violents ; combat un peu gêné.
+   */
+  greatStorm: {
+    fogNear: 90,
+    fogFar: 450,
+    fogColor: 0x8e999e,
+    zenithColor: 0x5e6b72,
+    sunlight: 0.3,
+    ambientIntensity: 1.05,
+    sunIntensity: 0.65,
+    waveFactor: 1.2,
+    windMin: 18,
+    windMax: 27,
+    rangeFactor: 0.85,
+    detectionFactor: 0.85,
+    rain: 0.4,
+    lightning: 0,
+    windStreaks: 0.12,
+    chop: 0.15,
+    turnFactor: 0.9,
+    seaDamage: 0.5,
+    strikeFactor: 1,
+    seaFoam: 0.3,
+    groundSwell: 1,
+    seaPower: 4,
   } satisfies WeatherProfile,
   /** Gouttes : nombre max, boîte autour de la caméra (m), chute (m/s), longueur des traits (m), inclinaison par le vent. */
   drops: 5500,
@@ -1237,6 +2461,256 @@ export const LIGHTNING = {
   mastHeight: 0.7,
 };
 
+/**
+ * Son (`audio/`) : fichiers de `public/sounds/` (liste dans docs/SOUNDS.md ; variantes `nom_1`, `nom_2`… tirées au
+ * hasard, hauteur variée de ± `pitchJitter`). Volumes par défaut des quatre curseurs, voix simultanées au plus,
+ * sons placés en 3D autour de la caméra (distance de référence, au-delà de laquelle le son baisse, et portée maximale,
+ * m), canon lointain au-delà de `farCannon` m, sifflement d'un boulet qui passe à moins de `whistle` m, vitesse du
+ * son pour le retard du tonnerre (m/s). `gains` : volume propre de chaque son (1 par défaut).
+ */
+export const AUDIO = {
+  root: 'sounds/',
+  volumes: { master: 0.8, music: 0.5, sfx: 0.85, ambience: 0.7 },
+  maxVoices: 28,
+  pitchJitter: 0.06,
+  refDistance: 30,
+  maxDistance: 1400,
+  rolloff: 1,
+  farCannon: 260,
+  /** Distances de référence des sons forts (m) : canon, explosion, impact dans le bois, naufrage. */
+  refs: { cannon: 140, explosion: 220, hit: 50, sinking: 90 },
+  /** Tonnerre : retard selon la distance de l'éclair, volume qui baisse jusqu'à `thunderFade` m. */
+  thunderFade: 2000,
+  whistle: 18,
+  soundSpeed: 340,
+  /** Au-delà de cette durée (s), un fichier est lu en continu (boucles, musique) plutôt que décodé en mémoire. */
+  streamFrom: 15,
+  gains: {
+    'combat/cannon_near': 1,
+    'combat/cannon_far': 0.8,
+    'combat/fort_cannon': 1,
+    'combat/hit_wood': 0.8,
+    'combat/splash': 0.55,
+    'combat/rigging_hit': 0.6,
+    'combat/ball_whistle': 0.5,
+    'combat/explosion': 1,
+    'combat/shell_blast': 0.9,
+    'combat/mortar_fire': 0.9,
+    'combat/mast_crack': 0.8,
+    'combat/sinking': 0.9,
+    'combat/ram_crash': 0.9,
+    'ambience/thunder': 0.9,
+    'ambience/hull_creak': 0.35,
+    'ambience/rope_creak': 0.3,
+    'ambience/sail_flap': 0.3,
+    'ambience/bow_splash': 0.35,
+    'ambience/gulls': 0.35,
+    'ambience/ship_bell': 0.6,
+    'cursed/rise': 0.9,
+    'cursed/dive': 0.8,
+    'crew/cheer': 0.55,
+    'crew/shout': 0.4,
+    'ui/wood_click': 0.35,
+    'ui/paper': 0.5,
+    'ui/map_unfold': 0.6,
+    'ui/coins': 0.6,
+    'ui/coins_big': 0.7,
+    'ui/hammer': 0.6,
+    'ui/quill': 0.6,
+    'ui/tear_poster': 0.6,
+    'ui/chest_open': 0.8,
+  } as Record<string, number>,
+  /**
+   * Ambiances (`audio/ambienceDirector.ts`) : fondu des boucles (s) ; mer calme / formée / tempête selon la houle
+   * (`waveFactor` : formée dès `roughAt`, tempête dès `stormAt`) ; vent selon sa force (léger jusqu'à `strongWind`) ;
+   * mouettes à moins de `gullCoast` m d'une côte, toutes les `gullEvery` s ; grincements du navire piloté toutes les
+   * `creakEvery` s ; embruns d'étrave au-delà de `splashSpeed` m/s ; port entendu à moins de `harborRange` m ;
+   * incendie entendu à moins de `fireRange` m ; présence des maudits à moins de `cursedRange` m.
+   */
+  ambience: {
+    fade: 1.5,
+    levels: { calm: 0.8, rough: 0.8, storm: 1, windLight: 0.5, windStrong: 0.7, rain: 0.8, night: 0.5, harbor: 0.7, fire: 0.9, presence: 0.8, tavern: 0.6 },
+    roughAt: 1.3,
+    stormAt: 2.2,
+    strongWind: 1.4,
+    /** Largeur des passages d'une boucle à l'autre (houle, vent). */
+    blend: 0.4,
+    /** Dans la taverne, la mer et le vent ne s'entendent plus qu'à cette part. */
+    insideTavern: 0.35,
+    /** Les grincements se pressent avec la houle (× 1 + houle × creakSea) ; pas de mouettes la nuit (au-delà de gullNight). */
+    creakSea: 0.5,
+    gullNight: 0.5,
+    gullCoast: 220,
+    gullEvery: [7, 18] as const,
+    creakEvery: [3, 9] as const,
+    splashSpeed: 5,
+    splashEvery: [2, 6] as const,
+    harborRange: 260,
+    fireRange: 220,
+    cursedRange: 500,
+  },
+  /**
+   * Musique (`audio/musicDirector.ts`) : fondu enchaîné (s) ; en mer, un air puis `silence` s de mer seule ; combat
+   * dès qu'un ennemi s'en prend à ta flotte à moins de `combatRange` m, et pendant `combatHold` s après le dernier ;
+   * maudits à moins de `cursedRange` m ; musique de nuit au-delà de `nightAt` (conditions.night) ; le motif du trésor
+ * (`treasureLength` s) baisse la musique à `duck` pendant qu'il joue.
+   */
+  music: { fade: 3, treasureLength: 8, nightAt: 0.5, silence: [60, 180] as const, combatRange: 500, combatHold: 15, cursedRange: 600, duck: 0.25, levels: { port: 0.8, sailing: 0.7, night: 0.7, combat: 0.85, boss: 0.9, cursed: 0.8, treasure: 1 } },
+};
+
+/**
+ * Onglet Triche du menu Échap (`cheats.ts`) : or et bois donnés d'un coup, mer libre autour d'un point de
+ * téléportation au large d'un îlot (m depuis sa côte).
+ */
+export const CHEATS = { resources: 100000, isletOffshore: 70 };
+
+/** Taverne : l'affiche arrachée s'envole vers tes contrats en `tear` ms, en tournant de `tearTilt` degrés. */
+export const TAVERN_FX = { tear: 420, tearTilt: 9 };
+
+/**
+ * Chasses au trésor (`treasure/`) : fouille d'une épave ou du trésor = navire presque arrêté (vitesse sous `searchSpeed`
+ * m/s) à moins du rayon de l'étape ; s'éloigner met la jauge en pause. Zone approximative sur la carte M : un cercle de
+ * `zoneRadius` m décalé d'au plus `zoneJitter` m du vrai lieu. Un gardien ou une embuscade surgit à `spawnDistance` m.
+ * Le gardien d'une étape n'apparaît qu'à moins de `wakeDistance` m de son lieu. Une élite coulée par ta flotte lâche
+ * le début d'une chasse pas encore commencée avec la probabilité `eliteStart`.
+ */
+export const TREASURE = { searchSpeed: 1.5, zoneRadius: 420, zoneJitter: 220, spawnDistance: 380, wakeDistance: 900, eliteStart: 0.25 };
+
+/** Une étape d'une chasse au trésor. Les lieux sont donnés dans le monde (m) ; `piece` : elle rapporte un morceau de carte. */
+export type TreasureStep =
+  | { kind: 'search'; at: readonly [number, number]; radius: number; time: number; piece: boolean; title: string; note: string; found: string }
+  | { kind: 'reach'; at: readonly [number, number]; radius: number; title: string; note: string; found: string }
+  | { kind: 'guardian'; at: readonly [number, number]; captain: string; squadron: readonly ShipType[]; title: string; note: string; found: string }
+  | { kind: 'roamer'; at: readonly [number, number]; radius: number; type: ShipType; captain: string; title: string; note: string; found: string }
+  | { kind: 'dig'; at: readonly [number, number]; radius: number; time: number; waves: readonly (readonly ShipType[])[]; title: string; note: string; found: string };
+
+/** Ce que rapporte un trésor : or, bois, un emblème unique, des bouts de plan, une relique (bonus permanent). */
+export interface TreasureReward {
+  gold: number;
+  wood: number;
+  emblem: EmblemId;
+  planFragments: number;
+  relic: { name: string; description: string; radar: number };
+}
+
+export interface TreasureHuntDef {
+  title: string;
+  /** Ce que raconte la rumeur ou le bout de carte qui ouvre la chasse. */
+  intro: string;
+  /** Taverne où la rumeur se vend, et son prix. */
+  rumor: { island: IslandId; price: number };
+  /** Morceaux de la carte au trésor à réunir (la croix apparaît quand ils y sont tous). */
+  pieces: number;
+  /** Indice écrit sur la carte au trésor. */
+  clue: string;
+  /** L'îlot dessiné sur la carte au trésor. */
+  islet: IsletId;
+  steps: readonly TreasureStep[];
+  reward: TreasureReward;
+}
+
+/**
+ * Chasses au trésor : quêtes longues en plusieurs étapes (fouille, énigme, gardien, morceau de carte qui rôde, trésor à
+ * déterrer sous la menace). Une chasse s'ouvre par une rumeur à la taverne ou un bout de carte lâché par une élite.
+ */
+export const TREASURE_HUNTS = {
+  vasseur: {
+    title: 'L’or de Vasseur',
+    intro: 'On raconte que le capitaine Vasseur a caché l’or de la Compagnie avant de sombrer. Sa chaloupe s’est échouée sur le Banc du Naufragé : son journal y serait encore.',
+    rumor: { island: 'tortuga', price: 150 },
+    pieces: 3,
+    clue: '« Trois encablures sous le fortin du Dauphin, mon gardien veille ; mon or dort dans la gueule du Crâne. »',
+    islet: 'skull',
+    steps: [
+      { kind: 'search', at: [905, 1084], radius: 80, time: 20, piece: true, title: 'Fouiller la chaloupe de Vasseur', note: 'Banc du Naufragé : jette l’ancre près de la chaloupe échouée', found: 'Le journal de Vasseur et un morceau de sa carte !' },
+      { kind: 'reach', at: [1240, -410], radius: 110, title: 'Résoudre l’énigme', note: '« Trois encablures sous le fortin du Dauphin »', found: 'Une voile noire surgit de la brume : le gardien de Vasseur !' },
+      { kind: 'guardian', at: [1240, -410], captain: 'Le Gardien de Vasseur', squadron: ['sloop', 'longboat'], title: 'Couler le gardien', note: 'Il porte un morceau de la carte', found: 'Le gardien sombre : un deuxième morceau de carte flotte dans l’épave !' },
+      { kind: 'roamer', at: [-450, 1250], radius: 380, type: 'sloop', captain: 'Le Corbeau', title: 'Retrouver le dernier morceau', note: 'Le Corbeau le garde, quelque part dans la zone marquée', found: 'Le dernier morceau ! La croix apparaît sur la carte : le Crâne.' },
+      { kind: 'dig', at: [-1000, 1665], radius: 60, time: 40, waves: [['longboat', 'longboat'], ['sloop']], title: 'Déterrer le trésor', note: 'Le Crâne : jette l’ancre dans sa crique et fouille', found: 'Le coffre de Vasseur !' },
+    ],
+    reward: {
+      gold: 1500,
+      wood: 400,
+      emblem: 'goldSkull',
+      planFragments: 2,
+      relic: { name: 'La boussole de Vasseur', description: 'Le radar de ta flotte porte plus loin.', radar: 0.1 },
+    },
+  },
+} satisfies Record<string, TreasureHuntDef>;
+
+export type TreasureHuntId = keyof typeof TREASURE_HUNTS;
+
+/**
+ * Textures du style d'époque des menus (`ui/kit/textures.ts`), calculées une fois au démarrage : grain du papier (tuile
+ * de `grain` px, opacité maximale des points) et fil du bois (tuile `wood` = [largeur, hauteur] px, opacité des veines,
+ * nombre de veines).
+ */
+export const UI_TEXTURES = { grain: 160, grainAlpha: 0.24, wood: [512, 256] as const, woodAlpha: 0.55, veins: 14 };
+
+/**
+ * Comptoir du port (`ui/market/`) : quantités des boutons de l'étal (`bulk` ; le bois, sans cale à remplir, s'achète
+ * par `woodBulk` au plus au lieu de « Plein »), et petite carte des routes : taille du dessin (unités du viewBox), marge
+ * autour des terres découvertes (m), points de chaque côte, courbure des routes (part de leur longueur) et durée du
+ * trajet du petit navire sur une route qui vient d'ouvrir (ms).
+ */
+/**
+ * Capitainerie du port (`ui/harbormaster/`) : carte de l'île (taille du dessin en unités du viewBox, marge autour de la
+ * côte en m, points de la côte, retrait des collines `hills` en m) et place des bâtiments sans lieu propre, autour de
+ * la crique : `angle` = écart au cap de la crique (rad), `inland` = retrait depuis la côte (m, négatif en mer). Le fort
+ * et le phare se posent sur leur vrai lieu (`LANDMARKS`). Les étiquettes qui se chevauchent s'écartent (`width` ×
+ * `height` : place d'une étiquette en unités du viewBox, `passes` : itérations) ; l'île est cadrée avec ses bâtiments,
+ * à une demi-étiquette des bords.
+ */
+export const HARBORMASTER = {
+  map: { width: 760, height: 520, shallows: 22, coastSteps: 90, hills: 45 },
+  spots: <Record<IslandUpgradeId, { angle: number; inland: number }>>{
+    fort: { angle: 0.62, inland: 15 },
+    citadel: { angle: -0.62, inland: 30 },
+    royalFort: { angle: 0.5, inland: 48 },
+    lighthouse: { angle: -0.62, inland: 9 },
+    dock: { angle: 0, inland: 8 },
+    shipyard: { angle: 0.3, inland: 12 },
+    moorings: { angle: 0, inland: -45 },
+    workshop: { angle: 1.6, inland: 70 },
+    counter: { angle: -0.3, inland: 30 },
+    smuggling: { angle: -0.35, inland: 22 },
+  },
+  pins: { width: 124, height: 76, passes: 80 },
+};
+
+export const MARKET = {
+  bulk: 10,
+  woodBulk: 100,
+  map: { width: 300, height: 200, margin: 160, coastSteps: 40, bulge: 0.16, sail: 1600 },
+};
+
+/**
+ * Vue « vitrine » du Chantier (`camera/showcaseView.ts`) : glisse vers la partie choisie (`glide`, 1/s), rotation lente
+ * de la vue d'ensemble (`spin`, rad/s), souris (`sensitivity`, rad/px ; hauteur ± `pitchRange`), bornes de hauteur
+ * du regard (rad) et de la caméra au-dessus de l'eau (m). `views` : d'où regarder chaque partie (cap relatif au navire,
+ * hauteur, distance en longueurs de navire).
+ */
+export const SHOWCASE = {
+  glide: 3.5,
+  spin: 0.12,
+  sensitivity: 0.006,
+  pitchRange: 0.5,
+  minPitch: 0.04,
+  maxPitch: 1.25,
+  minHeight: 1.2,
+  views: {
+    overview: { yaw: 2.3, pitch: 0.32, distance: 1.55 },
+    sails: { yaw: 1.9, pitch: 0.18, distance: 1.25 },
+    cannons: { yaw: 1.57, pitch: 0.12, distance: 0.62 },
+    hull: { yaw: 1.2, pitch: 0.1, distance: 0.95 },
+    hold: { yaw: 2.6, pitch: 0.85, distance: 0.75 },
+    /** Allongement : le navire entier, de flanc. */
+    extension: { yaw: 1.5, pitch: 0.22, distance: 1.35 },
+    /** Juste après un allongement : de plus loin, le temps de voir le nouveau navire (EXTENSION_FX.wide). */
+    ceremony: { yaw: 1.75, pitch: 0.3, distance: 1.75 },
+  },
+};
+
 export const CAMERA = {
   fov: 55,
   distance: 18,
@@ -1255,9 +2729,83 @@ export const CAMERA = {
   /** Secondes sans toucher la souris avant que la caméra revienne derrière le bateau. */
   recenterDelay: 2.5,
   recenterSpeed: 1.2,
-  /** Décalage max de la secousse (m) et vitesse à laquelle elle s'éteint (/s). */
+  /**
+   * Décalage max de la secousse (m) et vitesse à laquelle elle s'éteint (/s) ; en première personne (à la barre ou à
+   * pied), le décalage est multiplié par `firstPersonShake` : l'œil est tout près, la même secousse y paraît énorme.
+   */
   shakeOffset: 0.9,
+  firstPersonShake: 0.2,
   shakeDecay: 1.6,
+  /** Un appui relâché sans avoir bougé de plus de `clickSlop` px (cumulés) en moins de `clickTime` ms est un clic, pas un glisser. */
+  clickSlop: 6,
+  clickTime: 400,
+};
+
+/**
+ * Roue de barre des navires pontés : angle (rad) pour la barre toute (elle tourne du côté où l'on vire : barre à
+ * bâbord, le haut de la roue part vers bâbord).
+ */
+export const HELM_WHEEL = { turns: 1.3 };
+
+/**
+ * Première personne (camera/firstPersonView.ts) : hauteur de l'œil du barreur au-dessus de ses pieds et recul derrière
+ * son poste (m), assez pour voir par-dessus la roue ; regard un peu baissé au départ (rad) ; sur une barque sans plan de
+ * pont, œil à `boatEye` m, à `boatStern` de la longueur vers l'arrière ; rad par pixel de souris ; regard levé ou baissé
+ * au plus (rad) ; mouvement de souris au-delà duquel un événement est un raté du navigateur (px) ; plan proche de la
+ * caméra dans cette vue et dans la vue de loin (m).
+ */
+/**
+ * Longue-vue (première personne, clic gauche maintenu, `camera/spyglass.ts`) : grossissement (de `zoom[0]` à `zoom[1]`,
+ * au départ `start`, la molette le multiplie par `wheelStep` à chaque cran), vitesse à laquelle on la porte à l'œil
+ * (/s) ; le regard est d'autant plus lent que le grossissement est fort.
+ */
+export const SPYGLASS = { zoom: [2, 8] as const, start: 4, wheelStep: 1.15, response: 3.5 };
+
+export const HELM_VIEW = {
+  /** Après une demande de capture de la souris, délai (ms) au bout duquel, si le navigateur l'a refusée, on invite à cliquer. */
+  captureCheck: 400, eyeHeight: 1.8, behindWheel: 0.35, startPitch: -0.15, boatEye: 1.1, boatStern: 0.3, sensitivity: 0.0025, maxPitch: 1.3, maxMouseStep: 400, near: 0.06, chaseNear: 0.5 };
+
+/**
+ * Le joueur à pied sur son pont (player/) : hauteur des yeux (m), rayon du corps (petit : les obstacles ont déjà leur
+ * marge dans la grille), marche et course (m/s), accélération au sol et en l'air (/s), saut (m/s ; ~0,8 m de haut avec
+ * la gravité), gravité (m/s²), marche franchie en montant et en descendant sans tomber, surface où l'on se pose en
+ * l'air au-dessus des pieds, lissage des marches ; échelles (distance où l'on y monte, direction du regard nécessaire,
+ * vitesse d'escalade m/s) ; haubans (part de la longueur où l'on monte quand il ne mène à aucune hune, marche au pied,
+ * distance où E y fait grimper) ; hune (distance du haut d'un hauban où E fait redescendre, départ sous le bord, m) ;
+ * barre (distance où E la reprend, recul en la quittant, place laissée au barreur) ; balancement de la tête (hauteur m,
+ * rythme par mètre, vitesse sous laquelle il ne se voit pas) ; emprise du pont (marge sous le pont le plus bas et
+ * au-dessus du plus haut, m ; rangées voisines, devant et derrière, dont une rangée prend aussi l'emprise commune : cloisons).
+ */
+export const PLAYER = {
+  eyeHeight: 1.55,
+  radius: 0.05,
+  walkSpeed: 2.2,
+  runSpeed: 4.4,
+  accel: 12,
+  airAccel: 3,
+  jumpSpeed: 4,
+  gravity: 9.8,
+  stepUp: 0.42,
+  stepDown: 0.45,
+  airStep: 0.25,
+  stepSmooth: 16,
+  ladderReach: 0.7,
+  ladderFacing: 0.5,
+  climbSpeed: 1.2,
+  /** Escalade avec Maj enfoncée : vitesse × ce facteur. */
+  climbRun: 1.8,
+  shroudReach: 0.6,
+  shroudStep: 0.1,
+  shroudRange: 1.2,
+  topReach: 0.7,
+  topStep: 0.3,
+  helmReach: 1.3,
+  leaveBack: 0.8,
+  helmClear: 0.7,
+  bob: { height: 0.035, frequency: 5.5, minSpeed: 0.3 },
+  footing: { below: 0.3, above: 1, rows: 2 },
+  /** Chute sous le pont le plus bas (m) au-delà de laquelle on revient au dernier endroit sûr. */
+  lostFall: 2,
 };
 
 export const WORLD = {
@@ -1287,14 +2835,16 @@ export interface GraphicsSettings {
   /** Part de la pluie et des filets de vent dessinés, et des particules (embruns, fumée, éclats) émises (0..1). */
   weatherDensity: number;
   particleDensity: number;
+  /** Fanaux qui éclairent vraiment la scène la nuit (lumières ponctuelles ; l'eau reçoit leur lueur dans tous les cas). */
+  lampLights: number;
 }
 
 export const GRAPHICS = {
   presets: {
-    low: { resolution: 0.75, dynamicResolution: false, antialias: false, fpsLimit: 0, oceanGrid: 128, farWater: 'simple', wakeResolution: 512, weatherDensity: 0.3, particleDensity: 0.3 },
-    medium: { resolution: 1, dynamicResolution: false, antialias: false, fpsLimit: 0, oceanGrid: 192, farWater: 'simple', wakeResolution: 1024, weatherDensity: 0.6, particleDensity: 0.6 },
-    high: { resolution: 1.5, dynamicResolution: false, antialias: true, fpsLimit: 0, oceanGrid: 256, farWater: 'detailed', wakeResolution: 1024, weatherDensity: 1, particleDensity: 1 },
-    auto: { resolution: 1.5, dynamicResolution: true, antialias: true, fpsLimit: 0, oceanGrid: 256, farWater: 'detailed', wakeResolution: 1024, weatherDensity: 1, particleDensity: 1 },
+    low: { resolution: 0.75, dynamicResolution: false, antialias: false, fpsLimit: 0, oceanGrid: 128, farWater: 'simple', wakeResolution: 512, weatherDensity: 0.3, particleDensity: 0.3, lampLights: 2 },
+    medium: { resolution: 1, dynamicResolution: false, antialias: false, fpsLimit: 0, oceanGrid: 192, farWater: 'simple', wakeResolution: 1024, weatherDensity: 0.6, particleDensity: 0.6, lampLights: 4 },
+    high: { resolution: 1.5, dynamicResolution: false, antialias: true, fpsLimit: 0, oceanGrid: 256, farWater: 'detailed', wakeResolution: 1024, weatherDensity: 1, particleDensity: 1, lampLights: 6 },
+    auto: { resolution: 1.5, dynamicResolution: true, antialias: true, fpsLimit: 0, oceanGrid: 256, farWater: 'detailed', wakeResolution: 1024, weatherDensity: 1, particleDensity: 1, lampLights: 6 },
   } as Record<QualityPreset, GraphicsSettings>,
   /** Préréglage du premier lancement. */
   defaultPreset: 'auto' as QualityPreset,
@@ -1305,6 +2855,7 @@ export const GRAPHICS = {
     oceanGrid: [128, 192, 256],
     wakeResolution: [512, 1024],
     density: [0.3, 0.6, 1],
+    lampLights: [0, 2, 4, 6],
   },
   /** Eau au loin : distance (m) au-delà de laquelle le shader de l'eau saute rides, sillages et dentelle d'écume. */
   detailDistance: { detailed: 240, simple: 110 },
@@ -1321,23 +2872,42 @@ export const GRAPHICS = {
 };
 
 /**
- * Forme d'une île. Sa côte est un rayon qui varie selon l'angle (cap, 0 = nord / +Z) : rayon moyen + quelques
- * ondulations, moins une crique creusée en direction de `bay.angle`, où se niche le port. La même formule sert au
- * relief, aux collisions, à l'évitement, au radar et au shader de l'eau.
+ * Forme d'une terre (île à port ou îlot). Sa côte est un rayon qui varie selon l'angle (cap, 0 = nord / +Z) : rayon moyen + quelques
+ * ondulations, moins une crique creusée en direction de `bay.angle`, où se niche le port. Cette forme peut être
+ * étirée (`stretch`) le long d'un grand axe tourné vers `rotation` : les ondulations et la crique se mesurent alors
+ * dans le repère de la forme (cercle avant étirement). La même formule sert au relief, aux collisions, à l'évitement,
+ * au radar et au shader de l'eau.
  */
-export interface IslandShapeDef {
+export interface LandShapeDef {
   center: readonly [number, number];
   radius: number;
-  /** Ondulations de la côte : [nombre de bosses sur le tour, amplitude (m), phase (rad)], toujours ISLAND_LOBES. */
+  /** Ondulations de la côte : [nombre de bosses sur le tour, amplitude (m), phase (rad)], au plus ISLAND_LOBES. */
   lobes: readonly (readonly [number, number, number])[];
-  /** Crique : direction de son ouverture (cap), largeur angulaire et profondeur (m). */
-  bay: { angle: number; width: number; depth: number };
+  /**
+   * Allongement : rapport longueur / largeur de l'île (1 = ronde, par défaut), à surface égale, le long d'un grand
+   * axe orienté vers le cap `rotation` (rad, 0 par défaut = nord-sud).
+   */
+  stretch?: number;
+  rotation?: number;
+  /**
+   * Courbure : décalage des deux bouts du grand axe vers bâbord (sa gauche, m ; négatif = vers tribord) par rapport au
+   * milieu, en arc de parabole. Modérée seulement : la côte doit rester visible depuis le centre (radar, carte, `pointAt`).
+   */
+  bend?: number;
+  /**
+   * Crique : direction de son ouverture (cap, dans le monde : le port est sur la côte dans cette direction depuis le
+   * centre), largeur angulaire (rad) et profondeur (m), mesurées dans le repère de la forme. Facultative pour un îlot.
+   */
+  bay?: { angle: number; width: number; depth: number };
   /** Relief : collines douces derrière de larges plages, ou falaises au-dessus d'une plage étroite. */
   relief: 'hills' | 'cliffs';
   /** Hauteur des sommets (m) et des falaises (relief 'cliffs'). */
   peak: number;
   cliff: number;
-  /** Les vagues sont atténuées sur cette distance au large de la côte (m) : nulles au rivage. */
+  /**
+   * Les vagues sont atténuées sur cette distance au large de la côte (m) : nulles au rivage. 0 = pas d'atténuation
+   * (îlot rocheux sans vraie plage : moins de calcul pour l'eau).
+   */
   calmDistance: number;
   /** Largeur du lagon turquoise (m) et du ressac blanc (m) le long du rivage. */
   lagoonWidth: number;
@@ -1347,10 +2917,98 @@ export interface IslandShapeDef {
   darkGrass: number;
 }
 
-/** Nombre d'ondulations de chaque côte (taille des tableaux du shader de l'eau). */
-export const ISLAND_LOBES = 4;
+/** Une île à port (fiche de campagne `ISLAND_INFO`) : sa crique abrite le port, et parfois une ville derrière. */
+export interface IslandShapeDef extends LandShapeDef {
+  bay: { angle: number; width: number; depth: number };
+  /**
+   * Replat d'une ville derrière le port (en plus de celui du village) : centré à `inland` m à l'intérieur des terres
+   * depuis le quai, plat sur `radius[0]` m, puis rejoint le relief à `radius[1]` m.
+   */
+  town?: { inland: number; radius: readonly [number, number] };
+}
 
-export type IslandId = 'tortuga' | 'sabre';
+/** Nombre d'ondulations au plus par côte (taille des tableaux du shader de l'eau ; les manquantes sont nulles). */
+export const ISLAND_LOBES = 6;
+/**
+ * Îles envoyées au shader de l'eau, au plus : les plus proches du joueur parmi celles qui touchent la grille de l'eau
+ * (`islandShader.ts`). Chaque pixel d'eau ne parcourt que celles-là, quel que soit le nombre d'îles du monde.
+ */
+export const ISLAND_SLOTS = 8;
+
+export type IslandId = 'tortuga' | 'sabre' | 'royale' | 'dauphin';
+
+/** Îlots : terres de décor ou lieux de quête, sans port ni fiche de campagne (rien à sauvegarder). */
+export type IsletId = 'castaway' | 'skull';
+
+/** Décor semé sur une terre : palmiers, pins (au-dessus de `pineFrom` m), rochers, graine du tirage, altitude max (m). */
+export interface LandDecor {
+  palms: number;
+  pines: number;
+  rocks: number;
+  seed: number;
+  palmHeight: number;
+  pineFrom: number;
+  pineHeight: number;
+}
+
+/** Un îlot : sa forme, son nom sur la carte et son décor. */
+export interface IsletDef extends LandShapeDef {
+  name: string;
+  decor: LandDecor;
+}
+
+export const ISLETS: Record<IsletId, IsletDef> = {
+  /**
+   * Le Banc du Naufragé : un banc de sable blanc étroit (≈ 360 × 45 m) entre la Tortue et l'Île Royale, une rangée de
+   * palmiers penchés, un lagon turquoise de chaque côté, une chaloupe échouée sur la plage.
+   */
+  castaway: {
+    name: 'Le Banc du Naufragé',
+    center: [900, 1100],
+    radius: 64,
+    stretch: 8,
+    rotation: 0.8,
+    bend: 26,
+    lobes: [
+      [3, 5, 0.4],
+      [2, 3, 1.9],
+      [5, 1.5, 2.6],
+    ],
+    relief: 'hills',
+    peak: 2.6,
+    cliff: 0,
+    calmDistance: 70,
+    lagoonWidth: 45,
+    surfWidth: 4,
+    grass: 0x9fbf6a,
+    darkGrass: 0x7fa354,
+    decor: { palms: 16, pines: 0, rocks: 5, seed: 333, palmHeight: 4, pineFrom: 0, pineHeight: 0 },
+  },
+  /**
+   * Le Crâne : un rocher nu au nord-ouest de l'archipel, à falaises, dont la forme (crâne arrondi, mâchoire) se
+   * reconnaît sur la carte au trésor de Vasseur ; quelques palmiers dans sa crique, où dort le trésor.
+   */
+  skull: {
+    name: 'Le Crâne',
+    center: [-1000, 1750],
+    radius: 78,
+    lobes: [
+      [2, 10, 1.57],
+      [3, 7, 0.2],
+      [5, 4, 1.1],
+    ],
+    bay: { angle: Math.PI, width: 0.35, depth: 34 },
+    relief: 'cliffs',
+    peak: 18,
+    cliff: 9,
+    calmDistance: 0,
+    lagoonWidth: 18,
+    surfWidth: 4,
+    grass: 0x8f9a5a,
+    darkGrass: 0x6f7a44,
+    decor: { palms: 6, pines: 0, rocks: 14, seed: 913, palmHeight: 6, pineFrom: 0, pineHeight: 0 },
+  },
+};
 
 export const ISLANDS: Record<IslandId, IslandShapeDef> = {
   /** Île de la Tortue : ton repaire, verte et vallonnée. */
@@ -1393,6 +3051,71 @@ export const ISLANDS: Record<IslandId, IslandShapeDef> = {
     grass: 0x8f9a4f,
     darkGrass: 0x6b7a3c,
   },
+  /**
+   * Île Royale : 2 km au nord, la plus grande (1,5 × la Tortue), tenue par la Marine. Falaises et collines boisées,
+   * herbe plus sombre ; sa crique, profonde, regarde vers la Tortue.
+   */
+  royale: {
+    center: [200, 2000],
+    radius: 255,
+    lobes: [
+      [2, 22, 1.2],
+      [3, 16, 3.4],
+      [5, 10, 0.9],
+      [7, 5, 2.6],
+    ],
+    bay: { angle: Math.PI + 0.1, width: 0.45, depth: 130 },
+    relief: 'cliffs',
+    peak: 62,
+    cliff: 12,
+    calmDistance: 180,
+    lagoonWidth: 40,
+    surfWidth: 6,
+    grass: 0x5d8f45,
+    darkGrass: 0x3d6b33,
+    // La ville de l'arsenal, derrière Port-Royal.
+    town: { inland: 50, radius: [55, 120] },
+  },
+  /** Île du Dauphin : 1,3 km à l'ouest (+X), petite et basse, poste de la Marine ; sa crique regarde vers la Tortue. */
+  dauphin: {
+    center: [1300, 200],
+    radius: 110,
+    lobes: [
+      [2, 9, 0.7],
+      [3, 7, 2.1],
+      [5, 4, 4.0],
+      [7, 2, 1.3],
+    ],
+    bay: { angle: -1.72, width: 0.5, depth: 55 },
+    relief: 'hills',
+    peak: 22,
+    cliff: 0,
+    calmDistance: 120,
+    lagoonWidth: 55,
+    surfWidth: 5,
+    grass: 0x6aa64a,
+    darkGrass: 0x4d8a3a,
+  },
+};
+
+/**
+ * Bord du monde : un cercle autour de l'archipel (toutes les îles prévues de la première mer, avec une petite marge),
+ * au-delà duquel règne une tempête géante (`world/worldEdge.ts`). Elle s'annonce sur `approach` m avant le bord : le
+ * temps affiché glisse vers la grosse tempête (ciel noir, mer énorme), sans changer le temps du reste du monde. Passé
+ * le bord, la foudre frappe chaque navire de plus en plus souvent (délai entre deux coups au bord, puis à `band` m au
+ * delà, s ; dégâts en part de la vie max), sans alerte ni message : on s'en sort en faisant demi-tour à temps.
+ */
+export const WORLD_EDGE = {
+  center: [-150, 450] as const,
+  radius: 3500,
+  approach: 400,
+  band: 300,
+  strikeInterval: [7, 1.2] as const,
+  strikeDamage: 0.15,
+  /** Le premier coup tombe après ce délai (s), une fois le bord passé. */
+  firstStrike: 2.5,
+  /** Les IA restent à cette distance en deçà du bord (m), et rien n'apparaît plus loin. */
+  margin: 300,
 };
 
 /** Navigation près des terres. */
@@ -1431,7 +3154,7 @@ export interface Price {
 export type TradeGood = 'wood' | 'fish' | 'rum' | 'spices';
 
 /** Améliorations d'île possibles (chaque île n'en propose que certaines, voir IslandInfoDef.upgrades). */
-export type IslandUpgradeId = 'fort' | 'citadel' | 'dock' | 'workshop' | 'counter' | 'lighthouse' | 'smuggling';
+export type IslandUpgradeId = 'fort' | 'citadel' | 'royalFort' | 'dock' | 'shipyard' | 'workshop' | 'counter' | 'lighthouse' | 'smuggling' | 'moorings';
 
 /** Ce que le joueur sait d'une île : son port, qui la tient, son marché, ce qu'on peut y construire. */
 export interface IslandInfoDef {
@@ -1439,8 +3162,8 @@ export interface IslandInfoDef {
   portName: string;
   /** Nom court dans les phrases (« jusqu'à la Tortue », « attaque Port-Sabre »). */
   shortName: string;
-  /** Son fort : nom affiché, nom commun et genre (« le fort », « la citadelle »). */
-  fort: { name: string; noun: string; feminine: boolean };
+  /** Son fort : nom affiché, nom commun et genre (« le fort », « la citadelle ») ; `proper` : nom propre, sans article dans une phrase (Fort-Royal). */
+  fort: { name: string; noun: string; feminine: boolean; proper?: boolean };
   allegiance: Allegiance;
   /** Qui tient l'île tant qu'elle n'est pas à toi. */
   holders: string;
@@ -1452,6 +3175,8 @@ export interface IslandInfoDef {
   market: Record<TradeGood, Price>;
   /** Améliorations possibles une fois l'île à toi, dans l'ordre du menu. */
   upgrades: readonly IslandUpgradeId[];
+  /** Ce qui est déjà bâti quand tu prends l'île (arsenal de la Marine) : niveau minimal de ces améliorations. */
+  captureLevels?: Partial<Record<IslandUpgradeId, number>>;
 }
 
 export const ISLAND_INFO: Record<IslandId, IslandInfoDef> = {
@@ -1472,7 +3197,7 @@ export const ISLAND_INFO: Record<IslandId, IslandInfoDef> = {
       rum: { buy: 8, sell: 6 },
       spices: { buy: null, sell: 14 },
     },
-    upgrades: ['fort', 'dock', 'workshop', 'counter', 'lighthouse'],
+    upgrades: ['fort', 'dock', 'shipyard', 'moorings', 'workshop', 'counter', 'lighthouse'],
   },
   sabre: {
     name: 'Île du Sabre',
@@ -1491,7 +3216,48 @@ export const ISLAND_INFO: Record<IslandId, IslandInfoDef> = {
       rum: { buy: null, sell: 13 },
       spices: { buy: 9, sell: 7 },
     },
-    upgrades: ['citadel', 'smuggling'],
+    upgrades: ['citadel', 'shipyard', 'moorings', 'smuggling'],
+  },
+  royale: {
+    name: 'Île Royale',
+    portName: 'Port-Royal',
+    shortName: 'Port-Royal',
+    fort: { name: 'Fort-Royal', noun: 'fort', feminine: false, proper: true },
+    allegiance: 'navy',
+    holders: 'La Marine royale',
+    owned: false,
+    // Pas à vendre : il faut abattre Fort-Royal, puis accoster.
+    price: null,
+    description: 'Grande île boisée au nord, arsenal de la Marine royale. Fort-Royal garde sa crique, des vaisseaux du roi y mouillent et patrouillent au large. Ses garnisons paient cher le rhum et les épices ; ses forêts donnent un bois de mâture réputé.',
+    resources: ['Bois de mâture', 'Arsenal de la Marine'],
+    market: {
+      wood: { buy: 1, sell: 1 },
+      fish: { buy: null, sell: 5 },
+      rum: { buy: null, sell: 11 },
+      spices: { buy: null, sell: 16 },
+    },
+    upgrades: ['royalFort', 'dock', 'shipyard', 'moorings', 'workshop', 'counter'],
+    captureLevels: { shipyard: 2 },
+  },
+  dauphin: {
+    name: 'Île du Dauphin',
+    portName: 'Port-Dauphin',
+    shortName: 'Port-Dauphin',
+    fort: { name: 'Fortin du Dauphin', noun: 'fortin', feminine: false },
+    allegiance: 'navy',
+    holders: 'La Marine royale',
+    owned: false,
+    // Pas à vendre : il faut abattre le fortin, puis accoster.
+    price: null,
+    description: 'Petite île basse à l’ouest de la Tortue : un village de pêcheurs sous la garde d’un poste de la Marine et de son fortin. Ses eaux sont poissonneuses et son bois bon marché.',
+    resources: ['Poisson', 'Bois'],
+    market: {
+      wood: { buy: 1, sell: 1 },
+      fish: { buy: 2, sell: 2 },
+      rum: { buy: null, sell: 9 },
+      spices: { buy: null, sell: 12 },
+    },
+    upgrades: ['fort', 'dock', 'shipyard', 'moorings', 'workshop', 'counter'],
   },
 };
 
@@ -1512,6 +3278,15 @@ export const ISLAND_UPGRADES = {
     /** Remise sur l'achat de navires. */
     shipDiscount: [0.05, 0.1, 0.15],
   },
+  /**
+   * Chantier naval : sans lui, le port ne construit que les petits navires ; niveau 1 : brigantin, chébec, flûte,
+   * brick et corvette ; niveau 2 : caraque, galéasse et frégate ; niveau 3 : galion (`required` : niveau qu'il faut pour
+   * construire chaque type, 0 si absent).
+   */
+  shipyard: {
+    costs: [{ gold: 400, wood: 250 }, { gold: 1000, wood: 600 }, { gold: 2400, wood: 1400 }],
+    required: { shipOfLine: 3, senau: 1, galiot: 1, brigantine: 1, xebec: 1, fluyt: 1, brig: 1, corvette: 1, carrack: 2, galleass: 2, frigate: 2, galleon: 3 } as Partial<Record<ShipType, number>>,
+  },
   workshop: {
     costs: [{ gold: 100, wood: 60 }, { gold: 220, wood: 120 }, { gold: 400, wood: 220 }],
     /** Scierie : bois produit par minute, même quand tu es au large. */
@@ -1530,11 +3305,26 @@ export const ISLAND_UPGRADES = {
     range: [260, 290, 320],
     damage: [14, 17, 20],
   },
+  /** Fort-Royal, une fois l'île prise : tes canonniers remettent en batterie les pièces de la Marine. */
+  royalFort: {
+    costs: [{ gold: 300, wood: 150 }, { gold: 550, wood: 260 }, { gold: 850, wood: 400 }],
+    guns: [7, 9, 11],
+    range: [280, 300, 320],
+    damage: [15, 17, 19],
+  },
   /** Comptoir de contrebande de Port-Sabre : on t'y achète plus cher, on t'y vend moins cher. */
   smuggling: {
     costs: [{ gold: 150, wood: 60 }, { gold: 300, wood: 120 }, { gold: 500, wood: 200 }],
     sellBonus: [0.1, 0.2, 0.3],
     buyDiscount: [0.05, 0.1, 0.15],
+  },
+  /**
+   * Mouillage : emplacements pour les navires que l'île envoie en route commerciale (TRADE_ROUTES.islandSlots sans
+   * lui, puis un par niveau).
+   */
+  moorings: {
+    costs: [{ gold: 200, wood: 120 }, { gold: 450, wood: 250 }],
+    slots: [2, 3],
   },
   lighthouse: {
     costs: [{ gold: 150, wood: 60 }, { gold: 300, wood: 120 }],
@@ -1545,14 +3335,105 @@ export const ISLAND_UPGRADES = {
   },
 };
 
-/** Routes commerciales confiées à tes navires (onglet Routes du port). */
+/**
+ * Routes commerciales confiées à tes navires (Comptoir du port). Un navire en commerce quitte tes places de flotte
+ * et prend un emplacement de l'île d'où il part (une île à toi) ; on le reprend à son port, s'il reste une place.
+ */
+/**
+ * Territoires de la mer (`progression/territory.ts`, carte M : `ui/territoryLayer.ts`) : une grille de cases de `cell` m,
+ * chacune à la Marine, aux pirates ou à toi. Les abords de chaque île à port (jusqu'à `islandHold` m de sa côte) sont à
+ * celui qui tient l'île, et ne changent qu'avec elle. Au départ : une zone à toi autour de la Tortue, une zone pirate autour
+ * de Port-Sabre (rayons `start`, en m depuis le centre de l'île, rendus irréguliers par `noise`), la Marine partout ailleurs.
+ */
+export const TERRITORY = {
+  cell: 80,
+  islandHold: 350,
+  start: { player: { island: 'tortuga', radius: 1100 }, pirate: { island: 'sabre', radius: 1600 } } as const,
+  /** Bruit qui déforme les zones et les cercles d'influence : [longueur d'onde (m), poids] par octave ; `amount` : part du rayon. */
+  noise: { octaves: [[700, 1], [260, 0.45]] as const, amount: 0.4 },
+  /**
+   * Présence de ta flotte (navires à flot de `Fleet.hand`) : chaque case de la Marine à moins de `radius` m se remplit
+   * de `rate` par seconde au centre (moins au bord, inégalement), et bascule à toi une fois pleine ; une case laissée
+   * se vide de `decay` par seconde. Calculé toutes les `step` s.
+   */
+  presence: { radius: 320, rate: 1 / 75, decay: 1 / 400, step: 0.5 },
+  /** Un navire de la Marine coulé dans ses eaux pousse la frontière : remplissage `amount` sur `radius` m + `perRank` × son rang. */
+  victory: { amount: 0.7, radius: 150, perRank: 45 },
+  /**
+   * Poussées : toutes les `interval` s, un morceau de frontière au hasard avance (rayon `radius` m). D'abord, la Marine
+   * contre toi (chance `player`) ou entre Marine et pirates ; là, la Marine gagne `navyWins` fois sur 1. Rien ne bouge à
+   * moins de `guard` m du bateau piloté (ni, plus tard, de tes navires de garde). Recherche : `tries` cases tirées.
+   */
+  push: { interval: [120, 240] as const, radius: [100, 220] as const, player: 0.55, navyWins: 0.6, guard: 450, tries: 600 },
+  /**
+   * Navires de garde (`fleet/guards.ts`, page Garde de la Cabine). Cercle protégé : `radius` m + `perRank` × le rang du
+   * type. Puissance : menace du type × part de vie × (1 + `upgrade` × niveaux d'amélioration + `rank` × rang du navire) ;
+   * les gardes dont les postes sont à moins du plus grand de leurs rayons additionnent leur puissance. Pression du front :
+   * `front.base` + `front.navy` × part des eaux de la Marine à moins de `front.radius` m + `front.island` × proximité des
+   * îles de la Marine (1 au port, 0 à `front.islandReach` m). Puissance ≥ pression : la Marine ne pousse plus dans le
+   * cercle ; ≥ `conquer` × la pression : il gagne du terrain (présence × `conquerRate`, de 0 à 1 selon l'avance). Sinon
+   * il demande de l'aide (au plus une fois par `helpInterval` s). Le bateau piloté à moins de `attack.range` m : toutes
+   * les `attack.interval` s, si la pression dépasse `attack.minPressure`, une escadre de la Marine vient l'attaquer, de
+   * menace `attack.strength` × la pression (deux navires au-delà de `attack.pairFrom`), à `attack.distance` m.
+   * En route : voile `sail` ; ronde à `patrol` × le rayon, voile `patrolSail` ; combat à moins de `engage` m.
+   */
+  guard: {
+    radius: 200,
+    perRank: 70,
+    upgrade: 0.03,
+    rank: 0.1,
+    front: { base: 1, navy: 4, island: 3, radius: 900, islandReach: 1600 },
+    conquer: 1.5,
+    conquerRate: 0.5,
+    helpInterval: 240,
+    attack: { range: 1500, interval: [240, 420] as const, minPressure: 2, strength: 0.8, pairFrom: 4, distance: [280, 380] as const, clearance: 40 },
+    sail: 0.7,
+    patrol: 0.4,
+    patrolSail: 0.3,
+    engage: 220,
+    step: 1,
+    /** Un poste doit être à au moins cette distance de la côte (m). */
+    shore: 60,
+  },
+  /** Revenu de tes eaux, à l'aube : `perCell` or par case, entre `min` et `max`, dans la réserve de l'île à toi la plus proche. */
+  income: { perCell: 0.5, min: 50, max: 2000 },
+  /** Apparitions des ennemis ordinaires selon les eaux où tu navigues (× le rythme). */
+  enemyRate: { navy: 1.3, pirate: 0.6, player: 0.4 },
+  /** Pirates alliés en plus selon ta part et celle des pirates (× `PIRATES.count`) ; marchands alliés en plus selon ta part. */
+  pirateBonus: 1.2,
+  merchantBonus: 2,
+  /**
+   * Calque de la carte (`ui/territoryLayer.ts`, en vecteurs) : pas de la grille des contours (m), flou de la limite (en
+   * cases) ; opacité du lavis de chaque camp ; liseré de sa couleur le long de l'intérieur de sa frontière (largeur en
+   * px, opacité) ; trait d'encre de la frontière (couleur, largeur en px).
+   */
+  map: {
+    step: 20,
+    blur: 1.2,
+    wash: 0.14,
+    band: 5,
+    bandAlpha: 0.38,
+    ink: 'rgba(52, 34, 18, 0.85)',
+    inkWidth: 1.3,
+    colors: { navy: [165, 42, 36], pirate: [55, 45, 38], player: [36, 118, 72] } as const,
+  },
+};
+
 export const TRADE_ROUTES = {
+  /** Emplacements d'une île à toi sans Mouillage (ISLAND_UPGRADES.moorings ensuite). */
+  islandSlots: 1,
   /** Chargement au départ de la route (s). */
   loadTime: 6,
   /** Escale à chaque port : vente, puis chargement (s). */
   stay: [10, 16] as const,
   /** Voilure en route (fraction). */
   sail: 0.8,
+  /**
+   * Navires de pêche (`fleet/fishingRuns.ts`) : ils vont au banc le plus proche de leur port d'attache, à moins de
+   * `range` m, et pêchent comme ta flotte (FISHING.catchInterval × filets) jusqu'à cale pleine ; sans banc à portée, ils
+   * attendent au port `retry` s avant de chercher encore. Le poisson est vendu au port d'attache, l'or va dans sa réserve.
+   */
+  fishing: { range: 1800, retry: 20 },
 };
 
 /**
@@ -1577,7 +3458,7 @@ export const ISLAND_TRADE = {
   /** Durée de l'escale au mouillage (s). */
   stay: [20, 40] as const,
   sail: 0.55,
-  types: ['sloop', 'sloop', 'brigantine'] as const,
+  types: ['sloop', 'sloop', 'caravel', 'schooner', 'brigantine', 'fluyt', 'senau', 'carrack'] as const,
 };
 
 /** Phare de la Tortue : lumière par temps sombre, taille selon le niveau de l'amélioration « Phare » (0 à 2). */
@@ -1607,6 +3488,115 @@ export const CITADEL = {
   health: 900,
   /** Elle est orientée vers ce point, au large de l'entrée de sa crique (m). */
   facingOffing: 120,
+};
+
+/** Fort-Royal une fois l'Île Royale à toi : armement avant amélioration (voir ISLAND_UPGRADES.royalFort). */
+export const ROYAL_FORT = { guns: 5, range: 260, damage: 13 };
+
+/** Fumée et flammes d'un fort touché : fumée sous `smokeBelow` de sa vie, incendie une fois tombé (émissions par seconde). */
+export const FORT_FX = {
+  smokeBelow: 0.5,
+  smokeRate: 2.5,
+  flameRate: 16,
+  emberRate: 5,
+  /** Taille de l'explosion quand il tombe. */
+  fallScale: 2.5,
+};
+
+/**
+ * Défense d'une île de la Marine (NAVY_HOLDS), tant qu'elle la tient, et ses contre-attaques une fois prise.
+ * Le fort tire sur ta flotte et tes alliés ; tes boulets peuvent le toucher, et il se répare si on le laisse en paix.
+ * Abattu, il se tait jusqu'à ce que tu prennes l'île (accoster). La garnison : des navires amarrés dans la crique, qui
+ * appareillent quand on approche du port ou que le fort est touché, et des rondes autour de l'île ; un navire coulé est
+ * remplacé après un délai, tant que le fort tient. Contre-attaques : une escadre (tables de CONTRACTS.defend, selon le
+ * niveau de ta flotte) assiège le fort après un préavis ; repoussée, son butin va dans la réserve de l'île ; si le fort
+ * tombe, la Marine reprend l'île.
+ */
+export interface NavyHoldDef {
+  /** Armement (les autres réglages de tir sont ceux de FORT), vie, réparation (après `regenDelay` s sans être touché, `regenRate` de sa vie par seconde), orientation vers ce point au large de l'entrée de la crique (m). */
+  fort: { guns: number; range: number; damage: number; health: number; regenDelay: number; regenRate: number; facingOffing: number };
+  garrison: {
+    /** Navires amarrés : type, place (écart d'angle depuis l'axe de la crique (rad), distance au large de la côte (m)). */
+    moored: readonly { readonly type: ShipType; readonly angle: number; readonly offing: number }[];
+    /** Rondes, chacune dans un sens, à `patrolOffing` m au-delà du rayon extérieur de l'île. */
+    patrols: readonly ShipType[];
+    patrolOffing: number;
+    /** Améliorations des navires (0 à 1, comme la menace des ennemis), fixes : ils ne suivent pas tes victoires. */
+    threat: number;
+    /** Un navire coulé est remplacé après ce délai (s), tant que le fort tient. */
+    reinforceDelay: readonly [number, number];
+    /** La garnison prend la mer quand ton navire est à moins de `activeRadius` m du centre de l'île ; au-delà de `releaseRadius`, ses navires au repos rentrent. */
+    activeRadius: number;
+    releaseRadius: number;
+  };
+  counterAttack: {
+    /** Temps entre deux contre-attaques (s), préavis entre l'alerte et l'arrivée de l'escadre (s). */
+    interval: readonly [number, number];
+    warning: number;
+    /** Étoiles de l'escadre = niveau de ta flotte + `starBonus`, entre 1 et `maxStars`. */
+    starBonus: number;
+    maxStars: number;
+    /** Butin d'un navire de l'escadre coulé, déposé dans la réserve de l'île quand elle est repoussée. */
+    spoilsPerShip: Cost;
+  };
+}
+
+export const NAVY_HOLDS: Partial<Record<IslandId, NavyHoldDef>> = {
+  /** Île Royale : premier grand fort de la Marine ; une frégate bien améliorée doit pouvoir l'abattre seule. */
+  royale: {
+    fort: { guns: 11, range: 270, damage: 9, health: 1400, regenDelay: 60, regenRate: 0.003, facingOffing: 140 },
+    garrison: {
+      moored: [
+        { type: 'corvette', angle: 0, offing: 90 },
+        { type: 'brigantine', angle: 0.16, offing: 55 },
+      ],
+      patrols: ['caravel'],
+      patrolOffing: 170,
+      threat: 0.25,
+      reinforceDelay: [180, 300],
+      activeRadius: 1400,
+      releaseRadius: 1800,
+    },
+    counterAttack: { interval: [1100, 1300], warning: 120, starBonus: 1, maxStars: 5, spoilsPerShip: { gold: 140, wood: 50 } },
+  },
+  /** Île du Dauphin : petit poste de la Marine, fortin et deux navires ; prenable avec un brigantin ou une corvette bien équipés. */
+  dauphin: {
+    fort: { guns: 4, range: 220, damage: 5, health: 600, regenDelay: 60, regenRate: 0.004, facingOffing: 100 },
+    garrison: {
+      moored: [
+        { type: 'sloop', angle: 0.12, offing: 45 },
+        { type: 'caravel', angle: -0.14, offing: 50 },
+      ],
+      patrols: [],
+      patrolOffing: 120,
+      threat: 0.15,
+      reinforceDelay: [200, 320],
+      activeRadius: 900,
+      releaseRadius: 1200,
+    },
+    // Plus petites et plus rares que sur l'Île Royale.
+    counterAttack: { interval: [1800, 2200], warning: 120, starBonus: 0, maxStars: 3, spoilsPerShip: { gold: 90, wood: 35 } },
+  },
+};
+
+/** Réglages communs aux garnisons de la Marine (le reste dans NAVY_HOLDS). */
+export const GARRISON = {
+  /** Pas d'apparition à moins de cette distance de ton navire (m) : toujours hors de vue. */
+  spawnClearance: 550,
+  /** Les navires amarrés appareillent quand un navire hostile approche à moins de ce rayon du port (m), ou `hitAlarm` s après un coup sur le fort. */
+  alertRadius: 500,
+  hitAlarm: 5,
+  /** Au-delà de cette distance de son poste (m), un navire de la garnison lâche sa proie et rentre. */
+  leash: 900,
+  /** Un navire amarré qui a appareillé rejette l'ancre à moins de cette distance de sa place (m). */
+  mooringRadius: 25,
+  /** Tes navires à moins de cette distance d'un fort de la Marine le prennent pour cible (m). */
+  fortAimRange: 700,
+  /**
+   * La barre de vie d'un fort de la Marine s'affiche quand il sort de la brume : la caméra en est à moins de cette part
+   * du chemin entre le début et la fin de la brume (0 = début, 1 = fin, où il disparaît).
+   */
+  fortBarFog: 0.5,
 };
 
 /** Fort du port (canons d'appoint qui tirent sur les ennemis). */

@@ -5,31 +5,35 @@ interface Prompt {
   text: string | null;
 }
 
+/** Les commandes contextuelles et leur action (clic = touche). */
+type PromptId = 'helm' | 'port' | 'fish' | 'betray';
+const KEYS: Record<PromptId, string> = { helm: 'E', port: 'P', fish: 'F', betray: 'R' };
+
 /**
- * Commandes contextuelles en bas de l'écran : « E · Port de la Tortue » près du quai, « F · Pêcher » près d'un
- * banc, et une ligne d'état (pêche en cours). Cliquer revient à presser la touche.
+ * Commandes contextuelles en bas de l'écran : « E · Quitter la barre » (ou la reprendre, grimper au hauban),
+ * « P · Port de la Tortue » près du quai, « F · Pêcher » près d'un banc, « R · Trahir » quand un allié qu'on peut
+ * trahir est à portée, et une ligne d'état (pêche en cours, consigne de visée). Cliquer revient à presser la touche.
  */
 export class ActionPrompts {
-  private readonly port: Prompt;
-  private readonly fish: Prompt;
+  private readonly prompts: Record<PromptId, Prompt>;
   private readonly status: HTMLElement;
   private statusText: string | null = null;
 
-  constructor(parent: HTMLElement, onPort: () => void, onFish: () => void) {
+  constructor(parent: HTMLElement, actions: Record<PromptId, () => void>) {
     const root = document.createElement('div');
     root.className = 'action-prompts';
     this.status = document.createElement('div');
     this.status.className = 'action-status';
-    this.port = this.prompt('E', onPort);
-    this.fish = this.prompt('F', onFish);
-    root.append(this.status, this.port.button, this.fish.button);
+    const ids = Object.keys(KEYS) as PromptId[];
+    this.prompts = Object.fromEntries(ids.map((id) => [id, this.prompt(KEYS[id], actions[id])])) as Record<PromptId, Prompt>;
+    this.prompts.betray.button.classList.add('danger');
+    root.append(this.status, ...ids.map((id) => this.prompts[id].button));
     parent.appendChild(root);
   }
 
-  /** Libellés à afficher (null = commande cachée) et état de la pêche. */
-  update(port: string | null, fish: string | null, status: string | null) {
-    this.set(this.port, port);
-    this.set(this.fish, fish);
+  /** Libellés à afficher (null = commande cachée) et ligne d'état (pêche, visée). */
+  update(labels: Record<PromptId, string | null>, status: string | null) {
+    for (const id of Object.keys(KEYS) as PromptId[]) this.set(this.prompts[id], labels[id]);
     if (status === this.statusText) return;
     this.statusText = status;
     this.status.textContent = status ?? '';

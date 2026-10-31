@@ -1,11 +1,26 @@
 import type * as THREE from 'three';
-import { DECK_CREW } from '../config';
+import type { MastTop, TopRoute } from './mastTops';
 import { restPose, type SailorPose } from './sailorPose';
+import type { Shroud } from './shrouds';
 
-/** Ce que fait un marin sur son poste. */
-export type Duty = 'helm' | 'lookout' | 'idle' | 'look' | 'gun' | 'brace' | 'rope' | 'repair';
-/** Où il en est : à son poste, en chemin, descendu sous le pont ou en train d'en remonter, tombé à l'eau, absent. */
-export type Mode = 'act' | 'move' | 'below' | 'rise' | 'fall' | 'gone';
+/**
+ * Ce que fait un marin : barre, vigie, flânerie (`idle`, `look` accoudé au pavois), canons, à couvert, cordages,
+ * réparation, discussion, lavage du pont, cordages qu'on love, assis, là-haut dans les haubans (`aloft`) ou debout
+ * dans une hune à regarder le large (`watch`).
+ */
+export type Duty = 'helm' | 'lookout' | 'idle' | 'look' | 'gun' | 'brace' | 'rope' | 'repair' | 'chat' | 'swab' | 'coil' | 'sit' | 'aloft' | 'watch';
+
+/** Une place dans une hune : la hune, la place (index de MastTop.spots), la montée prise (null : il y est posé). */
+export interface Perch {
+  top: MastTop;
+  spot: number;
+  route: TopRoute | null;
+}
+/**
+ * Où il en est : à son poste, en chemin sur le pont, en train de grimper (échelle, hauban), descendu sous le pont ou
+ * en train d'en remonter, tombé à l'eau, absent.
+ */
+export type Mode = 'act' | 'move' | 'climb' | 'below' | 'rise' | 'fall' | 'gone';
 
 export interface Sailor {
   readonly role: 'helm' | 'lookout' | 'hand';
@@ -13,6 +28,8 @@ export interface Sailor {
   readonly hat: 'tricorn' | 'bandana';
   /** Phase propre (0..1) : les marins ne bougent pas tous en même temps. */
   readonly seed: number;
+  /** Allure propre (× la vitesse de marche) : chacun son pas. */
+  readonly pace: number;
   /** Pose dessinée, recalculée à chaque image. */
   readonly pose: SailorPose;
   // Position des pieds et orientation, dans le repère du navire.
@@ -20,17 +37,38 @@ export interface Sailor {
   y: number;
   z: number;
   facing: number;
-  /** Promenade d'attache (index dans DeckPlan.walks). */
+  /** Partie du pont où il flâne d'habitude (index dans DeckPlan.walks, pour répartir l'équipage). */
   walk: number;
   mode: Mode;
   duty: Duty;
-  /** Cible du déplacement, et orientation à l'arrivée. */
+  /** Cible du déplacement, et orientation voulue à l'arrivée (il s'y tourne en douceur). */
   tx: number;
   ty: number;
   tz: number;
   tf: number;
   run: boolean;
+  /** Temps restant de l'occupation en cours (s). */
   timer: number;
+  /** Petit rythme dans l'occupation (lavage : prochain déplacement, s). */
+  beat: number;
+  /** Chemin sur le pont (nœuds de DeckNav) et prochain nœud visé. */
+  path: number[];
+  step: number;
+  /** Vitesse de marche (m/s, repère du navire). */
+  wx: number;
+  wz: number;
+  /** Temps passé sans avancer (s) : au-delà, il cherche un autre chemin ; nouveaux chemins déjà cherchés pour ce trajet. */
+  stuck: number;
+  retries: number;
+  /** Escalade (échelle, hauban) : points à rejoindre (x, y, z à la suite), le prochain, et ce qui suit l'arrivée. */
+  climb: number[];
+  climbStep: number;
+  climbThen: 'path' | 'act';
+  /** Hauban où il grimpe, ou null ; place dans une hune (il y monte, y est ou en redescend), ou null. */
+  shroud: Shroud | null;
+  perch: Perch | null;
+  /** Groupe de discussion (-1 = aucun). */
+  group: number;
   /** Cycle de marche. */
   phase: number;
   /** 0 = sous le pont, 1 = debout sur le pont. */
@@ -48,12 +86,13 @@ export interface Sailor {
   spin: number;
 }
 
-export function newSailor(role: Sailor['role'], shirt: THREE.Color, hat: Sailor['hat']): Sailor {
+export function newSailor(role: Sailor['role'], shirt: THREE.Color, hat: Sailor['hat'], pace: number): Sailor {
   return {
-    role, shirt, hat, seed: Math.random(), pose: restPose(),
+    role, shirt, hat, seed: Math.random(), pace, pose: restPose(),
     x: 0, y: 0, z: 0, facing: 0, walk: 0, mode: 'act', duty: role === 'hand' ? 'idle' : role,
-    tx: 0, ty: 0, tz: 0, tf: 0, run: false, timer: 0, phase: 0, rise: 1, leaving: false, post: -1, recoil: 0,
-    vx: 0, vy: 0, vz: 0, spin: 0,
+    tx: 0, ty: 0, tz: 0, tf: 0, run: false, timer: 0, beat: 0, path: [], step: 0, wx: 0, wz: 0, stuck: 0, retries: 0,
+    climb: [], climbStep: 0, climbThen: 'act', shroud: null, perch: null, group: -1,
+    phase: 0, rise: 1, leaving: false, post: -1, recoil: 0, vx: 0, vy: 0, vz: 0, spin: 0,
   };
 }
 
@@ -71,12 +110,16 @@ export interface ShipMotion {
 const GRAVITY = 9.8;
 /** Vitesse de descente et de remontée par une écoutille (fraction par seconde). */
 const HATCH_SPEED = 2.5;
-/** Il est arrivé à moins de cette distance de sa cible (m). */
-const ARRIVED = 0.05;
+
+/** Angle `from` tourné vers `to` d'au plus `step` rad (par le plus court). */
+export function turnToward(from: number, to: number, step: number): number {
+  const d = Math.atan2(Math.sin(to - from), Math.cos(to - from));
+  return Math.abs(d) <= step ? to : from + Math.sign(d) * step;
+}
 
 /**
- * Fait avancer un marin selon son mode : chute (renvoie true quand il touche l'eau), descente sous le pont puis remontée
- * à sa cible, marche ou course vers sa cible. À son poste (« act »), rien ne bouge ici.
+ * Fait avancer un marin qui ne marche pas : chute (renvoie true quand il touche l'eau), descente sous le pont puis
+ * remontée à sa cible. La marche et l'escalade sont dans SailorWalker.
  */
 export function advance(s: Sailor, dt: number): boolean {
   s.recoil = Math.max(0, s.recoil - dt * 2);
@@ -104,140 +147,7 @@ export function advance(s: Sailor, dt: number): boolean {
       s.rise = Math.min(1, s.rise + dt * HATCH_SPEED);
       if (s.rise >= 1) s.mode = 'act';
       return false;
-    case 'move': {
-      const dx = s.tx - s.x;
-      const dz = s.tz - s.z;
-      const d = Math.hypot(dx, dz);
-      const speed = s.run ? DECK_CREW.runSpeed : DECK_CREW.walkSpeed;
-      if (d < ARRIVED + speed * dt) {
-        s.x = s.tx;
-        s.z = s.tz;
-        s.mode = 'act';
-        if (s.duty !== 'idle') s.facing = s.tf;
-        return false;
-      }
-      s.x += (dx / d) * speed * dt;
-      s.z += (dz / d) * speed * dt;
-      s.facing = Math.atan2(dx, dz);
-      s.phase += dt * speed * 5.5;
-      return false;
-    }
     default:
       return false;
-  }
-}
-
-/** Part du roulis et du tangage que le buste compense (équilibre). */
-const BALANCE = 0.6;
-const REST = restPose();
-
-/** Calcule la pose du marin selon ce qu'il fait. */
-export function poseSailor(s: Sailor, m: ShipMotion) {
-  const p = s.pose;
-  const t = m.time + s.seed * 20;
-  const f = s.facing;
-  Object.assign(p, REST);
-  p.x = s.x;
-  p.y = s.y;
-  p.z = s.z;
-  p.facing = f;
-  // Équilibre : le buste se redresse contre l'assiette du navire, exprimée dans le repère du marin.
-  p.lean = BALANCE * (m.pitch * Math.cos(f) + m.roll * Math.sin(f));
-  p.tilt = BALANCE * (m.pitch * Math.sin(f) - m.roll * Math.cos(f));
-  if (s.mode === 'fall') {
-    p.roll = s.spin;
-    p.armL = p.armR = 2.6;
-    p.outL = p.outR = 0.7;
-    p.legL = 0.5;
-    p.legR = -0.4;
-    return;
-  }
-  if (s.mode === 'move') {
-    const amp = s.run ? 0.75 : 0.45;
-    const w = Math.sin(s.phase);
-    p.legL = amp * w;
-    p.legR = -amp * w;
-    p.armL = 0.15 - amp * 0.8 * w;
-    p.armR = 0.15 + amp * 0.8 * w;
-    p.bob = Math.abs(Math.cos(s.phase)) * 0.03 - 0.015;
-    p.lean += s.run ? 0.2 : 0.05;
-  } else {
-    poseDuty(s, p, t, m);
-  }
-  // Sous le pont (descente, remontée) : il s'enfonce par l'écoutille.
-  p.bob -= (1 - s.rise) * 1.2;
-}
-
-function poseDuty(s: Sailor, p: SailorPose, t: number, m: ShipMotion) {
-  switch (s.duty) {
-    case 'idle':
-      p.bob = Math.sin(t * 1.6) * 0.008;
-      p.headYaw = Math.sin(t * 0.35) * 0.6;
-      // Les uns bras ballants, les autres les mains dans le dos.
-      if (s.seed > 0.6) {
-        p.armL = p.armR = -0.35;
-        p.outL = p.outR = 0.15;
-      }
-      break;
-    case 'look':
-      p.lean += 0.15;
-      p.armL = p.armR = 0.75;
-      p.outL = p.outR = 0.18;
-      p.headYaw = Math.sin(t * 0.3) * 0.3;
-      break;
-    case 'gun': {
-      // Accroupi derrière la culasse ; il recule quand la pièce tire, et refoule la charge pendant le rechargement.
-      const back = s.recoil * DECK_CREW.recoil;
-      p.x -= Math.sin(s.facing) * back;
-      p.z -= Math.cos(s.facing) * back;
-      p.bob = -0.12;
-      p.legL = 0.35;
-      p.legR = -0.2;
-      p.lean += 0.3 - s.recoil * 0.4;
-      p.armL = p.armR = 0.9 + (m.reloading(s.post) ? 0.45 * Math.sin(t * 7) : 0);
-      break;
-    }
-    case 'brace':
-      // En combat, sans canon à servir : accroupi derrière le pavois, il guette le large.
-      p.bob = -0.22;
-      p.legL = 0.8;
-      p.legR = 0.15;
-      p.lean += 0.35;
-      p.armL = p.armR = 0.55;
-      p.headYaw = Math.sin(t * 0.8) * 0.4;
-      break;
-    case 'rope':
-      // Il hale, une main après l'autre, penché en arrière.
-      p.lean -= 0.3;
-      p.bob = -0.05;
-      p.legL = 0.4;
-      p.legR = -0.25;
-      p.armL = 2 + 0.45 * Math.sin(t * 5);
-      p.armR = 2 + 0.45 * Math.sin(t * 5 + Math.PI);
-      p.outL = p.outR = 0.12;
-      break;
-    case 'repair':
-      // À genoux, il cloue une planche.
-      p.bob = -0.32;
-      p.legL = 1.4;
-      p.legR = 0.2;
-      p.lean += 0.55;
-      p.armL = 0.8;
-      p.armR = 1.1 + 0.7 * Math.max(0, Math.sin(t * 9));
-      break;
-    case 'helm':
-      // Les mains sur la roue ; il se penche dans le virage.
-      p.armL = p.armR = 1.2;
-      p.outL = p.outR = 0.22;
-      p.tilt -= m.rudder * 0.15;
-      p.headYaw = Math.sin(t * 0.25) * 0.25;
-      break;
-    case 'lookout':
-      // La main en visière, il balaie l'horizon.
-      p.armR = 2.7;
-      p.outR = 0.45;
-      p.lean += 0.05;
-      p.headYaw = Math.sin(t * 0.5) * 0.9;
-      break;
   }
 }

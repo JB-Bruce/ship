@@ -1,17 +1,27 @@
 import { CONTRACTS, ISLAND_INFO, SPECIAL_CONTRACTS, type BossId, type Cost, type IslandId } from '../config';
-import { sizeRank, type ShipType } from '../shipTypes';
-import { createOffer, offerKey, specialOffer } from './contractOffers';
+import type { ShipType } from '../shipTypes';
+import { harbors } from '../world/harbors';
+import { createOffer, offerKey, specialOffer, withTypeTokens } from './contractOffers';
 import type { Good } from './goods';
+import { shipThreat } from './missionThreat';
 
-export type ContractKind = 'sink' | 'sinkType' | 'sinkElite' | 'deliver' | 'sinkBoss' | 'hunt' | 'defend' | 'escort';
+export type ContractKind = 'sink' | 'sinkType' | 'sinkElite' | 'deliver' | 'sinkBoss' | 'hunt' | 'planHunt' | 'defend' | 'escort' | 'battle';
+
+/** Les contrats suivis par le directeur des missions (il fait apparaître ce qu'il faut en mer). */
+export const MISSION_KINDS: readonly ContractKind[] = ['hunt', 'planHunt', 'defend', 'escort', 'battle'];
 
 export interface Contract {
   readonly id: number;
   readonly kind: ContractKind;
   readonly title: string;
   readonly description: string;
-  /** Difficulté, de 1 à CONTRACTS.stars étoiles. */
+  /** Difficulté, de 1 à CONTRACTS.stars étoiles (pour un combat : la menace réelle, missionThreat.ts). */
   readonly stars: number;
+  /**
+   * Palier des tables par étoile (escadre, embuscades) d'une offre du jour : les étoiles tirées autour du niveau de ta
+   * flotte. Absent des anciennes sauvegardes et des missions spéciales : `stars`.
+   */
+  readonly tier?: number;
   /** Nombre à atteindre (navires, unités livrées, 1 pour une mission). */
   readonly target: number;
   readonly reward: Cost;
@@ -43,17 +53,21 @@ export interface ContractOptions {
   elites: boolean;
   /** Niveau de ta flotte (1 à 5) : les étoiles des offres se tirent autour. */
   level: number;
+  /** Ton plus gros navire (la chasse aux plans vise au plus un rang au-dessus). */
+  best: ShipType;
 }
 
 /** Genre de mission affiché sur les contrats (offres, contrats en cours, suivi à l'écran). */
-export type MissionType = 'combat' | 'hunt' | 'bounty' | 'defense' | 'escort' | 'convoy' | 'delivery';
+export type MissionType = 'combat' | 'hunt' | 'plans' | 'bounty' | 'defense' | 'escort' | 'battle' | 'convoy' | 'delivery';
 
 export const MISSION_TYPES: Record<MissionType, { name: string; icon: string }> = {
   combat: { name: 'Combat', icon: '⚔' },
   hunt: { name: 'Chasse', icon: '🎯' },
+  plans: { name: 'Plans', icon: '📜' },
   bounty: { name: 'Prime', icon: '☠' },
   defense: { name: 'Défense', icon: '🏰' },
   escort: { name: 'Escorte', icon: '⛵' },
+  battle: { name: 'Renfort', icon: '⚓' },
   convoy: { name: 'Convoi', icon: '📦' },
   delivery: { name: 'Livraison', icon: '🐟' },
 };
@@ -61,9 +75,11 @@ export const MISSION_TYPES: Record<MissionType, { name: string; icon: string }> 
 export function missionType(c: Contract): MissionType {
   switch (c.kind) {
     case 'hunt': return 'hunt';
+    case 'planHunt': return 'plans';
     case 'sinkBoss': return 'bounty';
     case 'defend': return 'defense';
     case 'escort': return 'escort';
+    case 'battle': return 'battle';
     case 'deliver': return c.good === 'fish' ? 'delivery' : 'convoy';
     default: return 'combat';
   }
@@ -76,8 +92,17 @@ export function missionTag(c: Contract): string {
   return `<span class="tag mission ${type}">${icon} ${name}</span>`;
 }
 
-/** « ★★★☆☆ » */
-export const starsText = (stars: number) => '★'.repeat(stars) + '☆'.repeat(CONTRACTS.stars - stars);
+/** « ★★★ » : seulement les étoiles gagnées. */
+export const starsText = (stars: number) => '★'.repeat(stars);
+
+/** Ce qu'une sauvegarde garde des contrats. */
+export interface ContractsSnapshot {
+  offers: Record<IslandId, Contract[]>;
+  active: Contract[];
+  dayLeft: number;
+  specialsDone: string[];
+  nextId: number;
+}
 
 /**
  * Contrats des tavernes. Chaque île pirate affiche ses offres du jour (contractOffers.ts : les mêmes genres partout,
@@ -98,6 +123,24 @@ export class Contracts {
   private readonly specialContracts = new Map<string, Contract>();
   private nextId = 1;
 
+  /** État à sauvegarder : offres du jour, contrats acceptés (avec leur avancement), missions spéciales réussies. */
+  snapshot(): ContractsSnapshot {
+    return { offers: structuredClone(this.offers), active: structuredClone(this.active), dayLeft: this.dayLeft, specialsDone: [...this.specialsDone], nextId: this.nextId };
+  }
+
+  restore(s: ContractsSnapshot) {
+    // Les noms de types des anciennes sauvegardes passent en noms à trous (cachés tant que le type est inconnu).
+    for (const id of Object.keys(this.offers) as IslandId[]) this.offers[id] = (s.offers[id] ?? []).map(withTypeTokens);
+    this.active.splice(0, this.active.length, ...s.active.map(withTypeTokens));
+    this.dayLeft = s.dayLeft;
+    this.specialsDone.clear();
+    for (const id of s.specialsDone) this.specialsDone.add(id);
+    // Une mission spéciale acceptée reste la même (elle n'est plus proposée tant qu'elle est en cours).
+    this.specialContracts.clear();
+    for (const c of this.active) if (c.special) this.specialContracts.set(c.special, c);
+    this.nextId = s.nextId;
+  }
+
   /** Le temps passe : à chaque nouvelle journée, les offres du jour non acceptées sont retirées. Renvoie true alors. */
   tick(dt: number): boolean {
     this.dayLeft -= dt;
@@ -107,9 +150,9 @@ export class Contracts {
     return true;
   }
 
-  /** Complète les offres du jour de la taverne d'une île (seules les îles pirates en proposent). */
+  /** Complète les offres du jour de la taverne d'une île (pas celle d'un port tenu par la Marine). */
   refresh(island: IslandId, options: ContractOptions) {
-    if (ISLAND_INFO[island].allegiance !== 'pirate') return;
+    if (!harbors.isOpen(island)) return;
     const offers = this.offers[island];
     while (offers.length < CONTRACTS.offers) {
       // Pas deux offres du même genre ici, ni d'un genre déjà accepté.
@@ -121,7 +164,7 @@ export class Contracts {
 
   /** Missions spéciales proposées par une île : les premières de sa liste pas encore réussies, hors celles en cours. */
   specials(island: IslandId): Contract[] {
-    if (ISLAND_INFO[island].allegiance !== 'pirate') return [];
+    if (!harbors.isOpen(island)) return [];
     const open = SPECIAL_CONTRACTS[island].filter((d) => !this.specialsDone.has(d.id)).slice(0, CONTRACTS.specialsShown);
     return open.map((def) => {
       let contract = this.specialContracts.get(def.id);
@@ -198,6 +241,6 @@ function drawStars(level: number): number {
 
 /** Niveau d'une flotte (1 à 5) d'après la taille de ses navires : une chaloupe seule = 1, six corvettes = 5. */
 export function fleetLevel(types: readonly ShipType[]): number {
-  const size = types.reduce((sum, t) => sum + sizeRank(t) + 1, 0);
+  const size = types.reduce((sum, t) => sum + shipThreat(t), 0);
   return Math.min(CONTRACTS.stars, Math.max(1, Math.round(size / CONTRACTS.fleetLevelDivisor)));
 }

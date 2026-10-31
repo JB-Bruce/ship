@@ -1,0 +1,120 @@
+import * as THREE from 'three';
+import { HELM_VIEW } from '../config';
+import type { Ship } from '../ship/ship';
+
+const eye = new THREE.Vector3();
+const shipTurn = new THREE.Quaternion();
+const look = new THREE.Quaternion();
+const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+
+/**
+ * Vue à la première personne : à la place du barreur du bateau piloté (V bascule avec la vue de loin), ou par les
+ * yeux du joueur qui se promène sur le pont (on/onFoot). La souris capturée tourne la tête librement ; le regard reste
+ * où on l'a laissé et suit le roulis et le tangage du pont. Échap rend le curseur et ouvre le menu (refermé, il reprend la
+ * souris ; sinon un clic dans la vue la reprend). Sur
+ * un navire sans plan de pont (barques), l'œil du barreur est à l'arrière, sur l'axe.
+ */
+export class FirstPersonView {
+  active = false;
+  /** Tête tournée vers bâbord (rad), et levée (rad). */
+  private yaw = 0;
+  private pitch = 0;
+  /** La souris était capturée, et c'est nous qui la rendons (menu ouvert) : pas un Échap du joueur. */
+  private wasLocked = false;
+  private releasing = false;
+  /**
+   * La souris n'a pas pu être reprise : le navigateur refuse quand le menu a été fermé par Échap (cette touche ne
+   * compte pas comme un geste du joueur). Un clic dans la vue la reprend.
+   */
+  onCaptureRefused: () => void = () => {};
+  /** Regard figé (roue d'ordres ouverte : la souris sert à viser un ordre). */
+  frozen = false;
+  /** Vitesse du regard (< 1 à la longue-vue). */
+  lookScale = 1;
+  /** Échap pressé souris capturée : le navigateur rend le curseur sans transmettre la touche ; on ouvre le menu tout de suite. */
+  onEscape: () => void = () => {};
+
+  constructor(
+    private readonly camera: THREE.PerspectiveCamera,
+    private readonly dom: HTMLElement,
+  ) {
+    document.addEventListener('mousemove', (e) => {
+      // Roue d'ordres ouverte : la souris vise un ordre, le regard ne bouge plus.
+      if (!this.locked || this.frozen) return;
+      // Un saut énorme d'un seul coup est un raté du navigateur (capture qui démarre), pas un geste.
+      if (Math.abs(e.movementX) > HELM_VIEW.maxMouseStep || Math.abs(e.movementY) > HELM_VIEW.maxMouseStep) return;
+      const s = HELM_VIEW.sensitivity * this.lookScale;
+      this.yaw -= e.movementX * s;
+      this.pitch = THREE.MathUtils.clamp(this.pitch - e.movementY * s, -HELM_VIEW.maxPitch, HELM_VIEW.maxPitch);
+    });
+    document.addEventListener('pointerlockchange', () => {
+      const locked = document.pointerLockElement === this.dom;
+      if (this.wasLocked && !locked && !this.releasing && this.active) this.onEscape();
+      this.wasLocked = locked;
+      this.releasing = false;
+    });
+  }
+
+  /** La souris est-elle capturée par la vue ? */
+  get locked(): boolean {
+    return this.active && document.pointerLockElement === this.dom;
+  }
+
+  /** Regard tourné vers bâbord depuis la proue (rad) : la direction où l'on marche. */
+  get heading(): number {
+    return this.yaw;
+  }
+
+  /** Entre dans la vue à la première personne (regard vers la proue, souris capturée) ou en sort. */
+  setActive(active: boolean) {
+    if (active === this.active) return;
+    this.active = active;
+    this.yaw = 0;
+    this.pitch = HELM_VIEW.startPitch;
+    this.camera.near = active ? HELM_VIEW.near : HELM_VIEW.chaseNear;
+    this.camera.updateProjectionMatrix();
+    if (active) this.capture();
+    else this.release();
+  }
+
+  /**
+   * Capture la souris (il faut un geste du joueur : touche ou clic). En mouvement brut si le navigateur le permet : le
+   * curseur caché ne bute jamais contre le bord de la fenêtre, la tête tourne sans limite.
+   */
+  capture() {
+    if (!this.active || this.locked) return;
+    // Refusé hors d'un geste du joueur : sans conséquence, un clic la reprendra.
+    const raw = this.dom.requestPointerLock({ unadjustedMovement: true }) as Promise<void> | undefined;
+    raw?.catch?.((error: DOMException) => {
+      if (error?.name === 'NotSupportedError') (this.dom.requestPointerLock() as Promise<void> | undefined)?.catch?.(() => {});
+    });
+    setTimeout(() => {
+      if (this.active && !this.locked && !document.pointerLockElement) this.onCaptureRefused();
+    }, HELM_VIEW.captureCheck);
+  }
+
+  release() {
+    if (document.pointerLockElement !== this.dom) return;
+    this.releasing = true;
+    document.exitPointerLock();
+  }
+
+  /**
+   * Place la caméra dans le repère de `ship` (assiette comprise) : à `foot` (les yeux du joueur à pied, repère du
+   * navire), sinon à l'œil du barreur.
+   */
+  place(ship: Ship, foot: THREE.Vector3 | null = null) {
+    const root = ship.model.root;
+    root.updateMatrixWorld();
+    const helm = ship.model.deckPlan?.helm;
+    if (foot) eye.copy(foot);
+    else if (helm) eye.set(helm.x, helm.y + HELM_VIEW.eyeHeight, helm.z - HELM_VIEW.behindWheel);
+    else eye.set(0, HELM_VIEW.boatEye, -ship.stats.length * HELM_VIEW.boatStern);
+    eye.applyMatrix4(root.matrixWorld);
+    this.camera.position.copy(eye);
+    // La caméra regarde vers -Z : un demi-tour pour regarder vers la proue (+Z du navire).
+    root.getWorldQuaternion(shipTurn);
+    look.setFromEuler(euler.set(this.pitch, Math.PI + (helm?.facing ?? 0) + this.yaw, 0));
+    this.camera.quaternion.multiplyQuaternions(shipTurn, look);
+  }
+}

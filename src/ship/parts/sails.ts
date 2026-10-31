@@ -1,11 +1,17 @@
 import * as THREE from 'three';
+import { SAIL_BILLOW } from '../../config';
+
+/** Nombre de facettes le long d'un côté de voile de `length` mètres : les grandes voiles restent souples une fois gonflées. */
+export function sailSegments(length: number, facet: number = SAIL_BILLOW.facet): number {
+  return THREE.MathUtils.clamp(Math.ceil(length / facet), SAIL_BILLOW.minSegments, SAIL_BILLOW.maxSegments);
+}
 
 /**
  * Voile carrée gonflée vers l'avant (+Z), ancrée en haut (y = 0) pour se carguer vers sa vergue :
  * on l'écrase en Y depuis le haut.
  */
 export function buildSquareSail(width: number, height: number, bulge: number): THREE.BufferGeometry {
-  const geometry = new THREE.PlaneGeometry(width, height, 4, 4);
+  const geometry = new THREE.PlaneGeometry(width, height, sailSegments(width), sailSegments(height));
   geometry.translate(0, -height / 2, 0);
   const pos = geometry.attributes.position;
   for (let i = 0; i < pos.count; i++) {
@@ -19,7 +25,7 @@ export function buildSquareSail(width: number, height: number, bulge: number): T
  * Voile triangulaire (foc), origine au point d'amure. `head` et `clew` sont relatifs à l'amure ;
  * la toile se creuse sur +X (on la retourne en X pour l'autre bord).
  */
-export function buildTriangleSail(head: THREE.Vector3, clew: THREE.Vector3, bulge: number, n = 4): THREE.BufferGeometry {
+export function buildTriangleSail(head: THREE.Vector3, clew: THREE.Vector3, bulge: number, n = sailSegments(Math.max(head.length(), clew.length()), SAIL_BILLOW.triangleFacet)): THREE.BufferGeometry {
   const positions: number[] = [];
   const index: number[] = [];
   const ids: number[][] = [];
@@ -66,7 +72,7 @@ export interface GaffSailShape {
 }
 
 /** Voile aurique dans le repère de son gréement (plan x = 0, vers l'arrière), creusée par `bulge`. */
-export function buildGaffSail({ tack, clew, peak, throat, bulge }: GaffSailShape, n = 5): THREE.BufferGeometry {
+export function buildGaffSail({ tack, clew, peak, throat, bulge }: GaffSailShape, n = sailSegments(Math.max(tack.distanceTo(clew), tack.distanceTo(throat)))): THREE.BufferGeometry {
   const positions: number[] = [];
   const index: number[] = [];
   const bottom = new THREE.Vector3();
@@ -93,4 +99,29 @@ export function buildGaffSail({ tack, clew, peak, throat, bulge }: GaffSailShape
   geometry.setIndex(index);
   geometry.computeVertexNormals();
   return geometry;
+}
+
+/**
+ * Voile latine : un triangle envergué sur une longue vergue inclinée qui croise le mât. Points dans le repère de son
+ * gréement (plan x = 0, origine sur le mât, là où la vergue le croise) : `tack` = bout bas de la vergue, vers l'avant ;
+ * `peak` = bout haut, vers l'arrière ; `clew` = point d'écoute, en bas à l'arrière.
+ */
+export interface LateenSailShape {
+  tack: THREE.Vector3;
+  peak: THREE.Vector3;
+  clew: THREE.Vector3;
+  bulge: number;
+}
+
+/**
+ * Voile latine dans le repère de sa vergue : origine au bout bas (`tack`), vergue le long de +Z, toile d'un côté de
+ * la vergue dans le plan YZ, creux sur +X. Pour la carguer contre sa vergue, on l'écrase en Y. `pitch` : rotation
+ * autour de X qui couche ce repère sur la vergue, dans le repère du gréement (à poser au point `tack`).
+ */
+export function buildLateenSail({ tack, peak, clew, bulge }: LateenSailShape): { sail: THREE.BufferGeometry; pitch: number; yardLength: number } {
+  const along = peak.clone().sub(tack);
+  const pitch = Math.atan2(-along.y, along.z);
+  const toYard = (v: THREE.Vector3) => v.clone().sub(tack).applyAxisAngle(new THREE.Vector3(1, 0, 0), -pitch);
+  const yardLength = along.length();
+  return { sail: buildTriangleSail(toYard(peak), toYard(clew), bulge), pitch, yardLength };
 }

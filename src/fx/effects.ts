@@ -1,12 +1,15 @@
 import * as THREE from 'three';
-import { DAMAGE } from '../config';
+import { DAMAGE, FEEDBACK, MORTAR_FX, SURF } from '../config';
 import type { WakeMap } from '../ocean/wakeMap';
 import type { Waves } from '../ocean/waves';
 import type { Ship } from '../ship/ship';
+import { emitDamageTrail } from './damageTrail';
 import { HullFootprints } from './hullFootprints';
+import { KrakenFx } from './krakenFx';
 import { COLORS, rand, reset } from './particleKit';
 import { ParticleSystem } from './particles';
 import { SeaSpray } from './seaSpray';
+import { ShellFx } from './shellFx';
 
 /** Réglages des embruns d'étrave (le sillage, lui, est dessiné par le shader de l'eau : voir ocean/wakeMap.ts). */
 const SPRAY = {
@@ -28,6 +31,7 @@ const SPRAY = {
 interface ShipTimers {
   bow: number;
   sink: number;
+  debris: number;
   order: number[];
   smoke: number[];
   flame: number[];
@@ -39,7 +43,7 @@ function createTimers(spots: number): ShipTimers {
     const j = Math.floor(Math.random() * (i + 1));
     [order[i], order[j]] = [order[j], order[i]];
   }
-  return { bow: 0, sink: 0, order, smoke: new Array(spots).fill(0), flame: new Array(spots).fill(0) };
+  return { bow: 0, sink: 0, debris: 0, order, smoke: new Array(spots).fill(0), flame: new Array(spots).fill(0) };
 }
 
 const spot = new THREE.Vector3();
@@ -53,12 +57,19 @@ export class Effects {
   private readonly timers = new WeakMap<Ship, ShipTimers>();
   private readonly hulls = new HullFootprints();
   private readonly sea = new SeaSpray(this.lit);
+  private readonly shells: ShellFx;
+  /** Sang noir, gerbes géantes et ruissellement du Kraken. */
+  readonly kraken: KrakenFx;
+  /** Obscurité (0 jour, 1 nuit ou orage), posée par `Game` : les boulets y laissent une traînée rougeoyante. */
+  darkness = 0;
 
   constructor(
     scene: THREE.Scene,
     private readonly wakes: WakeMap,
   ) {
     scene.add(this.lit.mesh, this.glow.mesh);
+    this.shells = new ShellFx(this.lit, this.glow, wakes);
+    this.kraken = new KrakenFx(this.lit, wakes);
   }
 
   /**
@@ -87,11 +98,33 @@ export class Effects {
     }
   }
 
-  /** Fine fumée laissée par un boulet en vol. */
+  /** Mortier : départ du coup, traînée de l'obus, explosion où il tombe, colonne d'eau s'il tombe à la mer. */
+  mortarLaunch(p: THREE.Vector3) {
+    this.shells.launch(p);
+  }
+
+  shellTrail(p: THREE.Vector3) {
+    this.shells.trail(p);
+  }
+
+  shellBlast(p: THREE.Vector3) {
+    this.explosion(p, MORTAR_FX.blastScale);
+  }
+
+  waterColumn(x: number, y: number, z: number) {
+    this.shells.waterColumn(x, y, z);
+  }
+
+  /** Fine fumée laissée par un boulet en vol, et sa braise : à peine de jour, une vraie traînée rouge la nuit. */
   trail(p: THREE.Vector3) {
     const s = reset(p.x, p.y, p.z, COLORS.smoke);
     Object.assign(s, { vy: 0.3, life: rand(0.5, 0.8), size: 0.12, sizeEnd: 0.3, drag: 1 });
     this.lit.spawn(s);
+    const g = FEEDBACK.ballGlow;
+    if (Math.random() > g.day + (g.night - g.day) * this.darkness) return;
+    const e = reset(p.x, p.y, p.z, Math.random() < 0.4 ? COLORS.flash : COLORS.fire);
+    Object.assign(e, { life: rand(0.25, 0.4), size: 0.16, sizeEnd: 0.03 });
+    this.glow.spawn(e);
   }
 
   /** Boulet qui touche une coque : éclats de bois, étincelles et fumée sombre. */
@@ -116,6 +149,29 @@ export class Effects {
     }
   }
 
+  /**
+   * Boulet dans le gréement : des lambeaux de toile qui voltigent et retombent en tournoyant, et quelques petits
+   * éclats de bois (vergue, cordage) ; ni flash ni fumée, ce n'est pas la coque qui éclate.
+   */
+  riggingHit(p: THREE.Vector3) {
+    for (let i = 0; i < 9; i++) {
+      const s = reset(p.x, p.y, p.z, COLORS.canvas);
+      Object.assign(s, {
+        vx: rand(-3, 3), vy: rand(0.5, 3), vz: rand(-3, 3), life: rand(1.6, 2.6), size: rand(0.18, 0.32), sizeEnd: 0.12,
+        gravity: 3, drag: 1.6, spin: rand(-6, 6), shapeX: 1.4, shapeY: 0.15, shapeZ: 1,
+      });
+      this.lit.spawn(s);
+    }
+    for (let i = 0; i < 4; i++) {
+      const s = reset(p.x, p.y, p.z, i % 2 ? COLORS.wood : COLORS.woodLight);
+      Object.assign(s, {
+        vx: rand(-3, 3), vy: rand(1, 4), vz: rand(-3, 3), life: rand(0.8, 1.2), size: rand(0.05, 0.09), sizeEnd: 0.05,
+        gravity: 12, drag: 0.4, spin: rand(-12, 12), shapeX: 0.6, shapeY: 0.6, shapeZ: rand(2, 3),
+      });
+      this.lit.spawn(s);
+    }
+  }
+
   /** Boulet qui tombe à l'eau : colonne d'eau, gouttes retombantes, anneau d'écume, et sa trace sur l'eau. */
   splash(x: number, y: number, z: number) {
     this.wakes.splash(x, z);
@@ -132,6 +188,25 @@ export class Effects {
     }
   }
 
+  /** Brume pâle et faiblement lumineuse (visible de nuit) qui traîne autour d'un navire maudit. */
+  ghostMist(x: number, y: number, z: number) {
+    const s = reset(x, y, z, COLORS.mist);
+    Object.assign(s, { vx: rand(-0.4, 0.4), vy: rand(0.1, 0.35), vz: rand(-0.4, 0.4), life: rand(2, 3.2), size: rand(0.25, 0.45), sizeEnd: 0.05, drag: 0.3, spin: rand(-0.3, 0.3) });
+    this.glow.spawn(s);
+  }
+
+  /** L'eau bouillonne là où un navire maudit sort des flots ou y replonge : écume posée en anneau, gouttes. */
+  seethe(x: number, y: number, z: number, radius: number) {
+    const a = Math.random() * Math.PI * 2;
+    const r = radius * Math.sqrt(Math.random());
+    const s = reset(x + Math.sin(a) * r, y, z + Math.cos(a) * r, COLORS.foam);
+    Object.assign(s, { vx: Math.sin(a) * 1.2, vz: Math.cos(a) * 1.2, life: rand(1.2, 2), size: rand(0.3, 0.5), sizeEnd: 0.9, drag: 1.2, shapeY: 0.15, onWater: true });
+    this.lit.spawn(s);
+    const d = reset(x + Math.sin(a) * r, y, z + Math.cos(a) * r, COLORS.water);
+    Object.assign(d, { vx: rand(-0.8, 0.8), vy: rand(2, 4), vz: rand(-0.8, 0.8), life: rand(0.6, 1), size: rand(0.12, 0.22), sizeEnd: 0.06, gravity: 10, drag: 0.3 });
+    this.lit.spawn(d);
+  }
+
   /** Boulet qui s'écrase sur l'île : mottes de terre et nuage de poussière. */
   groundHit(p: THREE.Vector3) {
     for (let i = 0; i < 10; i++) {
@@ -144,6 +219,68 @@ export class Effects {
       Object.assign(s, { vx: rand(-1.2, 1.2), vy: rand(0.5, 1.5), vz: rand(-1.2, 1.2), life: rand(1.2, 2), size: 0.4, sizeEnd: rand(1.2, 1.8), drag: 1.5 });
       this.lit.spawn(s);
     }
+  }
+
+  /** Explosion (réserve de poudre, naufrage d'un boss) : éclair, boule de feu, éclats projetés et colonne de fumée noire. */
+  explosion(p: THREE.Vector3, scale = 1) {
+    for (let i = 0; i < 4; i++) {
+      const s = reset(p.x, p.y + 1, p.z, COLORS.gold);
+      Object.assign(s, { vx: rand(-1, 1), vy: rand(0, 2), vz: rand(-1, 1), life: rand(0.3, 0.45), size: 2.6 * scale, sizeEnd: 0.6 * scale });
+      this.glow.spawn(s);
+    }
+    for (let i = 0; i < 40; i++) {
+      const s = reset(p.x, p.y + 0.8, p.z, i % 3 ? COLORS.fire : COLORS.gold);
+      Object.assign(s, {
+        vx: rand(-7, 7) * scale, vy: rand(2, 10) * scale, vz: rand(-7, 7) * scale, life: rand(0.6, 1.2),
+        size: rand(0.7, 1.2) * scale, sizeEnd: 0.15, gravity: 4, drag: 1.4,
+      });
+      this.glow.spawn(s);
+    }
+    this.impact(p);
+    this.impact(p);
+    for (let i = 0; i < 16; i++) {
+      const s = reset(p.x + rand(-1, 1) * scale, p.y + 1.5, p.z + rand(-1, 1) * scale, COLORS.darkSmoke);
+      Object.assign(s, { vx: rand(-1.2, 1.2), vy: rand(2.5, 5.5), vz: rand(-1.2, 1.2), life: rand(3, 5), size: rand(1, 1.6) * scale, sizeEnd: rand(3.5, 5) * scale, drag: 0.9 });
+      this.lit.spawn(s);
+    }
+  }
+
+  /** Flammes d'un incendie à bord en `p` : flammèches qui montent, parfois une bouffée de fumée noire. */
+  flame(p: THREE.Vector3) {
+    const f = reset(p.x + rand(-0.3, 0.3), p.y + 0.1, p.z + rand(-0.3, 0.3), Math.random() < 0.3 ? COLORS.gold : COLORS.fire);
+    Object.assign(f, { vx: rand(-0.4, 0.4), vy: rand(1.5, 3), vz: rand(-0.4, 0.4), life: rand(0.4, 0.7), size: rand(0.3, 0.5), sizeEnd: 0.05 });
+    this.glow.spawn(f);
+  }
+
+  /** Braise d'un incendie : une étincelle qui monte haut en tourbillonnant. */
+  ember(p: THREE.Vector3) {
+    const s = reset(p.x + rand(-0.4, 0.4), p.y + 0.3, p.z + rand(-0.4, 0.4), COLORS.gold);
+    Object.assign(s, { vx: rand(-1, 1), vy: rand(3, 6), vz: rand(-1, 1), life: rand(1, 1.8), size: 0.09, sizeEnd: 0.02, drag: 0.6 });
+    this.glow.spawn(s);
+  }
+
+  /** Grosse bouffée de fumée noire qui monte haut (panache d'un incendie, colonne d'une explosion) ; `scale` = taille. */
+  plume(p: THREE.Vector3, scale = 1) {
+    const s = reset(p.x + rand(-0.4, 0.4) * scale, p.y + 0.5, p.z + rand(-0.4, 0.4) * scale, COLORS.darkSmoke);
+    Object.assign(s, { vx: rand(-0.5, 0.5), vy: rand(2.2, 3.4) * scale, vz: rand(-0.5, 0.5), life: rand(2.5, 3.5), size: rand(0.35, 0.6) * scale, sizeEnd: rand(1.4, 2) * scale, drag: 0.4, spin: rand(-0.4, 0.4) });
+    this.lit.spawn(s);
+  }
+
+  /**
+   * Nuage de fumée d'une très grosse explosion (brûlot) : lourdes volutes sombres qui montent peu à peu dans le ciel en
+   * s'étalant, puis disparaissent (`scale` : taille).
+   */
+  smokeCloud(p: THREE.Vector3, scale = 1) {
+    const s = reset(p.x + rand(-1.5, 1.5) * scale, p.y + rand(0, 2) * scale, p.z + rand(-1.5, 1.5) * scale, COLORS.darkSmoke);
+    Object.assign(s, { vx: rand(-1.6, 1.6), vy: rand(4.5, 7.5), vz: rand(-1.6, 1.6), life: rand(11, 16), size: rand(1, 1.6) * scale, sizeEnd: rand(4, 6) * scale, drag: 0.12, spin: rand(-0.2, 0.2) });
+    this.lit.spawn(s);
+  }
+
+  /** Bouffée de fumée (incendie, gouvernail brisé) en `p`. */
+  puff(p: THREE.Vector3, dark: boolean) {
+    const s = reset(p.x + rand(-0.2, 0.2), p.y + 0.2, p.z + rand(-0.2, 0.2), dark ? COLORS.darkSmoke : COLORS.smoke);
+    Object.assign(s, { vx: rand(-0.3, 0.3), vy: rand(1.5, 2.6), vz: rand(-0.3, 0.3), life: rand(1.6, 2.4), size: rand(0.5, 0.8), sizeEnd: 0.1, drag: 0.3, spin: rand(-0.5, 0.5) });
+    this.lit.spawn(s);
   }
 
   /** Coup fatal : grosse gerbe d'éclats et de fumée. */
@@ -179,7 +316,9 @@ export class Effects {
     // projetées vers l'extérieur et vers l'avant (pour ne pas retomber dans la coque qui avance).
     const bowAhead = half * SPRAY.bowAhead;
     const bowOut = (ship.stats.width / 2) * SPRAY.bowOut + SPRAY.bowGap;
-    t.bow += dt * Math.max(0, ship.speed - SPRAY.sprayMinSpeed) * SPRAY.sprayRate;
+    // En glisse sur la pente d'une vague, l'étrave en jette bien plus, et plus haut.
+    const surf = ship.surfAmount;
+    t.bow += ship.intangible ? 0 : dt * Math.max(0, ship.speed - SPRAY.sprayMinSpeed) * SPRAY.sprayRate * (1 + SURF.spray * surf);
     while (t.bow >= 1) {
       t.bow -= 1;
       const side = Math.random() < 0.5 ? 1 : -1;
@@ -193,13 +332,14 @@ export class Effects {
       const forward = ship.speed * rand(SPRAY.sprayForward[0], SPRAY.sprayForward[1]);
       const d = reset(x, waves.heightAt(x, z) + 0.05, z, COLORS.water);
       Object.assign(d, {
-        vx: ox * out + fx * forward, vy: rand(1.5, 3) + ship.speed * 0.08, vz: oz * out + fz * forward,
+        vx: ox * out + fx * forward, vy: rand(1.5, 3) + ship.speed * 0.08 + SURF.sprayLift * surf, vz: oz * out + fz * forward,
         life: rand(0.6, 0.9), size: rand(0.1, 0.18), sizeEnd: 0.05, gravity: 9, drag: 0.4, water: true,
       });
       this.lit.spawn(d);
     }
 
     this.damageFires(dt, ship, t);
+    t.debris = emitDamageTrail(this.lit, dt, ship, waves, t.debris);
 
     if (!ship.alive) {
       // Naufrage : bouillonnement d'écume autour de la coque.

@@ -93,6 +93,22 @@ function buildSpiceCrate(): LootModel {
  */
 export type LootCollector = (ship: Ship, kind: LootKind, value: number) => number;
 
+/**
+ * Un bateau passe-t-il sur ce point (butin, rouleau de plan) ? La zone suit sa coque : une gélule de sa longueur et de sa
+ * largeur (allongements compris), orientée selon son cap, plus LOOT.pickupMargin tout autour.
+ */
+export function passesOver(ship: Ship, p: { x: number; z: number }): boolean {
+  const { length, width } = ship.stats;
+  const dx = p.x - ship.position.x;
+  const dz = p.z - ship.position.z;
+  // Position le long de l'axe proue-poupe, ramenée sur le segment central de la gélule.
+  const half = Math.max(0, (length - width) / 2);
+  const along = Math.max(-half, Math.min(half, dx * Math.sin(ship.heading) + dz * Math.cos(ship.heading)));
+  const ex = dx - Math.sin(ship.heading) * along;
+  const ez = dz - Math.cos(ship.heading) * along;
+  return Math.hypot(ex, ez) < width / 2 + LOOT.pickupMargin;
+}
+
 /** Butin laissé par les épaves (or, planches, parfois rhum et épices) : il flotte, on le ramasse en passant dessus. */
 export class Loot {
   readonly crates: Crate[] = [];
@@ -147,6 +163,7 @@ export class Loot {
         const taken = this.collect(ship, crate.kind, crate.value);
         if (taken <= 0) continue;
         crate.value -= taken;
+        this.resize(crate);
         this.effects.sparkle(m.position, crate.kind === 'wood' ? 'wood' : 'gold');
         if (crate.value > 0) continue;
         this.removeAt(i);
@@ -155,22 +172,39 @@ export class Loot {
     }
   }
 
-  /**
-   * Un bateau non ennemi à flot passe-t-il sur la caisse ? Rayon élargi selon sa taille (un sloop ramasse depuis son
-   * flanc). Le collecteur décide qui garde le butin (ta flotte, un pirate allié… ou personne).
-   */
+  /** Un bateau non ennemi à flot passe-t-il sur la caisse ? Le collecteur décide qui garde le butin (ta flotte, un pirate allié… ou personne). */
   private reaches(ship: Ship, p: THREE.Vector3): boolean {
-    if (ship.faction === 'enemy' || !ship.alive) return false;
-    return Math.hypot(p.x - ship.position.x, p.z - ship.position.z) < LOOT.pickupRadius + ship.stats.width / 2;
+    return (ship.faction === 'player' || ship.faction === 'ally') && ship.alive && passesOver(ship, p);
   }
 
+  /**
+   * Fait tomber du butin vers (x, z) : il rejoint une caisse du même genre toute proche (qui grossit), sinon une
+   * nouvelle caisse apparaît. On évite ainsi des dizaines de petites caisses autour d'une épave.
+   */
   private spawn(kind: LootKind, x: number, z: number, value: number) {
+    const px = x + (Math.random() - 0.5) * 8;
+    const pz = z + (Math.random() - 0.5) * 8;
+    const near = this.crates.find((c) => c.kind === kind && c.age < LOOT.lifetime - 3 && Math.hypot(c.mesh.position.x - px, c.mesh.position.z - pz) < LOOT.merge.radius);
+    if (near) {
+      near.value += value;
+      near.age = 0;
+      this.resize(near);
+      return;
+    }
     const { geometry, materials } = this.models[kind];
     const mesh = new THREE.Mesh(geometry, materials);
-    mesh.position.set(x + (Math.random() - 0.5) * 8, 0, z + (Math.random() - 0.5) * 8);
+    mesh.position.set(px, 0, pz);
     mesh.rotation.y = Math.random() * Math.PI * 2;
     this.scene.add(mesh);
-    this.crates.push({ mesh, kind, value, age: 0, spin: (Math.random() - 0.5) * 0.6 });
+    const crate: Crate = { mesh, kind, value, age: 0, spin: (Math.random() - 0.5) * 0.6 };
+    this.resize(crate);
+    this.crates.push(crate);
+  }
+
+  /** Taille d'une caisse selon son contenu. */
+  private resize(crate: Crate) {
+    const m = LOOT.merge;
+    crate.mesh.scale.setScalar(Math.min(m.maxScale, Math.max(1, Math.cbrt(crate.value / m.base[crate.kind]))));
   }
 
   private removeAt(i: number) {

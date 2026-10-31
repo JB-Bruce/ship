@@ -8,7 +8,7 @@ export type UpgradeLevels = Record<UpgradeId, number> & { extension: number };
 export const UPGRADE_IDS = Object.keys(UPGRADE_INFO) as UpgradeId[];
 
 export function noUpgrades(): UpgradeLevels {
-  return { accuracy: 0, range: 0, cannons: 0, hull: 0, sails: 0, hold: 0, extension: 0 };
+  return { accuracy: 0, range: 0, cannons: 0, hull: 0, sails: 0, hold: 0, nets: 0, extension: 0 };
 }
 
 /** Le navire est-il allongé ? */
@@ -29,10 +29,14 @@ export function maxLevel(type: ShipType, id: UpgradeId, levels?: UpgradeLevels):
   return SHIP_TYPES[type].upgrades[id].costs.length - extensionLevels(type, id, levels?.extension ?? 0);
 }
 
-/** Toutes les améliorations au maximum (sauf la cale, inutile en combat). */
+/** Améliorations inutiles en combat : jamais tirées pour un ennemi, ni montées sur un boss. */
+const PEACEFUL: readonly UpgradeId[] = ['hold', 'nets'];
+
+/** Tous les allongements et toutes les améliorations au maximum (sauf la cale et les filets, inutiles en combat). */
 export function maxLevels(type: ShipType): UpgradeLevels {
   const levels = noUpgrades();
-  for (const id of UPGRADE_IDS) if (id !== 'hold') levels[id] = maxLevel(type, id);
+  levels.extension = SHIP_TYPES[type].extensions?.length ?? 0;
+  for (const id of UPGRADE_IDS) if (!PEACEFUL.includes(id)) levels[id] = maxLevel(type, id, levels);
   return levels;
 }
 
@@ -53,6 +57,35 @@ export function holdCapacity(type: ShipType, levels: UpgradeLevels): number {
   return levels.hold > 0 ? def.upgrades.hold.capacity[levels.hold - 1] : def.hold;
 }
 
+/** Temps entre deux poissons pêchés, multiplié par les filets (1 sans filets). */
+export function catchFactor(type: ShipType, levels: UpgradeLevels): number {
+  return levels.nets > 0 ? SHIP_TYPES[type].upgrades.nets.catchFactor[levels.nets - 1] : 1;
+}
+
+/**
+ * Canons de chasse montés : caravelle, dès le niveau `chaseFrom` de l'amélioration des canons ; chébec, ceux de la base
+ * puis de la table `chaseGuns`.
+ */
+export function chaseGunsFor(type: ShipType, levels: UpgradeLevels): number {
+  const { upgrades, stats } = SHIP_TYPES[type];
+  const { chaseFrom, chaseGuns } = upgrades.cannons;
+  if (chaseGuns) return levels.cannons > 0 ? chaseGuns[levels.cannons - 1] : (stats.chaseGuns ?? 0);
+  return chaseFrom !== undefined && levels.cannons >= chaseFrom ? 1 : 0;
+}
+
+/** Mortiers montés (galiote à bombes) : ceux de la base, puis la table `cannons.mortars`. */
+export function mortarsFor(type: ShipType, levels: UpgradeLevels): number {
+  const { upgrades, stats } = SHIP_TYPES[type];
+  const table = upgrades.cannons.mortars;
+  return table && levels.cannons > 0 ? table[levels.cannons - 1] : (stats.mortars ?? 0);
+}
+
+/** Le type a-t-il des canons de chasse (montés d'emblée ou à acheter) ? */
+const hasChaseGuns = (type: ShipType) => SHIP_TYPES[type].upgrades.cannons.chaseFrom !== undefined || SHIP_TYPES[type].upgrades.cannons.chaseGuns !== undefined;
+
+/** Nombre total de canons d'un navire : ses deux flancs, ses canons de chasse, ses pierriers (cotre) et ses mortiers (brick, galiote). */
+export const cannonCount = (stats: ShipStats) => (stats.cannonsPerSide + (stats.swivels ?? 0)) * 2 + (stats.chaseGuns ?? 0) + (stats.deckCannon?.shell ? (stats.mortars ?? 1) : 0);
+
 /** Masse totale du bateau selon ses améliorations. */
 export function shipMass(type: ShipType, levels: UpgradeLevels): number {
   const { mass, upgrades, stats } = SHIP_TYPES[type];
@@ -62,7 +95,9 @@ export function shipMass(type: ShipType, levels: UpgradeLevels): number {
   const sails = levels.sails > 0 ? mass.sails[levels.sails - 1] : 0;
   const hold = levels.hold > 0 ? (mass.hold[levels.hold - 1] ?? 0) : 0;
   const extension = appliedExtensions(type, levels).reduce((sum, e) => sum + e.mass, 0);
-  return mass.base + extraCannons * mass.perExtraCannon + hull + sails + hold + extension;
+  const chase = (chaseGunsFor(type, levels) - (stats.chaseGuns ?? 0)) * (mass.chaseGun ?? 0);
+  const mortars = (mortarsFor(type, levels) - (stats.mortars ?? 0)) * (mass.mortar ?? 0);
+  return mass.base + extraCannons * mass.perExtraCannon + chase + mortars + hull + sails + hold + extension;
 }
 
 /** Vitesse perdue à cause de la masse (fraction, 0 = aucune perte). */
@@ -93,7 +128,9 @@ export function deriveStats(type: ShipType, base: ShipStats, levels: UpgradeLeve
     }
   }
   if (levels.cannons > 0) stats.cannonsPerSide = table.cannons.cannonsPerSide[levels.cannons - 1];
-  if (levels.hull > 0) stats.maxHealth += table.hull.healthBonus[levels.hull - 1];
+  if (hasChaseGuns(type)) stats.chaseGuns = chaseGunsFor(type, levels);
+  if (table.cannons.mortars) stats.mortars = mortarsFor(type, levels);
+  if (levels.hull > 0) stats.maxHealth = Math.round(stats.maxHealth * table.hull.healthFactor[levels.hull - 1]);
   // Allongements : coque plus longue (plus de vie, file un peu mieux, vire moins vite) ; leurs effets se cumulent.
   let hullSpeed = 1;
   for (const e of appliedExtensions(type, levels)) {
@@ -123,23 +160,46 @@ export function describeLevel(type: ShipType, id: UpgradeId, level: number): str
     case 'range':
       return `Portée +${Math.round((t.range.rangeFactor[i] - 1) * 100)} %`;
     case 'cannons':
-      return `${t.cannons.cannonsPerSide[i]} canons par flanc`;
+      return describeCannons(type, level);
     case 'hull':
-      return `Vie max +${t.hull.healthBonus[i]}`;
+      return `Vie max +${Math.round((t.hull.healthFactor[i] - 1) * 100)} %`;
     case 'sails':
       return `Vitesse +${Math.round((t.sails.speedFactor[i] - 1) * 100)} %`;
     case 'hold':
       return `Cale : ${t.hold.capacity[i]} places`;
+    case 'nets':
+      return `Pêche ${Math.round((1 / t.nets.catchFactor[i] - 1) * 100)} % plus rapide`;
   }
 }
 
-/** Niveaux tirés au hasard pour un ennemi : plus la menace (0..1) est haute, plus il est amélioré. */
-export function randomLevels(type: ShipType, threat: number): UpgradeLevels {
+/** Effet d'un niveau de l'amélioration des canons : ce qu'il ajoute (canons par flanc, canons de chasse). */
+function describeCannons(type: ShipType, level: number): string {
+  const t = SHIP_TYPES[type].upgrades.cannons;
+  if (level === t.chaseFrom) return 'Gros canon de chasse à la proue';
+  const perSide = t.cannonsPerSide[level - 1];
+  if (!t.chaseGuns) return `${perSide} canons par flanc`;
+  const before = noUpgrades();
+  before.cannons = level - 1;
+  const chase = t.chaseGuns[level - 1];
+  const parts: string[] = [];
+  if (perSide !== (level > 1 ? t.cannonsPerSide[level - 2] : SHIP_TYPES[type].stats.cannonsPerSide)) parts.push(`${perSide} canons par flanc`);
+  if (chase !== chaseGunsFor(type, before)) parts.push(`${chase} canons de chasse à la proue`);
+  return parts.join(', ');
+}
+
+/**
+ * Niveaux tirés au hasard pour un ennemi : plus la menace (0..1) est haute, plus il est amélioré ; chaque allongement
+ * a sa chance (`extensionChance` × la menace) et ouvre ses niveaux en plus.
+ */
+export function randomLevels(type: ShipType, threat: number, extensionChance = 0): UpgradeLevels {
   const levels = noUpgrades();
-  // La cale ne sert à rien chez l'ennemi (et ne doit pas gonfler son butin).
+  // D'abord les allongements (dans l'ordre) : ils ouvrent des niveaux d'amélioration en plus.
+  const extensions = SHIP_TYPES[type].extensions?.length ?? 0;
+  while (levels.extension < extensions && Math.random() < threat * extensionChance) levels.extension++;
+  // La cale et les filets ne servent à rien chez l'ennemi (et la cale ne doit pas gonfler son butin).
   for (const id of UPGRADE_IDS) {
-    if (id === 'hold') continue;
-    const max = maxLevel(type, id);
+    if (PEACEFUL.includes(id)) continue;
+    const max = maxLevel(type, id, levels);
     while (levels[id] < max && Math.random() < threat * 0.75) levels[id]++;
   }
   return levels;
