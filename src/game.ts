@@ -26,7 +26,7 @@ import { SaveManager } from './save/saveManager';
 import { applyQuality } from './render/quality';
 import { Settings } from './settings/settings';
 import type { Combatant, Ship } from './ship/ship';
-import { SHIP_TYPES } from './shipTypes';
+import { SHIP_TYPES, type ShipType } from './shipTypes';
 import { ActionPrompts } from './ui/actionPrompts';
 import { BetrayalPicker } from './ui/betrayalPicker';
 import { ObjectiveBar } from './ui/bossBar';
@@ -287,6 +287,7 @@ export class Game {
       leader: () => this.fleet.leader,
       wreckLoot: (ship: Ship) => this.wreckLoot(ship),
       adoptPirate: (ship: Ship) => this.pirates.adopt(ship),
+      raiseCursed: (types: readonly ShipType[], x: number, z: number, heading: number, name: string) => this.cursed.raise(types, x, z, heading, name),
     };
     this.campaign = new Campaign(this.state, this.fleet, this.hud, world, this.lighthouse, this.spawner);
     this.campaign.routes.fishers.schools = this.schools;

@@ -56,8 +56,10 @@ export const ISLAND_LIST: readonly Island[] = [tortuga, sabre, royale, dauphin];
 export const castaway = new Islet('castaway', ISLETS.castaway);
 /** Le Crâne : îlot rocheux au nord-ouest, où dort l'or de Vasseur (chasse au trésor). */
 export const skullIslet = new Islet('skull', ISLETS.skull);
+/** L'Île aux Cloches : îlot au sud-est, ruines de la mission de San Telmo (chasse au trésor). */
+export const bellsIslet = new Islet('bells', ISLETS.bells);
 /** Les îlots (décor, lieux de quête). */
-export const ISLET_LIST: readonly Islet[] = [castaway, skullIslet];
+export const ISLET_LIST: readonly Islet[] = [castaway, skullIslet, bellsIslet];
 /** Toutes les terres : navigation, collisions, boulets, vagues, eau, radar, carte. */
 export const LAND_LIST: readonly Landmass[] = [...ISLAND_LIST, ...ISLET_LIST];
 export const islandById = (id: IslandId): Island => ISLAND_LIST.find((island) => island.id === id)!;

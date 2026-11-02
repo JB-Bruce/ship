@@ -7,6 +7,7 @@ import type { Ship } from '../ship/ship';
 import { maxRank, SHIP_SIZE_ORDER, sizeRank, typeOfRank, type ShipType } from '../shipTypes';
 import type { Enemy, EnemySpawner } from './enemySpawner';
 import { conditions } from './weather';
+import { treasures } from '../progression/treasures';
 import { sound } from '../audio/sound';
 
 /** Un navire maudit et où il en est : il sort de l'eau, se bat, ou replonge. */
@@ -21,10 +22,14 @@ interface Ghost {
   depth: number;
   /** Bouffées de brume à émettre. */
   mist: number;
+  /** Gardien d'une chasse au trésor : il ne replonge ni au jour, ni loin de toi, tant que sa chasse le garde (`persistent`). */
+  bound?: boolean;
 }
 
 /** Mer libre autour du point où surgit un navire maudit (m). */
 const ROOM = 30;
+/** Écart entre le gardien maudit d'une chasse et les navires de son escorte (m). */
+const GUARD_SPACING = 45;
 /** Seuil de `conditions.night` au-delà duquel il fait nuit. */
 const NIGHT = 0.5;
 
@@ -60,7 +65,8 @@ export class CursedTide {
   /** `fleet` : ta flotte en mer (pour savoir si tu t'es éloigné). */
   update(dt: number, leader: Ship, fleet: readonly FleetMember[]) {
     const night = this.night;
-    if (night && !this.wasNight) this.pending = this.forceNights() || Math.random() < CURSED.nightChance ? rand(CURSED.delay) : null;
+    // Une relique (le chapelet de frère Anselme) rend les nuits maudites plus rares.
+    if (night && !this.wasNight) this.pending = this.forceNights() || Math.random() < CURSED.nightChance * (1 - treasures.wardBonus()) ? rand(CURSED.delay) : null;
     if (!night) this.pending = null;
     this.wasNight = night;
     if (this.pending !== null) {
@@ -92,15 +98,35 @@ export class CursedTide {
     for (let k = 0; k < count; k++) {
       const p = findOpenSea(near.position.x, near.position.z, CURSED.distance, ROOM);
       const type: ShipType = only ?? (Math.random() < CURSED.fireshipShare ? 'fireship' : typeOfRank(low + Math.floor(Math.random() * (top - low + 1))));
-      const enemy = this.spawner.spawnCursed(type, p.x, p.z, Math.atan2(near.position.x - p.x, near.position.z - p.z));
-      box.setFromObject(enemy.ship.model.root);
-      const depth = box.max.y + CURSED.depth;
-      enemy.ship.drowned = depth;
-      enemy.ship.intangible = true;
-      this.ghosts.push({ enemy, phase: 'rise', t: 0, age: 0, depth, mist: 0 });
-      sound.at('cursed/rise', enemy.ship.position);
+      this.rise(type, p.x, p.z, Math.atan2(near.position.x - p.x, near.position.z - p.z), false);
     }
     return count;
+  }
+
+  /**
+   * Fait sortir de l'eau en (x, z) le gardien maudit d'une chasse au trésor (`name`, le premier type) et son escorte, à
+   * côté de lui : ils ne replongent pas au jour ni quand tu t'éloignes, tant que la chasse les garde (`Enemy.persistent`).
+   */
+  raise(types: readonly ShipType[], x: number, z: number, heading: number, name: string): Enemy[] {
+    return types.map((type, k) => {
+      const side = k === 0 ? 0 : (k % 2 ? 1 : -1) * Math.ceil(k / 2) * GUARD_SPACING;
+      const p = findOpenSea(x + Math.cos(heading) * side, z - Math.sin(heading) * side, [0, GUARD_SPACING / 2], ROOM);
+      const enemy = this.rise(type, p.x, p.z, heading, true);
+      if (k === 0) enemy.name = name;
+      return enemy;
+    });
+  }
+
+  /** Un navire maudit sort de l'eau en (x, z) ; `bound` : gardien d'une chasse (voir `raise`). */
+  private rise(type: ShipType, x: number, z: number, heading: number, bound: boolean): Enemy {
+    const enemy = this.spawner.spawnCursed(type, x, z, heading);
+    box.setFromObject(enemy.ship.model.root);
+    const depth = box.max.y + CURSED.depth;
+    enemy.ship.drowned = depth;
+    enemy.ship.intangible = true;
+    this.ghosts.push({ enemy, phase: 'rise', t: 0, age: 0, depth, mist: 0, bound });
+    sound.at('cursed/rise', enemy.ship.position);
+    return enemy;
   }
 
   /** Fait avancer un navire maudit ; renvoie vrai quand il a fini de replonger (à retirer). */
@@ -127,6 +153,7 @@ export class CursedTide {
     }
     if (g.phase === 'fight') {
       g.age += dt;
+      if (g.bound && g.enemy.persistent) return false;
       const away = !fleet.some((m) => m.ship.alive && m.ship.distanceTo(ship) < CURSED.leaveDistance);
       if (night && !away && g.age < CURSED.lifetime) return false;
       g.phase = 'dive';

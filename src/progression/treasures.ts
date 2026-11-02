@@ -1,4 +1,4 @@
-import { TREASURE_HUNTS, type EmblemId, type TreasureHuntId } from '../config';
+import { TREASURE_HUNTS, type EmblemId, type TreasureHuntDef, type TreasureHuntId } from '../config';
 
 /** Où en est une chasse commencée : étape en cours, morceaux de carte réunis, avancement de la fouille (s). */
 export interface HuntState {
@@ -56,6 +56,13 @@ class Treasures {
     let bonus = 0;
     for (const id of this.done) bonus += TREASURE_HUNTS[id].reward.relic.radar;
     return bonus;
+  }
+
+  /** Part retirée à la chance d'une nuit maudite par les reliques réunies (au plus 0,9). */
+  wardBonus(): number {
+    let ward = 0;
+    for (const id of this.done) ward += (TREASURE_HUNTS[id] as TreasureHuntDef).reward.relic.ward ?? 0;
+    return Math.min(0.9, ward);
   }
 
   /** Emblème réservé à un trésor ? */

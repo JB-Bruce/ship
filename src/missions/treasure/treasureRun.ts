@@ -3,6 +3,8 @@ import type { HuntState } from '../../progression/treasures';
 import type { Enemy } from '../../world/enemySpawner';
 import type { MapZone, MissionWorld } from '../mission';
 import { findOpenSea } from '../openSea';
+import { conditions } from '../../world/weather';
+import { sound } from '../../audio/sound';
 
 /** Ce qu'une chasse fait savoir : petit message, alerte au centre, ligne du fil, morceau de carte, trésor trouvé. */
 export interface TreasureEvents {
@@ -23,6 +25,8 @@ export interface SearchGauge {
 
 /** Rayon du poste où le gardien et le morceau qui rôde tournent autour de leur lieu (m). */
 const GUARD_HOME = 220;
+/** Distance (m) au lieu de son étape où sort de l'eau un gardien maudit. */
+const CURSED_RISE: readonly [number, number] = [120, 200];
 /** Mer libre autour du point où apparaît un gardien ou une embuscade (m). */
 const SPAWN_ROOM = 40;
 
@@ -44,6 +48,8 @@ export class TreasureRun {
   /** Embuscades déjà lâchées pendant la fouille du trésor. */
   private waves = 0;
   private searching = false;
+  /** Venu de jour sur le lieu d'une étape de nuit : le message n'est dit qu'une fois par passage. */
+  private waited = false;
 
   constructor(
     readonly id: TreasureHuntId,
@@ -66,8 +72,18 @@ export class TreasureRun {
     this.searching = false;
     switch (step.kind) {
       case 'reach':
-        if (leader.alive && distance < step.radius) return this.next(true);
-        return false;
+        if (!leader.alive || distance >= step.radius) {
+          this.waited = false;
+          return false;
+        }
+        // Une étape de nuit ne se révèle qu'à la nuit tombée.
+        if (step.night && conditions.night < TREASURE.night) {
+          if (!this.waited) this.events.toast(step.night.wait);
+          this.waited = true;
+          return false;
+        }
+        if (step.night) this.ringBells();
+        return this.next(true);
       case 'search':
       case 'dig':
         this.searching = leader.alive && distance < step.radius && Math.abs(leader.speed) < TREASURE.searchSpeed;
@@ -123,10 +139,19 @@ export class TreasureRun {
   private spawnGuardian(step: Extract<TreasureStep, { kind: 'guardian' }>) {
     const leader = this.world.leader();
     const away = Math.atan2(step.at[0] - leader.position.x, step.at[1] - leader.position.z);
-    const p = findOpenSea(step.at[0], step.at[1], [TREASURE.spawnDistance * 0.5, TREASURE.spawnDistance], SPAWN_ROOM, away, 0.8);
+    // Un gardien maudit sort de l'eau tout près ; un gardien ordinaire arrive de plus loin.
+    const range: readonly [number, number] = step.cursed ? CURSED_RISE : [TREASURE.spawnDistance * 0.5, TREASURE.spawnDistance];
+    const p = findOpenSea(step.at[0], step.at[1], range, SPAWN_ROOM, away, 0.8);
     const heading = Math.atan2(leader.position.x - p.x, leader.position.z - p.z);
-    this.spawned = this.world.spawner.spawnSquadron(step.squadron, p.x, p.z, heading, step.captain, { home: { x: step.at[0], z: step.at[1], radius: GUARD_HOME } });
+    this.spawned = step.cursed
+      ? this.world.raiseCursed(step.squadron, p.x, p.z, heading, step.captain)
+      : this.world.spawner.spawnSquadron(step.squadron, p.x, p.z, heading, step.captain, { home: { x: step.at[0], z: step.at[1], radius: GUARD_HOME } });
     this.carrier = this.spawned[0];
+  }
+
+  /** Les cloches sonnent sous la mer (étape de nuit) : quelques coups espacés. */
+  private ringBells() {
+    for (let i = 0; i < TREASURE.bells; i++) setTimeout(() => sound.play('ambience/ship_bell'), i * TREASURE.bellGap);
   }
 
   private spawnRoamer(step: Extract<TreasureStep, { kind: 'roamer' }>) {

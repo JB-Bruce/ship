@@ -1842,7 +1842,7 @@ export const SHIP_LAMPS = {
   top: { inset: 0.2, drop: 0.08, scale: 1.4, halo: 1.6 },
 };
 
-export type EmblemId = 'skull' | 'sabres' | 'kraken' | 'serpent' | 'compass' | 'anchor' | 'raven' | 'mermaid' | 'goldSkull';
+export type EmblemId = 'skull' | 'sabres' | 'kraken' | 'serpent' | 'compass' | 'anchor' | 'raven' | 'mermaid' | 'goldSkull' | 'silverBell';
 
 /**
  * Emblèmes peints sur la grande voile d'un navire de ta flotte (Chantier du port) : prix pour en peindre un nouveau
@@ -1861,6 +1861,8 @@ export const EMBLEMS = {
     mermaid: { name: 'Sirène', main: 0x1e4a5a, second: 0xb8542a },
     /** Emblème du trésor de Vasseur : jamais en vente, offert à toute la flotte par le coffre. */
     goldSkull: { name: 'Crâne d’or de Vasseur', main: 0x1d1714, second: 0xd8a830 },
+    /** Emblème du trésor de San Telmo : la cloche d'argent sous sa croix, offerte par le coffre. */
+    silverBell: { name: 'Cloche d’argent de San Telmo', main: 0x1f2a3a, second: 0xc8ccd2 },
   } satisfies Record<EmblemId, { name: string; main: number; second: number }>,
 };
 
@@ -2572,15 +2574,18 @@ export const TAVERN_FX = { tear: 420, tearTilt: 9 };
  * m/s) à moins du rayon de l'étape ; s'éloigner met la jauge en pause. Zone approximative sur la carte M : un cercle de
  * `zoneRadius` m décalé d'au plus `zoneJitter` m du vrai lieu. Un gardien ou une embuscade surgit à `spawnDistance` m.
  * Le gardien d'une étape n'apparaît qu'à moins de `wakeDistance` m de son lieu. Une élite coulée par ta flotte lâche
- * le début d'une chasse pas encore commencée avec la probabilité `eliteStart`.
+ * le début d'une chasse pas encore commencée avec la probabilité `eliteStart`. Une étape de nuit attend que
+ * `conditions.night` dépasse `night` ; on y entend `bells` coups de cloche, à `bellGap` ms d'écart.
  */
-export const TREASURE = { searchSpeed: 1.5, zoneRadius: 420, zoneJitter: 220, spawnDistance: 380, wakeDistance: 900, eliteStart: 0.25 };
+export const TREASURE = { searchSpeed: 1.5, zoneRadius: 420, zoneJitter: 220, spawnDistance: 380, wakeDistance: 900, eliteStart: 0.25, night: 0.5, bells: 3, bellGap: 900 };
 
 /** Une étape d'une chasse au trésor. Les lieux sont donnés dans le monde (m) ; `piece` : elle rapporte un morceau de carte. */
 export type TreasureStep =
   | { kind: 'search'; at: readonly [number, number]; radius: number; time: number; piece: boolean; title: string; note: string; found: string }
-  | { kind: 'reach'; at: readonly [number, number]; radius: number; title: string; note: string; found: string }
-  | { kind: 'guardian'; at: readonly [number, number]; captain: string; squadron: readonly ShipType[]; title: string; note: string; found: string }
+  /** `night` : le lieu ne se révèle que de nuit (`wait` : ce qu'on entend de jour, une fois par passage). */
+  | { kind: 'reach'; at: readonly [number, number]; radius: number; night?: { wait: string }; title: string; note: string; found: string }
+  /** `cursed` : le gardien et son escorte sont des navires maudits qui sortent de l'eau (ils ne replongent pas au jour). */
+  | { kind: 'guardian'; at: readonly [number, number]; captain: string; squadron: readonly ShipType[]; cursed?: boolean; title: string; note: string; found: string }
   | { kind: 'roamer'; at: readonly [number, number]; radius: number; type: ShipType; captain: string; title: string; note: string; found: string }
   | { kind: 'dig'; at: readonly [number, number]; radius: number; time: number; waves: readonly (readonly ShipType[])[]; title: string; note: string; found: string };
 
@@ -2590,7 +2595,11 @@ export interface TreasureReward {
   wood: number;
   emblem: EmblemId;
   planFragments: number;
-  relic: { name: string; description: string; radar: number };
+  /**
+   * Relique, bonus permanent une fois le trésor trouvé : portée du radar (`radar`, part ajoutée) ; `ward` : nuits
+   * maudites plus rares (part retirée de `CURSED.nightChance`) ; `icon` : son pictogramme dans le Journal.
+   */
+  relic: { name: string; description: string; radar: number; ward?: number; icon?: string };
 }
 
 export interface TreasureHuntDef {
@@ -2608,6 +2617,19 @@ export interface TreasureHuntDef {
   steps: readonly TreasureStep[];
   reward: TreasureReward;
 }
+
+/**
+ * Lieux de la chasse « La cloche de San Telmo » (monde, m), partagés avec le décor (`world/landmarks.ts`) : l'épave de
+ * la Colombe (mâts qui sortent de l'eau, cap de sa proue), le point où les cloches sonnent sous la mer (à mi-chemin du
+ * phare de la Tortue et de l'épave), la zone du Greffier, la cloche à remonter (dans la crique de l'Île aux Cloches).
+ */
+export const SAN_TELMO = {
+  wreck: [520, -620] as const,
+  wreckHeading: 2.3,
+  bells: [212, -243] as const,
+  greffier: [1550, -450] as const,
+  dig: [1036, -1222] as const,
+};
 
 /**
  * Chasses au trésor : quêtes longues en plusieurs étapes (fouille, énigme, gardien, morceau de carte qui rôde, trésor à
@@ -2633,7 +2655,41 @@ export const TREASURE_HUNTS = {
       wood: 400,
       emblem: 'goldSkull',
       planFragments: 2,
-      relic: { name: 'La boussole de Vasseur', description: 'Le radar de ta flotte porte plus loin.', radar: 0.1 },
+      relic: { name: 'La boussole de Vasseur', description: 'Le radar de ta flotte porte plus loin.', radar: 0.1, icon: '🧭' },
+    },
+  },
+  /**
+   * La cloche de San Telmo : l'argent fondu d'une mission espagnole, que le dernier moine a tenté d'emporter sur la
+   * Colombe. Une étape de nuit, un gardien maudit, une flûte de la Marine, puis la cloche à remonter sur l'Île aux Cloches.
+   */
+  sanTelmo: {
+    title: 'La cloche de San Telmo',
+    intro: 'On dit à Port-Sabre que les moines de San Telmo ont fondu l’argent de leur mission en une cloche, avant l’arrivée des flibustiers. Le dernier d’entre eux, frère Anselme, a fui à bord de la Colombe, qui a sombré sur les récifs au sud-est de la Tortue : ses mâts sortent encore de l’eau.',
+    rumor: { island: 'sabre', price: 300 },
+    pieces: 3,
+    clue: '« À minuit, entre le phare de la Tortue et les mâts de la Colombe, les cloches sonnent sous la mer. Qui les entend trouvera la tour sans cloche. »',
+    islet: 'bells',
+    steps: [
+      { kind: 'search', at: SAN_TELMO.wreck, radius: 75, time: 25, piece: true, title: 'Fouiller l’épave de la Colombe', note: 'Ses mâts sortent de l’eau au sud-est de la Tortue', found: 'Le bréviaire de frère Anselme et un morceau de sa carte !' },
+      {
+        kind: 'reach',
+        at: SAN_TELMO.bells,
+        radius: 120,
+        night: { wait: 'La mer est muette. « À minuit », disait le bréviaire : reviens de nuit.' },
+        title: 'Écouter les cloches',
+        note: '« À minuit, entre le phare de la Tortue et les mâts de la Colombe »',
+        found: 'Des cloches sonnent sous la coque… La Colombe remonte des abysses !',
+      },
+      { kind: 'guardian', at: SAN_TELMO.bells, captain: 'La Colombe maudite', squadron: ['caravel', 'cutter'], cursed: true, title: 'Couler la Colombe maudite', note: 'Frère Anselme y garde un morceau de sa carte', found: 'La Colombe sombre pour de bon : un deuxième morceau flotte dans l’écume verte !' },
+      { kind: 'roamer', at: SAN_TELMO.greffier, radius: 380, type: 'fluyt', captain: 'Le Greffier', title: 'Prendre le registre de la mission', note: 'Le Greffier, flûte de la Marine, l’emporte au large du Dauphin', found: 'Le registre de San Telmo et le dernier morceau ! La croix apparaît : l’Île aux Cloches.' },
+      { kind: 'dig', at: SAN_TELMO.dig, radius: 60, time: 45, waves: [['cutter', 'sloop'], ['brigantine', 'schooner']], title: 'Remonter la cloche d’argent', note: 'L’Île aux Cloches : jette l’ancre au pied de la tour sans cloche', found: 'La cloche d’argent de San Telmo !' },
+    ],
+    reward: {
+      gold: 2500,
+      wood: 600,
+      emblem: 'silverBell',
+      planFragments: 3,
+      relic: { name: 'Le chapelet de frère Anselme', description: 'Les navires maudits surgissent moins souvent autour de ta flotte.', radar: 0, ward: 0.35, icon: '📿' },
     },
   },
 } satisfies Record<string, TreasureHuntDef>;
@@ -2938,7 +2994,7 @@ export const ISLAND_SLOTS = 8;
 export type IslandId = 'tortuga' | 'sabre' | 'royale' | 'dauphin';
 
 /** Îlots : terres de décor ou lieux de quête, sans port ni fiche de campagne (rien à sauvegarder). */
-export type IsletId = 'castaway' | 'skull';
+export type IsletId = 'castaway' | 'skull' | 'bells';
 
 /** Décor semé sur une terre : palmiers, pins (au-dessus de `pineFrom` m), rochers, graine du tirage, altitude max (m). */
 export interface LandDecor {
@@ -3007,6 +3063,31 @@ export const ISLETS: Record<IsletId, IsletDef> = {
     grass: 0x8f9a5a,
     darkGrass: 0x6f7a44,
     decor: { palms: 6, pines: 0, rocks: 14, seed: 913, palmHeight: 6, pineFrom: 0, pineHeight: 0 },
+  },
+  /**
+   * L'Île aux Cloches : îlot vallonné au sud-est de l'archipel, sa crique tournée vers la Tortue ; au fond de la crique,
+   * les ruines de la mission de San Telmo (chapelle sans toit, tour sans cloche, cimetière, puits), où dort la cloche
+   * d'argent (chasse au trésor). Palmiers sur les plages, rochers, herbe jaunie.
+   */
+  bells: {
+    name: 'L’Île aux Cloches',
+    center: [1100, -1300],
+    radius: 108,
+    lobes: [
+      [2, 12, 0.9],
+      [3, 8, 2.1],
+      [5, 4, 0.4],
+    ],
+    bay: { angle: -0.7, width: 0.42, depth: 32 },
+    relief: 'hills',
+    peak: 16,
+    cliff: 0,
+    calmDistance: 70,
+    lagoonWidth: 32,
+    surfWidth: 5,
+    grass: 0xa3a85e,
+    darkGrass: 0x7f8a4a,
+    decor: { palms: 30, pines: 0, rocks: 20, seed: 517, palmHeight: 8, pineFrom: 0, pineHeight: 0 },
   },
 };
 

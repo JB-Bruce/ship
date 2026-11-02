@@ -98,7 +98,8 @@ export class TreasureDirector {
       const progress = blueprints.addFragment(type);
       plans.push(progress.completed ? `plan complet : ${shipTypeLabel(type)}` : `bout de plan`);
     }
-    this.hud.alert(`🗝 ${def.steps[def.steps.length - 1].found} +${r.gold} or, +${r.wood} bois, et ${r.relic.name} !`, false);
+    const relic = r.relic.name.charAt(0).toLowerCase() + r.relic.name.slice(1);
+    this.hud.alert(`🗝 ${def.steps[def.steps.length - 1].found} +${r.gold} or, +${r.wood} bois, et ${relic} !`, false);
     this.hud.log(`🗝 ${def.title} : trésor trouvé`);
     this.hud.log(`★ Relique : ${r.relic.name} (${r.relic.description})`);
     this.hud.log(`★ Nouvel emblème offert au Chantier : ${EMBLEMS.designs[r.emblem].name}`);

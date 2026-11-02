@@ -3,7 +3,7 @@ import type { IslandId, LandDecor } from '../config';
 import { std } from '../ship/parts/common';
 import { GeometryBatch, tf } from '../utils/geometryBatch';
 import { isIsland, type Islet, type Landmass } from './island';
-import { CITADEL_SPOT, DAUPHIN_FORT_SPOT, FORT_SPOT, LIGHTHOUSE_SPOT, CASTAWAY_WRECK, ROYAL_FORT_SPOT } from './landmarks';
+import { CITADEL_SPOT, DAUPHIN_FORT_SPOT, FORT_SPOT, LIGHTHOUSE_SPOT, CASTAWAY_WRECK, ROYAL_FORT_SPOT, SAN_TELMO_RUINS } from './landmarks';
 
 /** Marge de la grille du terrain au-delà du rayon de l'île (m), et taille d'une case (m). */
 const EXTENT_MARGIN = 80;
@@ -141,6 +141,10 @@ const BUILT_UP = [
   [ROYAL_FORT_SPOT, 36],
   [DAUPHIN_FORT_SPOT, 17],
   [CASTAWAY_WRECK, 6],
+  [SAN_TELMO_RUINS.chapel, 15],
+  [SAN_TELMO_RUINS.tower, 6],
+  [SAN_TELMO_RUINS.graves, 8],
+  [SAN_TELMO_RUINS.well, 3],
 ] as const;
 
 /** Palmiers sur les plages et les basses terres, rochers au bord de l'eau, pour une terre (île à port ou îlot). */

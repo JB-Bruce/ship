@@ -1,4 +1,4 @@
-import { ISLETS, TREASURE_HUNTS, type TreasureHuntId } from '../../config';
+import { ISLETS, TREASURE_HUNTS, type TreasureHuntId, type TreasureReward } from '../../config';
 import { HUNT_IDS, treasures, type HuntState } from '../../progression/treasures';
 import { ISLET_LIST } from '../../world/island';
 import { pipsHtml, tip } from '../kit/kit';
@@ -62,7 +62,7 @@ function mapSvg(id: TreasureHuntId, h: HuntState): string {
     </svg>`;
 }
 
-/** Une chasse en cours : sa carte, l'indice une fois le journal de Vasseur trouvé, l'étape en cours. */
+/** Une chasse en cours : sa carte, l'indice une fois le premier morceau trouvé, l'étape en cours. */
 function huntCard(id: TreasureHuntId, h: HuntState): string {
   const def = TREASURE_HUNTS[id];
   const step = def.steps[h.step];
@@ -82,8 +82,9 @@ export function treasureHtml(): string {
   const hunts = [...treasures.active].map(([id, h]) => huntCard(id, h)).join('');
   const relics = HUNT_IDS.filter((id) => treasures.done.has(id))
     .map((id) => {
-      const r = TREASURE_HUNTS[id].reward.relic;
-      return `<div class="tm-relic"${tip(`${r.description} (+${Math.round(r.radar * 100)} % de portée du radar)`)}><span class="tm-relic-icon">🧭</span><span>${r.name}</span></div>`;
+      const r: TreasureReward['relic'] = TREASURE_HUNTS[id].reward.relic;
+      const effects = [r.radar ? `+${Math.round(r.radar * 100)} % de portée du radar` : '', r.ward ? `${Math.round(r.ward * 100)} % de nuits maudites en moins` : ''].filter(Boolean).join(', ');
+      return `<div class="tm-relic"${tip(`${r.description} (${effects})`)}><span class="tm-relic-icon">${r.icon ?? '🧭'}</span><span>${r.name}</span></div>`;
     })
     .join('');
   if (!hunts && !relics) return '<p class="cabin-muted">Aucune chasse au trésor : écoute les rumeurs des tavernes, ou fouille les épaves d’élite.</p>';

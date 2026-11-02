@@ -2,7 +2,7 @@ import type * as THREE from 'three';
 import type { IslandId } from '../config';
 import type { Ship } from '../ship/ship';
 import { sizeRank, typeOfRank, type ShipType } from '../shipTypes';
-import type { EnemySpawner } from '../world/enemySpawner';
+import type { Enemy, EnemySpawner } from '../world/enemySpawner';
 import type { Fort } from '../world/fort';
 
 export type MissionOutcome = 'running' | 'success' | 'failure';
@@ -29,6 +29,8 @@ export interface MissionWorld {
   wreckLoot(ship: Ship): void;
   /** Un pirate d'une mission (armada alliée) redevient un pirate allié ordinaire, de port en port. */
   adoptPirate(ship: Ship): void;
+  /** Fait sortir de l'eau le gardien maudit d'une chasse au trésor (nommé `name`) et son escorte (`CursedTide.raise`). */
+  raiseCursed(types: readonly ShipType[], x: number, z: number, heading: number, name: string): Enemy[];
 }
 
 /**

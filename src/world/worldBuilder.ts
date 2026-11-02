@@ -2,10 +2,12 @@ import type * as THREE from 'three';
 import { CITADEL, FORT, NAVY_HOLDS, type IslandId, type NavyHoldDef } from '../config';
 import { Fort } from './fort';
 import { FORT_LAYOUTS } from './fortModel';
-import { castaway, dauphin, ISLAND_LIST, ISLET_LIST, royale, sabre, type Island } from './island';
+import { bellsIslet, castaway, dauphin, ISLAND_LIST, ISLET_LIST, royale, sabre, type Island } from './island';
 import { buildTerrain, buildVegetation } from './islandTerrain';
 import { buildStrandedBoat } from './isletProps';
-import { CITADEL_SPOT, DAUPHIN_FORT_SPOT, FORT_SPOT, CASTAWAY_WRECK, ROYAL_FORT_SPOT } from './landmarks';
+import { CITADEL_SPOT, COLOMBE_WRECK, DAUPHIN_FORT_SPOT, FORT_SPOT, CASTAWAY_WRECK, ROYAL_FORT_SPOT, SAN_TELMO_RUINS } from './landmarks';
+import { buildMissionRuins } from './missionRuins';
+import { buildSunkenWreck } from './sunkenWreck';
 import { Lighthouse } from './lighthouse';
 import { buildPort } from './port';
 import type { LanternSpot } from '../ship/parts/nightGlow';
@@ -40,6 +42,8 @@ export function buildIslands(scene: THREE.Scene): IslandWorks {
   }
   for (const islet of ISLET_LIST) decor.push(buildTerrain(islet), buildVegetation(islet));
   decor.push(buildStrandedBoat(castaway, CASTAWAY_WRECK.x, CASTAWAY_WRECK.z, CASTAWAY_WRECK.heading));
+  // Chasse de San Telmo : les ruines de la mission sur l'Île aux Cloches, l'épave de la Colombe sur son récif.
+  decor.push(buildMissionRuins(bellsIslet, SAN_TELMO_RUINS), buildSunkenWreck(COLOMBE_WRECK.x, COLOMBE_WRECK.z, COLOMBE_WRECK.heading));
   const forts = {
     tortuga: new Fort('tortuga', FORT_SPOT, FORT_LAYOUTS.fort, FORT.health),
     // La citadelle regarde l'entrée de sa crique : ses canons couvrent le port et ses approches.

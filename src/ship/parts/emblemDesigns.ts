@@ -66,6 +66,37 @@ function goldSkull(g: Pen) {
   for (const x of [54, 62, 70]) g.fillRect(x, 84, 4, 10);
 }
 
+/**
+ * Cloche d'argent de San Telmo : une cloche sous une croix, dans une couronne de rayons (cloche, croix et rayons en
+ * seconde couleur ; ombre de l'ouverture, battant et cerclages en principale).
+ */
+function silverBell(g: Pen) {
+  g.fillStyle = SECOND;
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2;
+    poly(g, [
+      [64 + Math.cos(a - 0.07) * 44, 70 + Math.sin(a - 0.07) * 44],
+      [64 + Math.cos(a) * 58, 70 + Math.sin(a) * 58],
+      [64 + Math.cos(a + 0.07) * 44, 70 + Math.sin(a + 0.07) * 44],
+    ]);
+  }
+  g.fillRect(60, 8, 8, 26);
+  g.fillRect(51, 15, 26, 7);
+  g.beginPath();
+  g.moveTo(64, 34);
+  g.bezierCurveTo(44, 34, 42, 52, 40, 70);
+  g.quadraticCurveTo(38, 88, 26, 96);
+  g.lineTo(102, 96);
+  g.quadraticCurveTo(90, 88, 88, 70);
+  g.bezierCurveTo(86, 52, 84, 34, 64, 34);
+  g.fill();
+  g.fillStyle = MAIN;
+  g.fillRect(42, 60, 44, 4);
+  g.fillRect(34, 86, 60, 4);
+  poly(g, [[34, 96], [94, 96], [86, 101], [42, 101]]);
+  circle(g, 64, 106, 7);
+}
+
 /** Deux sabres croisés : lames en seconde couleur, gardes et poignées en principale. */
 function sabres(g: Pen) {
   for (const side of [1, -1]) {
@@ -216,7 +247,7 @@ function crown(g: Pen) {
   for (const x of [42, 64, 86]) circle(g, x, 100, 4.5);
 }
 
-const DESIGNS: Record<EmblemId | 'crown', (g: Pen) => void> = { skull, sabres, kraken, serpent, compass, anchor, raven, mermaid, crown, goldSkull };
+const DESIGNS: Record<EmblemId | 'crown', (g: Pen) => void> = { skull, sabres, kraken, serpent, compass, anchor, raven, mermaid, crown, goldSkull, silverBell };
 
 /** Dessine le masque de l'emblème `id` (la texture est retournée à l'envoi : le haut du dessin est le haut de la voile). */
 export function drawEmblem(g: Pen, id: EmblemId | 'crown') {
