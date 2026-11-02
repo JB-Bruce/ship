@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import { LIVERIES, type IslandId } from '../config';
 import { paletteFor, std } from '../ship/parts/common';
+import { addStatics, windowMaterial, type LanternSpot } from '../ship/parts/nightGlow';
 import { addBarrel, addCrate, addLantern, addRopeCoil } from '../ship/parts/props';
 import { GeometryBatch, tf } from '../utils/geometryBatch';
 import type { Island } from './island';
+import { buildArsenalPort } from './arsenalPort';
 import { addPalm, seeded } from './islandTerrain';
 
 /** Hauteur du plancher des quais (m). */
@@ -39,8 +41,11 @@ interface House {
   rot: number;
 }
 
-/** Village de chaque île. La Tortue : cabanes de bois et de chaux. Port-Sabre : maisons de pierre aux toits sombres. */
-const HOUSES: Record<IslandId, House[]> = {
+/**
+ * Village de chaque île. La Tortue : cabanes de bois et de chaux. Port-Sabre : maisons de pierre aux toits sombres.
+ * Port-Dauphin : cabanes de pêcheurs autour du poste de garde de la Marine. (Port-Royal est bâti à part : arsenalPort.ts.)
+ */
+const HOUSES: Partial<Record<IslandId, House[]>> = {
   tortuga: [
   { u: 0, v: -22, w: 10, d: 7, h: 4.2, wall: 0xd8cfb8, roof: 0x8a3b2a, rot: 0 }, // taverne
   { u: -22, v: -14, w: 12, d: 6, h: 3.6, wall: 0x9a7048, roof: 0x5a4a3a, rot: 0.1 }, // entrepôt
@@ -49,6 +54,13 @@ const HOUSES: Record<IslandId, House[]> = {
   { u: -12, v: -34, w: 6, d: 5, h: 3.2, wall: 0x9a7048, roof: 0x8a3b2a, rot: 0.15 },
   { u: 10, v: -38, w: 5, d: 4.5, h: 3, wall: 0xb08a5a, roof: 0x7a6a3a, rot: -0.1 },
   { u: -30, v: -30, w: 5.5, d: 5, h: 3, wall: 0x9a7048, roof: 0x4a5a6a, rot: 0.4 },
+  ],
+  dauphin: [
+    { u: 0, v: -22, w: 9, d: 7, h: 4.4, wall: 0x9a948a, roof: 0x3e4a5e, rot: 0 }, // poste de garde de la Marine (et sa cantine)
+    { u: -17, v: -13, w: 6, d: 5, h: 3, wall: 0x9a7048, roof: 0x7a6a3a, rot: 0.2 }, // cabanes de pêcheurs
+    { u: 16, v: -15, w: 6, d: 5, h: 3, wall: 0xd8cfb8, roof: 0x8a3b2a, rot: -0.15 },
+    { u: -10, v: -32, w: 5, d: 4.5, h: 3, wall: 0xb08a5a, roof: 0x5a4a3a, rot: 0.3 },
+    { u: 12, v: -31, w: 5.5, d: 5, h: 3, wall: 0x9a7048, roof: 0x4a5a6a, rot: -0.25 },
   ],
   sabre: [
     { u: 2, v: -22, w: 11, d: 7, h: 4.6, wall: 0x9a948a, roof: 0x5a2a22, rot: 0 }, // taverne des Frères du Sabre
@@ -59,13 +71,24 @@ const HOUSES: Record<IslandId, House[]> = {
   ],
 };
 /** Palmiers plantés à la main dans chaque village : [u, v]. */
-const VILLAGE_PALMS: Record<IslandId, [number, number][]> = {
+const VILLAGE_PALMS: Partial<Record<IslandId, [number, number][]>> = {
   tortuga: [[-6, -10], [12, -26], [-24, -24], [26, -10]],
   sabre: [[-4, -12], [26, -26]],
+  dauphin: [[-6, -10], [22, -24], [-24, -26]],
 };
 
-/** Le port d'une île : quais et pontons sur pilotis, village pirate. */
-export function buildPort(of: Island): THREE.Group {
+/** Îles dont le port est un arsenal de la Marine (une ville de pierre) plutôt qu'un village. */
+const ARSENALS: readonly IslandId[] = ['royale'];
+
+/** Graine du tirage des palmiers de chaque village. */
+const VILLAGE_SEED: Partial<Record<IslandId, number>> = { tortuga: 7, sabre: 11, dauphin: 17 };
+
+/**
+ * Le port d'une île : quais et pontons sur pilotis, village pirate ; ses lanternes (repère du monde) pour les halos de
+ * nuit. Port-Royal, arsenal de la Marine, est une vraie ville (arsenalPort.ts).
+ */
+export function buildPort(of: Island): { group: THREE.Group; lanterns: LanternSpot[] } {
+  if (ARSENALS.includes(of.id)) return buildArsenalPort(of);
   island = of;
   A = of.def.bay.angle;
   const batch = new GeometryBatch();
@@ -105,10 +128,10 @@ export function buildPort(of: Island): THREE.Group {
   addRopeCoil(batch, p, place(-12, 3, DOCK_Y));
 
   // Village : cabanes, taverne, entrepôt (les murs descendent sous terre pour ne jamais flotter sur une pente).
-  for (const house of HOUSES[of.id]) addHouse(batch, house);
-  const rand = seeded(of.id === 'sabre' ? 11 : 7);
+  for (const house of HOUSES[of.id] ?? []) addHouse(batch, house);
+  const rand = seeded(VILLAGE_SEED[of.id] ?? 1);
   const palm = { trunk: std(0x8a6a45), leaf: std(0x3f9a3a), nut: std(0x5a3d20) };
-  for (const [u, v] of VILLAGE_PALMS[of.id]) {
+  for (const [u, v] of VILLAGE_PALMS[of.id] ?? []) {
     const q = at(u, v);
     addPalm(batch, palm, q.x, ground(u, v) - 0.2, q.z, rand() * Math.PI * 2, rand);
   }
@@ -116,8 +139,8 @@ export function buildPort(of: Island): THREE.Group {
 
 
   const group = new THREE.Group();
-  for (const { geometry, material } of batch.build()) group.add(new THREE.Mesh(geometry, material));
-  return group;
+  const lanterns = addStatics(group, batch.build());
+  return { group, lanterns };
 }
 
 const wallMaterials = new Map<number, THREE.Material>();
@@ -138,7 +161,7 @@ function addHouse(batch: GeometryBatch, h: House) {
   roof.rotateY(Math.PI / 4);
   const k = Math.SQRT1_2;
   batch.add(material(h.roof), roof, place(h.u, h.v, y + h.h + roofHeight / 2, h.rot, [(h.w / 2 + 0.5) / k, roofHeight, (h.d / 2 + 0.5) / k]));
-  // Façade côté mer : porte et fenêtres.
+  // Façade côté mer : porte et fenêtres (éclairées la nuit).
   const front = h.d / 2 + 0.05;
   const local = (du: number, dv: number) => {
     // Décalage dans le repère de la maison (tournée de h.rot).
@@ -150,7 +173,7 @@ function addHouse(batch: GeometryBatch, h: House) {
   batch.add(dark, new THREE.BoxGeometry(1, 1.9, 0.1), place(door.u, door.v, y + 0.95, h.rot));
   for (const side of [-1, 1]) {
     const win = local(side * h.w * 0.3, front);
-    batch.add(dark, new THREE.BoxGeometry(0.8, 0.7, 0.1), place(win.u, win.v, y + h.h * 0.6, h.rot));
+    batch.add(windowMaterial, new THREE.BoxGeometry(0.8, 0.7, 0.1), place(win.u, win.v, y + h.h * 0.6, h.rot));
   }
   if (h.w >= 9) {
     // Enseigne de la taverne.

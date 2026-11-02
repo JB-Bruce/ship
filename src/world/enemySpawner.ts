@@ -1,12 +1,14 @@
 import type * as THREE from 'three';
 import { EnemyAI, type EnemyAIOptions, type EnemyGroup, type FlotillaSlot } from '../ai/enemyAI';
-import { BOSSES, ELITE_LIVERY, ENEMIES, LAND, type BossId } from '../config';
+import { BOSSES, CURSED, DAY_NIGHT, ELITE_LIVERY, ENEMIES, LAND, type BossId, type EncounterStage } from '../config';
 import type { ContractOptions } from '../progression/contracts';
 import { deriveStats, maxLevels, randomLevels, totalLevels } from '../progression/upgrades';
-import { createShip, type Ship } from '../ship/ship';
-import { SHIP_SIZE_ORDER, SHIP_TYPES, sizeRank, type ShipType } from '../shipTypes';
+import { createShip, Ship } from '../ship/ship';
+import { maxRank, SHIP_SIZE_ORDER, SHIP_TYPES, sizeRank, typeOfRank, type ShipType } from '../shipTypes';
 import { wrapAngle } from '../utils/math';
 import { ISLAND_LIST, land } from './island';
+import { worldEdge } from './worldEdge';
+import { conditions } from './weather';
 
 export interface Enemy {
   ship: Ship;
@@ -23,6 +25,10 @@ export interface Enemy {
   name: string | null;
   /** Coulé par un allié hors de ta flotte (pirate) : ne compte pas dans tes victoires. */
   uncounted?: boolean;
+  /** Porteur de plans (chasse aux plans) : coulé, il lâche à coup sûr un bout de son plan, quel que soit le coup fatal. */
+  carriesPlan?: boolean;
+  /** Navire maudit (world/cursedTide.ts) : ni butin ni plan. */
+  cursed?: boolean;
 }
 
 /** Du plus petit au plus gros : un chef de flottille est pris un cran au-dessus de ses suiveurs. */
@@ -50,6 +56,8 @@ export class EnemySpawner {
   /** Ennemis coulés depuis le début : plus il y en a, plus les nouveaux sont nombreux, améliorés et souvent d'élite. */
   kills = 0;
   private timer = ENEMIES.firstSpawnDelay;
+  /** Rythme des apparitions selon les eaux où se trouve le bateau piloté (territoires, posé par `Game`). */
+  rateAt: (x: number, z: number) => number = () => 1;
 
   constructor(
     private readonly scene: THREE.Scene,
@@ -59,15 +67,25 @@ export class EnemySpawner {
   ) {}
 
   /** Nombre max d'ennemis en même temps, selon les victoires. */
-  get maxAlive(): number {
-    return [...ENEMIES.maxAlive].reverse().find(([kills]) => this.kills >= kills)![1];
+  /** Palier de rencontres atteint (nombre de groupes, taille, délai), selon les victoires. */
+  private get encounter(): EncounterStage {
+    const list = ENEMIES.encounters;
+    let stage = list[0];
+    for (const e of list) if (this.kills >= e.fromKills) stage = e;
+    return stage;
   }
 
   /** Décisions des IA. Le déplacement des bateaux est fait ensuite par Ship.update. */
   update(dt: number, center: Ship) {
-    if (this.enemies.length < this.maxAlive) {
-      this.timer -= dt;
-      if (this.timer <= 0) this.timer = this.spawn(center) ? this.nextInterval() : 2;
+    // Près d'une côte, et la nuit : le temps avant la prochaine apparition s'écoule plus lentement. Près d'une côte,
+    // la place est aussi plafonnée.
+    const near = ENEMIES.nearIsland;
+    const closeness = Math.max(0, Math.min(1, 1 - land.sdf(center.position.x, center.position.z) / near.radius));
+    const room = this.ordinaryGroups() >= this.encounter.groups ? 0 : closeness > 0 ? near.maxAlive - this.ordinaryCount() : Infinity;
+    if (room > 0) {
+      const night = 1 + (DAY_NIGHT.encounterSlowdown - 1) * conditions.night;
+      this.timer -= (dt * this.rateAt(center.position.x, center.position.z)) / ((1 + (near.slowdown - 1) * closeness) * night);
+      if (this.timer <= 0) this.timer = this.spawn(center, room) ? this.nextInterval() : 2;
     }
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const enemy = this.enemies[i];
@@ -84,16 +102,39 @@ export class EnemySpawner {
   }
 
   /** Ce que les contrats de la taverne peuvent demander : les types qui apparaissent, et si les élites sont là. */
-  contractOptions(): Omit<ContractOptions, 'level'> {
+  contractOptions(): Omit<ContractOptions, 'level' | 'best'> {
     const weights = this.stage().weights as Partial<Record<ShipType, number>>;
     return { types: SIZE_ORDER.filter((t) => (weights[t] ?? 0) > 0), elites: this.kills >= ENEMIES.elite.fromKills };
   }
 
   /** Délai avant la prochaine apparition : il raccourcit avec les victoires. */
+  /** Ennemi ordinaire à flot (ni escadre de mission, ni boss). */
+  private ordinary(e: Enemy): boolean {
+    return !e.persistent && !e.boss && e.ship.alive;
+  }
+
+  private ordinaryCount(): number {
+    let count = 0;
+    for (const e of this.enemies) if (this.ordinary(e)) count++;
+    return count;
+  }
+
+  /** Groupes ordinaires à flot : chaque navire seul, et chaque flottille comptée une fois (par son premier membre à flot). */
+  private ordinaryGroups(): number {
+    let count = 0;
+    for (let i = 0; i < this.enemies.length; i++) {
+      const e = this.enemies[i];
+      if (!this.ordinary(e)) continue;
+      const group = e.ai.group;
+      let counted = false;
+      for (let j = 0; j < i && group && !counted; j++) counted = this.enemies[j].ai.group === group && this.ordinary(this.enemies[j]);
+      if (!counted) count++;
+    }
+    return count;
+  }
+
   private nextInterval(): number {
-    const t = Math.min(1, this.kills / ENEMIES.fastSpawnKills);
-    const min = ENEMIES.spawnInterval[0] + (ENEMIES.fastSpawnInterval[0] - ENEMIES.spawnInterval[0]) * t;
-    const max = ENEMIES.spawnInterval[1] + (ENEMIES.fastSpawnInterval[1] - ENEMIES.spawnInterval[1]) * t;
+    const [min, max] = this.encounter.interval;
     return min + Math.random() * (max - min);
   }
 
@@ -119,12 +160,13 @@ export class EnemySpawner {
   }
 
   /**
-   * Escadre d'une mission (chasse, siège, embuscade) : `types[0]` est le chef, d'élite (nommé ou non), les autres le
-   * suivent en V, autour de (x, z). Elle ne disparaît pas quand le joueur s'éloigne. `ai` : comportement commun.
+   * Escadre d'une mission (chasse, siège, embuscade, bataille) : `types[0]` est le chef, d'élite (nommé ou non) sauf
+   * `eliteLeader` faux (chasse aux plans), les autres le suivent en V, autour de (x, z). Elle ne disparaît pas quand le
+   * joueur s'éloigne. `ai` : comportement commun.
    */
-  spawnSquadron(types: readonly ShipType[], x: number, z: number, heading: number, name: string | null, ai: EnemyAIOptions): Enemy[] {
+  spawnSquadron(types: readonly ShipType[], x: number, z: number, heading: number, name: string | null, ai: EnemyAIOptions, eliteLeader = true): Enemy[] {
     const size = types.length;
-    const leader = this.add(types[0], x, z, heading, true, null, null, ai);
+    const leader = this.add(types[0], x, z, heading, eliteLeader, null, null, ai);
     const group: EnemyGroup = { leader: leader.ship, alerted: false };
     leader.ai = new EnemyAI(leader.ship, group, null, ai);
     leader.persistent = true;
@@ -142,29 +184,83 @@ export class EnemySpawner {
     return squadron;
   }
 
-  /** Retire un ennemi encore à flot (le boss qui disparaît dans la brume). */
+  /**
+   * Navire d'une garnison (Île Royale), au mouillage ou en ronde selon `ai` : il ne disparaît pas quand tu t'éloignes.
+   * `threat` : ses améliorations (0 à 1), fixes et non selon tes victoires ; jamais allongé.
+   */
+  spawnGuard(type: ShipType, x: number, z: number, heading: number, ai: EnemyAIOptions, threat: number): Enemy {
+    const enemy = this.add(type, x, z, heading, false, null, null, ai, threat, 0);
+    enemy.persistent = true;
+    return enemy;
+  }
+
+  /** Retire un ennemi encore à flot (le boss qui disparaît dans la brume, la garnison qui rentre). */
   discard(enemy: Enemy) {
     const i = this.enemies.indexOf(enemy);
     if (i >= 0) this.remove(i);
   }
 
+  /**
+   * Triche de test (touche N) : un ennemi tiré comme une rencontre (selon tes victoires, au plus un cran au-dessus de ton
+   * plus gros navire, parfois d'élite), à ENEMIES.cheatChaseDistance m, cap sur toi et déjà lancé à ta poursuite.
+   * Renvoie false si aucun endroit valable n'a été trouvé (terre, port).
+   */
+  spawnChaser(center: Ship): boolean {
+    const angle = this.findSpawnAngle(center, ENEMIES.cheatChaseDistance);
+    if (angle === null) return false;
+    const top = Math.min(maxRank(), sizeRank(this.fleetPower().best) + 1);
+    const picked = this.pickType();
+    const type = sizeRank(picked) > top ? typeOfRank(top, (t) => this.weight(t) > 0) : picked;
+    const x = center.position.x + Math.sin(angle) * ENEMIES.cheatChaseDistance;
+    const z = center.position.z + Math.cos(angle) * ENEMIES.cheatChaseDistance;
+    const enemy = this.add(type, x, z, wrapAngle(angle + Math.PI), Math.random() < this.eliteChance(), null, null);
+    // Un groupe déjà alerté : il chasse aussitôt, comme un ennemi qui t'a repéré.
+    enemy.ai = new EnemyAI(enemy.ship, { leader: enemy.ship, alerted: true });
+    return true;
+  }
+
+  /**
+   * Navire maudit (world/cursedTide.ts) : camp `cursed`, livrée grise, vie × CURSED.health, améliorations des ennemis
+   * ordinaires ; il se bat à mort contre tout ce qui flotte. La marée maudite le retire elle-même quand il replonge.
+   */
+  spawnCursed(type: ShipType, x: number, z: number, heading: number): Enemy {
+    const ship = createShip(type, 'cursed', randomLevels(type, this.threat, ENEMIES.extensionChance));
+    strengthen(ship, { health: CURSED.health, damage: 1, reload: 1, spread: 1 });
+    ship.position.set(x, 0, z);
+    ship.heading = heading;
+    const ai = new EnemyAI(ship, null, null, { relentless: true });
+    const enemy: Enemy = { ship, ai, lootFactor: 0, elite: false, boss: null, persistent: true, name: null, cursed: true };
+    this.track(enemy);
+    return enemy;
+  }
+
   /** Fait apparaître un ennemi ou une flottille. Renvoie false si aucun endroit valable n'a été trouvé. */
-  private spawn(center: Ship): boolean {
+  /** `room` : nombre de navires qui peuvent encore apparaître (plafond près des îles, sinon Infinity). */
+  private spawn(center: Ship, room: number): boolean {
     const angle = this.findSpawnAngle(center, ENEMIES.spawnDistance);
     if (angle === null) return false;
     const x = center.position.x + Math.sin(angle) * ENEMIES.spawnDistance;
     const z = center.position.z + Math.cos(angle) * ENEMIES.spawnDistance;
     // Cap vers la zone du joueur, à ±45° près : il croisera sa route.
     const heading = wrapAngle(angle + Math.PI + (Math.random() - 0.5) * (Math.PI / 2));
-    // Jamais plus nombreux que ta flotte, ni plus gros que ton plus gros navire + 1 cran.
+    // Jamais plus nombreux que ta flotte + ENEMIES.fleetMargin, ni plus gros que ton plus gros navire + 1 cran.
     const power = this.fleetPower();
-    const size = Math.min(this.groupSize(), this.maxAlive - this.enemies.length, Math.max(1, power.ships));
-    const largest = SIZE_ORDER[Math.min(SIZE_ORDER.length - 1, sizeRank(power.best) + 1)];
-    const cap = (type: ShipType) => (sizeRank(type) > sizeRank(largest) ? largest : type);
+    const size = Math.min(randInt(this.encounter.size), room, Math.max(1, power.ships) + ENEMIES.fleetMargin);
+    const top = Math.min(maxRank(), sizeRank(power.best) + 1);
+    const cap = (type: ShipType) => (sizeRank(type) > top ? typeOfRank(top, (t) => this.weight(t) > 0) : type);
 
     // Types : les suiveurs tirés selon la composition du moment ; le chef un cran au-dessus (grosse flottille).
     const types = Array.from({ length: size }, () => cap(this.pickType()));
     if (size > 1 && this.kills >= ENEMIES.flotilla.bigFromKills) types[0] = cap(this.biggerType(types));
+    // Un seul navire plus gros que ton plus gros à la fois sur la carte (le chef d'abord) : les autres prennent ta taille.
+    if (top > sizeRank(power.best)) {
+      let allowed = this.enemies.some((e) => e.ship.alive && sizeRank(e.ship.type) === top) ? 0 : 1;
+      for (let k = 0; k < types.length; k++) {
+        if (sizeRank(types[k]) !== top) continue;
+        if (allowed > 0) allowed--;
+        else types[k] = power.best;
+      }
+    }
 
     const chance = this.eliteChance();
     const leader = this.add(types[0], x, z, heading, Math.random() < chance * (size > 1 ? ENEMIES.elite.leaderBonus : 1), null, null);
@@ -186,18 +282,29 @@ export class EnemySpawner {
     return true;
   }
 
-  /** Taille du groupe à faire apparaître : un navire seul, ou une flottille de plus en plus grosse. */
-  private groupSize(): number {
-    const f = ENEMIES.flotilla;
-    if (this.kills < f.fromKills || Math.random() >= f.chance) return 1;
-    return randInt(this.kills >= f.bigFromKills ? f.bigSize : f.size);
+  /** Crée un ennemi (d'élite ou non) et l'ajoute au monde. */
+  /**
+   * Un allié passe à l'ennemi (trahison) : copie exacte (type, caractéristiques, améliorations, livrée, équipage), à
+   * sa place et dans son mouvement ; seul le camp change. C'est un ennemi ordinaire : il patrouille, n'attaque que s'il
+   * te repère, compte dans les rencontres, et coulé, c'est une victoire comme une autre. L'original reste à retirer.
+   */
+  adopt(source: Ship): Enemy {
+    const ship = new Ship(source.type, structuredClone(source.stats), 'enemy', source.livery);
+    ship.modifiers = structuredClone(source.modifiers);
+    ship.guns = { ...source.guns };
+    ship.crewColors = source.crewColors;
+    ship.applyLooks(source.levels);
+    ship.dressing.applyGunLook(ship.guns);
+    ship.copyMotion(source);
+    const lootFactor = SHIP_TYPES[source.type].lootFactor * (1 + totalLevels(source.levels) * ENEMIES.lootPerUpgradeLevel);
+    const enemy: Enemy = { ship, ai: new EnemyAI(ship, null, null), lootFactor, elite: false, boss: null, persistent: false, name: null };
+    this.track(enemy);
+    return enemy;
   }
 
-  /** Crée un ennemi (d'élite ou non) et l'ajoute au monde. */
-  private add(type: ShipType, x: number, z: number, heading: number, elite: boolean, group: EnemyGroup | null, slot: FlotillaSlot | null, ai: EnemyAIOptions = {}): Enemy {
-    // Menace : de 0 (début de partie) à 1 (après ENEMIES.killsForFullThreat victoires).
-    const threat = Math.min(1, this.kills / ENEMIES.killsForFullThreat);
-    const levels = randomLevels(type, threat);
+  /** `threat` : améliorations (0 à 1) ; celle des ennemis ordinaires, sauf menace imposée (garnison). */
+  private add(type: ShipType, x: number, z: number, heading: number, elite: boolean, group: EnemyGroup | null, slot: FlotillaSlot | null, ai: EnemyAIOptions = {}, threat = this.threat, extensionChance = ENEMIES.extensionChance): Enemy {
+    const levels = randomLevels(type, threat, extensionChance);
     const ship = createShip(type, 'enemy', levels, elite ? ELITE_LIVERY : undefined);
     if (elite) strengthen(ship, ENEMIES.elite);
     ship.position.set(x, 0, z);
@@ -214,6 +321,11 @@ export class EnemySpawner {
     this.scene.add(enemy.ship.model.root);
   }
 
+  /** Menace des ennemis ordinaires : de 0 (début de partie) à 1 (après ENEMIES.killsForFullThreat victoires). */
+  private get threat(): number {
+    return Math.min(1, this.kills / ENEMIES.killsForFullThreat);
+  }
+
   /** Chance qu'un nouvel ennemi soit d'élite : nulle au début, puis de plus en plus fréquente. */
   private eliteChance(): number {
     const e = ENEMIES.elite;
@@ -227,7 +339,7 @@ export class EnemySpawner {
       const x = center.position.x + Math.sin(angle) * distance;
       const z = center.position.z + Math.cos(angle) * distance;
       const nearPort = ISLAND_LIST.some((i) => Math.hypot(x - i.port.x, z - i.port.z) < LAND.portClearance);
-      if (nearPort || land.sdf(x, z) < LAND.spawnClearance) continue;
+      if (nearPort || land.sdf(x, z) < LAND.spawnClearance || worldEdge.room(x, z) < 0) continue;
       return angle;
     }
     return null;
@@ -246,12 +358,16 @@ export class EnemySpawner {
 
   /** Un cran au-dessus du plus gros des types tirés, parmi ceux qui peuvent déjà apparaître. */
   private biggerType(types: readonly ShipType[]): ShipType {
-    const weights = this.stage().weights as Partial<Record<ShipType, number>>;
-    const biggest = Math.max(...types.map((t) => SIZE_ORDER.indexOf(t)));
-    for (let i = Math.min(biggest + 1, SIZE_ORDER.length - 1); i >= 0; i--) {
-      if ((weights[SIZE_ORDER[i]] ?? 0) > 0) return SIZE_ORDER[i];
+    const biggest = Math.max(...types.map(sizeRank));
+    for (let rank = Math.min(biggest + 1, maxRank()); rank >= 0; rank--) {
+      if (SIZE_ORDER.some((t) => sizeRank(t) === rank && this.weight(t) > 0)) return typeOfRank(rank, (t) => this.weight(t) > 0);
     }
     return types[0];
+  }
+
+  /** Poids d'apparition d'un type dans la composition du moment (0 = il n'apparaît pas encore). */
+  private weight(type: ShipType): number {
+    return (this.stage().weights as Partial<Record<ShipType, number>>)[type] ?? 0;
   }
 
   private stage() {

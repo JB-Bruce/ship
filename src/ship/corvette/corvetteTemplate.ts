@@ -1,7 +1,10 @@
+import { WATER_MASK } from '../../config';
+import { addLampFixtures } from '../parts/shipLamps';
+import { corvetteLamps } from './corvetteLamps';
 import * as THREE from 'three';
 import type { Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
-import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, std } from '../parts/common';
+import { addDeckSeams, buildRudderGeometry, flagMaterialFor, paletteFor, passThrough, std } from '../parts/common';
 import { addHatch, addStairs } from '../parts/deckFittings';
 import { addBarrel, addCrate, addLantern, addRopeCoil, buildCarriageGunGeometry, type Palette } from '../parts/props';
 import { buildGaffSail, buildSquareSail, buildTriangleSail, cylinderBetween } from '../parts/sails';
@@ -69,7 +72,7 @@ function buildTemplate(L: CorvetteLayout, livery: Livery): CorvetteTemplate {
   const castleHeight = quarterdeck.y - DECK_Y;
   batch.add(p.wood, box(2 * castle.halfWidth * 0.98, castleHeight, 0.12), tf(0, DECK_Y + castleHeight / 2, castle.z));
   batch.add(p.dark, box(0.75, 1.3, 0.04), tf(0, DECK_Y + 0.65, castle.z + 0.07));
-  for (const x of [-0.8, 0.8]) batch.add(p.dark, box(0.38, 0.32, 0.04), tf(x, DECK_Y + 1.2, castle.z + 0.07));
+  for (const x of [-0.8, 0.8]) batch.add(p.window, box(0.38, 0.32, 0.04), tf(x, DECK_Y + 1.2, castle.z + 0.07));
   for (const side of [1, -1]) addStairs(batch, p, tf(side * 1.3, DECK_Y, castle.z), castleHeight, 6);
   const fore = L.station(forecastle.from);
   const foreHeight = forecastle.y - DECK_Y;
@@ -92,13 +95,13 @@ function buildTemplate(L: CorvetteLayout, livery: Livery): CorvetteTemplate {
     // Fenêtres du château, sur ses flancs.
     for (const u of [-0.9, -0.74, -0.6]) {
       const s = at(u);
-      batch.add(p.dark, box(0.05, 0.4, 0.45), tf(side * (s.halfWidth + 0.02), quarterdeck.y - 0.75, s.z));
+      batch.add(p.window, box(0.05, 0.4, 0.45), tf(side * (s.halfWidth + 0.02), quarterdeck.y - 0.75, s.z));
     }
   }
 
   // Tableau arrière : fenêtres de la grand-chambre (sous le château) et moulures dorées.
   const stern = at(-1);
-  for (const x of [-1.35, -0.45, 0.45, 1.35]) batch.add(p.dark, box(0.5, 0.55, 0.05), tf(x, quarterdeck.y - 0.85, stern.z - 0.02));
+  for (const x of [-1.35, -0.45, 0.45, 1.35]) batch.add(p.window, box(0.5, 0.55, 0.05), tf(x, quarterdeck.y - 0.85, stern.z - 0.02));
   for (const y of [DECK_Y + 0.4, quarterdeck.y - 0.2, stern.gunwale - 0.1]) batch.add(p.trim, box(2 * stern.halfWidth - 0.2, 0.09, 0.06), tf(0, y, stern.z - 0.03));
 
   // Mâts (hunes, chouques), hampe du pavillon, beaupré, colonne de la roue, cabestan.
@@ -123,6 +126,7 @@ function buildTemplate(L: CorvetteLayout, livery: Livery): CorvetteTemplate {
   addRopeCoil(batch, p, tf(0.6, quarterdeck.y, L.mizzenMast.z + 0.8));
   addLantern(batch, p, tf(0, stern.gunwale, stern.z + 0.2, 0, 0, 0, 1.5));
 
+  addLampFixtures(batch, p, corvetteLamps(L));
   return {
     palette: p,
     statics: batch.build(),
@@ -143,7 +147,7 @@ function buildTemplate(L: CorvetteLayout, livery: Livery): CorvetteTemplate {
     deckGun: buildCarriageGunGeometry(),
     flagMaterial: flagMaterialFor(livery),
     rigging: buildRigging(L),
-    waterMask: hull.buildWaterMask(),
+    waterMask: hull.buildWaterMask(DECK_Y + WATER_MASK.aboveDeck),
   };
 }
 
@@ -156,14 +160,14 @@ export function buildBatteryGun(): THREE.BufferGeometry {
   return batch.build()[0].geometry;
 }
 
-/** Roue de gouvernail (dans le plan XY, elle tourne autour de Z). */
+/** Roue de gouvernail (dans le plan XY, elle tourne autour de Z) ; le joueur à pied la traverse. */
 export function buildWheel(): THREE.BufferGeometry {
   const batch = new GeometryBatch();
   const key = new THREE.MeshBasicMaterial();
   batch.add(key, new THREE.TorusGeometry(0.55, 0.045, 4, 14), new THREE.Matrix4());
   batch.add(key, new THREE.CylinderGeometry(0.09, 0.09, 0.12, 8), tf(0, 0, 0, Math.PI / 2));
   for (let i = 0; i < 8; i++) batch.add(key, new THREE.BoxGeometry(0.035, 1.4, 0.035), tf(0, 0, 0, 0, 0, (i * Math.PI) / 8));
-  return batch.build()[0].geometry;
+  return passThrough(batch.build()[0].geometry);
 }
 
 /** Haubans des trois mâts, étais (artimon → grand mât → misaine → beaupré), sous-barbe. */

@@ -3,7 +3,7 @@ import { DECK_CREW } from '../../config';
 import { SHIP_TYPES } from '../../shipTypes';
 import type { GaffSailShape } from '../parts/sails';
 import { HullShape, type Station } from '../parts/hullShape';
-import { hullStretch, purchaseOrder } from '../parts/hullStretch';
+import { balancedMainMast, hullStretch, purchaseOrder } from '../parts/hullStretch';
 import { deckWalks, ropeSpots, type DeckPlan } from '../deckPlan';
 
 /** Longueur de la frégate de base (m) : les positions écrites en « u de base » s'y rapportent. */
@@ -88,6 +88,8 @@ export interface Mast {
  * parties SECTIONS s'étirent, le reste glisse sans se déformer.
  */
 export interface FrigateLayout {
+  /** Nombre d'allongements de ce plan (0, 1, 2). */
+  readonly level: number;
   readonly length: number;
   readonly hull: HullShape;
   /** u de la coque d'un point placé en u de base. */
@@ -149,8 +151,8 @@ function createLayout(level: number): FrigateLayout {
   const poop = { y: 6.85, from: base(-0.99), to: base(-0.745) };
   const forecastle = { y: 4.1, from: base(0.64), to: base(0.95) };
   const foreMast = { z: at(0.42).z, top: 23.5, topPlatform: 13.8, crossTree: 19.6, base: DECK_Y };
-  const mainMast = { z: at(-0.04).z, top: 26.5, topPlatform: 15.2, crossTree: 21.4, base: DECK_Y };
   const mizzenMast = { z: at(-0.6).z, top: 23.6, topPlatform: 15.4, crossTree: 20.2, base: quarterdeck.y };
+  const mainMast = { z: balancedMainMast(at(-0.04).z, foreMast.z, mizzenMast.z, level), top: 26.5, topPlatform: 15.2, crossTree: 21.4, base: DECK_Y };
   // Beaupré, et le mâtereau dressé à son bout qui porte la contre-civadière.
   const bowsprit = { base: new THREE.Vector3(0, 5.4, 13.6 + bowShift), tip: new THREE.Vector3(0, 8.4, 22.4 + bowShift) };
   const alongBowsprit = (t: number) => new THREE.Vector3().lerpVectors(bowsprit.base, bowsprit.tip, t);
@@ -176,6 +178,7 @@ function createLayout(level: number): FrigateLayout {
     isOpenGun: (mount) => mount.calibre === 'deck',
   };
   return {
+    level,
     length: FRIGATE_LENGTH + extra,
     hull,
     base,

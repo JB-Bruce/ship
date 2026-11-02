@@ -1,10 +1,10 @@
 import type * as THREE from 'three';
-import { COMBAT, CONTRACTS, ENEMIES, HARASS, SAIL } from '../config';
+import { BROADSIDE, COMBAT, CONTRACTS, ENEMIES, GARRISON, HARASS, SAIL, FIRESHIP } from '../config';
 import type { Ship } from '../ship/ship';
 import { SHIP_TYPES } from '../shipTypes';
 import { wrapAngle } from '../utils/math';
 import { conditions } from '../world/weather';
-import { bearingTo, broadside, nearest, steerTo } from './steering';
+import { bearingTo, broadside, clearLineOfFire, firingRange, nearest, steerTo } from './steering';
 
 /** `leave` : s'éloigne pour de bon (boss quand la tempête se calme), sans plus attaquer. */
 export type EnemyState = 'patrol' | 'chase' | 'engage' | 'flee' | 'leave';
@@ -25,7 +25,18 @@ export interface EnemyAIOptions {
   home?: { x: number; z: number; radius: number };
   /** Assiégeant : il bombarde ce point (une citadelle) tant qu'aucune proie ne s'approche. */
   siege?: { position: THREE.Vector3 };
+  /** Garnison au mouillage : voiles carguées à cette place jusqu'à l'alerte (`wake`), il y revient et rejette l'ancre. */
+  moored?: { x: number; z: number };
+  /** Garnison en patrouille : il tourne autour de ce point à `radius` m, dans le sens `turn` (+1 ou -1). */
+  orbit?: { x: number; z: number; radius: number; turn: number };
+  /** Escadre qui tient bon (aide au combat) : elle ne fuit jamais. */
+  stand?: boolean;
+  /** Laisse (garnison) : au-delà de cette distance de son poste (mouillage ou centre de sa ronde), il lâche sa proie et rentre. */
+  leash?: number;
 }
+
+/** Une garnison qui a lâché sa proie ne repart en chasse qu'une fois revenue à cette part de sa laisse. */
+const LEASH_RETURN = 0.5;
 
 /** Place d'un suiveur dans la flottille, dans le repère du chef : vers bâbord et vers l'arrière (m). */
 export interface FlotillaSlot {
@@ -59,15 +70,33 @@ export class EnemyAI {
   private returnBearing = 0;
   private circleSide = 1;
   private targetDistance = Infinity;
+  /** Sa proie du moment (le plus proche des bateaux qu'il repère), ou null. */
+  target: Ship | null = null;
+  /** Au mouillage (garnison) : voiles carguées, il guette. */
+  anchored: boolean;
+  /** Sa vie quand il a jeté l'ancre : touché depuis, il appareille. */
+  private anchorHealth: number;
+  /** Garnison qui a dépassé sa laisse : il rentre à son poste sans plus chasser. */
+  private returning = false;
+
+  /** Ce navire fuit-il quand il est très abîmé ? (tiré à son apparition, `COMBAT.fleeChance`) */
+  private readonly coward = Math.random() < COMBAT.fleeChance;
 
   constructor(
     private readonly ship: Ship,
-    private readonly group: EnemyGroup | null = null,
+    readonly group: EnemyGroup | null = null,
     private readonly slot: FlotillaSlot | null = null,
     private readonly options: EnemyAIOptions = {},
   ) {
     this.patrolHeading = ship.heading;
+    this.anchored = !!options.moored;
+    this.anchorHealth = ship.health;
     if (options.harass) this.strike();
+  }
+
+  /** Alerte (garnison au mouillage) : il appareille. */
+  wake() {
+    this.anchored = false;
   }
 
   /** Caché dans la brume pendant une retraite de harcèlement : invisible au radar. */
@@ -80,7 +109,20 @@ export class EnemyAI {
     // Une flottille alertée cherche ses proies aussi loin qu'un ennemi déjà lancé à leur poursuite.
     const hunting = this.state !== 'patrol' || this.group?.alerted;
     const range = this.options.relentless ? Infinity : hunting ? ENEMIES.loseRange : ENEMIES.detectionRange * conditions.detectionFactor;
-    const target = nearest(this.ship, targets, range);
+    // En patrouille, il faut d'abord repérer sa proie (un navire discret se laisse approcher).
+    let target = nearest(this.ship, targets, range, !hunting && !this.options.relentless);
+    // Au mouillage, il guette : il appareille s'il repère une proie, s'il est touché, ou à l'alerte (wake).
+    if (this.anchored) {
+      if (!target && this.ship.health >= this.anchorHealth) {
+        this.target = null;
+        this.ship.controls.sail = 0;
+        this.ship.controls.rudder = 0;
+        return;
+      }
+      this.anchored = false;
+    }
+    if (this.leashed()) target = null;
+    this.target = target;
     const distance = target ? this.ship.distanceTo(target) : Infinity;
     this.targetDistance = distance;
     this.updateState(target, distance);
@@ -101,13 +143,27 @@ export class EnemyAI {
       const leader = this.group?.leader;
       if (this.slot && leader && leader.alive) this.followLeader(leader);
       else this.patrol(dt);
+    } else if (SHIP_TYPES[this.ship.type].armament === 'ram') {
+      this.ramRun(target, distance);
     } else if (SHIP_TYPES[this.ship.type].armament === 'bow') {
       this.attackRun(dt, target, distance);
     } else if (this.state === 'chase') {
       steerTo(this.ship, bearingTo(this.ship, target.position.x, target.position.z), SAIL.full);
     } else {
       this.side = broadside(this.ship, target, this.side, SAIL.half);
+      clearLineOfFire(this.ship);
     }
+  }
+
+  /** Garnison trop loin de son poste : elle lâche sa proie jusqu'à y être revenue (à LEASH_RETURN de sa laisse). */
+  private leashed(): boolean {
+    const { leash } = this.options;
+    const post = this.options.moored ?? this.options.orbit;
+    if (!leash || !post) return false;
+    const away = Math.hypot(post.x - this.ship.position.x, post.z - this.ship.position.z);
+    if (away > leash) this.returning = true;
+    else if (away < leash * LEASH_RETURN) this.returning = false;
+    return this.returning;
   }
 
   /** Renonce au combat et s'éloigne pour de bon. */
@@ -123,13 +179,13 @@ export class EnemyAI {
       this.state = target ? 'chase' : 'patrol';
       return;
     }
-    // Le boss et les assiégeants ne fuient jamais.
-    const brave = this.options.relentless || this.options.siege;
+    // Le boss, les assiégeants et les escadres qui tiennent bon ne fuient jamais ; des autres, seule une part fuit.
+    const brave = this.options.relentless || this.options.siege || this.options.stand || !this.coward;
     if (!brave && this.ship.health < this.ship.stats.maxHealth * COMBAT.fleeHealth) this.state = 'flee';
     else if (!target) this.state = 'patrol';
     else if (this.state === 'patrol') this.state = 'chase';
-    else if (this.state === 'chase' && distance < ENEMIES.engageRange * 1.2) this.state = 'engage';
-    else if (this.state === 'engage' && distance > ENEMIES.engageRange * 2.5) this.state = 'chase';
+    else if (this.state === 'chase' && distance < firingRange(this.ship) * BROADSIDE.turnAt) this.state = 'engage';
+    else if (this.state === 'engage' && distance > firingRange(this.ship) * BROADSIDE.chaseAgain) this.state = 'chase';
   }
 
   /**
@@ -152,6 +208,14 @@ export class EnemyAI {
     steerTo(this.ship, bearing, distance < ENEMIES.veerDistance * 2 ? SAIL.half : SAIL.full);
   }
 
+  /** Brûlot : il fond sur sa proie, toutes voiles dehors, en visant là où elle sera quand il l'atteindra. */
+  private ramRun(target: Ship, distance: number) {
+    const time = Math.min(FIRESHIP.maxLead, (distance / Math.max(this.ship.speed, 1)) * FIRESHIP.lead);
+    const x = target.position.x + target.velocityX * time;
+    const z = target.position.z + target.velocityZ * time;
+    steerTo(this.ship, bearingTo(this.ship, x, z), SAIL.full);
+  }
+
   /** Nouvelle attaque de harcèlement. */
   private strike() {
     this.phase = 'strike';
@@ -170,7 +234,7 @@ export class EnemyAI {
     const angle = Math.atan2(ship.position.x - target.position.x, ship.position.z - target.position.z);
     if (this.phase === 'strike') {
       // L'attaque ne se décompte qu'à portée de tir (pas pendant l'approche).
-      if (distance < ENEMIES.engageRange * HARASS.strikeRange) this.phaseTimer -= dt;
+      if (distance < firingRange(ship) * HARASS.strikeRange) this.phaseTimer -= dt;
       const hurt = this.strikeHealth - ship.health > ship.stats.maxHealth * h.hitLimit;
       if (this.phaseTimer <= 0 || hurt) {
         this.phase = 'fade';
@@ -178,8 +242,8 @@ export class EnemyAI {
         this.returnBearing = angle + this.circleSide * (h.circleAngle[0] + Math.random() * (h.circleAngle[1] - h.circleAngle[0]));
         return;
       }
-      if (distance > ENEMIES.engageRange * 1.2) steerTo(ship, bearingTo(ship, target.position.x, target.position.z), SAIL.full);
-      else this.side = broadside(ship, target, this.side, SAIL.half);
+      this.side = broadside(ship, target, this.side, SAIL.half);
+      clearLineOfFire(ship);
       return;
     }
     // Retraite : il s'éloigne en biais, puis tourne autour de sa proie à distance, jusqu'à l'angle de retour.
@@ -219,10 +283,21 @@ export class EnemyAI {
     const d = Math.hypot(fort.x - this.ship.position.x, fort.z - this.ship.position.z);
     const standoff = CONTRACTS.defend.standoff;
     if (d > standoff * 1.6) steerTo(this.ship, bearingTo(this.ship, fort.x, fort.z), SAIL.full);
-    else this.side = broadside(this.ship, { position: fort }, this.side, SAIL.half, standoff);
+    else {
+      this.side = broadside(this.ship, { position: fort }, this.side, SAIL.half, standoff);
+      clearLineOfFire(this.ship);
+    }
   }
 
   private patrol(dt: number) {
+    if (this.options.moored) {
+      this.backToMooring(this.options.moored);
+      return;
+    }
+    if (this.options.orbit) {
+      this.circle(this.options.orbit);
+      return;
+    }
     this.patrolTimer -= dt;
     if (this.patrolTimer <= 0) {
       this.patrolHeading += (Math.random() - 0.5) * 1.2;
@@ -234,5 +309,25 @@ export class EnemyAI {
       this.patrolHeading = bearingTo(this.ship, home.x, home.z);
     }
     steerTo(this.ship, this.patrolHeading, SAIL.half);
+  }
+
+  /** Garnison sans proie : retour au mouillage, où il rejette l'ancre. */
+  private backToMooring(spot: { x: number; z: number }) {
+    const d = Math.hypot(spot.x - this.ship.position.x, spot.z - this.ship.position.z);
+    if (d < GARRISON.mooringRadius) {
+      this.anchored = true;
+      this.anchorHealth = this.ship.health;
+      this.ship.controls.sail = 0;
+      return;
+    }
+    steerTo(this.ship, bearingTo(this.ship, spot.x, spot.z), d < GARRISON.mooringRadius * 4 ? SAIL.half * 0.5 : SAIL.half);
+  }
+
+  /** Ronde autour de l'île : cap tangent au cercle, corrigé pour revenir sur son rayon. */
+  private circle(o: { x: number; z: number; radius: number; turn: number }) {
+    const angle = Math.atan2(this.ship.position.x - o.x, this.ship.position.z - o.z);
+    const d = Math.hypot(this.ship.position.x - o.x, this.ship.position.z - o.z);
+    const correction = Math.max(-0.6, Math.min(0.6, ((d - o.radius) / o.radius) * 3));
+    steerTo(this.ship, angle + o.turn * (Math.PI / 2 + correction), SAIL.half);
   }
 }

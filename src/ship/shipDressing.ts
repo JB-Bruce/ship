@@ -1,9 +1,11 @@
 import * as THREE from 'three';
-import { BOSSES, GUNS, type BossId } from '../config';
+import { BOSSES, GUNS, type BossId, type EmblemId } from '../config';
+import type { TornSail } from './parts/tornSail';
 import type { Guns } from '../progression/modifiers';
 import { cylinderBetween } from './parts/sails';
 import { flagMaterialFor, std, WavingFlag } from './parts/common';
 import type { ShipModel } from './shipModel';
+import { applyWear } from './shipWear';
 
 /** Écart entre deux pavillons hissés l'un sous l'autre (fraction de la hauteur d'un pavillon). */
 const FLAG_GAP = 0.2;
@@ -68,6 +70,7 @@ export class ShipDressing {
   private trophies: WavingFlag[] = [];
   /** Flèche au-dessus du grand mât, quand des pavillons de boss y sont hissés. */
   private pole: THREE.Mesh | null = null;
+  private emblem: EmblemId | null = null;
 
   constructor(private readonly model: ShipModel) {}
 
@@ -76,6 +79,7 @@ export class ShipDressing {
     if (stars === this.rank) return;
     this.rank = stars;
     this.removeRank();
+    applyWear(this.model.root, stars);
     if (stars <= 0) return;
     const { base, top } = this.model.ensignStaff;
     const mount = this.model.flagMount;
@@ -112,8 +116,20 @@ export class ShipDressing {
     });
   }
 
-  /** Le modèle a été reconstruit (allongement) : drapeau de rang, trophées et allure des fûts sont reposés. */
+  /** Emblème peint sur la grande voile (null : aucun) : sur la voile désignée par le modèle (voir TornSail). */
+  setEmblem(id: EmblemId | null) {
+    this.emblem = id;
+    let sails: TornSail | null = null;
+    this.model.root.traverse((o) => {
+      const material = (o as THREE.Mesh).material as THREE.Material | undefined;
+      if (!sails && material && !Array.isArray(material) && material.userData?.tornSail) sails = material.userData.tornSail as TornSail;
+    });
+    (sails as TornSail | null)?.setEmblem(id);
+  }
+
+  /** Le modèle a été reconstruit (allongement) : drapeau de rang, trophées, emblème et allure des fûts sont reposés. */
   refresh(guns: Guns) {
+    this.setEmblem(this.emblem);
     const rank = this.rank;
     this.rank = -1;
     this.setRank(rank);
@@ -126,6 +142,7 @@ export class ShipDressing {
   /** Allure des fûts selon le type de canons de chaque calibre (le fût pointe vers +X local). */
   applyGunLook(guns: Guns) {
     for (const mount of this.model.cannons) {
+      if (mount.mortar) continue;
       const look = GUNS.types[mount.calibre === 'deck' ? guns.deck : guns.main].look;
       mount.object.scale.set(look.length, look.girth, look.girth);
     }

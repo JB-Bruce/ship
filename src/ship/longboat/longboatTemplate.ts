@@ -3,6 +3,7 @@ import type { Livery } from '../../config';
 import { GeometryBatch, tf } from '../../utils/geometryBatch';
 import { buildRudderGeometry, flagMaterialFor, paletteFor, std } from '../parts/common';
 import { HullShape } from '../parts/hullShape';
+import { sailSegments } from '../parts/sails';
 import { addBarrel, addCrate, addLantern, addRopeCoil, addSailor, buildCannonGeometry, type Palette } from '../parts/props';
 
 /** Dimensions de référence du modèle (m). Il est ensuite mis à l'échelle selon ShipStats.length. */
@@ -143,7 +144,7 @@ const sailBulge = (x: number) => SAIL.bulge * (1 - ((2 * x) / SAIL.width) ** 2);
 
 /** Voile carrée gonflée vers l'avant, ancrée en haut (y = 0) pour se carguer vers la vergue. */
 function buildSail(): THREE.BufferGeometry {
-  const geometry = new THREE.PlaneGeometry(SAIL.width, SAIL.height, 4, 4);
+  const geometry = new THREE.PlaneGeometry(SAIL.width, SAIL.height, sailSegments(SAIL.width), sailSegments(SAIL.height));
   geometry.translate(0, -SAIL.height / 2, 0);
   const pos = geometry.attributes.position;
   for (let i = 0; i < pos.count; i++) pos.setZ(i, sailBulge(pos.getX(i)));

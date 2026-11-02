@@ -18,6 +18,18 @@ export interface DeckWalk {
 }
 
 /**
+ * Échelle raide contre une cloison (parts/deckFittings.ts, `addLadder`) : en (x, z) au pied de la cloison, du pont
+ * `from` au pont `to` ; `facing` = 1 si l'on monte vers l'arrière, -1 vers l'avant.
+ */
+export interface DeckLadder {
+  x: number;
+  z: number;
+  from: number;
+  to: number;
+  facing: 1 | -1;
+}
+
+/**
  * Ce que l'équipage animé sait du pont d'un navire (deckCrew/) : combien de matelots, où se tiennent le barreur et la
  * vigie, où les matelots flânent, où ils halent les cordages, et quels canons sont servis à découvert (les autres sont
  * dans une batterie couverte ou un château, hors de vue).
@@ -30,6 +42,8 @@ export interface DeckPlan {
   walks: readonly DeckWalk[];
   /** Postes aux cordages (pied des mâts, contre le pavois), pour les manœuvres de voilure. */
   ropes: readonly DeckSpot[];
+  /** Échelles raides d'un pont à l'autre (galéasse) : l'équipage y grimpe (les escaliers, eux, se lisent dans le modèle). */
+  ladders?: readonly DeckLadder[];
   /** Un canon servi à découvert : un canonnier se tient derrière sa culasse en combat. */
   isOpenGun(mount: CannonMount): boolean;
 }

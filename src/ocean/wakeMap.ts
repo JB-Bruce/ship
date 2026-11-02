@@ -12,6 +12,11 @@ const SHIP = 0;
 const RING = 1;
 const WRECK = 2;
 const FISH = 3;
+const SHADOW = 4;
+/** Ombres sous l'eau en attente (le Kraken qui approche), repeintes à chaque image tant qu'il nage. */
+const MAX_SHADOWS = 4;
+/** Temps (s) que met l'ombre à s'effacer quand elle n'est plus repeinte. */
+const SHADOW_FADE = 0.5;
 /** Nombre max de traces peintes par image (bateaux, anneaux, naufrages, butin). */
 const CAPACITY = 128;
 /** Anneaux en attente (boulets tombés à l'eau depuis la dernière image). */
@@ -72,6 +77,7 @@ export class WakeMap {
     uTexel: { value: 1 / WAKE.resolution },
     uSpread: { value: 0 },
     uDecay: { value: 0 },
+    uShadowDecay: { value: 0 },
   };
   private readonly stampUniforms = {
     uOrigin: { value: new THREE.Vector2() },
@@ -85,6 +91,8 @@ export class WakeMap {
   private readonly attributes = [this.place, this.shape, this.hull, this.turn];
   private count = 0;
   private readonly pendingRings: { x: number; z: number }[] = [];
+  private readonly shadows = Array.from({ length: MAX_SHADOWS }, () => ({ x: 0, z: 0, heading: 0, half: 0, width: 0, seed: 0, strength: 0 }));
+  private shadowCount = 0;
   private readonly wreckSeeds = new WeakMap<Ship, number>();
   /** Horloge des remous animés (bancs de poissons) (s). */
   private time = 0;
@@ -99,6 +107,8 @@ export class WakeMap {
         uniforms: this.fadeUniforms,
         vertexShader: FULLSCREEN_VERTEX,
         fragmentShader: FADE_FRAGMENT,
+        // Elle remplace l'image : l'ombre (alpha) n'est pas une transparence.
+        blending: THREE.NoBlending,
         depthTest: false,
         depthWrite: false,
       }),
@@ -152,6 +162,15 @@ export class WakeMap {
     if (this.pendingRings.length < MAX_PENDING_RINGS) this.pendingRings.push({ x, z });
   }
 
+  /**
+   * Une grande masse nage sous l'eau en (x, z), vers `heading` : son ombre allongée (`half` : demi-longueur, `width` :
+   * demi-largeur, m) sera peinte à la prochaine image ; `strength` de 0 à 1 (elle remonte ou s'enfonce).
+   */
+  shadow(x: number, z: number, heading: number, half: number, width: number, seed: number, strength: number) {
+    if (this.shadowCount >= MAX_SHADOWS) return;
+    Object.assign(this.shadows[this.shadowCount++], { x, z, heading, half, width, seed, strength });
+  }
+
   /** `focus` : le bateau piloté (la zone est centrée sur lui). Rien ne bouge pendant la pause (dt = 0). */
   update(renderer: THREE.WebGLRenderer, camera: THREE.Camera, dt: number, focus: THREE.Vector3, ships: readonly Ship[], crates: readonly Crate[], schools: readonly FishSchool[]) {
     if (dt <= 0) return;
@@ -168,6 +187,7 @@ export class WakeMap {
     const ratio = this.resolution / WAKE.resolution;
     f.uSpread.value = Math.min(0.2, WAKE.spread * dt * ratio * ratio);
     f.uDecay.value = dt / WAKE.duration;
+    f.uShadowDecay.value = dt / SHADOW_FADE;
     this.stampUniforms.uOrigin.value.copy(this.origin);
     wakeUniforms.uWakeArea.value.set(ox, oz, WAKE.areaSize);
 
@@ -192,6 +212,8 @@ export class WakeMap {
   private collectStamps(ships: readonly Ship[], crates: readonly Crate[], schools: readonly FishSchool[]) {
     this.count = 0;
     for (const ship of ships) {
+      // Un navire maudit sous l'eau (il surgit ou replonge) ne laisse pas de sillage.
+      if (ship.intangible) continue;
       const halfLength = ship.stats.length / 2;
       const halfWidth = ship.stats.width / 2;
       if (!ship.alive) {
@@ -226,6 +248,11 @@ export class WakeMap {
       const r = FISHING.radius + 1;
       this.add(s.x, s.z, 0, 1, r, r, FISH, s.fade, FISHING.radius, s.seed, this.time, 0);
     }
+    for (let i = 0; i < this.shadowCount; i++) {
+      const s = this.shadows[i];
+      this.add(s.x, s.z, Math.sin(s.heading), Math.cos(s.heading), s.width * 1.2, s.half * 1.2, SHADOW, s.strength, s.half, s.seed, this.time, 0);
+    }
+    this.shadowCount = 0;
     this.geometry.instanceCount = this.count;
     for (const a of this.attributes) {
       a.clearUpdateRanges();
@@ -266,7 +293,7 @@ export class WakeMap {
     const distance = this.nearDistance;
     let count = 0;
     for (const ship of ships) {
-      if (!ship.alive) continue;
+      if (!ship.alive || ship.intangible) continue;
       const half = ship.stats.length / 2;
       toShip.subVectors(ship.position, camera.position);
       const d = toShip.length() - half;
@@ -286,10 +313,15 @@ export class WakeMap {
     for (let n = 0; n < count; n++) {
       const ship = near[n]!;
       const strength = wakeStrength(ship);
-      u.uWakeShips.value[n].set(ship.position.x, ship.position.z, Math.sin(ship.heading), Math.cos(ship.heading));
-      u.uWakeHulls.value[n].set(ship.stats.length / 2, ship.stats.width / 2, strength, turnOf(ship));
-      u.uWakeAttitudes.value[n].set(ship.position.y, Math.sin(ship.pitch), Math.sin(ship.roll), (ship.stats.width / 2) * WAKE.hullDraft);
-      const w = ship.model.waterline;
+      // Le liseré suit la partie mouillée de la coque (son centre n'est pas toujours celui du navire).
+      const line = ship.model.waterline;
+      const sin = Math.sin(ship.heading);
+      const cos = Math.cos(ship.heading);
+      const pitch = Math.sin(ship.pitch);
+      u.uWakeShips.value[n].set(ship.position.x + sin * line.center, ship.position.z + cos * line.center, sin, cos);
+      u.uWakeHulls.value[n].set(line.half, line.maxWidth, strength, turnOf(ship));
+      u.uWakeAttitudes.value[n].set(ship.position.y + pitch * line.center, pitch, Math.sin(ship.roll), (ship.stats.width / 2) * WAKE.hullDraft);
+      const w = line.widths;
       u.uWakeProfiles.value[n * 2].set(w[0], w[1], w[2], w[3]);
       u.uWakeProfiles.value[n * 2 + 1].set(w[4], w[5], w[6], w[7]);
     }

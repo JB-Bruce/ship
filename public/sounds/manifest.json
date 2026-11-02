@@ -1,0 +1,447 @@
+{
+  "ambience/bow_splash_1.ogg": {
+    "source": "https://freesound.org/people/qubodup/sounds/212143/",
+    "license": "CC0",
+    "duration": 1.58
+  },
+  "ambience/bow_splash_2.ogg": {
+    "source": "https://freesound.org/people/Ali_6868/sounds/384360/",
+    "license": "CC0",
+    "duration": 2.17
+  },
+  "ambience/bow_splash_3.ogg": {
+    "source": "https://freesound.org/people/ra_gun/sounds/82271/",
+    "license": "CC0",
+    "duration": 2.38
+  },
+  "ambience/gulls_1.ogg": {
+    "source": "https://freesound.org/people/kyles/sounds/637813/",
+    "license": "CC0",
+    "duration": 5.82
+  },
+  "ambience/gulls_2.ogg": {
+    "source": "https://freesound.org/people/ahill86/sounds/207131/",
+    "license": "CC0",
+    "duration": 7.93
+  },
+  "ambience/gulls_3.ogg": {
+    "source": "https://freesound.org/people/shengjung425/sounds/736426/",
+    "license": "CC0",
+    "duration": 7.69
+  },
+  "ambience/harbor.ogg": {
+    "source": "https://freesound.org/people/clif_creates/sounds/254125/",
+    "license": "CC0",
+    "duration": 57
+  },
+  "ambience/hull_creak_1.ogg": {
+    "source": "https://freesound.org/people/kyles/sounds/452105/",
+    "license": "CC0",
+    "duration": 2.5
+  },
+  "ambience/hull_creak_2.ogg": {
+    "source": "https://freesound.org/people/kyles/sounds/452105/",
+    "license": "CC0",
+    "duration": 2.7
+  },
+  "ambience/hull_creak_3.ogg": {
+    "source": "https://freesound.org/people/kyles/sounds/452106/",
+    "license": "CC0",
+    "duration": 1.5
+  },
+  "ambience/hull_creak_4.ogg": {
+    "source": "https://freesound.org/people/kyles/sounds/452106/",
+    "license": "CC0",
+    "duration": 1.77
+  },
+  "ambience/night_sea.ogg": {
+    "source": "https://freesound.org/people/tomattka/sounds/400660/",
+    "license": "CC0",
+    "duration": 28.6
+  },
+  "ambience/rain.ogg": {
+    "source": "https://freesound.org/people/cocaine/sounds/611421/",
+    "license": "CC0",
+    "duration": 49
+  },
+  "ambience/rope_creak_1.ogg": {
+    "source": "https://freesound.org/people/phonoflora/sounds/500143/",
+    "license": "CC0",
+    "duration": 2.5
+  },
+  "ambience/rope_creak_2.ogg": {
+    "source": "https://freesound.org/people/phonoflora/sounds/500143/",
+    "license": "CC0",
+    "duration": 2.5
+  },
+  "ambience/rope_creak_3.ogg": {
+    "source": "https://freesound.org/people/phonoflora/sounds/500143/",
+    "license": "CC0",
+    "duration": 2.5
+  },
+  "ambience/sail_flap_1.ogg": {
+    "source": "https://freesound.org/people/GeorgeHopkins/sounds/448975/",
+    "license": "CC0",
+    "duration": 2.4
+  },
+  "ambience/sail_flap_2.ogg": {
+    "source": "https://freesound.org/people/GeorgeHopkins/sounds/448975/",
+    "license": "CC0",
+    "duration": 2.5
+  },
+  "ambience/sail_flap_3.ogg": {
+    "source": "https://freesound.org/people/GeorgeHopkins/sounds/448975/",
+    "license": "CC0",
+    "duration": 2.8
+  },
+  "ambience/sea_calm.ogg": {
+    "source": "https://freesound.org/people/4billboards/sounds/512126/",
+    "license": "CC0",
+    "duration": 49
+  },
+  "ambience/sea_rough.ogg": {
+    "source": "https://freesound.org/people/ra_gun/sounds/82271/",
+    "license": "CC0",
+    "duration": 54
+  },
+  "ambience/sea_storm.ogg": {
+    "source": "https://freesound.org/people/KevinT1001/sounds/170829/",
+    "license": "CC0",
+    "duration": 59
+  },
+  "ambience/ship_bell.ogg": {
+    "source": "https://freesound.org/people/Sojan/sounds/353232/",
+    "license": "CC0",
+    "duration": 1.33
+  },
+  "ambience/thunder_1.ogg": {
+    "source": "https://freesound.org/people/nednednerb/sounds/38244/",
+    "license": "CC0",
+    "duration": 7.15
+  },
+  "ambience/thunder_2.ogg": {
+    "source": "https://freesound.org/people/LukaCafuka/sounds/750665/",
+    "license": "CC0",
+    "duration": 9.81
+  },
+  "ambience/thunder_3.ogg": {
+    "source": "https://freesound.org/people/soundman9826/sounds/193333/",
+    "license": "CC0",
+    "duration": 12.4
+  },
+  "ambience/wind_light.ogg": {
+    "source": "https://freesound.org/people/SiriusParsec/sounds/538204/",
+    "license": "CC0",
+    "duration": 19
+  },
+  "ambience/wind_strong.ogg": {
+    "source": "https://freesound.org/people/dangale/sounds/463373/",
+    "license": "CC0",
+    "duration": 49
+  },
+  "combat/ball_whistle_1.ogg": {
+    "source": "https://freesound.org/people/craigsmith/sounds/486035/",
+    "license": "CC0",
+    "duration": 1.5
+  },
+  "combat/ball_whistle_2.ogg": {
+    "source": "https://freesound.org/people/craigsmith/sounds/486035/",
+    "license": "CC0",
+    "duration": 2
+  },
+  "combat/ball_whistle_3.ogg": {
+    "source": "https://freesound.org/people/craigsmith/sounds/486035/",
+    "license": "CC0",
+    "duration": 2.3
+  },
+  "combat/cannon_far_1.ogg": {
+    "source": "https://freesound.org/people/craigsmith/sounds/486019/",
+    "license": "CC0",
+    "duration": 1.16
+  },
+  "combat/cannon_far_2.ogg": {
+    "source": "https://freesound.org/people/craigsmith/sounds/486019/",
+    "license": "CC0",
+    "duration": 1.52
+  },
+  "combat/cannon_far_3.ogg": {
+    "source": "https://freesound.org/people/craigsmith/sounds/486019/",
+    "license": "CC0",
+    "duration": 1.04
+  },
+  "combat/cannon_near_1.ogg": {
+    "source": "https://freesound.org/people/qubodup/sounds/187767/",
+    "license": "CC0",
+    "duration": 3.84
+  },
+  "combat/cannon_near_2.ogg": {
+    "source": "https://freesound.org/people/SamsterBirdies/sounds/581597/",
+    "license": "CC0",
+    "duration": 1.59
+  },
+  "combat/cannon_near_3.ogg": {
+    "source": "https://freesound.org/people/Kastenfrosch/sounds/162455/",
+    "license": "CC0",
+    "duration": 2.07
+  },
+  "combat/cannon_near_4.ogg": {
+    "source": "https://freesound.org/people/InMotionAudio/sounds/702245/",
+    "license": "CC0",
+    "duration": 0.92
+  },
+  "combat/explosion_1.ogg": {
+    "source": "https://freesound.org/people/V-ktor/sounds/434426/",
+    "license": "CC0",
+    "duration": 2.4
+  },
+  "combat/explosion_2.ogg": {
+    "source": "https://freesound.org/people/V-ktor/sounds/434424/",
+    "license": "CC0",
+    "duration": 2.3
+  },
+  "combat/fire.ogg": {
+    "source": "https://freesound.org/people/Sadiquecat/sounds/707262/",
+    "license": "CC0",
+    "duration": 37
+  },
+  "combat/fort_cannon_1.ogg": {
+    "source": "https://freesound.org/people/craigsmith/sounds/675608/",
+    "license": "CC0",
+    "duration": 4.76
+  },
+  "combat/fort_cannon_2.ogg": {
+    "source": "https://freesound.org/people/craigsmith/sounds/675607/",
+    "license": "CC0",
+    "duration": 6.23
+  },
+  "combat/hit_wood_1.ogg": {
+    "source": "https://freesound.org/people/sukondi/sounds/553886/",
+    "license": "CC0",
+    "duration": 1.36
+  },
+  "combat/hit_wood_2.ogg": {
+    "source": "https://freesound.org/people/Kreastricon62/sounds/241601/",
+    "license": "CC0",
+    "duration": 1.96
+  },
+  "combat/hit_wood_3.ogg": {
+    "source": "https://freesound.org/people/egomassive/sounds/536777/",
+    "license": "CC0",
+    "duration": 0.81
+  },
+  "combat/hit_wood_4.ogg": {
+    "source": "https://freesound.org/people/FiveBrosStopMosYT/sounds/676613/",
+    "license": "CC0",
+    "duration": 0.83
+  },
+  "combat/mast_crack.ogg": {
+    "source": "https://freesound.org/people/ecfike/sounds/139952/",
+    "license": "CC0",
+    "duration": 4.47
+  },
+  "combat/mortar_fire.ogg": {
+    "source": "https://freesound.org/people/craigsmith/sounds/486032/",
+    "license": "CC0",
+    "duration": 5.89
+  },
+  "combat/ram_crash.ogg": {
+    "source": "https://freesound.org/people/decadylan/sounds/825800/",
+    "license": "CC0",
+    "duration": 3.91
+  },
+  "combat/rigging_hit_1.ogg": {
+    "source": "https://freesound.org/people/Rudmer_Rotteveel/sounds/591525/",
+    "license": "CC0",
+    "duration": 3.19
+  },
+  "combat/rigging_hit_2.ogg": {
+    "source": "https://freesound.org/people/Rudmer_Rotteveel/sounds/591527/",
+    "license": "CC0",
+    "duration": 2.75
+  },
+  "combat/shell_blast.ogg": {
+    "source": "https://freesound.org/people/V-ktor/sounds/434423/",
+    "license": "CC0",
+    "duration": 2.98
+  },
+  "combat/sinking.ogg": {
+    "source": [
+      "https://freesound.org/people/Sonicquinn/sounds/439232/",
+      "https://freesound.org/people/kyles/sounds/452105/"
+    ],
+    "license": "CC0",
+    "duration": 8
+  },
+  "combat/splash_1.ogg": {
+    "source": "https://freesound.org/people/Fission9/sounds/583348/",
+    "license": "CC0",
+    "duration": 2.03
+  },
+  "combat/splash_2.ogg": {
+    "source": "https://freesound.org/people/petenice/sounds/9508/",
+    "license": "CC0",
+    "duration": 1.93
+  },
+  "combat/splash_3.ogg": {
+    "source": "https://freesound.org/people/deadrobotmusic/sounds/609942/",
+    "license": "CC0",
+    "duration": 1.07
+  },
+  "combat/splash_4.ogg": {
+    "source": "https://freesound.org/people/deadrobotmusic/sounds/609951/",
+    "license": "CC0",
+    "duration": 1.16
+  },
+  "crew/cheer_1.ogg": {
+    "source": "https://freesound.org/people/craigsmith/sounds/480755/",
+    "license": "CC0",
+    "duration": 5.14
+  },
+  "crew/cheer_2.ogg": {
+    "source": "https://freesound.org/people/craigsmith/sounds/480755/",
+    "license": "CC0",
+    "duration": 5.39
+  },
+  "crew/shout_1.ogg": {
+    "source": "https://freesound.org/people/craigsmith/sounds/480787/",
+    "license": "CC0",
+    "duration": 4.17
+  },
+  "crew/shout_2.ogg": {
+    "source": "https://freesound.org/people/craigsmith/sounds/480787/",
+    "license": "CC0",
+    "duration": 4.44
+  },
+  "crew/shout_3.ogg": {
+    "source": "https://freesound.org/people/craigsmith/sounds/480787/",
+    "license": "CC0",
+    "duration": 5.17
+  },
+  "crew/tavern.ogg": {
+    "source": "https://freesound.org/people/ivolipa/sounds/326313/",
+    "license": "CC0",
+    "duration": 36.4
+  },
+  "cursed/dive.ogg": {
+    "source": "https://freesound.org/people/taure/sounds/575314/",
+    "license": "CC0",
+    "duration": 5.95
+  },
+  "cursed/presence.ogg": {
+    "source": [
+      "https://freesound.org/people/felix.blume/sounds/146914/",
+      "https://freesound.org/people/qubodup/sounds/194628/",
+      "https://freesound.org/people/kyles/sounds/452106/"
+    ],
+    "license": "CC0",
+    "duration": 41.3
+  },
+  "cursed/rise.ogg": {
+    "source": [
+      "https://freesound.org/people/thaighaudio/sounds/349883/",
+      "https://freesound.org/people/kyles/sounds/452106/"
+    ],
+    "license": "CC0",
+    "duration": 6.14
+  },
+  "music/boss.ogg": {
+    "source": "https://opengameart.org/content/boss-battle-music",
+    "license": "CC0",
+    "duration": 123.43
+  },
+  "music/combat.ogg": {
+    "source": "https://opengameart.org/content/eye-of-the-storm-0",
+    "license": "CC0",
+    "duration": 116.98
+  },
+  "music/cursed.ogg": {
+    "source": "https://opengameart.org/content/a-cold-wind",
+    "license": "CC0",
+    "duration": 41
+  },
+  "music/night.ogg": {
+    "source": "https://opengameart.org/content/fantasy-rising-moon",
+    "license": "CC0",
+    "duration": 139
+  },
+  "music/port.ogg": {
+    "source": "https://opengameart.org/content/merchants-and-sea-salt",
+    "license": "CC0",
+    "duration": 101.86
+  },
+  "music/sailing.ogg": {
+    "source": "https://opengameart.org/content/pirates-orchestra-208",
+    "license": "CC0",
+    "duration": 127.05
+  },
+  "music/treasure.ogg": {
+    "source": "https://opengameart.org/content/simple-battle-fanfare",
+    "license": "CC0",
+    "duration": 8
+  },
+  "ui/chest_open.ogg": {
+    "source": "https://freesound.org/people/The_Frisbee_of_Peace/sounds/573654/",
+    "license": "CC0",
+    "duration": 1.42
+  },
+  "ui/coins_1.ogg": {
+    "source": "https://freesound.org/people/The_Frisbee_of_Peace/sounds/575582/",
+    "license": "CC0",
+    "duration": 0.33
+  },
+  "ui/coins_2.ogg": {
+    "source": "https://freesound.org/people/The_Frisbee_of_Peace/sounds/575583/",
+    "license": "CC0",
+    "duration": 0.47
+  },
+  "ui/coins_3.ogg": {
+    "source": "https://freesound.org/people/The_Frisbee_of_Peace/sounds/575580/",
+    "license": "CC0",
+    "duration": 0.56
+  },
+  "ui/coins_big.ogg": {
+    "source": "https://freesound.org/people/The_Frisbee_of_Peace/sounds/575571/",
+    "license": "CC0",
+    "duration": 2.19
+  },
+  "ui/hammer.ogg": {
+    "source": "https://freesound.org/people/LiezelDippenaar/sounds/707525/",
+    "license": "CC0",
+    "duration": 1.97
+  },
+  "ui/map_unfold.ogg": {
+    "source": "https://freesound.org/people/Breviceps/sounds/447931/",
+    "license": "CC0",
+    "duration": 1.38
+  },
+  "ui/paper_1.ogg": {
+    "source": "https://freesound.org/people/SpaceJoe/sounds/484953/",
+    "license": "CC0",
+    "duration": 0.9
+  },
+  "ui/paper_2.ogg": {
+    "source": "https://freesound.org/people/SpaceJoe/sounds/484949/",
+    "license": "CC0",
+    "duration": 1
+  },
+  "ui/paper_3.ogg": {
+    "source": "https://freesound.org/people/SpaceJoe/sounds/484945/",
+    "license": "CC0",
+    "duration": 1.56
+  },
+  "ui/quill.ogg": {
+    "source": "https://freesound.org/people/Anthousai/sounds/337091/",
+    "license": "CC0",
+    "duration": 2.28
+  },
+  "ui/tear_poster.ogg": {
+    "source": "https://freesound.org/people/falcospizaetus/sounds/489964/",
+    "license": "CC0",
+    "duration": 1.67
+  },
+  "ui/wood_click.ogg": {
+    "source": "https://freesound.org/people/NoisyRedFox/sounds/742356/",
+    "license": "CC0",
+    "duration": 0.2
+  }
+}

@@ -1,3 +1,5 @@
+import { EXTENDED_MASTS } from '../../config';
+
 /** Une partie de la coque qui s'étire (u de base, de la poupe vers la proue) et la longueur qu'on lui ajoute (m). */
 export interface StretchPart {
   from: number;
@@ -20,6 +22,14 @@ export function hullStretch(baseHalf: number, parts: readonly StretchPart[]) {
     return out;
   };
   return { half, extra, zOf, base: (u: number) => zOf(u * baseHalf) / half };
+}
+
+/**
+ * Cote du grand mât d'un navire allongé (`level` allongements faits) : rapproché du milieu entre misaine et artimon
+ * (EXTENDED_MASTS.mainBalance). Le navire de base garde sa cote.
+ */
+export function balancedMainMast(main: number, fore: number, aft: number, level: number): number {
+  return level > 0 ? main + ((fore + aft) / 2 - main) * EXTENDED_MASTS.mainBalance : main;
 }
 
 /** Ordre d'achat de n sabords réguliers (0 = le plus en arrière) : les `first` du milieu, puis alternativement vers l'avant et l'arrière. */

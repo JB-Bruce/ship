@@ -1,0 +1,341 @@
+/* Capitainerie : carte de l'île aux bâtiments, bâtiment choisi, réserve et Mouillage. */
+
+.parchment.hm-frame {
+  width: min(1180px, calc(100vw - 24px));
+  height: min(700px, calc(100vh - 24px));
+  max-height: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 8px;
+  color: #2a1d12;
+  background: #3b2716;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.6), inset 0 0 0 3px #1f140a;
+}
+.parchment.hm-frame > h1,
+.parchment.hm-frame > .hint {
+  display: none;
+}
+.parchment.hm-frame > .menu-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.hm-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 22px;
+  background: rgba(20, 12, 6, 0.55);
+  border-bottom: 3px solid #1f140a;
+  color: #f1dfb4;
+}
+.hm-title {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 32px;
+  white-space: nowrap;
+}
+.hm-facts {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.hm-chip {
+  padding: 2px 10px;
+  font-size: 14px;
+  color: #f1dfb4;
+  border: 1px solid #c9a24a;
+  border-radius: 12px;
+  cursor: help;
+}
+.hm-head .kit-coffer {
+  color: #f1dfb4;
+}
+.hm-head .kit-btn.ghost.hm-back {
+  color: #f1dfb4;
+  border-color: #8a7550;
+}
+.hm-main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 18px;
+  padding: 16px 18px 18px;
+}
+.hm-frame h2 {
+  margin: 0;
+  font-family: 'Pirata One', Georgia, serif;
+  font-weight: 400;
+  font-size: 28px;
+}
+
+/* La carte de l'île, aussi grande que la place le permet. */
+.hm-mapbox {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 6px solid #5a3b22;
+  border-radius: 4px;
+  background: #c3d3c8;
+}
+.hm-map {
+  position: relative;
+  height: 100%;
+  max-width: 100%;
+}
+.hm-map > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.hm-shallows {
+  fill: #cfe0d6;
+  stroke: #8aa59a;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
+}
+.hm-sand {
+  fill: #dcc084;
+  stroke: #8a7550;
+  stroke-width: 3;
+}
+.hm-green {
+  fill: #a9b46a;
+}
+.hm-hill {
+  fill: #8f9a55;
+  stroke: #6f7a40;
+  stroke-width: 2;
+}
+.hm-quay {
+  fill: #6a4a2a;
+  stroke: #2a1d12;
+  stroke-width: 2;
+}
+.hm-leader {
+  stroke: #2a1d12;
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+.hm-spot {
+  fill: #2a1d12;
+  stroke: #f7eed8;
+  stroke-width: 1.5;
+}
+.hm-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 116px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 5px 4px;
+  font: inherit;
+  color: #2a1d12;
+  background: #efe2c4;
+  border: 2px solid #5a3b22;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+.hm-pin:hover {
+  transform: translate(-50%, -50%) translateY(-4px) scale(1.06);
+}
+.hm-pin svg {
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.hm-pin svg .solid {
+  fill: currentColor;
+}
+.hm-pin b {
+  font-size: 13px;
+  line-height: 1.1;
+  text-align: center;
+}
+.hm-pin span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+}
+.hm-pin.empty {
+  background: rgba(239, 226, 196, 0.75);
+  color: #6a5032;
+  border-style: dashed;
+  border-color: #8a7550;
+}
+.hm-pin.locked {
+  background: rgba(214, 196, 156, 0.8);
+  color: #6a5032;
+  border-color: #8a7550;
+}
+.hm-pin.on {
+  background: #7a2b1c;
+  color: #f7eed8;
+  border: 3px solid #f1dfb4;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.35);
+}
+.hm-pin .hm-lock {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+}
+
+/* Les panneaux de droite. */
+.hm-side {
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hm-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  background: #efe2c4;
+  border-radius: 6px;
+}
+.hm-card p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.3;
+}
+.hm-building-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.hm-building-head svg {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.hm-building-head h2 {
+  flex: 1;
+}
+.hm-effect {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+}
+.hm-effect span {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6a5032;
+}
+.hm-effect.next {
+  color: #3f7a3a;
+  font-weight: 700;
+}
+.hm-frame .kit-btn.hm-build,
+.hm-frame .kit-btn.hm-buy {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  font-size: 17px;
+  border-color: #2a1d12;
+}
+.hm-frame .kit-btn.hm-build {
+  background: #7a2b1c;
+  color: #f7eed8;
+}
+.hm-frame .kit-btn.dim {
+  opacity: 0.55;
+}
+.hm-done {
+  font-weight: 700;
+  color: #3f7a3a;
+}
+.hm-note {
+  font-style: italic;
+  color: #6a5032;
+}
+.hm-reserve {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+.hm-chest {
+  width: 60px;
+  height: 48px;
+  flex: none;
+}
+.hm-chest path {
+  fill: #8a5a2b;
+  stroke: #3b2716;
+  stroke-width: 3;
+}
+.hm-reserve-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 15px;
+}
+.hm-reserve-body b {
+  font-size: 17px;
+  cursor: help;
+}
+.hm-reserve-body span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.hm-moorings > b small {
+  font-weight: 400;
+  color: #6a5032;
+}
+.hm-berths {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.hm-berth {
+  flex: 1 1 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px;
+  font-size: 14px;
+  background: #e3ecd9;
+  border: 2px solid #1f5229;
+  border-radius: 6px;
+}
+.hm-berth.free {
+  background: transparent;
+  color: #6a5032;
+  border: 2px dashed #8a7550;
+}
+.hm-berth small {
+  font-size: 12px;
+  color: #5a4026;
+}
+.hm-purchase h2 {
+  font-size: 26px;
+}

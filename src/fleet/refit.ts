@@ -19,5 +19,6 @@ export function refit(member: FleetMember, crew: Crew) {
   ship.guns = { ...member.guns };
   ship.upgrade(member.levels);
   ship.dressing.setRank(stars);
+  ship.dressing.setEmblem(member.emblem);
   ship.dressing.setTrophies(member.trophies.filter((id) => !member.hiddenTrophies.has(id)));
 }

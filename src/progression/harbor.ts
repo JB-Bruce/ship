@@ -1,11 +1,13 @@
-import { GUNS, ISLAND_INFO, OFFICERS, type BossId, type GunType, type IslandId, type TradeGood } from '../config';
+import { EMBLEMS, GUNS, ISLAND_INFO, OFFICERS, TREASURE_HUNTS, type TreasureHuntId, type EmblemId, type BossId, type GunType, type IslandId, type TradeGood } from '../config';
 import type { Crew } from '../fleet/crew';
 import { officerPrice, type Officer } from '../fleet/officers';
+import { treasures } from './treasures';
 import { refit } from '../fleet/refit';
 import type { Fleet, FleetMember } from '../fleet/fleet';
 import { fleetStock, load, unload } from '../fleet/holds';
 import type { TradeRoutes } from '../fleet/tradeRoutes';
 import { SHIP_TYPES, UPGRADE_INFO, type ShipType } from '../shipTypes';
+import { blueprints, revealTypes } from './blueprints';
 import type { Contract, ContractOptions, Contracts } from './contracts';
 import { goodText, type Good } from './goods';
 import { ISLAND_UPGRADE_INFO, type IslandState, type IslandUpgradeId } from './islandState';
@@ -13,6 +15,7 @@ import type { Ledger } from './ledger';
 import type { PlayerState } from './playerState';
 import { gunCost } from './modifiers';
 import { nextCost, type UpgradeId } from './upgrades';
+import { sound } from '../audio/sound';
 
 export interface HarborEvents {
   say(text: string): void;
@@ -25,6 +28,8 @@ export interface HarborEvents {
   /** Un contrat vient d'être accepté (une mission peut commencer) ou abandonné. */
   contractAccepted(contract: Contract): void;
   contractAbandoned(contract: Contract): void;
+  /** Une rumeur de trésor achetée : la chasse commence. */
+  treasureRumor(id: TreasureHuntId): void;
 }
 
 /**
@@ -62,10 +67,17 @@ export class Harbor {
     if (this.routes.start(member, this.island.id, to, out, back)) this.events.say(`${member.name} part commercer avec ${ISLAND_INFO[to].shortName}`);
   }
 
-  /** Rappelle un navire en commerce dans la flotte. */
+  /** Envoie un navire pêcheur pêcher depuis ce port (il y prend un emplacement du Mouillage). */
+  startFishing(memberId: number) {
+    const member = this.fleet.members.find((m) => m.id === memberId);
+    if (!member || !member.inWorld || !member.ship.alive) return;
+    if (this.routes.startFishing(member, this.island.id)) this.events.say(`${member.name} part pêcher depuis ${ISLAND_INFO[this.island.id].shortName}`);
+  }
+
+  /** Rappelle un navire en commerce dans la flotte : seulement au port de son île, s'il reste une place. */
   recallRoute(memberId: number) {
     const member = this.fleet.members.find((m) => m.id === memberId);
-    if (!member?.trade) return;
+    if (!member || !this.routes.canRecall(member, this.island.id)) return;
     this.routes.recall(member);
     this.events.say(`${member.name} quitte sa route et rejoint la flotte`);
   }
@@ -85,13 +97,15 @@ export class Harbor {
     const member = this.fleet.controlled;
     const ext = SHIP_TYPES[member.type].extensions?.[member.levels.extension];
     if (!ext || !this.state.spend(ext.cost)) return;
+    sound.play('ui/hammer');
     member.levels.extension++;
     member.spent.gold += ext.cost.gold;
     member.spent.wood += ext.cost.wood;
     refit(member, this.crew);
     this.ledger.shipsExtended++;
     this.events.say(`${member.name} reprend la mer en ${ext.name.toLowerCase()} !`);
-    this.events.log(`⟷ Le chantier a allongé ${member.name} de ${ext.length} m`);
+    // Un gréement neuf (goélette à hunier) ne rallonge pas la coque.
+    this.events.log(ext.length > 0 ? `⟷ Le chantier a allongé ${member.name} de ${ext.length} m` : `⟷ Le chantier a regréé ${member.name}`);
   }
 
   /** Achète le niveau suivant d'une amélioration pour le bateau piloté. */
@@ -99,6 +113,7 @@ export class Harbor {
     const member = this.fleet.controlled;
     const cost = nextCost(member.type, id, member.levels);
     if (!cost || !this.state.spend(cost)) return;
+    sound.play('ui/hammer');
     member.levels[id]++;
     member.spent.gold += cost.gold;
     member.spent.wood += cost.wood;
@@ -108,7 +123,10 @@ export class Harbor {
 
   buyShip(type: ShipType) {
     const price = this.island.shipPrice(SHIP_TYPES[type].price);
-    if (this.fleet.members.length >= this.state.slots || !this.state.spend(price)) return;
+    // Les navires en commerce ne prennent pas de place dans la flotte (ils ont un emplacement dans leur île). Il faut
+    // aussi le plan complet du navire.
+    if (!blueprints.isUnlocked(type) || !this.island.canBuild(type) || this.fleet.hand.length >= this.state.slots || !this.state.spend(price)) return;
+    sound.play('ui/hammer');
     const member = this.fleet.add(type, price);
     this.events.say(`${member.name} (${SHIP_TYPES[type].name}) rejoint ta flotte !`);
   }
@@ -152,6 +170,20 @@ export class Harbor {
     this.events.say(`${member.name} : ${GUNS.types[type].name.toLowerCase()}${battery === 'deck' ? ' sur les gaillards' : ''}`);
   }
 
+  /** Peint un emblème sur la grande voile du bateau piloté (null : l'efface) ; gratuit s'il l'a déjà eu. */
+  paintEmblem(id: EmblemId | null) {
+    const member = this.fleet.controlled;
+    if (id === member.emblem) return;
+    if (id && !treasures.emblemAvailable(id)) return;
+    if (id && !member.ownedEmblems.has(id) && !treasures.isTreasureEmblem(id)) {
+      if (!this.state.spend({ gold: EMBLEMS.price, wood: 0 })) return;
+      member.ownedEmblems.add(id);
+    }
+    member.emblem = id;
+    refit(member, this.crew);
+    this.events.say(id ? `${member.name} arbore ${EMBLEMS.designs[id].name.toLowerCase()}` : `${member.name} : grande voile sans emblème`);
+  }
+
   /** Hisse ou retire le pavillon d'un boss coulé par ce navire. */
   toggleTrophy(memberId: number, boss: BossId) {
     const member = this.fleet.members.find((m) => m.id === memberId);
@@ -177,6 +209,7 @@ export class Harbor {
   buyIslandUpgrade(id: IslandUpgradeId) {
     const cost = this.island.nextCost(id);
     if (!this.island.owned || !this.island.info.upgrades.includes(id) || !cost || !this.state.spend(cost)) return;
+    sound.play('ui/hammer');
     this.island.levels[id]++;
     this.events.islandChanged(this.island);
     this.events.say(`${ISLAND_UPGRADE_INFO[id].name} : niveau ${this.island.levels[id]}`);
@@ -204,9 +237,18 @@ export class Harbor {
     this.state.gold -= n * price.buy;
   }
 
+  /** Achète la rumeur d'une chasse au trésor à la taverne de l'escale. */
+  buyRumor(id: TreasureHuntId) {
+    const hunt = TREASURE_HUNTS[id];
+    if (!hunt || hunt.rumor.island !== this.island.id || !treasures.canStart(id)) return;
+    if (!this.state.spend({ gold: hunt.rumor.price, wood: 0 })) return;
+    this.events.treasureRumor(id);
+  }
+
   acceptContract(id: number) {
     const contract = this.contracts.accept(id);
     if (!contract) return;
+    sound.play('ui/quill');
     this.contracts.refresh(this.island.id, this.events.contractOptions());
     this.events.contractAccepted(contract);
   }
@@ -230,6 +272,7 @@ export class Harbor {
       return;
     }
     this.contracts.complete(c);
+    sound.play('ui/coins_big');
     this.pay(c);
   }
 
@@ -243,7 +286,7 @@ export class Harbor {
     this.ledger.contractsDone++;
     const officer = c.special ? this.crew.grantUnique(c.special) : null;
     const joins = officer ? ` — ${officer.name} rejoint ton équipage !` : '';
-    this.events.say(`Prime touchée : ${c.title} (+${c.reward.gold} or${c.reward.wood ? `, +${c.reward.wood} bois` : ''})${joins}`);
+    this.events.say(`Prime touchée : ${revealTypes(c.title)} (+${c.reward.gold} or${c.reward.wood ? `, +${c.reward.wood} bois` : ''})${joins}`);
     return officer;
   }
 }

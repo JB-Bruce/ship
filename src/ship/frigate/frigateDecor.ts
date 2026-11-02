@@ -25,7 +25,7 @@ export function addStern(L: FrigateLayout, batch: GeometryBatch, p: Palette, gol
   for (const { floor, windows } of galleries(L)) {
     const w = 2 * L.widthAt(-1, windows);
     for (let x = -w / 2 + 0.55; x <= w / 2 - 0.5; x += 0.85) {
-      batch.add(p.dark, box(0.5, 0.7, 0.05), tf(x, windows, face - 0.03));
+      batch.add(p.window, box(0.5, 0.7, 0.05), tf(x, windows, face - 0.03));
       batch.add(gold, box(0.6, 0.06, 0.06), tf(x, windows + 0.4, face - 0.04));
     }
     // Balcon : plancher, balustres et main courante dorés.
@@ -56,7 +56,7 @@ export function addStern(L: FrigateLayout, batch: GeometryBatch, p: Palette, gol
       batch.add(light, box(0.55, 1.5, 2.3), tf(x, windows, q.z));
       batch.add(gold, box(0.6, 0.08, 2.4), tf(x, windows + 0.78, q.z));
       batch.add(gold, box(0.6, 0.08, 2.4), tf(x, windows - 0.78, q.z));
-      for (const dz of [-0.7, 0, 0.7]) batch.add(p.dark, box(0.05, 0.55, 0.42), tf(x + side * 0.28, windows + 0.05, q.z + dz));
+      for (const dz of [-0.7, 0, 0.7]) batch.add(p.window, box(0.05, 0.55, 0.42), tf(x + side * 0.28, windows + 0.05, q.z + dz));
     }
     // Petit dôme au-dessus de la galerie haute.
     const x = side * (L.widthAt(u, galleries(L)[1].windows) + 0.25);

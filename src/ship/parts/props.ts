@@ -18,6 +18,8 @@ export interface Palette {
   pants: THREE.Material;
   bandana: THREE.Material;
   glow: THREE.Material;
+  /** Fenêtres (éclairées la nuit : parts/nightGlow.ts). */
+  window: THREE.Material;
 }
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);

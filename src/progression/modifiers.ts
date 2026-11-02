@@ -49,7 +49,8 @@ export function applyModifiers(stats: ShipStats, m: StatModifiers, guns: Guns): 
   const calibres: [typeof stats.cannon, GunType][] = [[stats.cannon, guns.main]];
   if (stats.deckCannon) calibres.push([stats.deckCannon, guns.deck]);
   for (const [c, type] of calibres) {
-    const g = GUNS.types[type];
+    // Un mortier reste un mortier : les types de canons ne le changent pas.
+    const g = GUNS.types[c.shell ? 'standard' : type];
     const range = factor(m, 'range') * g.range;
     c.reloadTime *= factor(m, 'reload') * g.reload;
     c.spread *= factor(m, 'spread');

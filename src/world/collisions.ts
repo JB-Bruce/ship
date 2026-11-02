@@ -1,8 +1,10 @@
 import * as THREE from 'three';
-import { RAM } from '../config';
+import { AUDIO, RAM } from '../config';
 import type { Effects } from '../fx/effects';
 import { factor } from '../progression/modifiers';
 import { isHostile, type Ship } from '../ship/ship';
+import { SHIP_TYPES } from '../shipTypes';
+import { sound } from '../audio/sound';
 
 /** Chaque coque est approchée par 3 cercles le long de la quille (fractions de la longueur). */
 const CIRCLES = [-1 / 3, 0, 1 / 3];
@@ -12,20 +14,26 @@ const contact = new THREE.Vector3();
  * Collisions entre bateaux : ils se repoussent, et un choc assez rapide fait des dégâts (éperonnage), selon la vitesse
  * de rapprochement et la masse de l'autre (RAM). Celui qui frappe avec sa proue encaisse moins que celui qui est percuté ;
  * le plus lourd repousse le plus léger et garde plus de sa vitesse.
- * `onRam` reçoit les dégâts à appliquer à chaque bateau touché, et le bateau qui l'a percuté.
+ * `onRam` reçoit les dégâts à appliquer à chaque bateau touché, et le bateau qui l'a percuté. Un brûlot qui touche une
+ * coque adverse n'éperonne pas : il saute (`onFuse` : le brûlot, sa proie).
  */
-export function resolveCollisions(ships: readonly Ship[], effects: Effects, onRam: (ship: Ship, damage: number, other: Ship) => void) {
+export function resolveCollisions(
+  ships: readonly Ship[],
+  effects: Effects,
+  onRam: (ship: Ship, damage: number, other: Ship) => void,
+  onFuse: (fireship: Ship, target: Ship) => void,
+) {
   for (let i = 0; i < ships.length; i++) {
     for (let j = i + 1; j < ships.length; j++) {
       const a = ships[i];
       const b = ships[j];
-      if (!a.alive || !b.alive || a.distanceTo(b) > (a.stats.length + b.stats.length) / 2) continue;
-      collide(a, b, effects, onRam);
+      if (!a.alive || !b.alive || a.intangible || b.intangible || a.distanceTo(b) > (a.stats.length + b.stats.length) / 2) continue;
+      collide(a, b, effects, onRam, onFuse);
     }
   }
 }
 
-function collide(a: Ship, b: Ship, effects: Effects, onRam: (ship: Ship, damage: number, other: Ship) => void) {
+function collide(a: Ship, b: Ship, effects: Effects, onRam: (ship: Ship, damage: number, other: Ship) => void, onFuse: (fireship: Ship, target: Ship) => void) {
   // Trouve la paire de cercles qui se chevauche le plus.
   let overlap = 0;
   let nx = 0;
@@ -57,6 +65,10 @@ function collide(a: Ship, b: Ship, effects: Effects, onRam: (ship: Ship, damage:
   b.position.x += nx * overlap * shareB;
   b.position.z += nz * overlap * shareB;
 
+  if (isHostile(a, b)) {
+    if (SHIP_TYPES[a.type].fireship) return onFuse(a, b);
+    if (SHIP_TYPES[b.type].fireship) return onFuse(b, a);
+  }
   const closing = (a.velocityX - b.velocityX) * nx + (a.velocityZ - b.velocityZ) * nz;
   // Entre bateaux d'un même camp, on se repousse sans dégâts (la formation ne s'abîme pas toute seule).
   if (!isHostile(a, b) || closing < RAM.minSpeed || a.ramCooldown > 0 || b.ramCooldown > 0) return;
@@ -74,4 +86,5 @@ function collide(a: Ship, b: Ship, effects: Effects, onRam: (ship: Ship, damage:
   a.speed *= Math.max(0, 1 - lost * shareA);
   b.speed *= Math.max(0, 1 - lost * shareB);
   effects.impact(contact);
+  sound.at('combat/ram_crash', contact, { ref: AUDIO.refs.hit });
 }

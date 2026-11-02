@@ -1,7 +1,12 @@
+import { HELM_WHEEL } from '../../config';
+import { ShipLamps } from '../parts/shipLamps';
+import { brigantineLamps } from './brigantineLamps';
 import * as THREE from 'three';
+import type { Waterline } from '../parts/hullShape';
 import type { Livery, ShipStats } from '../../config';
 import { RENDER_ORDER } from '../../utils/renderOrder';
 import { armorFor, cannonMount, fireSpots, riggingMaterial, sternStaff, waterMaskMaterial, WavingFlag } from '../parts/common';
+import { addStatics, type LanternSpot } from '../parts/nightGlow';
 import { TornSail } from '../parts/tornSail';
 import type { DeckPlan } from '../deckPlan';
 import type { CannonMount, EnsignStaff, FlagMount, ShipModel } from '../shipModel';
@@ -9,8 +14,6 @@ import { brigantineLayout, DECK_Y, MAIN_COURSE, type BrigantineLayout } from './
 import { brigantineTemplateFor, type BrigantineTemplate } from './brigantineTemplate';
 
 const RUDDER_MAX_ANGLE = 0.5;
-/** Tours de roue pour un coup de barre complet (rad). */
-const WHEEL_TURNS = 2.6;
 /**
  * Élargissement des voiles carrées par niveau de voilure (en largeur seulement), jusqu'au niveau SAIL_WIDE_LEVELS ; au-delà
  * (niveaux du brigantin allongé), la toile est surtout mieux taillée : elle ne s'élargit presque plus.
@@ -32,10 +35,11 @@ export class BrigantineModel implements ShipModel {
   readonly root = new THREE.Group();
   readonly cannons: CannonMount[] = [];
   readonly barHeight = 17.5;
-  waterline!: readonly number[];
+  waterline!: Waterline;
   flagMount!: FlagMount;
   ensignStaff!: EnsignStaff;
   fireSpots!: THREE.Vector3[];
+  lanterns!: LanternSpot[];
   deckPlan!: DeckPlan;
   private layout!: BrigantineLayout;
   /** Tout le navire (le plan courant) ; les drapeaux de rang et les trophées sont posés à côté, sur `root`. */
@@ -59,6 +63,9 @@ export class BrigantineModel implements ShipModel {
   private damage = 0;
   private flagLift = 0;
 
+  /** Appliques, lampadaires et lanternes suspendues (parts/shipLamps.ts), recréés avec le modèle. */
+  private lamps!: ShipLamps;
+
   constructor(
     stats: ShipStats,
     private readonly livery: Livery,
@@ -79,6 +86,7 @@ export class BrigantineModel implements ShipModel {
 
   setSailAmount(amount: number) {
     this.sailAmount = amount;
+    this.tornSail.setDeployment(amount);
     this.applySails();
   }
 
@@ -90,11 +98,12 @@ export class BrigantineModel implements ShipModel {
   /** Le safran suit la barre, et la roue tourne avec. */
   setRudder(rudder: number) {
     this.rudder.rotation.y = -rudder * RUDDER_MAX_ANGLE;
-    this.wheel.rotation.z = rudder * WHEEL_TURNS;
+    this.wheel.rotation.z = -rudder * HELM_WHEEL.turns;
   }
 
   setWind(relativeDirection: number, strength: number) {
     this.flag.setWind(relativeDirection, strength);
+    this.tornSail.setWind(relativeDirection, strength);
     const s = Math.sin(relativeDirection);
     // Hystérésis : au vent arrière pile, les focs ne changent pas de bord sans arrêt.
     if (s > 0.15) this.leeSide = 1;
@@ -126,6 +135,7 @@ export class BrigantineModel implements ShipModel {
   }
 
   animate(dt: number) {
+    this.lamps.animate(dt, this.root);
     this.flag.update(dt);
     for (const jib of this.jibs) jib.scale.x = Math.abs(jib.scale.x) * this.leeSide;
   }
@@ -166,11 +176,13 @@ export class BrigantineModel implements ShipModel {
       ] as const).map(([u, side, y]) => [L.base(u), side, y] as const),
     );
     this.tornSail = new TornSail(t.sailMaterial, this.livery.sailEmblem);
-    for (const { geometry, material } of t.statics) this.body.add(new THREE.Mesh(geometry, material));
+    this.lamps = new ShipLamps(brigantineLamps(L), t.palette);
+    this.body.add(this.lamps.object);
+    this.lanterns = [...addStatics(this.body, t.statics), ...this.lamps.lanterns];
 
     L.squareSails.forEach((s, i) => {
       // La grand-voile (la plus grande) porte l'emblème de la livrée, s'il y en a un.
-      const sail = new THREE.Mesh(t.squareSails[i], this.tornSail.material(i === MAIN_COURSE ? t.squareSails[i] : undefined));
+      const sail = new THREE.Mesh(t.squareSails[i], this.tornSail.material(t.squareSails[i], 'z', i === MAIN_COURSE));
       sail.position.set(0, s.yardY, s.mastZ + 0.2);
       const yard = new THREE.Mesh(t.yards[i], t.palette.wood);
       yard.position.set(0, s.yardY, s.mastZ + 0.1);
@@ -179,7 +191,7 @@ export class BrigantineModel implements ShipModel {
       this.body.add(sail, yard);
     });
     L.jibs.forEach((j, i) => {
-      const jib = new THREE.Mesh(t.jibs[i], this.tornSail.material());
+      const jib = new THREE.Mesh(t.jibs[i], this.tornSail.material(t.jibs[i], 'x'));
       jib.position.copy(j.tack);
       this.jibs.push(jib);
       this.body.add(jib);
@@ -199,11 +211,13 @@ export class BrigantineModel implements ShipModel {
     this.setCannons(this.perSide);
     this.setArmorLevel(this.armorLevel);
     this.tornSail.setDamage(this.damage);
+    this.tornSail.setDeployment(this.sailAmount);
     this.applySails();
   }
 
   /** Défait ce qui est propre à cette instance (le gabarit, partagé, reste en cache). */
   private disposeParts() {
+    this.lamps.dispose();
     this.flag.dispose();
     this.tornSail.dispose();
     this.body.clear();

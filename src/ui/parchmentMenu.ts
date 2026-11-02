@@ -1,17 +1,30 @@
+import { sound } from '../audio/sound';
 /**
  * Socle des menus façon parchemin : ouverture par une touche, fermeture par la même touche ou Échap,
  * un seul menu ouvert à la fois. Tant qu'un menu est ouvert, le jeu est en pause. Échap ferme le menu ouvert ; si
  * aucun ne l'est, il ouvre le menu « Échap » (les paramètres).
  */
+/** Écart (ms) sous lequel deux Échap sont le même appui. */
+const ESCAPE_TWIN = 250;
+
 export abstract class ParchmentMenu {
   private static readonly all: ParchmentMenu[] = [];
   /** Menu ouvert par Échap quand aucun autre ne l'est. */
   private static escapeMenu: ParchmentMenu | null = null;
   private static escapeListening = false;
+  /** Consulté par Échap quand aucun menu n'est ouvert, avant d'ouvrir le menu Échap : true = Échap consommé (visée annulée…). */
+  static escapeHandler: (() => boolean) | null = null;
+  /** Appelé quand le dernier menu ouvert se ferme (la vue à la première personne reprend la souris). */
+  static onAllClosed: () => void = () => {};
+  /** Heure du dernier Échap traité (ms) : un même appui peut arriver deux fois (touche, et souris rendue par le navigateur). */
+  private static lastEscape = -Infinity;
   isOpen = false;
   protected readonly body: HTMLElement;
   private readonly root: HTMLElement;
   private readonly titleElement: HTMLElement;
+
+  /** Une conversation (ou le menu principal) est en cours : les touches des menus se taisent. */
+  static locked = false;
 
   /** Un menu est-il ouvert (jeu en pause) ? */
   static anyOpen(): boolean {
@@ -35,19 +48,29 @@ export abstract class ParchmentMenu {
     this.body.addEventListener('click', (e) => {
       const button = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-action]');
       if (!button || button.disabled) return;
+      sound.play('ui/wood_click');
       this.onAction(button.dataset.action!, button.dataset.arg ?? '');
-      this.render();
+      // Un bouton qui ferme le menu (« Retour au port »…) ne le redessine pas : le Chantier y remettrait sa caméra.
+      if (this.isOpen || this.live) this.render();
     });
     parent.appendChild(this.root);
     ParchmentMenu.all.push(this);
 
     window.addEventListener('keydown', (e) => {
-      if (!hotkeys.includes(e.code)) return;
+      if (!hotkeys.includes(e.code) || ParchmentMenu.locked) return;
       e.preventDefault();
       if (!e.repeat) this.toggle(e.code);
     });
     ParchmentMenu.listenEscape();
   }
+
+  /** Contenu montré ailleurs que dans son parchemin (menu principal) : redessiné après un clic même fermé. */
+  protected get live(): boolean {
+    return false;
+  }
+
+  /** Son à l'ouverture : un parchemin qu'on déplie (la carte a le sien). */
+  protected openSound = 'ui/paper';
 
   /** Ce menu s'ouvre par Échap quand aucun menu n'est ouvert. */
   protected openOnEscape() {
@@ -59,19 +82,41 @@ export abstract class ParchmentMenu {
     if (ParchmentMenu.escapeListening) return;
     ParchmentMenu.escapeListening = true;
     window.addEventListener('keydown', (e) => {
-      if (e.code !== 'Escape' || e.repeat) return;
+      if (e.code !== 'Escape' || e.repeat || ParchmentMenu.locked) return;
       e.preventDefault();
+      if (ParchmentMenu.sameEscape()) return;
       const open = ParchmentMenu.all.find((m) => m.isOpen);
       if (open) open.setOpen(false);
-      else ParchmentMenu.escapeMenu?.setOpen(true);
+      else if (!ParchmentMenu.escapeHandler?.()) ParchmentMenu.escapeMenu?.setOpen(true);
     });
+  }
+
+  /**
+   * Échap pressé alors que la souris était capturée : le navigateur rend le curseur sans transmettre la touche. Fait
+   * comme Échap quand aucun menu n'est ouvert (visée annulée, sinon menu Échap), dans le même appui.
+   */
+  static pressEscape() {
+    // Une conversation rend elle-même la souris : ce n'est pas un Échap.
+    if (ParchmentMenu.locked || ParchmentMenu.sameEscape() || ParchmentMenu.anyOpen()) return;
+    if (!ParchmentMenu.escapeHandler?.()) ParchmentMenu.escapeMenu?.setOpen(true);
+  }
+
+  /** Cet Échap vient-il d'être traité (même appui reçu deux fois) ? Sinon, il est noté. */
+  private static sameEscape(): boolean {
+    const now = performance.now();
+    if (now - ParchmentMenu.lastEscape < ESCAPE_TWIN) return true;
+    ParchmentMenu.lastEscape = now;
+    return false;
   }
 
   setOpen(open: boolean) {
     if (open) for (const other of ParchmentMenu.all) if (other !== this) other.setOpen(false);
+    const closing = this.isOpen && !open;
+    if (open && !this.isOpen) sound.play(this.openSound);
     this.isOpen = open;
     this.root.classList.toggle('on', open);
     if (open) this.render();
+    if (closing && !ParchmentMenu.anyOpen()) ParchmentMenu.onAllClosed();
   }
 
   /** Touche du menu pressée (`code` : laquelle, s'il y en a plusieurs) : ouvre ou ferme le menu. */

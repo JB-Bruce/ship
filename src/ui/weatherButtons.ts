@@ -7,6 +7,7 @@ const CHOICES: readonly { kind: WeatherKind; icon: string; title: string }[] = [
   { kind: 'rain', icon: '🌧', title: 'Pluie' },
   { kind: 'storm', icon: '⛈', title: 'Orage' },
   { kind: 'tempest', icon: '🌊', title: 'Grosse tempête' },
+  { kind: 'greatStorm', icon: '⛰', title: 'Grande tempête' },
 ];
 
 /** Boutons au-dessus du radar pour choisir le temps. Le changement se fait petit à petit. */

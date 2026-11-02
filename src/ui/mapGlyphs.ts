@@ -1,14 +1,18 @@
 import type { LandmarkKind } from '../world/landmarks';
 import type { Wind } from '../world/wind';
 
-/** Encre de la carte. */
+/** Encre de la carte, et encre rouge des lieux tenus par la Marine. */
 export const INK = '#4a2e14';
-/** Côté où s'écrit le nom de chaque lieu, pour que les noms voisins ne se chevauchent pas. */
-const LABEL_SIDE: Record<LandmarkKind, 'left' | 'right' | 'below'> = { fort: 'left', lighthouse: 'right', port: 'below' };
+export const NAVY_INK = '#a3231a';
+/** Halo couleur parchemin sous les noms de lieux : ils restent lisibles par-dessus le trait de côte. */
+const LABEL_HALO = 'rgba(240, 226, 190, 0.85)';
 
-/** Icône et nom d'un lieu. */
-export function paintLandmark(ctx: CanvasRenderingContext2D, kind: LandmarkKind, name: string, x: number, y: number) {
-  ctx.strokeStyle = ctx.fillStyle = INK;
+/**
+ * Pictogramme d'un lieu, et son nom s'il en a un (`label`, écrit dessous). `navy` : tenu par la Marine, à l'encre
+ * rouge, et un port de la Marine porte une couronne au-dessus de son ancre.
+ */
+export function paintLandmark(ctx: CanvasRenderingContext2D, kind: LandmarkKind, label: string | null, x: number, y: number, navy: boolean) {
+  ctx.strokeStyle = ctx.fillStyle = navy ? NAVY_INK : INK;
   ctx.lineWidth = 1.6;
   ctx.beginPath();
   if (kind === 'port') {
@@ -22,6 +26,7 @@ export function paintLandmark(ctx: CanvasRenderingContext2D, kind: LandmarkKind,
     ctx.quadraticCurveTo(x - 5, y + 7, x, y + 7);
     ctx.quadraticCurveTo(x + 5, y + 7, x + 6, y + 2);
     ctx.stroke();
+    if (navy) paintCrown(ctx, x, y - 13);
   } else if (kind === 'fort') {
     // Muraille crénelée.
     ctx.moveTo(x - 7, y + 6);
@@ -53,14 +58,46 @@ export function paintLandmark(ctx: CanvasRenderingContext2D, kind: LandmarkKind,
     }
     ctx.stroke();
   }
-  ctx.font = "italic 14px 'IM Fell English', Georgia, serif";
-  const side = LABEL_SIDE[kind];
-  ctx.textAlign = side === 'left' ? 'right' : side === 'right' ? 'left' : 'center';
-  ctx.textBaseline = side === 'below' ? 'top' : 'middle';
-  ctx.fillText(name, x + (side === 'left' ? -11 : side === 'right' ? 11 : 0), y + (side === 'below' ? 10 : 0));
+  if (!label) return;
+  ctx.font = `${navy ? 'bold ' : ''}italic 14px 'IM Fell English', Georgia, serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 3.5;
+  ctx.strokeStyle = LABEL_HALO;
+  ctx.strokeText(label, x, y + 10);
+  ctx.fillText(label, x, y + 10);
+}
+
+/** Petite couronne pleine centrée en (x, y) : marque d'un port de la Marine. */
+function paintCrown(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  ctx.beginPath();
+  ctx.moveTo(x - 6, y + 3);
+  ctx.lineTo(x - 6, y - 3);
+  ctx.lineTo(x - 3, y);
+  ctx.lineTo(x, y - 4);
+  ctx.lineTo(x + 3, y);
+  ctx.lineTo(x + 6, y - 3);
+  ctx.lineTo(x + 6, y + 3);
+  ctx.closePath();
+  ctx.fill();
 }
 
 /** Navire vu de dessus : une flèche orientée selon son cap (nord en haut, ouest à gauche). */
+/** Losange plein de la couleur courante, cerné de clair (rouleau de plan de navire : carte et radar). */
+export function paintDiamond(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+  ctx.strokeStyle = 'rgba(255, 245, 220, 0.9)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, y - size);
+  ctx.lineTo(x + size * 0.75, y);
+  ctx.lineTo(x, y + size);
+  ctx.lineTo(x - size * 0.75, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
+
 export function paintShip(ctx: CanvasRenderingContext2D, x: number, y: number, heading: number, size: number, color: string) {
   const dx = -Math.sin(heading);
   const dy = -Math.cos(heading);
